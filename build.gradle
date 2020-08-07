@@ -1,0 +1,138 @@
+plugins {
+    id 'java'
+    id 'maven-publish'
+    id 'jacoco'
+    id 'com.avast.gradle.docker-compose' version '0.10.11'
+    id 'org.jetbrains.kotlin.jvm' version '1.3.72'
+}
+
+repositories {
+    mavenLocal()
+    maven {
+        url = uri('https://repo.maven.apache.org/maven2')
+    }
+    mavenCentral()
+    jcenter()
+}
+
+dependencies {
+    implementation 'org.apache.logging.log4j:log4j-core:2.13.3'
+    implementation 'org.apache.logging.log4j:log4j-slf4j-impl:2.13.3'
+    implementation 'org.apache.tinkerpop:gremlin-core:3.4.6'
+    implementation 'org.apache.tinkerpop:tinkergraph-gremlin:3.4.6'
+    implementation 'org.janusgraph:janusgraph-driver:0.5.2'
+    implementation 'khttp:khttp:1.0.0'
+    compile 'com.fasterxml.jackson.core:jackson-databind:2.9.9'
+    testImplementation 'org.junit.jupiter:junit-jupiter-engine:5.4.0'
+    implementation "org.jetbrains.kotlin:kotlin-stdlib-jdk8"
+    implementation "org.jetbrains.kotlin:kotlin-reflect:1.3.72"
+}
+
+test {
+    useJUnitPlatform()
+    exclude "**/*IntTest*"
+
+    testLogging {
+        events 'FAILED', 'SKIPPED'
+    }
+}
+
+task janusGraphIntTest(type: Test) {
+    useJUnitPlatform()
+    description = "Execute JanusGraph integration tests."
+    group = "verification"
+    include "**/*JanusGraph*"
+
+    testLogging {
+        events 'FAILED', 'SKIPPED'
+    }
+    doFirst {
+        dockerCompose.exposeAsEnvironment(janusGraphIntTest)
+    }
+}
+
+task tigerGraphIntTest(type: Test) {
+    useJUnitPlatform()
+    description = "Execute TigerGraph integration tests."
+    group = "verification"
+    include "**/*TigerGraph*"
+
+    testLogging {
+        events 'FAILED', 'SKIPPED'
+    }
+    doFirst {
+        dockerCompose.exposeAsEnvironment(tigerGraphIntTest)
+    }
+}
+
+dockerCompose {
+    janusGraphSetup {
+        useComposeFiles = ['src/test/resources/docker/janus-berkeleyje-lucene.yml']
+        isRequiredBy(project.tasks.janusGraphIntTest)
+    }
+    tigerGraphSetup {
+        useComposeFiles = ['src/test/resources/docker/tigergraph.yml']
+        isRequiredBy(project.tasks.tigerGraphIntTest)
+    }
+}
+
+jacoco {
+    toolVersion = "0.8.5"
+}
+
+jacocoTestReport {
+    reports {
+        xml.enabled true
+        xml.destination file("${buildDir}/reports/jacoco/report.xml")
+        html.enabled true
+        csv.enabled false
+    }
+    executionData test, janusGraphIntTest, tigerGraphIntTest
+}
+
+check.dependsOn jacocoTestCoverageVerification
+jacocoTestCoverageVerification.dependsOn jacocoTestReport
+
+group = 'za.ac.sun.plume'
+version = 'X.X.X'
+description = 'plume-driver'
+sourceCompatibility = '8'
+
+task fatJar(type: Jar) {
+    archiveClassifier.set('all')
+    duplicatesStrategy = DuplicatesStrategy.EXCLUDE
+    from {
+        configurations.runtimeClasspath.collect { it.isDirectory() ? it : zipTree(it) }
+    } {
+        exclude "META-INF/*.SF"
+        exclude "META-INF/*.DSA"
+        exclude "META-INF/*.RSA"
+    }
+    with jar
+}
+
+artifacts {
+    archives fatJar
+}
+
+publishing {
+    publications {
+        maven(MavenPublication) {
+            from(components.java)
+        }
+    }
+}
+
+tasks.withType(JavaCompile) {
+    options.encoding = 'UTF-8'
+}
+compileKotlin {
+    kotlinOptions {
+        jvmTarget = "1.8"
+    }
+}
+compileTestKotlin {
+    kotlinOptions {
+        jvmTarget = "1.8"
+    }
+}
