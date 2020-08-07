@@ -1,11 +1,11 @@
-package za.ac.sun.plume.hooks
+package za.ac.sun.plume.drivers
 
 import za.ac.sun.plume.domain.enums.EdgeLabels
-import za.ac.sun.plume.domain.models.GraPLVertex
+import za.ac.sun.plume.domain.models.PlumeVertex
 import za.ac.sun.plume.domain.models.MethodDescriptorVertex
 import za.ac.sun.plume.domain.models.vertices.*
 
-interface IHook {
+interface IDriver {
 
     /**
      * Creates the given [MethodDescriptorVertex] in the database and joins it to the vertex associated with the
@@ -54,25 +54,25 @@ interface IHook {
     fun joinNamespaceBlocks(from: NamespaceBlockVertex, to: NamespaceBlockVertex)
 
     /**
-     * Creates and assigns the [GraPLVertex] to the associated [MethodVertex] vertex in the
+     * Creates and assigns the [PlumeVertex] to the associated [MethodVertex] vertex in the
      * database identified by the given [MethodVertex].
      *
      * @param parentVertex the [MethodVertex] to connect.
-     * @param newVertex    the [GraPLVertex] to associate with the block.
+     * @param newVertex    the [PlumeVertex] to associate with the block.
      */
-    fun createAndAssignToBlock(parentVertex: MethodVertex, newVertex: GraPLVertex)
+    fun createAndAssignToBlock(parentVertex: MethodVertex, newVertex: PlumeVertex)
 
     /**
-     * Creates and assigns the [GraPLVertex] to the associated [BlockVertex] vertex in the
+     * Creates and assigns the [PlumeVertex] to the associated [BlockVertex] vertex in the
      * database identified purely by the order.
      *
-     * @param newVertex  the [GraPLVertex] to associate with the block.
+     * @param newVertex  the [PlumeVertex] to associate with the block.
      * @param blockOrder the AST order under which this block occurs.
      */
-    fun createAndAssignToBlock(newVertex: GraPLVertex, blockOrder: Int)
+    fun createAndAssignToBlock(newVertex: PlumeVertex, blockOrder: Int)
 
     /**
-     * Updates a key-value pair on a [GraPLVertex] in the database identified by the given AST order of the block.
+     * Updates a key-value pair on a [PlumeVertex] in the database identified by the given AST order of the block.
      *
      * @param order the AST order under which this block occurs.
      * @param key   the key of the property to upsert.
@@ -81,11 +81,11 @@ interface IHook {
     fun updateASTVertexProperty(order: Int, key: String, value: String)
 
     /**
-     * Creates a free-floating [GraPLVertex]
+     * Creates a free-floating [PlumeVertex]
      *
-     * @param graPLVertex the [GraPLVertex] to create.
+     * @param plumeVertex the [PlumeVertex] to create.
      */
-    fun createVertex(graPLVertex: GraPLVertex)
+    fun createVertex(plumeVertex: PlumeVertex)
 
     /**
      * Creates an edge between two [BlockVertex] objects.
@@ -114,10 +114,10 @@ interface IHook {
     fun maxOrder(): Int
 
     /**
-     * Searches for a [GraPLVertex] associated with this order.
+     * Searches for a [PlumeVertex] associated with this order.
      *
-     * @param blockOrder the [GraPLVertex] order.
-     * @return true if there is a [GraPLVertex] with this order value, false if otherwise.
+     * @param blockOrder the [PlumeVertex] order.
+     * @return true if there is a [PlumeVertex] with this order value, false if otherwise.
      */
     fun isASTVertex(blockOrder: Int): Boolean
 

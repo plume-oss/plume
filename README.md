@@ -104,7 +104,7 @@ import za.ac.sun.plume.domain.models.vertices.BlockVertex;
 import za.ac.sun.plume.domain.models.vertices.FileVertex;
 import za.ac.sun.plume.domain.models.vertices.MethodVertex;
 import za.ac.sun.plume.domain.models.vertices.MethodReturnVertex;
-import za.ac.sun.plume.hooks.TinkerGraphHook;
+import za.ac.sun.plume.drivers.TinkerGraphHook;
 
 public class PlumeDemo {
 
@@ -114,14 +114,14 @@ public class PlumeDemo {
         TinkerGraphHook hook = new TinkerGraphHook.TinkerGraphHookBuilder("./Plume_demo.xml")
                 .createNewGraph(true)
                 .build();
-        FileVertex fileVertex = new FileVertex("PlumeTest", order++);
-        MethodVertex methodVertex = new MethodVertex("add", "PlumeTest.add", "II", lineNumber, order++);
+        FileVertex fileVertex = new FileVertex("PlumeTest", ++order);
+        MethodVertex methodVertex = new MethodVertex("add", "PlumeTest.add", "II", lineNumber, ++order);
         // Since the associated file and method vertices aren't already in the database, they will automatically
         // be created in the following method:
         hook.joinFileVertexTo(fileVertex, methodVertex);
         hook.createAndAddToMethod(
                 methodVertex,
-                new MethodReturnVertex("VOID", "V", EvaluationStrategies.BY_VALUE, lineNumber, order++)
+                new MethodReturnVertex("VOID", "V", EvaluationStrategies.BY_VALUE, lineNumber, ++order)
         );
         // ...
         // etc.

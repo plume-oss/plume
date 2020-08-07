@@ -1,4 +1,4 @@
-package za.ac.sun.plume.hooks
+package za.ac.sun.plume.drivers
 
 import org.json.JSONArray
 import org.json.JSONObject
@@ -16,11 +16,11 @@ import za.ac.sun.plume.domain.enums.VertexLabels
 import za.ac.sun.plume.domain.mappers.VertexMapper
 import za.ac.sun.plume.domain.models.vertices.*
 
-class TigerGraphHookIntTest : AbstractHookTest() {
+class TigerGraphDriverIntTest : AbstractDriverTest() {
 
-    override fun provideHook(): TigerGraphHook = provideBuilder().build()
+    override fun provideHook(): TigerGraphDriver = provideBuilder().build()
 
-    override fun provideBuilder(): TigerGraphHook.Builder = TigerGraphHook.Builder()
+    override fun provideBuilder(): TigerGraphDriver.Builder = TigerGraphDriver.Builder()
             .hostname(DEFAULT_HOSTNAME).port(DEFAULT_PORT).secure(false)
 
     private fun headers(): Map<String, String> = mapOf("Content-Type" to "application/json")
@@ -35,12 +35,12 @@ class TigerGraphHookIntTest : AbstractHookTest() {
 
     @Nested
     inner class RestPPCheckMethodJoinInteraction : CheckMethodJoinInteraction() {
-        lateinit var tigerGraphHook: TigerGraphHook
+        lateinit var tigerGraphHook: TigerGraphDriver
 
         @BeforeEach
         override fun setUp() {
             super.setUp()
-            tigerGraphHook = hook as TigerGraphHook
+            tigerGraphHook = hook as TigerGraphDriver
         }
 
         @Test
@@ -121,12 +121,12 @@ class TigerGraphHookIntTest : AbstractHookTest() {
 
     @Nested
     inner class RestPPFileJoinInteraction : FileJoinInteraction() {
-        lateinit var tigerGraphHook: TigerGraphHook
+        lateinit var tigerGraphHook: TigerGraphDriver
 
         @BeforeEach
         override fun setUp() {
             super.setUp()
-            tigerGraphHook = hook as TigerGraphHook
+            tigerGraphHook = hook as TigerGraphDriver
         }
 
         @Test
@@ -166,12 +166,12 @@ class TigerGraphHookIntTest : AbstractHookTest() {
 
     @Nested
     inner class RestPPBlockJoinInteraction : BlockJoinInteraction() {
-        lateinit var tigerGraphHook: TigerGraphHook
+        lateinit var tigerGraphHook: TigerGraphDriver
 
         @BeforeEach
         override fun setUp() {
             super.setUp()
-            tigerGraphHook = hook as TigerGraphHook
+            tigerGraphHook = hook as TigerGraphDriver
         }
 
         @Test
@@ -301,12 +301,12 @@ class TigerGraphHookIntTest : AbstractHookTest() {
 
     @Nested
     inner class RestPPNamespaceBlockJoinInteraction : NamespaceBlockJoinInteraction() {
-        lateinit var tigerGraphHook: TigerGraphHook
+        lateinit var tigerGraphHook: TigerGraphDriver
 
         @BeforeEach
         override fun setUp() {
             super.setUp()
-            tigerGraphHook = hook as TigerGraphHook
+            tigerGraphHook = hook as TigerGraphDriver
         }
 
         @Test
@@ -359,12 +359,12 @@ class TigerGraphHookIntTest : AbstractHookTest() {
 
     @Nested
     inner class RestPPUpdateChecks : UpdateChecks() {
-        lateinit var tigerGraphHook: TigerGraphHook
+        lateinit var tigerGraphHook: TigerGraphDriver
 
         @BeforeEach
         override fun setUp() {
             super.setUp()
-            tigerGraphHook = hook as TigerGraphHook
+            tigerGraphHook = hook as TigerGraphDriver
             val blockRaw = get("graph/$GRAPH_NAME/vertices/${VertexLabels.BLOCK.name}_VERT")
             assertTrue(blockRaw.any())
             val blockMap = tigerGraphHook.flattenVertexResult(blockRaw.first() as JSONObject)

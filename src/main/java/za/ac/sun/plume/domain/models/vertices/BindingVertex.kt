@@ -2,13 +2,13 @@ package za.ac.sun.plume.domain.models.vertices
 
 import za.ac.sun.plume.domain.enums.VertexBaseTraits
 import za.ac.sun.plume.domain.enums.VertexLabels
-import za.ac.sun.plume.domain.models.GraPLVertex
+import za.ac.sun.plume.domain.models.PlumeVertex
 import java.util.*
 
 /**
  * A binding of a METHOD into a TYPE_DECL
  */
-class BindingVertex(val name: String, val signature: String) : GraPLVertex {
+class BindingVertex(val name: String, val signature: String) : PlumeVertex {
     override fun toString(): String {
         return "BindingVertex{" +
                 "name='" + name + '\'' +

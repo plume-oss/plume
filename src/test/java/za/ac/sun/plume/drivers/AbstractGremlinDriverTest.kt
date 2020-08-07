@@ -1,4 +1,4 @@
-package za.ac.sun.plume.hooks
+package za.ac.sun.plume.drivers
 
 import org.junit.jupiter.api.Assertions
 import org.junit.jupiter.api.BeforeEach
@@ -14,34 +14,34 @@ import za.ac.sun.plume.TestDomainResources.Companion.THIRD_PACKAGE
 import za.ac.sun.plume.domain.enums.EdgeLabels
 import za.ac.sun.plume.domain.models.vertices.*
 
-abstract class AbstractGremlinHookTest : AbstractHookTest() {
+abstract class AbstractGremlinDriverTest : AbstractDriverTest() {
     /**
-     * Provides a hook to a new database hook. Default is a new [TinkerGraphHook].
+     * Provides a hook to a new database hook. Default is a new [TinkerGraphDriver].
      *
      * @return a built hook.
      */
-    override fun provideHook(): GremlinHook {
-        return TinkerGraphHook.Builder().build()
+    override fun provideHook(): GremlinDriver {
+        return TinkerGraphDriver.Builder().build()
     }
 
     /**
      * Provides a hook builder to continue to configure.
-     * Default is a [za.ac.sun.plume.hooks.TinkerGraphHook.Builder].
+     * Default is a [za.ac.sun.plume.drivers.TinkerGraphDriver.Builder].
      *
-     * @return an [IHookBuilder] to build with.
+     * @return an [IDriverBuilder] to build with.
      */
-    override fun provideBuilder(): GremlinHookBuilder {
-        return TinkerGraphHook.Builder()
+    override fun provideBuilder(): GremlinDriverBuilder {
+        return TinkerGraphDriver.Builder()
     }
 
     @Nested
     inner class GremlinCheckMethodJoinInteraction : CheckMethodJoinInteraction() {
-        private lateinit var gremlinHook: GremlinHook
+        private lateinit var gremlinHook: GremlinDriver
 
         @BeforeEach
         override fun setUp() {
             super.setUp()
-            gremlinHook = hook as GremlinHook
+            gremlinHook = hook as GremlinDriver
         }
 
         @Test
@@ -83,12 +83,12 @@ abstract class AbstractGremlinHookTest : AbstractHookTest() {
 
     @Nested
     inner class GremlinFileJoinInteraction : FileJoinInteraction() {
-        lateinit var gremlinHook: GremlinHook
+        lateinit var gremlinHook: GremlinDriver
 
         @BeforeEach
         override fun setUp() {
             super.setUp()
-            gremlinHook = hook as GremlinHook
+            gremlinHook = hook as GremlinDriver
         }
 
         @Test
@@ -118,12 +118,12 @@ abstract class AbstractGremlinHookTest : AbstractHookTest() {
 
     @Nested
     inner class GremlinBlockJoinInteraction : BlockJoinInteraction() {
-        lateinit var gremlinHook: GremlinHook
+        lateinit var gremlinHook: GremlinDriver
 
         @BeforeEach
         override fun setUp() {
             super.setUp()
-            gremlinHook = hook as GremlinHook
+            gremlinHook = hook as GremlinDriver
         }
 
         @Test
@@ -185,12 +185,12 @@ abstract class AbstractGremlinHookTest : AbstractHookTest() {
 
     @Nested
     inner class GremlinNamespaceBlockJoinInteraction : NamespaceBlockJoinInteraction() {
-        lateinit var gremlinHook: GremlinHook
+        lateinit var gremlinHook: GremlinDriver
 
         @BeforeEach
         override fun setUp() {
             super.setUp()
-            gremlinHook = hook as GremlinHook
+            gremlinHook = hook as GremlinDriver
         }
 
         @Test
@@ -228,12 +228,12 @@ abstract class AbstractGremlinHookTest : AbstractHookTest() {
 
     @Nested
     inner class GremlinUpdateChecks : UpdateChecks() {
-        lateinit var gremlinHook: GremlinHook
+        lateinit var gremlinHook: GremlinDriver
 
         @BeforeEach
         override fun setUp() {
             super.setUp()
-            gremlinHook = hook as GremlinHook
+            gremlinHook = hook as GremlinDriver
             gremlinHook.startTransaction()
             Assertions.assertTrue(gremlinHook.g.V().hasLabel(BlockVertex.LABEL.name).has(super.keyToTest, super.initValue).hasNext())
             gremlinHook.endTransaction()

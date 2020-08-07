@@ -4,7 +4,7 @@ import za.ac.sun.plume.domain.enums.VertexBaseTraits
 import za.ac.sun.plume.domain.enums.VertexLabels
 import java.util.*
 
-interface GraPLVertex {
+interface PlumeVertex {
     companion object {
         @JvmField
         val LABEL = VertexLabels.UNKNOWN

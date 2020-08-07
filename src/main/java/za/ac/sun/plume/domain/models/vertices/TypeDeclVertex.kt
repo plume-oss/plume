@@ -2,13 +2,13 @@ package za.ac.sun.plume.domain.models.vertices
 
 import za.ac.sun.plume.domain.enums.VertexBaseTraits
 import za.ac.sun.plume.domain.enums.VertexLabels
-import za.ac.sun.plume.domain.models.GraPLVertex
+import za.ac.sun.plume.domain.models.PlumeVertex
 import java.util.*
 
 /**
  * A type declaration
  */
-class TypeDeclVertex(val name: String, val fullName: String, val typeDeclFullName: String) : GraPLVertex {
+class TypeDeclVertex(val name: String, val fullName: String, val typeDeclFullName: String) : PlumeVertex {
     override fun toString(): String {
         return "TypeDeclVertex{" +
                 "name='" + name + '\'' +

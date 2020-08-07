@@ -1,4 +1,4 @@
-package za.ac.sun.plume.hooks;
+package za.ac.sun.plume.drivers;
 
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
@@ -11,7 +11,7 @@ import org.apache.tinkerpop.gremlin.structure.Vertex;
 import org.jetbrains.annotations.NotNull;
 import za.ac.sun.plume.domain.enums.EdgeLabels;
 import za.ac.sun.plume.domain.mappers.VertexMapper;
-import za.ac.sun.plume.domain.models.GraPLVertex;
+import za.ac.sun.plume.domain.models.PlumeVertex;
 import za.ac.sun.plume.domain.models.MethodDescriptorVertex;
 import za.ac.sun.plume.domain.models.vertices.FileVertex;
 import za.ac.sun.plume.domain.models.vertices.MethodVertex;
@@ -24,13 +24,13 @@ import java.util.UUID;
 import static org.apache.tinkerpop.gremlin.process.traversal.Order.desc;
 import static org.apache.tinkerpop.gremlin.process.traversal.dsl.graph.__.inV;
 
-public abstract class GremlinHook implements IHook {
+public abstract class GremlinDriver implements IDriver {
 
-    private static final Logger logger = LogManager.getLogger(GremlinHook.class);
+    private static final Logger logger = LogManager.getLogger(GremlinDriver.class);
     protected final Graph graph;
     protected GraphTraversalSource g;
 
-    public GremlinHook(final Graph graph) {
+    public GremlinDriver(final Graph graph) {
         this.graph = graph;
     }
 
@@ -125,7 +125,7 @@ public abstract class GremlinHook implements IHook {
         createAndJoinMethodToAnyAST(from, to);
     }
 
-    private void createAndJoinMethodToAnyAST(final MethodVertex from, final GraPLVertex to) {
+    private void createAndJoinMethodToAnyAST(final MethodVertex from, final PlumeVertex to) {
         startTransaction();
         createTinkerGraphEdge(findVertex(from), EdgeLabels.AST, createTinkerPopVertex(to));
         endTransaction();
@@ -173,14 +173,14 @@ public abstract class GremlinHook implements IHook {
     }
 
     @Override
-    public void createAndAssignToBlock(@NotNull final MethodVertex parentVertex, @NotNull final GraPLVertex newVertex) {
+    public void createAndAssignToBlock(@NotNull final MethodVertex parentVertex, @NotNull final PlumeVertex newVertex) {
         startTransaction();
         createTinkerGraphEdge(findASTVertex(parentVertex, parentVertex.getOrder()), EdgeLabels.AST, createTinkerPopVertex(newVertex));
         endTransaction();
     }
 
     @Override
-    public void createAndAssignToBlock(@NotNull final GraPLVertex newVertex, final int blockOrder) {
+    public void createAndAssignToBlock(@NotNull final PlumeVertex newVertex, final int blockOrder) {
         startTransaction();
         createTinkerGraphEdge(findASTVertex(blockOrder), EdgeLabels.AST, createTinkerPopVertex(newVertex));
         endTransaction();
@@ -194,7 +194,7 @@ public abstract class GremlinHook implements IHook {
     }
 
     @Override
-    public void createVertex(@NotNull final GraPLVertex block) {
+    public void createVertex(@NotNull final PlumeVertex block) {
         startTransaction();
         createTinkerPopVertex(block);
         endTransaction();
@@ -274,13 +274,13 @@ public abstract class GremlinHook implements IHook {
     }
 
     /**
-     * Given a {@link GraPLVertex}, creates a {@link Vertex} and translates the object's field properties to key-value
+     * Given a {@link PlumeVertex}, creates a {@link Vertex} and translates the object's field properties to key-value
      * pairs on the {@link Vertex} object. This is then added to this hook's {@link Graph}.
      *
-     * @param gv the {@link GraPLVertex} to translate into a {@link Vertex}.
+     * @param gv the {@link PlumeVertex} to translate into a {@link Vertex}.
      * @return the newly created {@link Vertex}.
      */
-    protected Vertex createTinkerPopVertex(final GraPLVertex gv) {
+    protected Vertex createTinkerPopVertex(final PlumeVertex gv) {
         final Map<String, Object> propertyMap = VertexMapper.propertiesToMap(gv);
         // Get the implementing class label parameter
         final String label = (String) propertyMap.remove("label");
@@ -301,7 +301,7 @@ public abstract class GremlinHook implements IHook {
      */
     private Edge createTinkerGraphEdge(final Vertex v1, final EdgeLabels edgeLabel, final Vertex v2) {
 
-        if (this instanceof TinkerGraphHook) {
+        if (this instanceof TinkerGraphDriver) {
             return v1.addEdge(edgeLabel.name(), v2, T.id, UUID.randomUUID());
         } else {
             return g.V(v1.id()).addE(edgeLabel.name()).to(g.V(v2.id())).next();

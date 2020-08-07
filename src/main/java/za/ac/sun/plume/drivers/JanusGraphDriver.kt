@@ -1,4 +1,4 @@
-package za.ac.sun.plume.hooks
+package za.ac.sun.plume.drivers
 
 import org.apache.logging.log4j.LogManager
 import org.apache.tinkerpop.gremlin.process.traversal.AnonymousTraversalSource
@@ -6,12 +6,12 @@ import org.apache.tinkerpop.gremlin.structure.Graph
 import org.apache.tinkerpop.gremlin.structure.Transaction
 import org.apache.tinkerpop.gremlin.structure.Vertex
 import za.ac.sun.plume.domain.mappers.VertexMapper.Companion.propertiesToMap
-import za.ac.sun.plume.domain.models.GraPLVertex
+import za.ac.sun.plume.domain.models.PlumeVertex
 import java.io.File
 
-class JanusGraphHook private constructor(builder: Builder) : GremlinHook(builder.graph) {
+class JanusGraphDriver private constructor(builder: Builder) : GremlinDriver(builder.graph) {
 
-    private val logger = LogManager.getLogger(JanusGraphHook::class.java)
+    private val logger = LogManager.getLogger(JanusGraphDriver::class.java)
     private val supportsTransactions: Boolean
     private val conf: String
     private var tx: Transaction? = null
@@ -68,13 +68,13 @@ class JanusGraphHook private constructor(builder: Builder) : GremlinHook(builder
     }
 
     /**
-     * Given a [GraPLVertex], creates a [Vertex] and translates the object's field properties to key-value
+     * Given a [PlumeVertex], creates a [Vertex] and translates the object's field properties to key-value
      * pairs on the [Vertex] object. This is then added to this hook's [Graph].
      *
-     * @param gv the [GraPLVertex] to translate into a [Vertex].
+     * @param gv the [PlumeVertex] to translate into a [Vertex].
      * @return the newly created [Vertex].
      */
-    override fun createTinkerPopVertex(gv: GraPLVertex): Vertex {
+    override fun createTinkerPopVertex(gv: PlumeVertex): Vertex {
         val propertyMap = propertiesToMap(gv)
         // Get the implementing class label parameter
         val label = propertyMap.remove("label") as String?
@@ -87,12 +87,12 @@ class JanusGraphHook private constructor(builder: Builder) : GremlinHook(builder
     data class Builder(
             var conf: String,
             var graphDir: String? = null
-    ) : GremlinHookBuilder {
+    ) : GremlinDriverBuilder {
         var graph: Graph? = null
 
         constructor(conf: String) : this(conf, null)
 
-        override fun useExistingGraph(graphDir: String): IHookBuilder {
+        override fun useExistingGraph(graphDir: String): IDriverBuilder {
             require(isValidExportPath(graphDir)) {
                 "Unsupported graph extension! Supported types are GraphML," +
                         " GraphSON, and Gryo."
@@ -103,9 +103,9 @@ class JanusGraphHook private constructor(builder: Builder) : GremlinHook(builder
         }
 
         @Throws(Exception::class)
-        override fun build(): JanusGraphHook {
+        override fun build(): JanusGraphDriver {
             graph = AnonymousTraversalSource.traversal().withRemote(conf).graph
-            return JanusGraphHook(this)
+            return JanusGraphDriver(this)
         }
     }
 

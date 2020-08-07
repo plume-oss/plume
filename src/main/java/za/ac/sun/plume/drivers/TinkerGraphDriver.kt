@@ -1,10 +1,10 @@
-package za.ac.sun.plume.hooks
+package za.ac.sun.plume.drivers
 
 import org.apache.commons.configuration.BaseConfiguration
 import org.apache.tinkerpop.gremlin.tinkergraph.structure.TinkerGraph
 import java.io.File
 
-class TinkerGraphHook private constructor(builder: Builder) : GremlinHook(TinkerGraph.open(builder.conf)) {
+class TinkerGraphDriver private constructor(builder: Builder) : GremlinDriver(TinkerGraph.open(builder.conf)) {
 
     fun exportCurrentGraph(exportDir: String) {
         require(isValidExportPath(exportDir)) {
@@ -18,7 +18,7 @@ class TinkerGraphHook private constructor(builder: Builder) : GremlinHook(Tinker
 
     data class Builder(
             var graphDir: String? = null
-    ) : GremlinHookBuilder {
+    ) : GremlinDriverBuilder {
         var conf: BaseConfiguration
 
         constructor() : this(null)
@@ -35,7 +35,7 @@ class TinkerGraphHook private constructor(builder: Builder) : GremlinHook(Tinker
 
         fun conf(conf: BaseConfiguration) = apply { this.conf = conf }
 
-        override fun build() = TinkerGraphHook(this)
+        override fun build() = TinkerGraphDriver(this)
 
         init {
             conf = BaseConfiguration()
