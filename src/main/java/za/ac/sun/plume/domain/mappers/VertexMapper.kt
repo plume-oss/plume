@@ -4,7 +4,7 @@ import za.ac.sun.plume.domain.enums.DispatchTypes
 import za.ac.sun.plume.domain.enums.EvaluationStrategies
 import za.ac.sun.plume.domain.enums.ModifierTypes
 import za.ac.sun.plume.domain.enums.VertexLabels.*
-import za.ac.sun.plume.domain.models.GraPLVertex
+import za.ac.sun.plume.domain.models.PlumeVertex
 import za.ac.sun.plume.domain.models.vertices.*
 import kotlin.reflect.KVisibility
 import kotlin.reflect.full.memberProperties
@@ -13,7 +13,7 @@ class VertexMapper {
 
     companion object {
         @JvmStatic
-        fun propertiesToMap(objectVertex: GraPLVertex): MutableMap<String, Any> {
+        fun propertiesToMap(objectVertex: PlumeVertex): MutableMap<String, Any> {
             val properties = emptyMap<String, Any>().toMutableMap()
             properties["label"] = objectVertex.javaClass.getDeclaredField("LABEL").get(objectVertex).toString()
             objectVertex::class.memberProperties.forEach {
@@ -26,7 +26,7 @@ class VertexMapper {
         }
 
         @JvmStatic
-        fun mapToVertex(map: Map<String, Any>): GraPLVertex {
+        fun mapToVertex(map: Map<String, Any>): PlumeVertex {
             when (valueOf(map["label"] as String)) {
                 ARRAY_INITIALIZER -> return ArrayInitializerVertex(order = map["order"] as Int)
                 BINDING -> return BindingVertex(

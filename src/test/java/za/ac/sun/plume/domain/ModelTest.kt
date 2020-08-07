@@ -16,7 +16,7 @@ import za.ac.sun.plume.TestDomainResources.Companion.STRING_1
 import za.ac.sun.plume.TestDomainResources.Companion.STRING_2
 import za.ac.sun.plume.domain.enums.VertexBaseTraits
 import za.ac.sun.plume.domain.enums.VertexLabels
-import za.ac.sun.plume.domain.models.GraPLVertex
+import za.ac.sun.plume.domain.models.PlumeVertex
 import za.ac.sun.plume.domain.models.vertices.*
 import java.util.*
 
@@ -172,7 +172,7 @@ class ModelTest {
     @Nested
     inner class `Domain model equal tests` {
 
-        private fun assertVertexEquality(vertex1: GraPLVertex, vertex2: GraPLVertex, vertex3: GraPLVertex) {
+        private fun assertVertexEquality(vertex1: PlumeVertex, vertex2: PlumeVertex, vertex3: PlumeVertex) {
             assertEquals(vertex1, vertex1)
             assertEquals(vertex1, vertex2)
             assertEquals(vertex1.hashCode(), vertex2.hashCode())
@@ -779,8 +779,8 @@ class ModelTest {
 
         @Test
         fun testInterfaceDefaults() {
-            assertEquals("UNKNOWN", GraPLVertex.LABEL.toString())
-            assertEquals(EnumSet.noneOf(VertexBaseTraits::class.java), GraPLVertex.TRAITS)
+            assertEquals("UNKNOWN", PlumeVertex.LABEL.toString())
+            assertEquals(EnumSet.noneOf(VertexBaseTraits::class.java), PlumeVertex.TRAITS)
         }
     }
 

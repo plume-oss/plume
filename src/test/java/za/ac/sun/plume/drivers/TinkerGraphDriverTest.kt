@@ -1,4 +1,4 @@
-package za.ac.sun.plume.hooks
+package za.ac.sun.plume.drivers
 
 import org.apache.logging.log4j.LogManager
 import org.apache.tinkerpop.gremlin.structure.Graph
@@ -9,14 +9,14 @@ import za.ac.sun.plume.domain.models.vertices.FileVertex
 import java.io.File
 import java.util.*
 
-class TinkerGraphHookTest : AbstractGremlinHookTest() {
+class TinkerGraphDriverTest : AbstractGremlinDriverTest() {
 
     companion object {
         private val tempDir = System.getProperty("java.io.tmpdir")
-        private val logger = LogManager.getLogger(TinkerGraphHookTest::class.java)
-        val testGraphML = "$tempDir/grapl/graplhook4j_test.xml"
-        val testGraphSON = "$tempDir/grapl/graplhook4j_test.json"
-        val testGryo = "$tempDir/grapl/graplhook4j_test.kryo"
+        private val logger = LogManager.getLogger(TinkerGraphDriverTest::class.java)
+        val testGraphML = "$tempDir/plume/plume_driver_test.xml"
+        val testGraphSON = "$tempDir/plume/plume_driver_test.json"
+        val testGryo = "$tempDir/plume/plume_driver_test.kryo"
 
         @AfterAll
         @JvmStatic
@@ -34,17 +34,17 @@ class TinkerGraphHookTest : AbstractGremlinHookTest() {
 
     override fun provideHook() = provideBuilder().build()
 
-    override fun provideBuilder() = super.provideBuilder() as TinkerGraphHook.Builder
+    override fun provideBuilder() = super.provideBuilder() as TinkerGraphDriver.Builder
 
     /**
      * Provides a hook with the contents of a serialized graph to populate the graph with.
-     * Default is a [TinkerGraphHook].
+     * Default is a [TinkerGraphDriver].
      *
      * @param existingGraph the path to a GraphML, GraphSON, or Gryo graph.
      * @return a hook connected to a graph database populated with the contents of the file at the given path.
      */
-    fun provideHook(existingGraph: String): TinkerGraphHook {
-        return TinkerGraphHook.Builder().useExistingGraph(existingGraph).build()
+    fun provideHook(existingGraph: String): TinkerGraphDriver {
+        return TinkerGraphDriver.Builder().useExistingGraph(existingGraph).build()
     }
 
     @Nested
@@ -63,7 +63,7 @@ class TinkerGraphHookTest : AbstractGremlinHookTest() {
             hook.createVertex(FileVertex("Test1", 0))
             hook.createVertex(FileVertex("Test2", 1))
             hook.exportCurrentGraph(testGraphML)
-            assertDoesNotThrow<GremlinHook> { provideHook(testGraphML) }
+            assertDoesNotThrow<GremlinDriver> { provideHook(testGraphML) }
             val g = testGraph.traversal()
             g.io<Any>(testGraphML).read().iterate()
             Assertions.assertTrue(g.V().has(FileVertex.LABEL.toString(), "name", "Test1").hasNext())
@@ -76,7 +76,7 @@ class TinkerGraphHookTest : AbstractGremlinHookTest() {
             hook.createVertex(FileVertex("Test1", 0))
             hook.createVertex(FileVertex("Test2", 1))
             hook.exportCurrentGraph(testGraphSON)
-            assertDoesNotThrow<GremlinHook> { provideHook(testGraphSON) }
+            assertDoesNotThrow<GremlinDriver> { provideHook(testGraphSON) }
             val g = testGraph.traversal()
             g.io<Any>(testGraphSON).read().iterate()
             Assertions.assertTrue(g.V().has(FileVertex.LABEL.toString(), "name", "Test1").hasNext())
@@ -89,7 +89,7 @@ class TinkerGraphHookTest : AbstractGremlinHookTest() {
             hook.createVertex(FileVertex("Test1", 0))
             hook.createVertex(FileVertex("Test2", 1))
             hook.exportCurrentGraph(testGryo)
-            assertDoesNotThrow<GremlinHook> { provideHook(testGryo) }
+            assertDoesNotThrow<GremlinDriver> { provideHook(testGryo) }
             val g = testGraph.traversal()
             g.io<Any>(testGryo).read().iterate()
             Assertions.assertTrue(g.V().has(FileVertex.LABEL.toString(), "name", "Test1").hasNext())
@@ -98,12 +98,12 @@ class TinkerGraphHookTest : AbstractGremlinHookTest() {
 
         @Test
         fun testImportingGraphThatDNE() {
-            Assertions.assertThrows(IllegalArgumentException::class.java) { provideBuilder().useExistingGraph("/tmp/grapl/DNE.kryo").build() }
+            Assertions.assertThrows(IllegalArgumentException::class.java) { provideBuilder().useExistingGraph("/tmp/plume/DNE.kryo").build() }
         }
 
         @Test
         fun testImportingInvalidExtension() {
-            Assertions.assertThrows(IllegalArgumentException::class.java) { provideBuilder().useExistingGraph("/tmp/grapl/invalid.txt").build() }
+            Assertions.assertThrows(IllegalArgumentException::class.java) { provideBuilder().useExistingGraph("/tmp/plume/invalid.txt").build() }
         }
     }
 
@@ -142,7 +142,7 @@ class TinkerGraphHookTest : AbstractGremlinHookTest() {
             val hook = provideHook()
             hook.createVertex(FileVertex("Test1", 0))
             hook.createVertex(FileVertex("Test2", 1))
-            Assertions.assertThrows(IllegalArgumentException::class.java) { hook.exportCurrentGraph("/tmp/grapl/invalid.txt") }
+            Assertions.assertThrows(IllegalArgumentException::class.java) { hook.exportCurrentGraph("/tmp/plume/invalid.txt") }
         }
     }
 }

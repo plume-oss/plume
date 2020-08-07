@@ -3,7 +3,7 @@ version: "3"
 services:
   janusgraph:
     image: janusgraph/janusgraph:latest
-    container_name: janusgraph-grapl
+    container_name: janusgraph-plume
     environment:
       gremlinserver.threadPoolWorker: 2
     ports:

@@ -1,4 +1,4 @@
-package za.ac.sun.plume.hooks
+package za.ac.sun.plume.drivers
 
 import org.junit.jupiter.api.*
 import org.junit.jupiter.api.Assertions.*
@@ -23,18 +23,18 @@ import za.ac.sun.plume.domain.models.vertices.*
  * Builds the test environments with hook calls - implementing class is required to validate results
  * with concerned database.
  */
-abstract class AbstractHookTest {
+abstract class AbstractDriverTest {
 
-    open fun provideHook(): IHook = provideBuilder().build() ?: throw NullPointerException("Could not create hook!")
+    open fun provideHook(): IDriver = provideBuilder().build() ?: throw NullPointerException("Could not create hook!")
 
-    open fun provideBuilder(): IHookBuilder = TinkerGraphHook.Builder()
+    open fun provideBuilder(): IDriverBuilder = TinkerGraphDriver.Builder()
 
     @AfterEach
     open fun tearDown() = provideHook().apply { clearGraph() }.close()
 
     @DisplayName("Join method vertex to method related vertices")
     abstract inner class CheckMethodJoinInteraction {
-        protected lateinit var hook: IHook
+        protected lateinit var hook: IDriver
         private lateinit var m: MethodVertex
 
         @BeforeEach
@@ -61,7 +61,7 @@ abstract class AbstractHookTest {
 
     @DisplayName("Join file vertex to file related vertices")
     abstract inner class FileJoinInteraction {
-        protected lateinit var hook: IHook
+        protected lateinit var hook: IDriver
         private lateinit var f: FileVertex
 
         @BeforeEach
@@ -82,7 +82,7 @@ abstract class AbstractHookTest {
 
     @DisplayName("Check block vertex join behaviour")
     abstract inner class BlockJoinInteraction {
-        protected lateinit var hook: IHook
+        protected lateinit var hook: IDriver
         private lateinit var m: MethodVertex
 
         @BeforeEach
@@ -112,7 +112,7 @@ abstract class AbstractHookTest {
 
     @DisplayName("Check namespace block related behaviour")
     abstract inner class NamespaceBlockJoinInteraction {
-        protected lateinit var hook: IHook
+        protected lateinit var hook: IDriver
         private lateinit var root: NamespaceBlockVertex
 
         @BeforeEach
@@ -146,7 +146,7 @@ abstract class AbstractHookTest {
     @Nested
     @DisplayName("Update Checks")
     open inner class UpdateChecks {
-        protected lateinit var hook: IHook
+        protected lateinit var hook: IDriver
         protected val keyToTest = "typeFullName"
         protected val initValue = "INTEGER"
         protected val updatedValue = "VOID"
@@ -168,7 +168,7 @@ abstract class AbstractHookTest {
     @Nested
     @DisplayName("Aggregate queries")
     open inner class AggregateQueries {
-        private lateinit var hook: IHook
+        private lateinit var hook: IDriver
 
         @BeforeEach
         open fun setUp() {
@@ -192,7 +192,7 @@ abstract class AbstractHookTest {
     @Nested
     @DisplayName("Simple boolean checks")
     open inner class BooleanChecks {
-        private lateinit var hook: IHook
+        private lateinit var hook: IDriver
 
         @BeforeEach
         open fun setUp() {
@@ -230,7 +230,7 @@ abstract class AbstractHookTest {
     @Nested
     @DisplayName("AST vertex unstructured manipulation queries")
     open inner class ASTManipulation {
-        private lateinit var hook: IHook
+        private lateinit var hook: IDriver
         private lateinit var bv1: BlockVertex
         private lateinit var bv2: BlockVertex
 

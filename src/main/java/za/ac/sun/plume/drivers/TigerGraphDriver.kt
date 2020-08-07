@@ -1,4 +1,4 @@
-package za.ac.sun.plume.hooks
+package za.ac.sun.plume.drivers
 
 import org.apache.logging.log4j.LogManager
 import org.apache.tinkerpop.shaded.jackson.databind.ObjectMapper
@@ -7,7 +7,7 @@ import org.json.JSONObject
 import za.ac.sun.plume.domain.enums.EdgeLabels
 import za.ac.sun.plume.domain.enums.VertexLabels
 import za.ac.sun.plume.domain.mappers.VertexMapper
-import za.ac.sun.plume.domain.models.GraPLVertex
+import za.ac.sun.plume.domain.models.PlumeVertex
 import za.ac.sun.plume.domain.models.MethodDescriptorVertex
 import za.ac.sun.plume.domain.models.vertices.FileVertex
 import za.ac.sun.plume.domain.models.vertices.MethodVertex
@@ -18,14 +18,14 @@ import java.lang.Thread.sleep
 import java.util.*
 
 
-class TigerGraphHook private constructor(
+class TigerGraphDriver private constructor(
         hostname: String,
         port: Int,
         secure: Boolean,
         private val authKey: String?
-) : IHook {
+) : IDriver {
 
-    private val logger = LogManager.getLogger(TigerGraphHook::class.java)
+    private val logger = LogManager.getLogger(TigerGraphDriver::class.java)
     private val api: String = "http${if (secure) "s" else ""}://$hostname:$port"
     private val objectMapper = ObjectMapper()
 
@@ -54,7 +54,7 @@ class TigerGraphHook private constructor(
         if (result.length() > 0) {
             val vertexMap = result.first() as JSONObject
             val flatMap = flattenVertexResult(vertexMap)
-            // Update key-value pair and reconstruct as GraPLVertex
+            // Update key-value pair and reconstruct as PlumeVertex
             flatMap[key] = value
             val vertex = VertexMapper.mapToVertex(flatMap)
             // Upsert vertex
@@ -64,28 +64,28 @@ class TigerGraphHook private constructor(
 
     override fun isASTVertex(blockOrder: Int): Boolean = ((get("query/$GRAPH_NAME/isASTVertex?astOrder=$blockOrder")).first() as JSONObject)["result"] as Boolean
 
-    override fun createAndAssignToBlock(parentVertex: MethodVertex, newVertex: GraPLVertex) = upsertAndJoinVertices(parentVertex, newVertex, EdgeLabels.AST)
+    override fun createAndAssignToBlock(parentVertex: MethodVertex, newVertex: PlumeVertex) = upsertAndJoinVertices(parentVertex, newVertex, EdgeLabels.AST)
 
-    override fun createAndAssignToBlock(newVertex: GraPLVertex, blockOrder: Int) {
+    override fun createAndAssignToBlock(newVertex: PlumeVertex, blockOrder: Int) {
         val from = getVertexByASTOrder(blockOrder) ?: return
         upsertAndJoinVertices(from, newVertex, EdgeLabels.AST)
     }
 
-    override fun createVertex(graPLVertex: GraPLVertex) {
+    override fun createVertex(plumeVertex: PlumeVertex) {
         val payload = mutableMapOf<String, Any>(
-                "vertices" to createVertexPayload(graPLVertex)
+                "vertices" to createVertexPayload(plumeVertex)
         )
         post("graph/$GRAPH_NAME", payload)
     }
 
-    private fun createVertex(graPLVertex: GraPLVertex, id: String) {
+    private fun createVertex(plumeVertex: PlumeVertex, id: String) {
         val payload = mutableMapOf<String, Any>(
-                "vertices" to createVertexPayload(graPLVertex, id)
+                "vertices" to createVertexPayload(plumeVertex, id)
         )
         post("graph/$GRAPH_NAME", payload)
     }
 
-    private fun upsertAndJoinVertices(from: GraPLVertex, to: GraPLVertex, edgeLabel: EdgeLabels) {
+    private fun upsertAndJoinVertices(from: PlumeVertex, to: PlumeVertex, edgeLabel: EdgeLabels) {
         val fromPayload = createVertexPayload(from)
         val toPayload = createVertexPayload(to)
         val vertexPayload = if (fromPayload.keys.first() == toPayload.keys.first()) mapOf(
@@ -104,16 +104,16 @@ class TigerGraphHook private constructor(
         post("graph/$GRAPH_NAME", payload)
     }
 
-    private fun createVertexPayload(graPLVertex: GraPLVertex): Map<String, Any> {
-        val propertyMap = VertexMapper.propertiesToMap(graPLVertex)
+    private fun createVertexPayload(plumeVertex: PlumeVertex): Map<String, Any> {
+        val propertyMap = VertexMapper.propertiesToMap(plumeVertex)
         val vertexLabel = propertyMap.remove("label")
         return mapOf("${vertexLabel}_VERT" to mapOf<String, Any>(
-                graPLVertex.hashCode().toString() to extractAttributesFromMap(propertyMap)
+                plumeVertex.hashCode().toString() to extractAttributesFromMap(propertyMap)
         ))
     }
 
-    private fun createVertexPayload(graPLVertex: GraPLVertex, id: String): Map<String, Any> {
-        val propertyMap = VertexMapper.propertiesToMap(graPLVertex)
+    private fun createVertexPayload(plumeVertex: PlumeVertex, id: String): Map<String, Any> {
+        val propertyMap = VertexMapper.propertiesToMap(plumeVertex)
         val vertexLabel = propertyMap.remove("label")
         return mapOf("${vertexLabel}_VERT" to mapOf<String, Any>(
                 id to extractAttributesFromMap(propertyMap)
@@ -130,7 +130,7 @@ class TigerGraphHook private constructor(
     }
 
 
-    private fun createEdgePayload(from: GraPLVertex, to: GraPLVertex, edge: EdgeLabels): Map<String, Any> {
+    private fun createEdgePayload(from: PlumeVertex, to: PlumeVertex, edge: EdgeLabels): Map<String, Any> {
         val fromPayload = createVertexPayload(from)
         val toPayload = createVertexPayload(to)
         val fromLabel = fromPayload.keys.first()
@@ -164,12 +164,12 @@ class TigerGraphHook private constructor(
         return map
     }
 
-    private fun getVertexByASTOrder(order: Int): GraPLVertex? {
+    private fun getVertexByASTOrder(order: Int): PlumeVertex? {
         val result = (get("query/$GRAPH_NAME/findVertexByAstOrder?astOrder=$order").first() as JSONObject)["result"] as JSONArray
         if (result.length() > 0) {
             val vertexMap = result.first() as JSONObject
             val flatMap = flattenVertexResult(vertexMap)
-            // Update key-value pair and reconstruct as GraPLVertex
+            // Update key-value pair and reconstruct as PlumeVertex
             return VertexMapper.mapToVertex(flatMap)
         }
         return null
@@ -253,7 +253,7 @@ class TigerGraphHook private constructor(
             var port: Int = DEFAULT_PORT,
             var secure: Boolean = false,
             var authKey: String?
-    ) : IHookBuilder {
+    ) : IDriverBuilder {
 
         constructor() : this(DEFAULT_HOSTNAME, DEFAULT_PORT, false, null)
 
@@ -262,7 +262,7 @@ class TigerGraphHook private constructor(
         fun secure(secure: Boolean) = apply { this.secure = secure }
         fun authKey(authKey: String) = apply { this.authKey = authKey }
 
-        override fun build(): TigerGraphHook = TigerGraphHook(hostname, port, secure, authKey)
+        override fun build(): TigerGraphDriver = TigerGraphDriver(hostname, port, secure, authKey)
 
     }
 }

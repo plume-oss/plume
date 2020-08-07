@@ -2,14 +2,14 @@ package za.ac.sun.plume.domain.models.vertices
 
 import za.ac.sun.plume.domain.enums.VertexBaseTraits
 import za.ac.sun.plume.domain.enums.VertexLabels
-import za.ac.sun.plume.domain.models.GraPLVertex
+import za.ac.sun.plume.domain.models.PlumeVertex
 import java.util.*
 
 /**
  * A type which always has to reference a type declaration and may have type argument children if the referred to type
  * declaration is a template
  */
-class TypeVertex(val name: String, val fullName: String, val typeDeclFullName: String) : GraPLVertex {
+class TypeVertex(val name: String, val fullName: String, val typeDeclFullName: String) : PlumeVertex {
     override fun toString(): String {
         return "TypeVertex{" +
                 "name='" + name + '\'' +

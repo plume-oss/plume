@@ -2,13 +2,13 @@ version: '3'
 services:
   tigergraph:
     image: dbakereffendi/tigergraph:3.0.0
-    container_name: grapl-tigergraph
+    container_name: plume-tigergraph
     ports:
       - "14022:22"
       - "9000:9000"
       - "14240:14240"
     volumes:
-      - grapl-tigergraph:/var/lib/tigergraph/data
+      - plume-tigergraph:/var/lib/tigergraph/data
       - ../conf/tg-schema.gsql:/docker-entrypoint-initdb.d/tg-schema.gsql
     healthcheck:
       test: ["CMD-SHELL", "curl --fail http://localhost:9000/query/cpg/maxOrder || exit 1"]
@@ -22,4 +22,4 @@ services:
     stdin_open: true
     tty: true
 volumes:
-  grapl-tigergraph:
+  plume-tigergraph:

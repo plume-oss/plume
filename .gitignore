@@ -12,7 +12,7 @@ gradle-app.setting
 .gradletasknamecache
 
 # IDE
-/GraPLHook4j.iml
+/plume-driver.iml
 /.idea/
 .project
 .settings
