@@ -6,10 +6,7 @@ import org.apache.tinkerpop.gremlin.process.traversal.dsl.graph.GraphTraversal;
 import org.apache.tinkerpop.gremlin.process.traversal.dsl.graph.GraphTraversalSource;
 import org.apache.tinkerpop.gremlin.structure.Vertex;
 import org.apache.tinkerpop.gremlin.tinkergraph.structure.TinkerGraph;
-import org.junit.jupiter.api.AfterAll;
-import org.junit.jupiter.api.BeforeEach;
-import org.junit.jupiter.api.Test;
-import org.junit.jupiter.api.TestInfo;
+import org.junit.jupiter.api.*;
 import za.ac.sun.plume.Extractor;
 import za.ac.sun.plume.domain.enums.EdgeLabels;
 import za.ac.sun.plume.domain.models.vertices.BlockVertex;
@@ -27,9 +24,9 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 import static za.ac.sun.plume.util.TestQueryBuilderUtil.buildStoreTraversal;
 import static za.ac.sun.plume.util.TestQueryBuilderUtil.getVertexAlongEdge;
 
+@Disabled
 public class ArithmeticTest {
-
-    final static Logger logger = LogManager.getLogger();
+    final static Logger logger = LogManager.getLogger(ArithmeticTest.class);
 
     private static final File PATH;
     private static final String TEST_DIR = "/tmp/plume/plume-extractor-test.xml";

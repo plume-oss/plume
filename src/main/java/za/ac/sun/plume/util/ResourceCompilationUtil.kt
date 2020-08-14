@@ -32,7 +32,7 @@ import java.util.stream.Collectors
 import javax.tools.ToolProvider
 
 object ResourceCompilationUtil {
-    val logger: Logger = LogManager.getLogger()
+    private val logger: Logger = LogManager.getLogger(ResourceCompilationUtil::javaClass)
 
     /**
      * Validates the given file as a directory that exists.
@@ -78,7 +78,7 @@ object ResourceCompilationUtil {
             walk.map { obj: Path -> obj.toString() }
                     .filter { f: String -> f.endsWith(".java") }
                     .collect(Collectors.toList())
-                    .forEach(Consumer { f: String -> fileList.add(File(f)) })
+                    .forEach{ f: String -> fileList.add(File(f)) }
         }
         javac.getTask(null, fileManager, null, listOf("-g"), null,
                 fileManager.getJavaFileObjectsFromFiles(fileList)).call()
@@ -98,7 +98,7 @@ object ResourceCompilationUtil {
             walk.map { obj: Path -> obj.toString() }
                     .filter { f: String -> f.endsWith(".class") }
                     .collect(Collectors.toList())
-                    .forEach(Consumer { f: String -> if (!File(f).delete()) logger.error("Unable to delete: $f") })
+                    .forEach{ f: String -> if (!File(f).delete()) logger.error("Unable to delete: $f") }
         }
     }
 

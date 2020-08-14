@@ -7,10 +7,7 @@ import org.apache.tinkerpop.gremlin.process.traversal.dsl.graph.GraphTraversalSo
 import org.apache.tinkerpop.gremlin.process.traversal.dsl.graph.__;
 import org.apache.tinkerpop.gremlin.structure.Vertex;
 import org.apache.tinkerpop.gremlin.tinkergraph.structure.TinkerGraph;
-import org.junit.jupiter.api.AfterAll;
-import org.junit.jupiter.api.BeforeEach;
-import org.junit.jupiter.api.Test;
-import org.junit.jupiter.api.TestInfo;
+import org.junit.jupiter.api.*;
 import za.ac.sun.plume.Extractor;
 import za.ac.sun.plume.domain.enums.EdgeLabels;
 import za.ac.sun.plume.domain.enums.Equality;
@@ -30,6 +27,7 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 import static za.ac.sun.plume.util.TestQueryBuilderUtil.getVertexAlongEdge;
 import static za.ac.sun.plume.util.TestQueryBuilderUtil.getVertexAlongEdgeFixed;
 
+@Disabled
 public class ConditionalIntraproceduralTest {
 
     final static Logger logger = LogManager.getLogger();

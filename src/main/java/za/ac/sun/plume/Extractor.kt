@@ -17,25 +17,38 @@ package za.ac.sun.plume
 
 import org.apache.logging.log4j.LogManager
 import org.apache.logging.log4j.Logger
-import org.objectweb.asm.ClassReader
-import za.ac.sun.plume.controllers.ASTController
-import za.ac.sun.plume.domain.meta.MetaDataCollector
+import soot.PhaseOptions
+import soot.Scene
+import soot.options.Options
 import za.ac.sun.plume.drivers.IDriver
+import za.ac.sun.plume.graph.ASTBuilder
+import za.ac.sun.plume.graph.CFGBuilder
+import za.ac.sun.plume.graph.PDGBuilder
 import za.ac.sun.plume.util.ResourceCompilationUtil.compileJavaFile
 import za.ac.sun.plume.util.ResourceCompilationUtil.compileJavaFiles
 import za.ac.sun.plume.util.ResourceCompilationUtil.fetchClassFiles
-import za.ac.sun.plume.visitors.ast.ASTClassVisitor
-import za.ac.sun.plume.visitors.init.InitialClassVisitor
 import java.io.File
-import java.io.FileInputStream
 import java.io.IOException
 import java.util.*
 import java.util.function.Consumer
 import java.util.jar.JarFile
 
-class Extractor(private val hook: IDriver) {
-    private val logger: Logger = LogManager.getLogger(Extractor::class.java)
+class Extractor(hook: IDriver, private val classPath: File?) {
+    private val logger: Logger = LogManager.getLogger(Extractor::javaClass)
+
     private val loadedFiles: LinkedList<File> = LinkedList()
+    private val astBuilder: ASTBuilder
+    private val cfgBuilder: CFGBuilder
+    private val pdgBuilder: PDGBuilder
+
+    constructor(hook: IDriver) : this(hook, null)
+
+    init {
+        configureSoot()
+        astBuilder = ASTBuilder(hook)
+        cfgBuilder = CFGBuilder(hook)
+        pdgBuilder = PDGBuilder(hook)
+    }
 
     /**
      * Loads a single Java class file or directory of class files into the cannon.
@@ -60,7 +73,7 @@ class Extractor(private val hook: IDriver) {
                     val jar = JarFile(file)
                     loadedFiles.addAll(fetchClassFiles(jar))
                 }
-                file.name.endsWith(".class") -> {
+                file.name.endsWith(".class")-> {
                     loadedFiles.add(file)
                 }
             }
@@ -73,7 +86,8 @@ class Extractor(private val hook: IDriver) {
      * Projects all loaded Java classes currently loaded.
      */
     fun project() {
-        loadedFiles.forEach(Consumer { f: File -> this.project(f) })
+        loadClassesIntoSoot(loadedFiles)
+        loadedFiles.forEach(Consumer { project(it) })
         loadedFiles.clear()
     }
 
@@ -83,28 +97,52 @@ class Extractor(private val hook: IDriver) {
      * @param f the file to project.
      */
     private fun project(f: File) {
+        val classPath = getQualifiedClassPath(f)
         try {
-            // Allows us to accumulate information about classes beforehand
-            val classMetaController = MetaDataCollector()
-            // Allows us to build up our AST using the connection held by the hook
-            val astController = ASTController(hook)
-            FileInputStream(f).use { fis ->
-                // Initialize services and controllers
-                astController.clear().resetOrder()
-
-                // First do an independent scan of the class
-                val cr = ClassReader(fis)
-                val rootVisitor = InitialClassVisitor(classMetaController)
-                cr.accept(rootVisitor, 0)
-
-                // Once initial data has been gathered, build the graph
-                val astVisitor = ASTClassVisitor(classMetaController, astController)
-                // ^ append new visitors here
-                cr.accept(astVisitor, 0)
-            }
-        } catch (e: IOException) {
-            logger.error("IOException encountered while visiting '" + f.name + "'.", e)
+            val cls = Scene.v().loadClassAndSupport(classPath)
+            cls.setApplicationClass()
+            logger.debug("Projecting $classPath")
+            astBuilder.build(cls)
+            cfgBuilder.build(cls)
+            pdgBuilder.build(cls)
+        } catch (e: Exception) {
+            logger.error("IOException encountered while projecting $classPath", e)
         }
+    }
+
+    /**
+     * Configure Soot options for CPG transformation.
+     */
+    private fun configureSoot() {
+        // set application mode
+        Options.v().set_app(true)
+        // make sure classpath is configured correctly
+        Options.v().set_soot_classpath(classPath?.absolutePath)
+        Options.v().set_prepend_classpath(true)
+        // keep debugging info
+        Options.v().set_keep_line_number(true)
+        Options.v().set_keep_offset(true)
+        // ignore library code
+        Options.v().set_no_bodies_for_excluded(true)
+        Options.v().set_allow_phantom_refs(true)
+        // exclude java.lang packages
+        val excluded: MutableList<String> = ArrayList()
+        excluded.add("java.lang")
+        Options.v().set_exclude(excluded)
+        // keep variable names
+        PhaseOptions.v().setPhaseOption("jb", "use-original-names:true")
+    }
+
+    private fun getQualifiedClassPath(classFile: File): String = classFile.absolutePath.removePrefix(classPath?.absolutePath + "/").replace(File.separator, ".").removeSuffix(".class")
+
+    /**
+     * Given a list of class names, load them into the Scene.
+     *
+     * @param classNames a list of class names
+     */
+    private fun loadClassesIntoSoot(classNames: LinkedList<File>) {
+        classNames.forEach { Scene.v().addBasicClass(getQualifiedClassPath(it)) }
+        Scene.v().loadBasicClasses()
     }
 
 }

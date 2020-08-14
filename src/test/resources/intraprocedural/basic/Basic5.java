@@ -1,3 +1,5 @@
+package intraprocedural.basic;
+
 public class Basic5 {
 
     public static void main(String[] args) {

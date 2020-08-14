@@ -1,6 +1,6 @@
 package intraprocedural.basic.basic6;
 
-public class Basic6 {
+public class Basic5 {
 
     public static void main(String[] args) {
         int a = 3;
