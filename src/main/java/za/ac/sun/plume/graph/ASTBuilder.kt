@@ -22,7 +22,9 @@ import soot.jimple.BinopExpr
 import soot.jimple.CastExpr
 import soot.jimple.NumericConstant
 import soot.jimple.internal.JAssignStmt
+import soot.jimple.internal.JIdentityStmt
 import soot.toolkits.graph.BriefUnitGraph
+import soot.toolkits.graph.UnitGraph
 import za.ac.sun.plume.domain.models.vertices.*
 import za.ac.sun.plume.drivers.IDriver
 import za.ac.sun.plume.switches.PlumeTypeSwitch
@@ -46,10 +48,15 @@ class ASTBuilder(private val driver: IDriver) : IGraphBuilder {
         order = driver.maxOrder()
     }
 
-    override fun build(cls: SootClass) {
-        logger.debug("Building AST for ${cls.name}")
+    fun buildFileAndNamespace(cls: SootClass) {
+        logger.debug("Building file and namespace for ${cls.name}")
         projectFileAndNamespace(cls)
-        cls.methods.forEach { projectMethod(cls, it); if (it.isConcrete) projectMethodBody(it) }
+    }
+
+    override fun build(mtd: SootMethod, graph: BriefUnitGraph) {
+        logger.debug("Building AST for ${mtd.declaration}")
+        projectMethodHead(mtd)
+        projectMethodBody(graph)
     }
 
     private fun projectFileAndNamespace(cls: SootClass) {
@@ -63,6 +70,7 @@ class ASTBuilder(private val driver: IDriver) : IGraphBuilder {
         // Join FILE and NAMESPACE_BLOCK if namespace is present
         if (nbv != null) driver.joinFileVertexTo(currentClass, nbv)
         // Add metadata if not present
+        // TODO: This is currently erroneous and can be improved
         driver.createVertex(MetaDataVertex("Java", System.getProperty("java.runtime.version")))
     }
 
@@ -86,9 +94,9 @@ class ASTBuilder(private val driver: IDriver) : IGraphBuilder {
         return currNamespaceBlock ?: prevNamespaceBlock
     }
 
-    private fun projectMethod(cls: SootClass, mtd: SootMethod) {
+    private fun projectMethodHead(mtd: SootMethod) {
         currentLine = mtd.javaSourceStartLineNumber
-        currentMethod = MethodVertex(mtd.name, "${cls.name}.${mtd.name}", mtd.subSignature, currentLine, order++)
+        currentMethod = MethodVertex(mtd.name, "${mtd.declaringClass}.${mtd.name}", mtd.subSignature, currentLine, order++)
         driver.joinFileVertexTo(currentClass, currentMethod)
         // Return type
         val returnType = mtd.returnType
@@ -108,10 +116,8 @@ class ASTBuilder(private val driver: IDriver) : IGraphBuilder {
         SootParserUtil.determineModifiers(mtd.modifiers, mtd.name).forEach { driver.createAndAddToMethod(currentMethod, ModifierVertex(it, order++)) }
     }
 
-    private fun projectMethodBody(mtd: SootMethod) {
-        val body = mtd.retrieveActiveBody()
-        val unitGraph = BriefUnitGraph(body)
-        val mainMethodBlock = BlockVertex(METHOD_BODY, order++, 0, VOID, mtd.javaSourceStartLineNumber)
+    private fun projectMethodBody(unitGraph: UnitGraph) {
+        val mainMethodBlock = BlockVertex(METHOD_BODY, order++, 0, VOID, unitGraph.heads.first().javaSourceStartLineNumber)
         driver.createAndAssignToBlock(currentMethod, mainMethodBlock)
         unitGraph.body.parameterLocals.forEach(this::projectMethodParameterIn)
         unitGraph.body.locals.filter { !unitGraph.body.parameterLocals.contains(it) }.forEach { projectLocalVariable(it, mainMethodBlock) }

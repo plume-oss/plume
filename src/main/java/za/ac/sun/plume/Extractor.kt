@@ -20,6 +20,7 @@ import org.apache.logging.log4j.Logger
 import soot.PhaseOptions
 import soot.Scene
 import soot.options.Options
+import soot.toolkits.graph.BriefUnitGraph
 import za.ac.sun.plume.drivers.IDriver
 import za.ac.sun.plume.graph.ASTBuilder
 import za.ac.sun.plume.graph.CFGBuilder
@@ -73,12 +74,12 @@ class Extractor(hook: IDriver, private val classPath: File?) {
                     val jar = JarFile(file)
                     loadedFiles.addAll(fetchClassFiles(jar))
                 }
-                file.name.endsWith(".class")-> {
+                file.name.endsWith(".class") -> {
                     loadedFiles.add(file)
                 }
             }
         } else if (!file.exists()) {
-            throw NullPointerException("File '" + file.name + "' does not exist!")
+            throw NullPointerException("File '$file.name' does not exist!")
         }
     }
 
@@ -102,9 +103,13 @@ class Extractor(hook: IDriver, private val classPath: File?) {
             val cls = Scene.v().loadClassAndSupport(classPath)
             cls.setApplicationClass()
             logger.debug("Projecting $classPath")
-            astBuilder.build(cls)
-            cfgBuilder.build(cls)
-            pdgBuilder.build(cls)
+            astBuilder.buildFileAndNamespace(cls)
+            cls.methods.filter { it.isConcrete }.forEach {
+                val unitGraph = BriefUnitGraph(it.retrieveActiveBody())
+                astBuilder.build(it, unitGraph)
+                cfgBuilder.build(it, unitGraph)
+                pdgBuilder.build(it, unitGraph)
+            }
         } catch (e: Exception) {
             logger.error("IOException encountered while projecting $classPath", e)
         }

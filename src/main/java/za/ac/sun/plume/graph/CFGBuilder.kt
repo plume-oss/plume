@@ -17,13 +17,16 @@ package za.ac.sun.plume.graph
 
 import org.apache.logging.log4j.LogManager
 import soot.SootClass
+import soot.SootMethod
+import soot.toolkits.graph.BriefUnitGraph
+import soot.toolkits.graph.UnitGraph
 import za.ac.sun.plume.drivers.IDriver
 
 class CFGBuilder(private val driver: IDriver) : IGraphBuilder {
     private val logger = LogManager.getLogger(CFGBuilder::javaClass)
 
-    override fun build(cls: SootClass) {
-        logger.debug("Building CFG for ${cls.name}")
+    override fun build(mtd: SootMethod, graph: BriefUnitGraph) {
+        logger.debug("Building CFG for ${mtd.declaration}")
     }
 
 }

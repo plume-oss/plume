@@ -34,7 +34,7 @@ class BasicIntraproceduralTest {
     private lateinit var currentTestNumber: String
 
     companion object {
-        private val logger = LogManager.getLogger()
+        private val logger = LogManager.getLogger(BasicIntraproceduralTest::javaClass)
         private var PATH: File
         private var CLS_PATH: File
         private val TEST_PATH = "intraprocedural${File.separator}basic"

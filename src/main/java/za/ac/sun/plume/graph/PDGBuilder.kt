@@ -17,13 +17,16 @@ package za.ac.sun.plume.graph
 
 import org.apache.logging.log4j.LogManager
 import soot.SootClass
+import soot.SootMethod
+import soot.toolkits.graph.BriefUnitGraph
+import soot.toolkits.graph.UnitGraph
 import za.ac.sun.plume.drivers.IDriver
 
 class PDGBuilder(private val driver: IDriver) : IGraphBuilder {
     private val logger = LogManager.getLogger(PDGBuilder::javaClass)
 
-    override fun build(cls: SootClass) {
-        logger.debug("Building PDG for ${cls.name}")
+    override fun build(mtd: SootMethod, graph: BriefUnitGraph) {
+        logger.debug("Building PDG for ${mtd.declaration}")
     }
 
 }
