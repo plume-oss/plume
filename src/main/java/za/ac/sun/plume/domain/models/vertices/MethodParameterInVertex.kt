@@ -3,7 +3,6 @@ package za.ac.sun.plume.domain.models.vertices
 import za.ac.sun.plume.domain.enums.EvaluationStrategies
 import za.ac.sun.plume.domain.enums.VertexBaseTraits
 import za.ac.sun.plume.domain.enums.VertexLabels
-import za.ac.sun.plume.domain.models.MethodDescriptorVertex
 import java.util.*
 
 /**

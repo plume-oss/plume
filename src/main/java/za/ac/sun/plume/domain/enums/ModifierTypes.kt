@@ -1,5 +1,46 @@
 package za.ac.sun.plume.domain.enums
 
+/**
+ * Indicates the modifier which is represented by a MODIFIER node.
+ */
 enum class ModifierTypes {
-    STATIC, PUBLIC, PROTECTED, PRIVATE, ABSTRACT, NATIVE, CONSTRUCTOR, VIRTUAL
+    /**
+     * The static modifier
+     */
+    STATIC,
+
+    /**
+     * The public modifier
+     */
+    PUBLIC,
+
+    /**
+     * The protected modifier
+     */
+    PROTECTED,
+
+    /**
+     * The private modifier
+     */
+    PRIVATE,
+
+    /**
+     * The abstract modifier
+     */
+    ABSTRACT,
+
+    /**
+     * The native modifier
+     */
+    NATIVE,
+
+    /**
+     * The constructor modifier
+     */
+    CONSTRUCTOR,
+
+    /**
+     * The virtual modifier
+     */
+    VIRTUAL,
 }
