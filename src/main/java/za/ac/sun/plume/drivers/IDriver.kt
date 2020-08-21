@@ -2,7 +2,6 @@ package za.ac.sun.plume.drivers
 
 import za.ac.sun.plume.domain.enums.EdgeLabels
 import za.ac.sun.plume.domain.models.PlumeVertex
-import za.ac.sun.plume.domain.models.MethodDescriptorVertex
 import za.ac.sun.plume.domain.models.vertices.*
 
 interface IDriver {
@@ -24,15 +23,6 @@ interface IDriver {
      * @param to   the [ModifierVertex] to create and join.
      */
     fun createAndAddToMethod(from: MethodVertex, to: ModifierVertex)
-
-    /**
-     * Joins the vertex associated with the given [FileVertex] in the database and the vertex associated with the
-     * given [NamespaceBlockVertex]. If there is no associated vertices then they will be created.
-     *
-     * @param to   the [FileVertex] in the database.
-     * @param from the [NamespaceBlockVertex] in the database.
-     */
-    fun joinFileVertexTo(to: FileVertex, from: NamespaceBlockVertex)
 
     /**
      * Joins the vertex associated with the given [FileVertex] in the database and the vertex associated with the

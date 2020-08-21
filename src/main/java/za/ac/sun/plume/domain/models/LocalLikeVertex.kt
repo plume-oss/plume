@@ -6,15 +6,16 @@ import java.util.*
 /**
  * Formal input parameters, locals, and identifiers.
  */
-abstract class LocalLikeVertex(val name: String) : PlumeVertex {
+abstract class LocalLikeVertex(val name: String, order:Int) : ASTVertex(order) {
     companion object {
         @JvmField
-        val TRAITS: EnumSet<VertexBaseTraits> = EnumSet.of(VertexBaseTraits.LOCAL_LIKE)
+        val TRAITS: EnumSet<VertexBaseTraits> = EnumSet.of(VertexBaseTraits.LOCAL_LIKE, VertexBaseTraits.AST_NODE)
     }
 
     override fun equals(other: Any?): Boolean {
         if (this === other) return true
         if (other !is LocalLikeVertex) return false
+        if (!super.equals(other)) return false
 
         if (name != other.name) return false
 
@@ -22,7 +23,9 @@ abstract class LocalLikeVertex(val name: String) : PlumeVertex {
     }
 
     override fun hashCode(): Int {
-        return name.hashCode()
+        var result = super.hashCode()
+        result = 31 * result + name.hashCode()
+        return result
     }
 
     override fun toString(): String {

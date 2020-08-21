@@ -10,11 +10,10 @@ import java.util.*
  * A modifier, e.g., static, public, private
  */
 class ModifierVertex(val name: ModifierTypes, order: Int) : ASTVertex(order) {
-    override fun toString(): String {
-        return "ModifierVertex{" +
-                "name=" + name +
-                ", order=" + order +
-                '}'
+    companion object {
+        @kotlin.jvm.JvmField
+        val LABEL = VertexLabels.MODIFIER
+        val TRAITS: EnumSet<VertexBaseTraits> = EnumSet.of(VertexBaseTraits.AST_NODE)
     }
 
     override fun equals(other: Any?): Boolean {
@@ -35,10 +34,10 @@ class ModifierVertex(val name: ModifierTypes, order: Int) : ASTVertex(order) {
         return result
     }
 
-    companion object {
-        @kotlin.jvm.JvmField
-        val LABEL = VertexLabels.MODIFIER
-        val TRAITS: EnumSet<VertexBaseTraits> = EnumSet.of(VertexBaseTraits.AST_NODE)
+    override fun toString(): String {
+        return "ModifierVertex{" +
+                "name=" + name +
+                ", order=" + order +
+                '}'
     }
-
 }

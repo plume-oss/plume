@@ -9,6 +9,12 @@ import java.util.*
  * Node to save meta data about the graph on its properties. Exactly one node of this type per graph
  */
 class MetaDataVertex(val language: String, val version: String) : PlumeVertex {
+    companion object {
+        @kotlin.jvm.JvmField
+        val LABEL = VertexLabels.META_DATA
+        val TRAITS: EnumSet<VertexBaseTraits> = EnumSet.noneOf(VertexBaseTraits::class.java)
+    }
+
     override fun toString(): String {
         return "MetaDataVertex{" +
                 "language='" + language + '\'' +
@@ -33,12 +39,4 @@ class MetaDataVertex(val language: String, val version: String) : PlumeVertex {
         result = 31 * result + version.hashCode()
         return result
     }
-
-
-    companion object {
-        @kotlin.jvm.JvmField
-        val LABEL = VertexLabels.META_DATA
-        val TRAITS: EnumSet<VertexBaseTraits> = EnumSet.noneOf(VertexBaseTraits::class.java)
-    }
-
 }

@@ -9,6 +9,12 @@ import java.util.*
  * Initialization construct for arrays
  */
 class ArrayInitializerVertex(order: Int) : ASTVertex(order) {
+    companion object {
+        @kotlin.jvm.JvmField
+        val LABEL = VertexLabels.ARRAY_INITIALIZER
+        val TRAITS: EnumSet<VertexBaseTraits> = EnumSet.of(VertexBaseTraits.AST_NODE)
+    }
+
     override fun toString(): String {
         return "ArrayInitializerVertex{order=$order}"
     }
@@ -26,11 +32,5 @@ class ArrayInitializerVertex(order: Int) : ASTVertex(order) {
 
     override fun hashCode(): Int {
         return order
-    }
-
-    companion object {
-        @kotlin.jvm.JvmField
-        val LABEL = VertexLabels.ARRAY_INITIALIZER
-        val TRAITS: EnumSet<VertexBaseTraits> = EnumSet.of(VertexBaseTraits.AST_NODE)
     }
 }

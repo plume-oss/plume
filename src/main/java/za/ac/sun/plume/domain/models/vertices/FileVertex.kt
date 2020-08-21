@@ -6,14 +6,13 @@ import za.ac.sun.plume.domain.models.ASTVertex
 import java.util.*
 
 /**
- * Node representing a source file. Often also the AST root
+ * Node representing a source file. Often also the AST root.
  */
 class FileVertex(val name: String, order: Int) : ASTVertex(order) {
-    override fun toString(): String {
-        return "FileVertex{" +
-                "name='" + name + '\'' +
-                ", order=" + order +
-                '}'
+    companion object {
+        @kotlin.jvm.JvmField
+        val LABEL = VertexLabels.FILE
+        val TRAITS: EnumSet<VertexBaseTraits> = EnumSet.of(VertexBaseTraits.AST_NODE)
     }
 
     override fun equals(other: Any?): Boolean {
@@ -34,10 +33,10 @@ class FileVertex(val name: String, order: Int) : ASTVertex(order) {
         return result
     }
 
-    companion object {
-        @kotlin.jvm.JvmField
-        val LABEL = VertexLabels.FILE
-        val TRAITS: EnumSet<VertexBaseTraits> = EnumSet.of(VertexBaseTraits.AST_NODE)
+    override fun toString(): String {
+        return "FileVertex{" +
+                "name='" + name + '\'' +
+                ", order=" + order +
+                '}'
     }
-
 }

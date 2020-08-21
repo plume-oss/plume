@@ -8,7 +8,6 @@ import za.ac.sun.plume.domain.enums.EdgeLabels
 import za.ac.sun.plume.domain.enums.VertexLabels
 import za.ac.sun.plume.domain.mappers.VertexMapper
 import za.ac.sun.plume.domain.models.PlumeVertex
-import za.ac.sun.plume.domain.models.MethodDescriptorVertex
 import za.ac.sun.plume.domain.models.vertices.FileVertex
 import za.ac.sun.plume.domain.models.vertices.MethodVertex
 import za.ac.sun.plume.domain.models.vertices.ModifierVertex

@@ -10,19 +10,15 @@ import java.util.*
  * declaration is a template
  */
 class TypeVertex(val name: String, val fullName: String, val typeDeclFullName: String) : PlumeVertex {
-    override fun toString(): String {
-        return "TypeVertex{" +
-                "name='" + name + '\'' +
-                ", fullName='" + fullName + '\'' +
-                ", typeDeclFullName='" + typeDeclFullName + '\'' +
-                '}'
+    companion object {
+        @kotlin.jvm.JvmField
+        val LABEL = VertexLabels.TYPE
+        val TRAITS: EnumSet<VertexBaseTraits> = EnumSet.noneOf(VertexBaseTraits::class.java)
     }
 
     override fun equals(other: Any?): Boolean {
         if (this === other) return true
-        if (javaClass != other?.javaClass) return false
-
-        other as TypeVertex
+        if (other !is TypeVertex) return false
 
         if (name != other.name) return false
         if (fullName != other.fullName) return false
@@ -38,10 +34,7 @@ class TypeVertex(val name: String, val fullName: String, val typeDeclFullName: S
         return result
     }
 
-    companion object {
-        @kotlin.jvm.JvmField
-        val LABEL = VertexLabels.TYPE
-        val TRAITS: EnumSet<VertexBaseTraits> = EnumSet.noneOf(VertexBaseTraits::class.java)
+    override fun toString(): String {
+        return "TypeVertex(name='$name', fullName='$fullName', typeDeclFullName='$typeDeclFullName')"
     }
-
 }

@@ -9,6 +9,12 @@ import java.util.*
  * A binding of a METHOD into a TYPE_DECL
  */
 class BindingVertex(val name: String, val signature: String) : PlumeVertex {
+    companion object {
+        @kotlin.jvm.JvmField
+        val LABEL = VertexLabels.BINDING
+        val TRAITS: EnumSet<VertexBaseTraits> = EnumSet.noneOf(VertexBaseTraits::class.java)
+    }
+
     override fun toString(): String {
         return "BindingVertex{" +
                 "name='" + name + '\'' +
@@ -33,11 +39,4 @@ class BindingVertex(val name: String, val signature: String) : PlumeVertex {
         result = 31 * result + signature.hashCode()
         return result
     }
-
-    companion object {
-        @kotlin.jvm.JvmField
-        val LABEL = VertexLabels.BINDING
-        val TRAITS: EnumSet<VertexBaseTraits> = EnumSet.noneOf(VertexBaseTraits::class.java)
-    }
-
 }
