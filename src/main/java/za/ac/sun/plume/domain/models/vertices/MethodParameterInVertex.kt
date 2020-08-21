@@ -20,6 +20,7 @@ class MethodParameterInVertex(
     companion object {
         @kotlin.jvm.JvmField
         val LABEL = VertexLabels.METHOD_PARAMETER_IN
+        @kotlin.jvm.JvmField
         val TRAITS: EnumSet<VertexBaseTraits> = EnumSet.of(VertexBaseTraits.AST_NODE,
                 VertexBaseTraits.DECLARATION,
                 VertexBaseTraits.CFG_NODE)

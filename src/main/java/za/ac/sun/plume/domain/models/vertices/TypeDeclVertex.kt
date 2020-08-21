@@ -18,6 +18,7 @@ class TypeDeclVertex(
     companion object {
         @kotlin.jvm.JvmField
         val LABEL = VertexLabels.TYPE_DECL
+        @kotlin.jvm.JvmField
         val TRAITS: EnumSet<VertexBaseTraits> = EnumSet.of(VertexBaseTraits.AST_NODE)
     }
 

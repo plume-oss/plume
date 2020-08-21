@@ -20,8 +20,11 @@ class IdentifierVertex(
     companion object {
         @kotlin.jvm.JvmField
         val LABEL = VertexLabels.IDENTIFIER
-        val TRAITS: EnumSet<VertexBaseTraits> = EnumSet.of(VertexBaseTraits.EXPRESSION,
-                VertexBaseTraits.LOCAL_LIKE)
+        @kotlin.jvm.JvmField
+        val TRAITS: EnumSet<VertexBaseTraits> = EnumSet.of(
+                VertexBaseTraits.EXPRESSION,
+                VertexBaseTraits.LOCAL_LIKE
+        )
     }
 
     override fun equals(other: Any?): Boolean {

@@ -19,6 +19,7 @@ class LocalVertex(
     companion object {
         @kotlin.jvm.JvmField
         val LABEL = VertexLabels.LOCAL
+        @kotlin.jvm.JvmField
         val TRAITS: EnumSet<VertexBaseTraits> = EnumSet.of(
                 VertexBaseTraits.DECLARATION,
                 VertexBaseTraits.LOCAL_LIKE,

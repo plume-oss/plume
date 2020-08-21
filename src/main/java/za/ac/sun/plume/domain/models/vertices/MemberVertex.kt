@@ -13,6 +13,7 @@ class MemberVertex(val code: String, name: String, val typeFullName: String, ord
     companion object {
         @kotlin.jvm.JvmField
         val LABEL = VertexLabels.MEMBER
+        @kotlin.jvm.JvmField
         val TRAITS: EnumSet<VertexBaseTraits> = EnumSet.of(
                 VertexBaseTraits.DECLARATION,
                 VertexBaseTraits.AST_NODE

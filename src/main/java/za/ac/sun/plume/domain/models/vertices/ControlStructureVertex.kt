@@ -19,6 +19,7 @@ class ControlStructureVertex(
     companion object {
         @kotlin.jvm.JvmField
         val LABEL = VertexLabels.CONTROL_STRUCTURE
+        @kotlin.jvm.JvmField
         val TRAITS: EnumSet<VertexBaseTraits> = EnumSet.of(VertexBaseTraits.EXPRESSION)
     }
 

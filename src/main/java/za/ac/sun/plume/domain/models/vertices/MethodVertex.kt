@@ -20,10 +20,12 @@ class MethodVertex(
     companion object {
         @kotlin.jvm.JvmField
         val LABEL = VertexLabels.METHOD
+        @kotlin.jvm.JvmField
         val TRAITS: EnumSet<VertexBaseTraits> = EnumSet.of(
                 VertexBaseTraits.AST_NODE,
                 VertexBaseTraits.DECLARATION,
-                VertexBaseTraits.CFG_NODE)
+                VertexBaseTraits.CFG_NODE
+        )
     }
 
     override fun equals(other: Any?): Boolean {

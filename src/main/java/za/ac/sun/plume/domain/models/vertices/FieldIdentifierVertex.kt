@@ -23,6 +23,7 @@ class FieldIdentifierVertex(
     companion object {
         @kotlin.jvm.JvmField
         val LABEL = VertexLabels.FIELD_IDENTIFIER
+        @kotlin.jvm.JvmField
         val TRAITS: EnumSet<VertexBaseTraits> = EnumSet.of(VertexBaseTraits.EXPRESSION)
     }
 

@@ -20,6 +20,7 @@ class BlockVertex(
     companion object {
         @kotlin.jvm.JvmField
         val LABEL = VertexLabels.BLOCK
+        @kotlin.jvm.JvmField
         val TRAITS: EnumSet<VertexBaseTraits> = EnumSet.of(VertexBaseTraits.EXPRESSION)
     }
 

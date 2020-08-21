@@ -25,6 +25,7 @@ class CallVertex(
     companion object {
         @kotlin.jvm.JvmField
         val LABEL = VertexLabels.CALL
+        @kotlin.jvm.JvmField
         val TRAITS: EnumSet<VertexBaseTraits> = EnumSet.of(
                 VertexBaseTraits.EXPRESSION,
                 VertexBaseTraits.CALL_REPR

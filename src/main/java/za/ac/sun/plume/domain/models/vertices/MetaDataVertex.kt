@@ -12,6 +12,7 @@ class MetaDataVertex(val language: String, val version: String) : PlumeVertex {
     companion object {
         @kotlin.jvm.JvmField
         val LABEL = VertexLabels.META_DATA
+        @kotlin.jvm.JvmField
         val TRAITS: EnumSet<VertexBaseTraits> = EnumSet.noneOf(VertexBaseTraits::class.java)
     }
 

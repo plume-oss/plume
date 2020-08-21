@@ -12,6 +12,7 @@ class ArrayInitializerVertex(order: Int) : ASTVertex(order) {
     companion object {
         @kotlin.jvm.JvmField
         val LABEL = VertexLabels.ARRAY_INITIALIZER
+        @kotlin.jvm.JvmField
         val TRAITS: EnumSet<VertexBaseTraits> = EnumSet.of(VertexBaseTraits.AST_NODE)
     }
 

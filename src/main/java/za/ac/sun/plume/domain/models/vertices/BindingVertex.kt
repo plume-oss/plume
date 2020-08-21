@@ -12,6 +12,7 @@ class BindingVertex(val name: String, val signature: String) : PlumeVertex {
     companion object {
         @kotlin.jvm.JvmField
         val LABEL = VertexLabels.BINDING
+        @kotlin.jvm.JvmField
         val TRAITS: EnumSet<VertexBaseTraits> = EnumSet.noneOf(VertexBaseTraits::class.java)
     }
 

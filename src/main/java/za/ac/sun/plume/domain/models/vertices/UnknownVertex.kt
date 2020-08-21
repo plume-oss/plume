@@ -19,6 +19,7 @@ class UnknownVertex(
     companion object {
         @kotlin.jvm.JvmField
         val LABEL = VertexLabels.UNKNOWN
+        @kotlin.jvm.JvmField
         val TRAITS: EnumSet<VertexBaseTraits> = EnumSet.of(VertexBaseTraits.EXPRESSION)
     }
 

@@ -20,6 +20,7 @@ class LiteralVertex(
     companion object {
         @kotlin.jvm.JvmField
         val LABEL = VertexLabels.LITERAL
+        @kotlin.jvm.JvmField
         val TRAITS: EnumSet<VertexBaseTraits> = EnumSet.of(VertexBaseTraits.EXPRESSION)
     }
 

@@ -20,6 +20,7 @@ class MethodRefVertex(
     companion object {
         @kotlin.jvm.JvmField
         val LABEL = VertexLabels.METHOD_REF
+        @kotlin.jvm.JvmField
         val TRAITS: EnumSet<VertexBaseTraits> = EnumSet.of(VertexBaseTraits.EXPRESSION)
     }
 

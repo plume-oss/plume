@@ -12,6 +12,7 @@ class FileVertex(val name: String, order: Int) : ASTVertex(order) {
     companion object {
         @kotlin.jvm.JvmField
         val LABEL = VertexLabels.FILE
+        @kotlin.jvm.JvmField
         val TRAITS: EnumSet<VertexBaseTraits> = EnumSet.of(VertexBaseTraits.AST_NODE)
     }
 

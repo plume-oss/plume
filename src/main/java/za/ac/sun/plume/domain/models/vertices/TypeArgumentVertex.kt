@@ -12,6 +12,7 @@ class TypeArgumentVertex(order: Int) : ASTVertex(order) {
     companion object {
         @kotlin.jvm.JvmField
         val LABEL = VertexLabels.TYPE_ARGUMENT
+        @kotlin.jvm.JvmField
         val TRAITS: EnumSet<VertexBaseTraits> = EnumSet.of(VertexBaseTraits.AST_NODE)
     }
 

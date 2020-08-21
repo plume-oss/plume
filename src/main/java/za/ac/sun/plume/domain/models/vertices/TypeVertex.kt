@@ -13,6 +13,7 @@ class TypeVertex(val name: String, val fullName: String, val typeDeclFullName: S
     companion object {
         @kotlin.jvm.JvmField
         val LABEL = VertexLabels.TYPE
+        @kotlin.jvm.JvmField
         val TRAITS: EnumSet<VertexBaseTraits> = EnumSet.noneOf(VertexBaseTraits::class.java)
     }
 

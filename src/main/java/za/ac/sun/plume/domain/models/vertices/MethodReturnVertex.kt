@@ -20,8 +20,11 @@ class MethodReturnVertex(
     companion object {
         @kotlin.jvm.JvmField
         val LABEL = VertexLabels.METHOD_RETURN
-        val TRAITS: EnumSet<VertexBaseTraits> = EnumSet.of(VertexBaseTraits.CFG_NODE,
-                VertexBaseTraits.TRACKING_POINT)
+        @kotlin.jvm.JvmField
+        val TRAITS: EnumSet<VertexBaseTraits> = EnumSet.of(
+                VertexBaseTraits.CFG_NODE,
+                VertexBaseTraits.TRACKING_POINT
+        )
     }
 
     override fun equals(other: Any?): Boolean {

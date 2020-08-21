@@ -2,27 +2,33 @@ package za.ac.sun.plume.domain.models.vertices
 
 import za.ac.sun.plume.domain.enums.VertexBaseTraits
 import za.ac.sun.plume.domain.enums.VertexLabels
-import za.ac.sun.plume.domain.models.ASTVertex
+import za.ac.sun.plume.domain.models.CFGVertex
 import java.util.*
 
 /**
- * A reference to a namespace
+ * A jump target made explicit in the code using a label.
  */
-class NamespaceBlockVertex(val name: String, val fullName: String, order: Int) : ASTVertex(order) {
+class JumpTargetVertex(
+        val name: String,
+        val argumentIndex: Int,
+        lineNumber: Int,
+        code: String,
+        order: Int
+) : CFGVertex(lineNumber, code, order) {
     companion object {
         @kotlin.jvm.JvmField
-        val LABEL = VertexLabels.NAMESPACE_BLOCK
+        val LABEL = VertexLabels.TYPE_PARAMETER
         @kotlin.jvm.JvmField
         val TRAITS: EnumSet<VertexBaseTraits> = EnumSet.of(VertexBaseTraits.AST_NODE)
     }
 
     override fun equals(other: Any?): Boolean {
         if (this === other) return true
-        if (other !is NamespaceBlockVertex) return false
+        if (other !is JumpTargetVertex) return false
         if (!super.equals(other)) return false
 
         if (name != other.name) return false
-        if (fullName != other.fullName) return false
+        if (argumentIndex != other.argumentIndex) return false
 
         return true
     }
@@ -30,11 +36,11 @@ class NamespaceBlockVertex(val name: String, val fullName: String, order: Int) :
     override fun hashCode(): Int {
         var result = super.hashCode()
         result = 31 * result + name.hashCode()
-        result = 31 * result + fullName.hashCode()
+        result = 31 * result + argumentIndex
         return result
     }
 
     override fun toString(): String {
-        return "NamespaceBlockVertex(name='$name', fullName='$fullName')"
+        return "JumpTargetVertex(name='$name', argumentIndex=$argumentIndex)"
     }
 }
