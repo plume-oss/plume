@@ -22,4 +22,20 @@ abstract class ExpressionVertex(
                 VertexBaseTraits.WITHIN_METHOD
         )
     }
+
+    override fun equals(other: Any?): Boolean {
+        if (this === other) return true
+        if (other !is ExpressionVertex) return false
+        if (!super.equals(other)) return false
+
+        if (argumentIndex != other.argumentIndex) return false
+
+        return true
+    }
+
+    override fun hashCode(): Int {
+        var result = super.hashCode()
+        result = 31 * result + argumentIndex
+        return result
+    }
 }

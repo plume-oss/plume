@@ -15,4 +15,11 @@ abstract class TrackingPoint(order: Int) : ASTVertex(order) {
                 VertexBaseTraits.WITHIN_METHOD
         )
     }
+
+    override fun equals(other: Any?): Boolean {
+        if (this === other) return true
+        if (other !is TrackingPoint) return false
+        if (!super.equals(other)) return false
+        return true
+    }
 }

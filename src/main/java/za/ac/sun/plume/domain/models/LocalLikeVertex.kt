@@ -11,4 +11,21 @@ abstract class LocalLikeVertex(val name: String) : PlumeVertex {
         @JvmField
         val TRAITS: EnumSet<VertexBaseTraits> = EnumSet.of(VertexBaseTraits.LOCAL_LIKE)
     }
+
+    override fun equals(other: Any?): Boolean {
+        if (this === other) return true
+        if (other !is LocalLikeVertex) return false
+
+        if (name != other.name) return false
+
+        return true
+    }
+
+    override fun hashCode(): Int {
+        return name.hashCode()
+    }
+
+    override fun toString(): String {
+        return "LocalLikeVertex(name='$name')"
+    }
 }

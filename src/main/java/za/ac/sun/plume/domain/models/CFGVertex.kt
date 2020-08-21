@@ -19,4 +19,22 @@ abstract class CFGVertex(
                 VertexBaseTraits.AST_NODE
         )
     }
+
+    override fun equals(other: Any?): Boolean {
+        if (this === other) return true
+        if (other !is CFGVertex) return false
+        if (!super.equals(other)) return false
+
+        if (lineNumber != other.lineNumber) return false
+        if (code != other.code) return false
+
+        return true
+    }
+
+    override fun hashCode(): Int {
+        var result = super.hashCode()
+        result = 31 * result + lineNumber
+        result = 31 * result + code.hashCode()
+        return result
+    }
 }

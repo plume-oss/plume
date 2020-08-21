@@ -14,4 +14,20 @@ abstract class ASTVertex(val order: Int) : WithinMethod() {
                 VertexBaseTraits.WITHIN_METHOD
         )
     }
+
+    override fun equals(other: Any?): Boolean {
+        if (this === other) return true
+        if (other !is ASTVertex) return false
+        if (!super.equals(other)) return false
+
+        if (order != other.order) return false
+
+        return true
+    }
+
+    override fun hashCode(): Int {
+        var result = super.hashCode()
+        result = 31 * result + order
+        return result
+    }
 }

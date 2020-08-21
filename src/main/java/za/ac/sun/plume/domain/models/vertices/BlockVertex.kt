@@ -3,18 +3,20 @@ package za.ac.sun.plume.domain.models.vertices
 import za.ac.sun.plume.domain.enums.VertexBaseTraits
 import za.ac.sun.plume.domain.enums.VertexLabels
 import za.ac.sun.plume.domain.models.ASTVertex
+import za.ac.sun.plume.domain.models.ExpressionVertex
 import java.util.*
 
 /**
- * A structuring block in the AST
+ * A structuring block in the AST.
  */
 class BlockVertex(
         val name: String,
+        code: String,
         order: Int,
-        val argumentIndex: Int,
+        argumentIndex: Int,
         val typeFullName: String,
-        val lineNumber: Int
-) : ASTVertex(order) {
+        lineNumber: Int
+) : ExpressionVertex(code, argumentIndex, lineNumber, order) {
     override fun toString(): String {
         return "BlockVertex{" +
                 "name='" + name + '\'' +
