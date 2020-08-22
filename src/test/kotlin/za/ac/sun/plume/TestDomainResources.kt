@@ -1,8 +1,8 @@
 package za.ac.sun.plume
 
-import za.ac.sun.plume.domain.enums.DispatchTypes
-import za.ac.sun.plume.domain.enums.EvaluationStrategies
-import za.ac.sun.plume.domain.enums.ModifierTypes
+import za.ac.sun.plume.domain.enums.DispatchType
+import za.ac.sun.plume.domain.enums.EvaluationStrategy
+import za.ac.sun.plume.domain.enums.ModifierType
 import za.ac.sun.plume.domain.models.vertices.*
 
 class TestDomainResources {
@@ -13,12 +13,12 @@ class TestDomainResources {
         const val INT_2 = 1
         const val INT_3 = 2
         const val INT_4 = 3
-        val DISPATCH_1 = DispatchTypes.DYNAMIC_DISPATCH
-        val DISPATCH_2 = DispatchTypes.STATIC_DISPATCH
-        val EVAL_1 = EvaluationStrategies.BY_REFERENCE
-        val EVAL_2 = EvaluationStrategies.BY_SHARING
-        val MOD_1 = ModifierTypes.ABSTRACT
-        val MOD_2 = ModifierTypes.CONSTRUCTOR
+        val DISPATCH_1 = DispatchType.DYNAMIC_DISPATCH
+        val DISPATCH_2 = DispatchType.STATIC_DISPATCH
+        val EVAL_1 = EvaluationStrategy.BY_REFERENCE
+        val EVAL_2 = EvaluationStrategy.BY_SHARING
+        val MOD_1 = ModifierType.ABSTRACT
+        val MOD_2 = ModifierType.CONSTRUCTOR
         const val ROOT_METHOD = "root"
         const val FIRST_BLOCK = "firstBlock"
         const val TEST_ID = "test"

@@ -1,8 +1,7 @@
 package za.ac.sun.plume.domain.models.vertices
 
-import za.ac.sun.plume.domain.enums.VertexBaseTraits
-import za.ac.sun.plume.domain.enums.VertexLabels
-import za.ac.sun.plume.domain.models.ASTVertex
+import za.ac.sun.plume.domain.enums.VertexBaseTrait
+import za.ac.sun.plume.domain.enums.VertexLabel
 import za.ac.sun.plume.domain.models.ExpressionVertex
 import java.util.*
 
@@ -19,11 +18,11 @@ class IdentifierVertex(
 ) : ExpressionVertex(code, argumentIndex, lineNumber, order) {
     companion object {
         @kotlin.jvm.JvmField
-        val LABEL = VertexLabels.IDENTIFIER
+        val LABEL = VertexLabel.IDENTIFIER
         @kotlin.jvm.JvmField
-        val TRAITS: EnumSet<VertexBaseTraits> = EnumSet.of(
-                VertexBaseTraits.EXPRESSION,
-                VertexBaseTraits.LOCAL_LIKE
+        val TRAITS: EnumSet<VertexBaseTrait> = EnumSet.of(
+                VertexBaseTrait.EXPRESSION,
+                VertexBaseTrait.LOCAL_LIKE
         )
     }
 

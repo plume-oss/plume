@@ -1,123 +1,60 @@
 package za.ac.sun.plume.drivers
 
-import za.ac.sun.plume.domain.enums.EdgeLabels
+import za.ac.sun.plume.domain.enums.EdgeLabel
 import za.ac.sun.plume.domain.models.PlumeVertex
-import za.ac.sun.plume.domain.models.vertices.*
 
-interface IDriver {
+/**
+ * The minimal interface for all graph drivers.
+ *
+ * @author David Baker Effendi
+ */
+interface IDriver : AutoCloseable {
 
     /**
-     * Creates the given [MethodDescriptorVertex] in the database and joins it to the vertex associated with the
-     * given [MethodVertex].
+     * Inserts a vertex in the graph database or updates it if the vertex is already present.
      *
-     * @param from the [MethodVertex] in the database.
-     * @param to   the [MethodDescriptorVertex] to create and join.
+     * @param v the [PlumeVertex] to upsert.
      */
-    fun createAndAddToMethod(from: MethodVertex, to: MethodDescriptorVertex)
+    fun upsertVertex(v: PlumeVertex)
 
     /**
-     * Creates the given [ModifierVertex] in the database and joins it to the vertex associated with the
-     * given [MethodVertex].
+     * Checks if the given [PlumeVertex] exists in the database.
      *
-     * @param from the [MethodVertex] in the database.
-     * @param to   the [ModifierVertex] to create and join.
+     * @param v the [PlumeVertex] to check existence of.
+     * @return true if the vertex exists, false if otherwise.
      */
-    fun createAndAddToMethod(from: MethodVertex, to: ModifierVertex)
+    fun exists(v: PlumeVertex): Boolean
 
     /**
-     * Joins the vertex associated with the given [FileVertex] in the database and the vertex associated with the
-     * given [MethodVertex]. If there is no associated vertices then they will be created.
+     * Checks if an edge of the given label exists between two [PlumeVertex] vertices.
      *
-     * @param from the [FileVertex] in the database.
-     * @param to   the [MethodVertex] in the database.
+     * @param fromV the source [PlumeVertex].
+     * @param toV the target [PlumeVertex].
+     * @param edge the [EdgeLabel] to label the edge with.
+     * @return true if the edge exists, false if otherwise.
      */
-    fun joinFileVertexTo(from: FileVertex, to: MethodVertex)
+    fun exists(fromV: PlumeVertex, toV: PlumeVertex, edge: EdgeLabel): Boolean
 
     /**
-     * Joins two namespace block vertices associated with the given [NamespaceBlockVertex] parameters. If one or
-     * both of the [NamespaceBlockVertex] parameters do no have an associated vertex in the database, they are
-     * created.
+     * Creates an edge with the label from enum [EdgeLabel] between two [PlumeVertex] vertices in the graph database.
+     * If the given vertices are not already present in the database, they are created using [upsertVertex].
      *
-     * @param from the from vertex.
-     * @param to   the to vertex.
+     * @param fromV the source [PlumeVertex].
+     * @param toV the target [PlumeVertex].
+     * @param edge the [EdgeLabel] to label the edge with.
      */
-    fun joinNamespaceBlocks(from: NamespaceBlockVertex, to: NamespaceBlockVertex)
+    fun addEdge(fromV: PlumeVertex, toV: PlumeVertex, edge: EdgeLabel)
 
     /**
-     * Creates and assigns the [PlumeVertex] to the associated [MethodVertex] vertex in the
-     * database identified by the given [MethodVertex].
+     * Scans the AST vertices of the graph for the largest order property.
      *
-     * @param parentVertex the [MethodVertex] to connect.
-     * @param newVertex    the [PlumeVertex] to associate with the block.
-     */
-    fun createAndAssignToBlock(parentVertex: MethodVertex, newVertex: PlumeVertex)
-
-    /**
-     * Creates and assigns the [PlumeVertex] to the associated [BlockVertex] vertex in the
-     * database identified purely by the order.
-     *
-     * @param newVertex  the [PlumeVertex] to associate with the block.
-     * @param blockOrder the AST order under which this block occurs.
-     */
-    fun createAndAssignToBlock(newVertex: PlumeVertex, blockOrder: Int)
-
-    /**
-     * Updates a key-value pair on a [PlumeVertex] in the database identified by the given AST order of the block.
-     *
-     * @param order the AST order under which this block occurs.
-     * @param key   the key of the property to upsert.
-     * @param value the value to upsert the key with.
-     */
-    fun updateASTVertexProperty(order: Int, key: String, value: String)
-
-    /**
-     * Creates a free-floating [PlumeVertex]
-     *
-     * @param plumeVertex the [PlumeVertex] to create.
-     */
-    fun createVertex(plumeVertex: PlumeVertex)
-
-    /**
-     * Creates an edge between two [BlockVertex] objects.
-     *
-     * @param blockFrom AST order of the from block.
-     * @param blockTo   AST order of the to block.
-     * @param edgeLabel The label to be attached to the edge.
-     */
-    fun joinASTVerticesByOrder(blockFrom: Int, blockTo: Int, edgeLabel: EdgeLabels)
-
-    /**
-     * Checked if there is an edge between two [BlockVertex] objects.
-     *
-     * @param orderFrom AST order of the from block.
-     * @param orderTo   AST order of the to block.
-     * @param edgeLabel The label to be attached to the edge.
-     * @return true if joined by an edge, false if otherwise.
-     */
-    fun areASTVerticesConnected(orderFrom: Int, orderTo: Int, edgeLabel: EdgeLabels): Boolean
-
-    /**
-     * Traverses the AST nodes to search for the largest order value.
-     *
-     * @return the largest order property.
+     * @return the largest order value in the graph.
      */
     fun maxOrder(): Int
 
     /**
-     * Searches for a [PlumeVertex] associated with this order.
-     *
-     * @param blockOrder the [PlumeVertex] order.
-     * @return true if there is a [PlumeVertex] with this order value, false if otherwise.
-     */
-    fun isASTVertex(blockOrder: Int): Boolean
-
-    /**
-     * Clears the current loaded graph of all vertices and edges.
+     * Clears the graph of all vertices and edges.
      */
     fun clearGraph()
 
-    /**
-     * Closes the connection to the graph database.
-     */
-    fun close()
 }

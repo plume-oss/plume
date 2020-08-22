@@ -3,7 +3,7 @@ package za.ac.sun.plume.domain.enums
 /**
  * Evaluation strategy for function parameters and return values.
  */
-enum class EvaluationStrategies {
+enum class EvaluationStrategy {
     /**
      * A parameter or return of a function is passed by reference which means an address is used behind the scenes
      */

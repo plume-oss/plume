@@ -1,6 +1,6 @@
 package za.ac.sun.plume.domain.models
 
-import za.ac.sun.plume.domain.enums.VertexBaseTraits
+import za.ac.sun.plume.domain.enums.VertexBaseTrait
 import java.util.*
 
 /**
@@ -15,11 +15,11 @@ abstract class CallReprVertex (
 ): CFGVertex(lineNumber, code, order) {
     companion object {
         @JvmField
-        val TRAITS: EnumSet<VertexBaseTraits> = EnumSet.of(
-                VertexBaseTraits.CFG_NODE,
-                VertexBaseTraits.TRACKING_POINT,
-                VertexBaseTraits.AST_NODE,
-                VertexBaseTraits.CALL_REPR
+        val TRAITS: EnumSet<VertexBaseTrait> = EnumSet.of(
+                VertexBaseTrait.CFG_NODE,
+                VertexBaseTrait.TRACKING_POINT,
+                VertexBaseTrait.AST_NODE,
+                VertexBaseTrait.CALL_REPR
         )
     }
 

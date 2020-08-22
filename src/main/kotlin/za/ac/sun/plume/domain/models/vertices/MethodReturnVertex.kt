@@ -1,8 +1,8 @@
 package za.ac.sun.plume.domain.models.vertices
 
-import za.ac.sun.plume.domain.enums.EvaluationStrategies
-import za.ac.sun.plume.domain.enums.VertexBaseTraits
-import za.ac.sun.plume.domain.enums.VertexLabels
+import za.ac.sun.plume.domain.enums.EvaluationStrategy
+import za.ac.sun.plume.domain.enums.VertexBaseTrait
+import za.ac.sun.plume.domain.enums.VertexLabel
 import za.ac.sun.plume.domain.models.CFGVertex
 import java.util.*
 
@@ -13,17 +13,17 @@ class MethodReturnVertex(
         val name: String,
         code: String,
         val typeFullName: String,
-        val evaluationStrategy: EvaluationStrategies,
+        val evaluationStrategy: EvaluationStrategy,
         lineNumber: Int,
         order: Int
 ) :  CFGVertex(lineNumber, code, order) {
     companion object {
         @kotlin.jvm.JvmField
-        val LABEL = VertexLabels.METHOD_RETURN
+        val LABEL = VertexLabel.METHOD_RETURN
         @kotlin.jvm.JvmField
-        val TRAITS: EnumSet<VertexBaseTraits> = EnumSet.of(
-                VertexBaseTraits.CFG_NODE,
-                VertexBaseTraits.TRACKING_POINT
+        val TRAITS: EnumSet<VertexBaseTrait> = EnumSet.of(
+                VertexBaseTrait.CFG_NODE,
+                VertexBaseTrait.TRACKING_POINT
         )
     }
 

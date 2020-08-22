@@ -1,311 +1,196 @@
-package za.ac.sun.plume.drivers;
+package za.ac.sun.plume.drivers
 
-import org.apache.logging.log4j.LogManager;
-import org.apache.logging.log4j.Logger;
-import org.apache.tinkerpop.gremlin.process.traversal.dsl.graph.GraphTraversalSource;
-import org.apache.tinkerpop.gremlin.process.traversal.dsl.graph.__;
-import org.apache.tinkerpop.gremlin.structure.Edge;
-import org.apache.tinkerpop.gremlin.structure.Graph;
-import org.apache.tinkerpop.gremlin.structure.T;
-import org.apache.tinkerpop.gremlin.structure.Vertex;
-import org.jetbrains.annotations.NotNull;
-import za.ac.sun.plume.domain.enums.EdgeLabels;
-import za.ac.sun.plume.domain.mappers.VertexMapper;
-import za.ac.sun.plume.domain.models.PlumeVertex;
-import za.ac.sun.plume.domain.models.MethodDescriptorVertex;
-import za.ac.sun.plume.domain.models.vertices.FileVertex;
-import za.ac.sun.plume.domain.models.vertices.MethodVertex;
-import za.ac.sun.plume.domain.models.vertices.ModifierVertex;
-import za.ac.sun.plume.domain.models.vertices.NamespaceBlockVertex;
+import org.apache.commons.configuration.BaseConfiguration
+import org.apache.logging.log4j.LogManager
+import org.apache.tinkerpop.gremlin.process.traversal.Order
+import org.apache.tinkerpop.gremlin.process.traversal.dsl.graph.GraphTraversal
+import org.apache.tinkerpop.gremlin.process.traversal.dsl.graph.GraphTraversalSource
+import org.apache.tinkerpop.gremlin.process.traversal.dsl.graph.`__` as underscore
+import org.apache.tinkerpop.gremlin.structure.Edge
+import org.apache.tinkerpop.gremlin.structure.Graph
+import org.apache.tinkerpop.gremlin.structure.T
+import org.apache.tinkerpop.gremlin.structure.Vertex
+import org.apache.tinkerpop.gremlin.tinkergraph.structure.TinkerGraph
+import za.ac.sun.plume.domain.enums.EdgeLabel
+import za.ac.sun.plume.domain.mappers.VertexMapper.Companion.propertiesToMap
+import za.ac.sun.plume.domain.models.ASTVertex
+import za.ac.sun.plume.domain.models.PlumeVertex
+import za.ac.sun.plume.domain.models.vertices.*
+import java.lang.IllegalArgumentException
+import java.util.*
 
-import java.util.Map;
-import java.util.UUID;
+/**
+ * The driver used by remote Gremlin connections.
+ */
+abstract class GremlinDriver : IDriver {
+    private val logger = LogManager.getLogger(GremlinDriver::class.java)
 
-import static org.apache.tinkerpop.gremlin.process.traversal.Order.desc;
-import static org.apache.tinkerpop.gremlin.process.traversal.dsl.graph.__.inV;
+    protected lateinit var graph: Graph
+    protected lateinit var g: GraphTraversalSource
+    protected var config: BaseConfiguration = BaseConfiguration()
+    var connected = false
+    var transactionOpen = false
 
-public abstract class GremlinDriver implements IDriver {
-
-    private static final Logger logger = LogManager.getLogger(GremlinDriver.class);
-    protected final Graph graph;
-    protected GraphTraversalSource g;
-
-    public GremlinDriver(final Graph graph) {
-        this.graph = graph;
+    /**
+     * Connects to the graph database with the given configuration.
+     *
+     * @throws IllegalArgumentException if the graph database is already connected to.
+     */
+    protected open fun connect() {
+        require(!connected) { "Please close the graph before trying to make another connection." }
+        graph = TinkerGraph.open(config)
+        connected = true
     }
 
-    protected void startTransaction() {
-        g = graph.traversal();
+    /**
+     * Starts a new traversal and opens a transaction if the database supports transactions.
+     *
+     * @throws IllegalArgumentException if there is an already open transaction.
+     */
+    protected open fun openTx() {
+        require(!transactionOpen) { "Please close the current transaction before creating a new one." }
+        g = graph.traversal()
     }
 
-    protected void endTransaction() {
+    /**
+     * Closes the current traversal and ends the current transaction if the database supports transactions.
+     *
+     * @throws IllegalArgumentException if the transaction is already closed.
+     */
+    protected open fun closeTx() {
+        require(transactionOpen) { "There is no transaction currently open!" }
         try {
-            this.g.close();
-        } catch (Exception e) {
-            logger.warn("Unable to close existing transaction! Object will be orphaned and a new traversal will continue.");
+            g.close()
+        } catch (e: Exception) {
+            logger.warn("Unable to close existing transaction! Object will be orphaned and a new traversal will continue.")
         }
     }
 
-    public void close() {
+    /**
+     * Attempts to close the graph database connection and resources.
+     *
+     * @throws IllegalArgumentException if one attempts to close an already closed graph.
+     */
+    override fun close() {
+        require(connected) { "Cannot close a graph that is not already connected!" }
         try {
-            this.graph.close();
-        } catch (Exception e) {
-            logger.warn("Exception thrown while attempting to close graph.", e);
+            graph.close()
+            connected = false
+        } catch (e: Exception) {
+            logger.warn("Exception thrown while attempting to close graph.", e)
         }
     }
 
-    public static boolean isValidExportPath(final String exportDir) {
-        if (exportDir != null) {
-            final String ext = exportDir.substring(exportDir.lastIndexOf('.') + 1).toLowerCase();
-            return ("xml".equals(ext) || "json".equals(ext) || "kryo".equals(ext));
-        } else return false;
+    override fun upsertVertex(v: PlumeVertex) {
+        openTx()
+        if (!exists(v)) createVertex(v) else updateVertex(v)
+        closeTx()
+    }
+
+    override fun exists(v: PlumeVertex): Boolean = findVertexTraversal(v).hasNext()
+
+    private fun findVertexTraversal(v: PlumeVertex): GraphTraversal<Vertex, Vertex> =
+            when (v) {
+                is ASTVertex -> findVertexTraversal(v)
+                is BindingVertex -> findVertexTraversal(v)
+                is MetaDataVertex -> findVertexTraversal(v)
+                is TypeVertex -> findVertexTraversal(v)
+                else -> throw IllegalArgumentException("Unsupported PlumeVertex type")
+            }
+
+    private fun findVertexTraversal(v: ASTVertex): GraphTraversal<Vertex, Vertex> =
+            run {
+                val label = v.javaClass.getDeclaredField("LABEL").get(v).toString()
+                g.V().has(label, "order", v.order)
+            }
+
+    private fun findVertexTraversal(v: BindingVertex): GraphTraversal<Vertex, Vertex> = g.V()
+            .has(BindingVertex.LABEL.toString(), "name", v.name)
+            .has("signature", v.signature)
+
+    private fun findVertexTraversal(v: MetaDataVertex): GraphTraversal<Vertex, Vertex> = g.V()
+            .has(MetaDataVertex.LABEL.toString(), "language", v.language)
+            .has("version", v.version)
+
+    private fun findVertexTraversal(v: TypeVertex): GraphTraversal<Vertex, Vertex> = g.V()
+            .has(TypeVertex.LABEL.toString(), "name", v.name)
+            .has("fullName", v.fullName)
+            .has("typeDeclFullName", v.typeDeclFullName)
+
+    private fun updateVertex(v: PlumeVertex) {
+        val propertyMap = propertiesToMap(v).apply { remove("label") }
+        val existingVertex = findVertexTraversal(v).next()
+        propertyMap.forEach { (key: String?, value: Any?) -> g.V(existingVertex).property(key, value).iterate() }
+    }
+
+    override fun exists(fromV: PlumeVertex, toV: PlumeVertex, edge: EdgeLabel): Boolean {
+        openTx()
+        if (!findVertexTraversal(fromV).hasNext() || !findVertexTraversal(toV).hasNext()) return false
+        val a = findVertexTraversal(fromV).next()
+        val b = findVertexTraversal(toV).next()
+        val maybeEdge = g.V(a).outE(EdgeLabel.AST.toString()).filter(underscore.inV().`is`(b)).hasLabel(edge.name).tryNext()
+                .orElseGet {
+                    g.V(b).outE(EdgeLabel.AST.toString()).filter(underscore.inV().`is`(a)).hasLabel(edge.name).tryNext()
+                            .orElse(null)
+                }
+        closeTx()
+        return maybeEdge != null
+    }
+
+    override fun maxOrder(): Int {
+        openTx()
+        val result =
+        if (g.V().has("order").hasNext()) g.V().has("order").order().by("order", Order.desc).limit(1).values<Any>("order").next() as Int
+        else 0
+        closeTx()
+        return result
+    }
+
+    protected fun setTraversalSource(g: GraphTraversalSource) {
+        this.g = g
+    }
+
+    override fun clearGraph() {
+        openTx()
+        g.V().drop().iterate()
+        closeTx()
     }
 
     /**
-     * Finds the associated {@link Vertex} in the graph based on the given {@link MethodVertex}.
+     * Given a [PlumeVertex], creates a [Vertex] and translates the object's field properties to key-value
+     * pairs on the [Vertex] object. This is then added to this hook's [Graph].
      *
-     * @param from The {@link MethodVertex} to use in the search.
-     * @return the associated {@link Vertex}.
+     * @param v the [PlumeVertex] to translate into a [Vertex].
+     * @return the newly created [Vertex].
      */
-    private Vertex findVertex(final MethodVertex from) {
-        return g.V().has(MethodVertex.LABEL.toString(), "fullName", from.getFullName())
-                .has("signature", from.getSignature()).next();
-    }
-
-    /**
-     * Finds the associated {@link Vertex} in the graph based on the given {@link FileVertex}.
-     *
-     * @param from The {@link FileVertex} to use in the search.
-     * @return the associated {@link Vertex}.
-     */
-    private Vertex findVertex(final FileVertex from) {
-        return g.V().has(FileVertex.LABEL.toString(), "name", from.getName())
-                .has("order", from.getOrder()).next();
-    }
-
-    /**
-     * Finds the associated {@link Vertex} in the graph based on the given {@link NamespaceBlockVertex}.
-     *
-     * @param from The {@link NamespaceBlockVertex} to use in the search.
-     * @return the associated {@link Vertex}.
-     */
-    private Vertex findVertex(final NamespaceBlockVertex from) {
-        return g.V().has(NamespaceBlockVertex.LABEL.toString(), "fullName", from.getFullName()).next();
-    }
-
-    /**
-     * Checks if there is an associated {@link Vertex} with the given {@link NamespaceBlockVertex}.
-     *
-     * @param v the {@link NamespaceBlockVertex} to look up.
-     * @return false if there is an associated vertex, true if otherwise.
-     */
-    private boolean vertexNotPresent(final NamespaceBlockVertex v) {
-        return !g.V().has(NamespaceBlockVertex.LABEL.toString(), "fullName", v.getFullName())
-                .has("name", v.getName()).hasNext();
-    }
-
-    /**
-     * Checks if there is an associated {@link Vertex} with the given {@link FileVertex}.
-     *
-     * @param v the {@link FileVertex} to look up.
-     * @return false if there is an associated vertex, true if otherwise.
-     */
-    private boolean vertexNotPresent(final FileVertex v) {
-        return !g.V().has(FileVertex.LABEL.toString(), "name", v.getName())
-                .has("order", v.getOrder()).hasNext();
-    }
-
-    @Override
-    public void createAndAddToMethod(@NotNull final MethodVertex from, @NotNull final MethodDescriptorVertex to) {
-        createAndJoinMethodToAnyAST(from, to);
-    }
-
-    @Override
-    public void createAndAddToMethod(@NotNull final MethodVertex from, @NotNull final ModifierVertex to) {
-        createAndJoinMethodToAnyAST(from, to);
-    }
-
-    private void createAndJoinMethodToAnyAST(final MethodVertex from, final PlumeVertex to) {
-        startTransaction();
-        createTinkerGraphEdge(findVertex(from), EdgeLabels.AST, createTinkerPopVertex(to));
-        endTransaction();
-    }
-
-    @Override
-    public void joinFileVertexTo(@NotNull final FileVertex to, @NotNull final NamespaceBlockVertex from) {
-        startTransaction();
-        if (vertexNotPresent(from)) {
-            createTinkerPopVertex(from);
-        }
-        if (vertexNotPresent(to)) {
-            createTinkerPopVertex(to);
-        }
-        createTinkerGraphEdge(findVertex(from), EdgeLabels.AST, findVertex(to));
-        endTransaction();
-    }
-
-    @Override
-    public void joinFileVertexTo(@NotNull final FileVertex from, @NotNull final MethodVertex to) {
-        startTransaction();
-        if (vertexNotPresent(from)) createTinkerPopVertex(from);
-        if (!g.V(findVertex(from))
-                .out(EdgeLabels.AST.toString())
-                .has("fullName", to.getFullName())
-                .has("signature", to.getSignature())
-                .hasNext()) {
-            createTinkerPopVertex(to);
-        }
-        createTinkerGraphEdge(findVertex(from), EdgeLabels.AST, findVertex(to));
-        endTransaction();
-    }
-
-    @Override
-    public void joinNamespaceBlocks(@NotNull final NamespaceBlockVertex from, @NotNull final NamespaceBlockVertex to) {
-        startTransaction();
-        if (vertexNotPresent(from)) createTinkerPopVertex(from);
-        if (vertexNotPresent(to)) createTinkerPopVertex(to);
-        Vertex n1 = findVertex(from);
-        Vertex n2 = findVertex(to);
-        if (!g.V(n1).outE(EdgeLabels.AST.toString()).filter(inV().is(n2)).hasNext()) {
-            createTinkerGraphEdge(n1, EdgeLabels.AST, n2);
-        }
-        endTransaction();
-    }
-
-    @Override
-    public void createAndAssignToBlock(@NotNull final MethodVertex parentVertex, @NotNull final PlumeVertex newVertex) {
-        startTransaction();
-        createTinkerGraphEdge(findASTVertex(parentVertex, parentVertex.getOrder()), EdgeLabels.AST, createTinkerPopVertex(newVertex));
-        endTransaction();
-    }
-
-    @Override
-    public void createAndAssignToBlock(@NotNull final PlumeVertex newVertex, final int blockOrder) {
-        startTransaction();
-        createTinkerGraphEdge(findASTVertex(blockOrder), EdgeLabels.AST, createTinkerPopVertex(newVertex));
-        endTransaction();
-    }
-
-    @Override
-    public void updateASTVertexProperty(final int order, @NotNull final String key, @NotNull final String value) {
-        startTransaction();
-        g.V(findASTVertex(order)).property(key, value).iterate();
-        endTransaction();
-    }
-
-    @Override
-    public void createVertex(@NotNull final PlumeVertex block) {
-        startTransaction();
-        createTinkerPopVertex(block);
-        endTransaction();
-    }
-
-    @Override
-    public void joinASTVerticesByOrder(final int blockFrom, final int blockTo, @NotNull final EdgeLabels edgeLabel) {
-        startTransaction();
-        createTinkerGraphEdge(findASTVertex(blockFrom), edgeLabel, findASTVertex(blockTo));
-        endTransaction();
-    }
-
-    @Override
-    public boolean areASTVerticesConnected(final int blockFrom, final int blockTo, final EdgeLabels edgeLabel) {
-        startTransaction();
-        final Vertex a = findASTVertex(blockFrom);
-        final Vertex b = findASTVertex(blockTo);
-        final Edge edge = g.V(a).outE(EdgeLabels.AST.toString()).filter(inV().is(b)).hasLabel(edgeLabel.name()).tryNext()
-                .orElseGet(() -> g.V(b).outE(EdgeLabels.AST.toString()).filter(inV().is(a)).hasLabel(edgeLabel.name()).tryNext()
-                        .orElse(null));
-        endTransaction();
-        return edge != null;
-    }
-
-    @Override
-    public int maxOrder() {
-        startTransaction();
-        int result = 0;
-        if (g.V().has("order").hasNext())
-            result = (int) g.V().has("order").order().by("order", desc).limit(1).values("order").next();
-        endTransaction();
-        return result;
-    }
-
-    @Override
-    public boolean isASTVertex(final int blockOrder) {
-        startTransaction();
-        boolean result = g.V().has("order", blockOrder).hasNext();
-        endTransaction();
-        return result;
-    }
-
-    protected void setTraversalSource(final GraphTraversalSource g) {
-        this.g = g;
-    }
-
-    @Override
-    public void clearGraph() {
-        startTransaction();
-        g.V().drop().iterate();
-        endTransaction();
-    }
-
-    /**
-     * Finds the associated {@link Vertex} in the graph to the block based on the {@link MethodVertex} and the AST order
-     * under which this block occurs under this {@link MethodVertex}.
-     *
-     * @param root       the {@link MethodVertex} which is the root of the search.
-     * @param blockOrder the AST order under which this block occurs.
-     * @return the {@link Vertex} associated with the AST block.
-     */
-    private Vertex findASTVertex(final MethodVertex root, final int blockOrder) {
-        if (root.getOrder() == blockOrder) return g.V(findVertex(root)).next();
-        return g.V(findVertex(root)).repeat(__.out("AST")).emit()
-                .has("order", blockOrder).next();
-    }
-
-    /**
-     * Finds the associated {@link Vertex} in the graph to the block based on the AST order
-     * under which this block occurs in the graph.
-     *
-     * @param order the AST order under which this block occurs.
-     * @return the {@link Vertex} associated with the AST block.
-     */
-    private Vertex findASTVertex(final int order) {
-        return g.V().has("order", order).next();
-    }
-
-    /**
-     * Given a {@link PlumeVertex}, creates a {@link Vertex} and translates the object's field properties to key-value
-     * pairs on the {@link Vertex} object. This is then added to this hook's {@link Graph}.
-     *
-     * @param gv the {@link PlumeVertex} to translate into a {@link Vertex}.
-     * @return the newly created {@link Vertex}.
-     */
-    protected Vertex createTinkerPopVertex(final PlumeVertex gv) {
-        final Map<String, Object> propertyMap = VertexMapper.propertiesToMap(gv);
+    protected open fun createVertex(v: PlumeVertex): Vertex {
+        val propertyMap = propertiesToMap(v)
         // Get the implementing class label parameter
-        final String label = (String) propertyMap.remove("label");
+        val label = propertyMap.remove("label") as String?
         // Get the implementing classes fields and values
-        final Vertex v = g.getGraph().addVertex(T.label, label, T.id, UUID.randomUUID());
-        propertyMap.forEach(v::property);
-        return v;
+        val newV = g.graph.addVertex(T.label, label, T.id, UUID.randomUUID())
+        propertyMap.forEach { (key: String?, value: Any?) -> newV.property(key, value) }
+        return newV
     }
 
     /**
      * Wrapper method for creating an edge between two vertices. This wrapper method assigns a random UUID as the ID
      * for the edge.
      *
-     * @param v1        the from {@link Vertex}.
+     * @param v1        the from [Vertex].
      * @param edgeLabel the CPG edge label.
-     * @param v2        the to {@link Vertex}.
-     * @return the newly created {@link Edge}.
+     * @param v2        the to [Vertex].
+     * @return the newly created [Edge].
      */
-    private Edge createTinkerGraphEdge(final Vertex v1, final EdgeLabels edgeLabel, final Vertex v2) {
-
-        if (this instanceof TinkerGraphDriver) {
-            return v1.addEdge(edgeLabel.name(), v2, T.id, UUID.randomUUID());
+    private fun createTinkerGraphEdge(v1: Vertex, edgeLabel: EdgeLabel, v2: Vertex): Edge {
+        return if (this is TinkerGraphDriver) {
+            v1.addEdge(edgeLabel.name, v2, T.id, UUID.randomUUID())
         } else {
-            return g.V(v1.id()).addE(edgeLabel.name()).to(g.V(v2.id())).next();
+            g.V(v1.id()).addE(edgeLabel.name).to(g.V(v2.id())).next()
         }
     }
 
+    init {
+        config.setProperty("gremlin.graph", "org.apache.tinkerpop.gremlin.tinkergraph.structure.TinkerGraph")
+    }
 }

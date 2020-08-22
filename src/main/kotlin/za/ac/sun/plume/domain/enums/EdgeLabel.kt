@@ -3,7 +3,7 @@ package za.ac.sun.plume.domain.enums
 /**
  * Types of edges.
  */
-enum class EdgeLabels {
+enum class EdgeLabel {
     /**
      * Syntax tree edge
      */

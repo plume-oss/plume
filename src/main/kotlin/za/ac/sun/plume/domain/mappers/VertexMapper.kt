@@ -1,9 +1,9 @@
 package za.ac.sun.plume.domain.mappers
 
-import za.ac.sun.plume.domain.enums.DispatchTypes
-import za.ac.sun.plume.domain.enums.EvaluationStrategies
-import za.ac.sun.plume.domain.enums.ModifierTypes
-import za.ac.sun.plume.domain.enums.VertexLabels.*
+import za.ac.sun.plume.domain.enums.DispatchType
+import za.ac.sun.plume.domain.enums.EvaluationStrategy
+import za.ac.sun.plume.domain.enums.ModifierType
+import za.ac.sun.plume.domain.enums.VertexLabel.*
 import za.ac.sun.plume.domain.models.PlumeVertex
 import za.ac.sun.plume.domain.models.vertices.*
 import kotlin.reflect.KVisibility
@@ -51,20 +51,20 @@ class VertexMapper {
                 METHOD_PARAMETER_IN -> return MethodParameterInVertex(
                         code = map["code"] as String,
                         name = map["name"] as String,
-                        evaluationStrategy = EvaluationStrategies.valueOf(map["evaluationStrategy"] as String),
+                        evaluationStrategy = EvaluationStrategy.valueOf(map["evaluationStrategy"] as String),
                         typeFullName = map["typeFullName"] as String,
                         lineNumber = map["lineNumber"] as Int,
                         order = map["order"] as Int
                 )
                 METHOD_RETURN -> return MethodReturnVertex(
                         name = map["name"] as String,
-                        evaluationStrategy = EvaluationStrategies.valueOf(map["evaluationStrategy"] as String),
+                        evaluationStrategy = EvaluationStrategy.valueOf(map["evaluationStrategy"] as String),
                         typeFullName = map["typeFullName"] as String,
                         lineNumber = map["lineNumber"] as Int,
                         order = map["order"] as Int
                 )
                 MODIFIER -> return ModifierVertex(
-                        name = ModifierTypes.valueOf(map["name"] as String),
+                        name = ModifierType.valueOf(map["name"] as String),
                         order = map["order"] as Int
                 )
                 TYPE -> return TypeVertex(
@@ -112,7 +112,7 @@ class VertexMapper {
                         methodInstFullName = map["methodInstFullName"] as String,
                         lineNumber = map["lineNumber"] as Int,
                         signature = map["signature"] as String,
-                        dispatchType = DispatchTypes.valueOf(map["dispatchType"] as String)
+                        dispatchType = DispatchType.valueOf(map["dispatchType"] as String)
                 )
                 LOCAL -> return LocalVertex(
                         code = map["code"] as String,

@@ -3,7 +3,7 @@ package za.ac.sun.plume.domain.enums
 /**
  * Indicates the modifier which is represented by a MODIFIER node.
  */
-enum class ModifierTypes {
+enum class ModifierType {
     /**
      * The static modifier
      */

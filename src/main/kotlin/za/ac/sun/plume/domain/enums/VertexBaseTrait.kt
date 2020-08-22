@@ -3,7 +3,7 @@ package za.ac.sun.plume.domain.enums
 /**
  * Common base traits for nodes.
  */
-enum class VertexBaseTraits {
+enum class VertexBaseTrait {
     /**
      * Any node that can exist in an abstract syntax tree
      */

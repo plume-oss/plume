@@ -62,7 +62,7 @@ class TinkerGraphDriverTest : AbstractGremlinDriverTest() {
             val hook = provideHook()
             hook.createVertex(FileVertex("Test1", 0))
             hook.createVertex(FileVertex("Test2", 1))
-            hook.exportCurrentGraph(testGraphML)
+            hook.exportGraph(testGraphML)
             assertDoesNotThrow<GremlinDriver> { provideHook(testGraphML) }
             val g = testGraph.traversal()
             g.io<Any>(testGraphML).read().iterate()
@@ -75,7 +75,7 @@ class TinkerGraphDriverTest : AbstractGremlinDriverTest() {
             val hook = provideHook()
             hook.createVertex(FileVertex("Test1", 0))
             hook.createVertex(FileVertex("Test2", 1))
-            hook.exportCurrentGraph(testGraphSON)
+            hook.exportGraph(testGraphSON)
             assertDoesNotThrow<GremlinDriver> { provideHook(testGraphSON) }
             val g = testGraph.traversal()
             g.io<Any>(testGraphSON).read().iterate()
@@ -88,7 +88,7 @@ class TinkerGraphDriverTest : AbstractGremlinDriverTest() {
             val hook = provideHook()
             hook.createVertex(FileVertex("Test1", 0))
             hook.createVertex(FileVertex("Test2", 1))
-            hook.exportCurrentGraph(testGryo)
+            hook.exportGraph(testGryo)
             assertDoesNotThrow<GremlinDriver> { provideHook(testGryo) }
             val g = testGraph.traversal()
             g.io<Any>(testGryo).read().iterate()
@@ -115,7 +115,7 @@ class TinkerGraphDriverTest : AbstractGremlinDriverTest() {
             val hook = provideHook()
             hook.createVertex(FileVertex("Test1", 0))
             hook.createVertex(FileVertex("Test2", 1))
-            hook.exportCurrentGraph(testGraphML)
+            hook.exportGraph(testGraphML)
             Assertions.assertTrue(File(testGraphML).exists())
         }
 
@@ -124,7 +124,7 @@ class TinkerGraphDriverTest : AbstractGremlinDriverTest() {
             val hook = provideHook()
             hook.createVertex(FileVertex("Test1", 0))
             hook.createVertex(FileVertex("Test2", 1))
-            hook.exportCurrentGraph(testGraphSON)
+            hook.exportGraph(testGraphSON)
             Assertions.assertTrue(File(testGraphSON).exists())
         }
 
@@ -133,7 +133,7 @@ class TinkerGraphDriverTest : AbstractGremlinDriverTest() {
             val hook = provideHook()
             hook.createVertex(FileVertex("Test1", 0))
             hook.createVertex(FileVertex("Test2", 1))
-            hook.exportCurrentGraph(testGryo)
+            hook.exportGraph(testGryo)
             Assertions.assertTrue(File(testGryo).exists())
         }
 
@@ -142,7 +142,7 @@ class TinkerGraphDriverTest : AbstractGremlinDriverTest() {
             val hook = provideHook()
             hook.createVertex(FileVertex("Test1", 0))
             hook.createVertex(FileVertex("Test2", 1))
-            Assertions.assertThrows(IllegalArgumentException::class.java) { hook.exportCurrentGraph("/tmp/plume/invalid.txt") }
+            Assertions.assertThrows(IllegalArgumentException::class.java) { hook.exportGraph("/tmp/plume/invalid.txt") }
         }
     }
 }

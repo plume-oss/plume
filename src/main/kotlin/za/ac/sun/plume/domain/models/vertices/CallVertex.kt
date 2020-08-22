@@ -1,9 +1,8 @@
 package za.ac.sun.plume.domain.models.vertices
 
-import za.ac.sun.plume.domain.enums.DispatchTypes
-import za.ac.sun.plume.domain.enums.VertexBaseTraits
-import za.ac.sun.plume.domain.enums.VertexLabels
-import za.ac.sun.plume.domain.models.ASTVertex
+import za.ac.sun.plume.domain.enums.DispatchType
+import za.ac.sun.plume.domain.enums.VertexBaseTrait
+import za.ac.sun.plume.domain.enums.VertexLabel
 import za.ac.sun.plume.domain.models.CallReprVertex
 import java.util.*
 
@@ -19,16 +18,16 @@ class CallVertex(
         val methodInstFullName: String,
         val methodFullName: String,
         val argumentIndex: Int,
-        val dispatchType: DispatchTypes,
+        val dispatchType: DispatchType,
         val typeFullName: String
 ) : CallReprVertex(name, signature, code, lineNumber, order) {
     companion object {
         @kotlin.jvm.JvmField
-        val LABEL = VertexLabels.CALL
+        val LABEL = VertexLabel.CALL
         @kotlin.jvm.JvmField
-        val TRAITS: EnumSet<VertexBaseTraits> = EnumSet.of(
-                VertexBaseTraits.EXPRESSION,
-                VertexBaseTraits.CALL_REPR
+        val TRAITS: EnumSet<VertexBaseTrait> = EnumSet.of(
+                VertexBaseTrait.EXPRESSION,
+                VertexBaseTrait.CALL_REPR
         )
     }
 

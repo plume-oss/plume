@@ -3,7 +3,7 @@ package za.ac.sun.plume.domain.enums
 /**
  * The dispatch type of a call, which is either static or dynamic.
  */
-enum class DispatchTypes {
+enum class DispatchType {
     /**
      * For statically dispatched calls the call target is known before program execution
      */

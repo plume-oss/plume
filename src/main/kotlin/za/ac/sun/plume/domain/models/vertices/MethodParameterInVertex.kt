@@ -1,8 +1,8 @@
 package za.ac.sun.plume.domain.models.vertices
 
-import za.ac.sun.plume.domain.enums.EvaluationStrategies
-import za.ac.sun.plume.domain.enums.VertexBaseTraits
-import za.ac.sun.plume.domain.enums.VertexLabels
+import za.ac.sun.plume.domain.enums.EvaluationStrategy
+import za.ac.sun.plume.domain.enums.VertexBaseTrait
+import za.ac.sun.plume.domain.enums.VertexLabel
 import za.ac.sun.plume.domain.models.DeclarationVertex
 import java.util.*
 
@@ -11,7 +11,7 @@ import java.util.*
  */
 class MethodParameterInVertex(
         val code: String,
-        val evaluationStrategy: EvaluationStrategies,
+        val evaluationStrategy: EvaluationStrategy,
         val typeFullName: String,
         val lineNumber: Int,
         name: String,
@@ -19,11 +19,11 @@ class MethodParameterInVertex(
 ) : DeclarationVertex(name, order) {
     companion object {
         @kotlin.jvm.JvmField
-        val LABEL = VertexLabels.METHOD_PARAMETER_IN
+        val LABEL = VertexLabel.METHOD_PARAMETER_IN
         @kotlin.jvm.JvmField
-        val TRAITS: EnumSet<VertexBaseTraits> = EnumSet.of(VertexBaseTraits.AST_NODE,
-                VertexBaseTraits.DECLARATION,
-                VertexBaseTraits.CFG_NODE)
+        val TRAITS: EnumSet<VertexBaseTrait> = EnumSet.of(VertexBaseTrait.AST_NODE,
+                VertexBaseTrait.DECLARATION,
+                VertexBaseTrait.CFG_NODE)
     }
 
     override fun equals(other: Any?): Boolean {

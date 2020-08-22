@@ -16,7 +16,7 @@ import za.ac.sun.plume.TestDomainResources.Companion.STRING_1
 import za.ac.sun.plume.TestDomainResources.Companion.STRING_2
 import za.ac.sun.plume.TestDomainResources.Companion.TEST_ID
 import za.ac.sun.plume.TestDomainResources.Companion.THIRD_PACKAGE
-import za.ac.sun.plume.domain.enums.EdgeLabels
+import za.ac.sun.plume.domain.enums.EdgeLabel
 import za.ac.sun.plume.domain.models.vertices.*
 
 /**
@@ -252,11 +252,11 @@ abstract class AbstractDriverTest {
         open fun testCreatingAndJoiningFreeBlocks() {
             hook.createVertex(bv1)
             hook.createVertex(bv2)
-            assertFalse(hook.areASTVerticesConnected(INT_1, INT_2, EdgeLabels.AST))
-            assertFalse(hook.areASTVerticesConnected(INT_2, INT_1, EdgeLabels.AST))
-            hook.joinASTVerticesByOrder(INT_1, INT_2, EdgeLabels.AST)
-            assertTrue(hook.areASTVerticesConnected(INT_1, INT_2, EdgeLabels.AST))
-            assertTrue(hook.areASTVerticesConnected(INT_2, INT_1, EdgeLabels.AST))
+            assertFalse(hook.areASTVerticesConnected(INT_1, INT_2, EdgeLabel.AST))
+            assertFalse(hook.areASTVerticesConnected(INT_2, INT_1, EdgeLabel.AST))
+            hook.joinASTVerticesByOrder(INT_1, INT_2, EdgeLabel.AST)
+            assertTrue(hook.areASTVerticesConnected(INT_1, INT_2, EdgeLabel.AST))
+            assertTrue(hook.areASTVerticesConnected(INT_2, INT_1, EdgeLabel.AST))
         }
     }
 

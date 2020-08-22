@@ -1,49 +1,60 @@
 package za.ac.sun.plume.drivers
 
 import org.apache.commons.configuration.BaseConfiguration
-import org.apache.tinkerpop.gremlin.tinkergraph.structure.TinkerGraph
 import java.io.File
 
-class TinkerGraphDriver private constructor(builder: Builder) : GremlinDriver(TinkerGraph.open(builder.conf)) {
+class TinkerGraphDriver : GremlinDriver() {
 
-    fun exportCurrentGraph(exportDir: String) {
-        require(isValidExportPath(exportDir)) {
+    /**
+     * Add or update a [BaseConfiguration] key-value pair.
+     *
+     * @param key the key of the property.
+     * @param value the value of the property.
+     */
+    fun addConfig(key: String, value: String) = this.config.setProperty(key, value)
+
+    /**
+     * Export the currently connected graph to the given path. The extension of the file should be included and may only
+     * be .xml, .json, or .kryo. If a graph file already exists it will be overwritten.
+     *
+     * @param filePath the file path to export to.
+     */
+    fun exportGraph(filePath: String) {
+        require(connected) { "The driver is not connected to any graph and therefore cannot export anything!" }
+        require(isSupportedExtension(filePath)) {
             "Unsupported graph extension! Supported types are GraphML," +
                     " GraphSON, and Gryo."
         }
-        startTransaction()
-        g.io<Any>(exportDir).write().iterate()
-        endTransaction()
+        openTx()
+        g.io<Any>(filePath).write().iterate()
+        closeTx()
     }
 
-    data class Builder(
-            var graphDir: String? = null
-    ) : GremlinDriverBuilder {
-        var conf: BaseConfiguration
+    /**
+     * Imports a .xml, .json, or .kryo TinkerGraph file into the currently connected graph.
+     *
+     * @param filePath the file path to import from.
+     */
+    fun importGraph(filePath: String) {
+        require(connected) { "The driver is not connected to any graph and therefore cannot import anything!" }
+        require(isSupportedExtension(filePath)) {
+            "Unsupported graph extension! Supported types are GraphML," +
+                    " GraphSON, and Gryo."
+        }
+        require(File(filePath).exists()) { "No existing serialized graph file was found at $filePath" }
+        openTx()
+        g.io<Any>(filePath).read().iterate()
+        closeTx()
+    }
 
-        constructor() : this(null)
-
-        override fun useExistingGraph(graphDir: String): Builder {
-            require(isValidExportPath(graphDir)) {
-                "Unsupported graph extension! Supported types are GraphML," +
-                        " GraphSON, and Gryo."
+    /**
+     * Determines if the extension of the given file path is supported by TinkerGraph I/O.
+     *
+     * @param filePath the file path to check.
+     */
+    private fun isSupportedExtension(filePath: String): Boolean =
+            run {
+                val ext = filePath.substring(filePath.lastIndexOf('.') + 1).toLowerCase()
+                "xml" == ext || "json" == ext || "kryo" == ext
             }
-            require(File(graphDir).exists()) { "No existing serialized graph file was found at $graphDir" }
-            this.graphDir = graphDir
-            return this
-        }
-
-        fun conf(conf: BaseConfiguration) = apply { this.conf = conf }
-
-        override fun build() = TinkerGraphDriver(this)
-
-        init {
-            conf = BaseConfiguration()
-            conf.setProperty("gremlin.graph", "org.apache.tinkerpop.gremlin.tinkergraph.structure.TinkerGraph")
-        }
-    }
-
-    init {
-        if (builder.graphDir != null) super.graph.traversal().io<Any>(builder.graphDir).read().iterate()
-    }
 }

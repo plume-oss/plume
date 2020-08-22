@@ -1,8 +1,7 @@
 package za.ac.sun.plume.domain.models.vertices
 
-import za.ac.sun.plume.domain.enums.VertexBaseTraits
-import za.ac.sun.plume.domain.enums.VertexLabels
-import za.ac.sun.plume.domain.models.ASTVertex
+import za.ac.sun.plume.domain.enums.VertexBaseTrait
+import za.ac.sun.plume.domain.enums.VertexLabel
 import za.ac.sun.plume.domain.models.DeclarationVertex
 import java.util.*
 
@@ -12,11 +11,11 @@ import java.util.*
 class MemberVertex(val code: String, name: String, val typeFullName: String, order: Int) : DeclarationVertex(name, order) {
     companion object {
         @kotlin.jvm.JvmField
-        val LABEL = VertexLabels.MEMBER
+        val LABEL = VertexLabel.MEMBER
         @kotlin.jvm.JvmField
-        val TRAITS: EnumSet<VertexBaseTraits> = EnumSet.of(
-                VertexBaseTraits.DECLARATION,
-                VertexBaseTraits.AST_NODE
+        val TRAITS: EnumSet<VertexBaseTrait> = EnumSet.of(
+                VertexBaseTrait.DECLARATION,
+                VertexBaseTrait.AST_NODE
         )
     }
 

@@ -3,7 +3,7 @@ package za.ac.sun.plume.domain.enums
 /**
  * Types of vertices
  */
-enum class VertexLabels {
+enum class VertexLabel {
     META_DATA,
     FILE,
     METHOD,

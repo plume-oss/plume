@@ -1,6 +1,6 @@
 package za.ac.sun.plume.domain.models
 
-import za.ac.sun.plume.domain.enums.VertexBaseTraits
+import za.ac.sun.plume.domain.enums.VertexBaseTrait
 import java.util.*
 
 /**
@@ -9,10 +9,10 @@ import java.util.*
 abstract class TrackingPoint(order: Int) : ASTVertex(order) {
     companion object {
         @JvmField
-        val TRAITS: EnumSet<VertexBaseTraits> = EnumSet.of(
-                VertexBaseTraits.TRACKING_POINT,
-                VertexBaseTraits.AST_NODE,
-                VertexBaseTraits.WITHIN_METHOD
+        val TRAITS: EnumSet<VertexBaseTrait> = EnumSet.of(
+                VertexBaseTrait.TRACKING_POINT,
+                VertexBaseTrait.AST_NODE,
+                VertexBaseTrait.WITHIN_METHOD
         )
     }
 

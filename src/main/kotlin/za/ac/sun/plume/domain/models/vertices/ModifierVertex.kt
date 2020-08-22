@@ -1,20 +1,20 @@
 package za.ac.sun.plume.domain.models.vertices
 
-import za.ac.sun.plume.domain.enums.ModifierTypes
-import za.ac.sun.plume.domain.enums.VertexBaseTraits
-import za.ac.sun.plume.domain.enums.VertexLabels
+import za.ac.sun.plume.domain.enums.ModifierType
+import za.ac.sun.plume.domain.enums.VertexBaseTrait
+import za.ac.sun.plume.domain.enums.VertexLabel
 import za.ac.sun.plume.domain.models.ASTVertex
 import java.util.*
 
 /**
  * A modifier, e.g., static, public, private
  */
-class ModifierVertex(val name: ModifierTypes, order: Int) : ASTVertex(order) {
+class ModifierVertex(val name: ModifierType, order: Int) : ASTVertex(order) {
     companion object {
         @kotlin.jvm.JvmField
-        val LABEL = VertexLabels.MODIFIER
+        val LABEL = VertexLabel.MODIFIER
         @kotlin.jvm.JvmField
-        val TRAITS: EnumSet<VertexBaseTraits> = EnumSet.of(VertexBaseTraits.AST_NODE)
+        val TRAITS: EnumSet<VertexBaseTrait> = EnumSet.of(VertexBaseTrait.AST_NODE)
     }
 
     override fun equals(other: Any?): Boolean {

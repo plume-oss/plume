@@ -16,7 +16,7 @@ class JanusGraphDriver private constructor(builder: Builder) : GremlinDriver(bui
     private val conf: String
     private var tx: Transaction? = null
 
-    override fun startTransaction() {
+    override fun openTx() {
         if (supportsTransactions) {
             logger.debug("Supports tx")
             if (tx == null || !tx!!.isOpen) {
@@ -37,7 +37,7 @@ class JanusGraphDriver private constructor(builder: Builder) : GremlinDriver(bui
         }
     }
 
-    override fun endTransaction() {
+    override fun closeTx() {
         if (supportsTransactions) {
             var success = false
             var failures = 0
@@ -63,7 +63,7 @@ class JanusGraphDriver private constructor(builder: Builder) : GremlinDriver(bui
                 }
             } while (!success)
         } else {
-            super.endTransaction()
+            super.closeTx()
         }
     }
 

@@ -1,6 +1,6 @@
 package za.ac.sun.plume.domain.models
 
-import za.ac.sun.plume.domain.enums.VertexBaseTraits
+import za.ac.sun.plume.domain.enums.VertexBaseTrait
 import java.util.*
 
 /**
@@ -9,7 +9,7 @@ import java.util.*
 abstract class LocalLikeVertex(val name: String, order:Int) : ASTVertex(order) {
     companion object {
         @JvmField
-        val TRAITS: EnumSet<VertexBaseTraits> = EnumSet.of(VertexBaseTraits.LOCAL_LIKE, VertexBaseTraits.AST_NODE)
+        val TRAITS: EnumSet<VertexBaseTrait> = EnumSet.of(VertexBaseTrait.LOCAL_LIKE, VertexBaseTrait.AST_NODE)
     }
 
     override fun equals(other: Any?): Boolean {

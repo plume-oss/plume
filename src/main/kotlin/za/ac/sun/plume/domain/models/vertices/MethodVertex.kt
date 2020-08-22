@@ -1,8 +1,7 @@
 package za.ac.sun.plume.domain.models.vertices
 
-import za.ac.sun.plume.domain.enums.VertexBaseTraits
-import za.ac.sun.plume.domain.enums.VertexLabels
-import za.ac.sun.plume.domain.models.ASTVertex
+import za.ac.sun.plume.domain.enums.VertexBaseTrait
+import za.ac.sun.plume.domain.enums.VertexLabel
 import za.ac.sun.plume.domain.models.CFGVertex
 import java.util.*
 
@@ -19,12 +18,12 @@ class MethodVertex(
 ) : CFGVertex(lineNumber, code, order) {
     companion object {
         @kotlin.jvm.JvmField
-        val LABEL = VertexLabels.METHOD
+        val LABEL = VertexLabel.METHOD
         @kotlin.jvm.JvmField
-        val TRAITS: EnumSet<VertexBaseTraits> = EnumSet.of(
-                VertexBaseTraits.AST_NODE,
-                VertexBaseTraits.DECLARATION,
-                VertexBaseTraits.CFG_NODE
+        val TRAITS: EnumSet<VertexBaseTrait> = EnumSet.of(
+                VertexBaseTrait.AST_NODE,
+                VertexBaseTrait.DECLARATION,
+                VertexBaseTrait.CFG_NODE
         )
     }
 

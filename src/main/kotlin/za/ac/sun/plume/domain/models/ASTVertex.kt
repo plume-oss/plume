@@ -1,6 +1,6 @@
 package za.ac.sun.plume.domain.models
 
-import za.ac.sun.plume.domain.enums.VertexBaseTraits
+import za.ac.sun.plume.domain.enums.VertexBaseTrait
 import java.util.*
 
 /**
@@ -9,9 +9,9 @@ import java.util.*
 abstract class ASTVertex(val order: Int) : WithinMethod() {
     companion object {
         @JvmField
-        val TRAITS: EnumSet<VertexBaseTraits> = EnumSet.of(
-                VertexBaseTraits.AST_NODE,
-                VertexBaseTraits.WITHIN_METHOD
+        val TRAITS: EnumSet<VertexBaseTrait> = EnumSet.of(
+                VertexBaseTrait.AST_NODE,
+                VertexBaseTrait.WITHIN_METHOD
         )
     }
 

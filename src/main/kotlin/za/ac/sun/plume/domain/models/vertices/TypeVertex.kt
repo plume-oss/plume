@@ -1,7 +1,7 @@
 package za.ac.sun.plume.domain.models.vertices
 
-import za.ac.sun.plume.domain.enums.VertexBaseTraits
-import za.ac.sun.plume.domain.enums.VertexLabels
+import za.ac.sun.plume.domain.enums.VertexBaseTrait
+import za.ac.sun.plume.domain.enums.VertexLabel
 import za.ac.sun.plume.domain.models.PlumeVertex
 import java.util.*
 
@@ -12,9 +12,9 @@ import java.util.*
 class TypeVertex(val name: String, val fullName: String, val typeDeclFullName: String) : PlumeVertex {
     companion object {
         @kotlin.jvm.JvmField
-        val LABEL = VertexLabels.TYPE
+        val LABEL = VertexLabel.TYPE
         @kotlin.jvm.JvmField
-        val TRAITS: EnumSet<VertexBaseTraits> = EnumSet.noneOf(VertexBaseTraits::class.java)
+        val TRAITS: EnumSet<VertexBaseTrait> = EnumSet.noneOf(VertexBaseTrait::class.java)
     }
 
     override fun equals(other: Any?): Boolean {

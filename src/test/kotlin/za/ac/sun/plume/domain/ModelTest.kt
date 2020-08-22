@@ -14,8 +14,8 @@ import za.ac.sun.plume.TestDomainResources.Companion.MOD_1
 import za.ac.sun.plume.TestDomainResources.Companion.MOD_2
 import za.ac.sun.plume.TestDomainResources.Companion.STRING_1
 import za.ac.sun.plume.TestDomainResources.Companion.STRING_2
-import za.ac.sun.plume.domain.enums.VertexBaseTraits
-import za.ac.sun.plume.domain.enums.VertexLabels
+import za.ac.sun.plume.domain.enums.VertexBaseTrait
+import za.ac.sun.plume.domain.enums.VertexLabel
 import za.ac.sun.plume.domain.models.PlumeVertex
 import za.ac.sun.plume.domain.models.vertices.*
 import java.util.*
@@ -519,16 +519,16 @@ class ModelTest {
         @Test
         fun arrayInitializerVertexEquality() {
             val vertex1 = ArrayInitializerVertex(INT_1)
-            assertEquals(VertexLabels.ARRAY_INITIALIZER, ArrayInitializerVertex.LABEL)
-            assertEquals(EnumSet.of(VertexBaseTraits.AST_NODE), ArrayInitializerVertex.TRAITS)
+            assertEquals(VertexLabel.ARRAY_INITIALIZER, ArrayInitializerVertex.LABEL)
+            assertEquals(EnumSet.of(VertexBaseTrait.AST_NODE), ArrayInitializerVertex.TRAITS)
             assertEquals(vertex1.order, INT_1)
         }
 
         @Test
         fun bindingVertexEquality() {
             val vertex1 = BindingVertex(STRING_1, STRING_1)
-            assertEquals(VertexLabels.BINDING, BindingVertex.LABEL)
-            assertEquals(EnumSet.noneOf(VertexBaseTraits::class.java), BindingVertex.TRAITS)
+            assertEquals(VertexLabel.BINDING, BindingVertex.LABEL)
+            assertEquals(EnumSet.noneOf(VertexBaseTrait::class.java), BindingVertex.TRAITS)
             assertEquals(vertex1.name, STRING_1)
             assertEquals(vertex1.signature, STRING_1)
         }
@@ -536,8 +536,8 @@ class ModelTest {
         @Test
         fun blockVertexEquality() {
             val vertex1 = BlockVertex(STRING_1, INT_1, INT_1, STRING_1, INT_1)
-            assertEquals(VertexLabels.BLOCK, BlockVertex.LABEL)
-            assertEquals(EnumSet.of(VertexBaseTraits.EXPRESSION), BlockVertex.TRAITS)
+            assertEquals(VertexLabel.BLOCK, BlockVertex.LABEL)
+            assertEquals(EnumSet.of(VertexBaseTrait.EXPRESSION), BlockVertex.TRAITS)
             assertEquals(vertex1.name, STRING_1)
             assertEquals(vertex1.order, INT_1)
             assertEquals(vertex1.typeFullName, STRING_1)
@@ -548,8 +548,8 @@ class ModelTest {
         @Test
         fun callVertexEquality() {
             val vertex1 = CallVertex(STRING_1, STRING_1, INT_1, STRING_1, STRING_1, INT_1, DISPATCH_1, STRING_1, STRING_1, INT_1)
-            assertEquals(VertexLabels.CALL, CallVertex.LABEL)
-            assertEquals(EnumSet.of(VertexBaseTraits.EXPRESSION, VertexBaseTraits.CALL_REPR), CallVertex.TRAITS)
+            assertEquals(VertexLabel.CALL, CallVertex.LABEL)
+            assertEquals(EnumSet.of(VertexBaseTrait.EXPRESSION, VertexBaseTrait.CALL_REPR), CallVertex.TRAITS)
             assertEquals(vertex1.name, STRING_1)
             assertEquals(vertex1.order, INT_1)
             assertEquals(vertex1.typeFullName, STRING_1)
@@ -565,8 +565,8 @@ class ModelTest {
         @Test
         fun controlStructureVertexEquality() {
             val vertex1 = ControlStructureVertex(STRING_1, INT_1, INT_1, INT_1)
-            assertEquals(VertexLabels.CONTROL_STRUCTURE, ControlStructureVertex.LABEL)
-            assertEquals(EnumSet.of(VertexBaseTraits.EXPRESSION), ControlStructureVertex.TRAITS)
+            assertEquals(VertexLabel.CONTROL_STRUCTURE, ControlStructureVertex.LABEL)
+            assertEquals(EnumSet.of(VertexBaseTrait.EXPRESSION), ControlStructureVertex.TRAITS)
             assertEquals(vertex1.name, STRING_1)
             assertEquals(vertex1.order, INT_1)
             assertEquals(vertex1.lineNumber, INT_1)
@@ -576,8 +576,8 @@ class ModelTest {
         @Test
         fun fieldIdentifierVertexEquality() {
             val vertex1 = FieldIdentifierVertex(STRING_1, STRING_1, INT_1, INT_1, INT_1)
-            assertEquals(VertexLabels.FIELD_IDENTIFIER, FieldIdentifierVertex.LABEL)
-            assertEquals(EnumSet.of(VertexBaseTraits.EXPRESSION), FieldIdentifierVertex.TRAITS)
+            assertEquals(VertexLabel.FIELD_IDENTIFIER, FieldIdentifierVertex.LABEL)
+            assertEquals(EnumSet.of(VertexBaseTrait.EXPRESSION), FieldIdentifierVertex.TRAITS)
             assertEquals(vertex1.order, INT_1)
             assertEquals(vertex1.lineNumber, INT_1)
             assertEquals(vertex1.argumentIndex, INT_1)
@@ -587,8 +587,8 @@ class ModelTest {
         @Test
         fun fileVertexEquality() {
             val vertex1 = FileVertex(STRING_1, INT_1)
-            assertEquals(VertexLabels.FILE, FileVertex.LABEL)
-            assertEquals(EnumSet.of(VertexBaseTraits.AST_NODE), FileVertex.TRAITS)
+            assertEquals(VertexLabel.FILE, FileVertex.LABEL)
+            assertEquals(EnumSet.of(VertexBaseTrait.AST_NODE), FileVertex.TRAITS)
             assertEquals(vertex1.name, STRING_1)
             assertEquals(vertex1.order, INT_1)
         }
@@ -596,8 +596,8 @@ class ModelTest {
         @Test
         fun identifierVertexEquality() {
             val vertex1 = IdentifierVertex(STRING_1, STRING_1, INT_1, INT_1, STRING_1, INT_1)
-            assertEquals(VertexLabels.IDENTIFIER, IdentifierVertex.LABEL)
-            assertEquals(EnumSet.of(VertexBaseTraits.EXPRESSION, VertexBaseTraits.LOCAL_LIKE), IdentifierVertex.TRAITS)
+            assertEquals(VertexLabel.IDENTIFIER, IdentifierVertex.LABEL)
+            assertEquals(EnumSet.of(VertexBaseTrait.EXPRESSION, VertexBaseTrait.LOCAL_LIKE), IdentifierVertex.TRAITS)
             assertEquals(vertex1.name, STRING_1)
             assertEquals(vertex1.order, INT_1)
             assertEquals(vertex1.typeFullName, STRING_1)
@@ -609,8 +609,8 @@ class ModelTest {
         @Test
         fun literalVertexEquality() {
             val vertex1 = LiteralVertex(STRING_1, INT_1, INT_1, STRING_1, INT_1)
-            assertEquals(VertexLabels.LITERAL, LiteralVertex.LABEL)
-            assertEquals(EnumSet.of(VertexBaseTraits.EXPRESSION), LiteralVertex.TRAITS)
+            assertEquals(VertexLabel.LITERAL, LiteralVertex.LABEL)
+            assertEquals(EnumSet.of(VertexBaseTrait.EXPRESSION), LiteralVertex.TRAITS)
             assertEquals(vertex1.name, STRING_1)
             assertEquals(vertex1.order, INT_1)
             assertEquals(vertex1.typeFullName, STRING_1)
@@ -621,8 +621,8 @@ class ModelTest {
         @Test
         fun localVertexEquality() {
             val vertex1 = LocalVertex(STRING_1, STRING_1, STRING_1, INT_1, INT_1)
-            assertEquals(VertexLabels.LOCAL, LocalVertex.LABEL)
-            assertEquals(EnumSet.of(VertexBaseTraits.DECLARATION, VertexBaseTraits.LOCAL_LIKE, VertexBaseTraits.CALL_REPR), LocalVertex.TRAITS)
+            assertEquals(VertexLabel.LOCAL, LocalVertex.LABEL)
+            assertEquals(EnumSet.of(VertexBaseTrait.DECLARATION, VertexBaseTrait.LOCAL_LIKE, VertexBaseTrait.CALL_REPR), LocalVertex.TRAITS)
             assertEquals(vertex1.name, STRING_1)
             assertEquals(vertex1.order, INT_1)
             assertEquals(vertex1.typeFullName, STRING_1)
@@ -633,8 +633,8 @@ class ModelTest {
         @Test
         fun memberVertexEquality() {
             val vertex1 = MemberVertex(STRING_1, STRING_1, STRING_1, INT_1)
-            assertEquals(VertexLabels.META_DATA, MetaDataVertex.LABEL)
-            assertEquals(EnumSet.noneOf(VertexBaseTraits::class.java), MetaDataVertex.TRAITS)
+            assertEquals(VertexLabel.META_DATA, MetaDataVertex.LABEL)
+            assertEquals(EnumSet.noneOf(VertexBaseTrait::class.java), MetaDataVertex.TRAITS)
             assertEquals(vertex1.name, STRING_1)
             assertEquals(vertex1.order, INT_1)
             assertEquals(vertex1.typeFullName, STRING_1)
@@ -644,8 +644,8 @@ class ModelTest {
         @Test
         fun metaDataVertexEquality() {
             val vertex1 = MetaDataVertex(STRING_1, STRING_1)
-            assertEquals(VertexLabels.META_DATA, MetaDataVertex.LABEL)
-            assertEquals(EnumSet.noneOf(VertexBaseTraits::class.java), MetaDataVertex.TRAITS)
+            assertEquals(VertexLabel.META_DATA, MetaDataVertex.LABEL)
+            assertEquals(EnumSet.noneOf(VertexBaseTrait::class.java), MetaDataVertex.TRAITS)
             assertEquals(vertex1.language, STRING_1)
             assertEquals(vertex1.version, STRING_1)
         }
@@ -653,8 +653,8 @@ class ModelTest {
         @Test
         fun methodParameterInVertexEquality() {
             val vertex1 = MethodParameterInVertex(STRING_1, STRING_1, EVAL_1, STRING_1, INT_1, INT_1)
-            assertEquals(VertexLabels.METHOD_PARAMETER_IN, MethodParameterInVertex.LABEL)
-            assertEquals(EnumSet.of(VertexBaseTraits.AST_NODE, VertexBaseTraits.DECLARATION, VertexBaseTraits.CFG_NODE), MethodParameterInVertex.TRAITS)
+            assertEquals(VertexLabel.METHOD_PARAMETER_IN, MethodParameterInVertex.LABEL)
+            assertEquals(EnumSet.of(VertexBaseTrait.AST_NODE, VertexBaseTrait.DECLARATION, VertexBaseTrait.CFG_NODE), MethodParameterInVertex.TRAITS)
             assertEquals(vertex1.name, STRING_1)
             assertEquals(vertex1.order, INT_1)
             assertEquals(vertex1.typeFullName, STRING_1)
@@ -665,8 +665,8 @@ class ModelTest {
         @Test
         fun methodRefVertexEquality() {
             val vertex1 = MethodRefVertex(STRING_1, INT_1, INT_1, STRING_1, STRING_1, INT_1)
-            assertEquals(VertexLabels.METHOD_REF, MethodRefVertex.LABEL)
-            assertEquals(EnumSet.of(VertexBaseTraits.EXPRESSION), MethodRefVertex.TRAITS)
+            assertEquals(VertexLabel.METHOD_REF, MethodRefVertex.LABEL)
+            assertEquals(EnumSet.of(VertexBaseTrait.EXPRESSION), MethodRefVertex.TRAITS)
             assertEquals(vertex1.order, INT_1)
             assertEquals(vertex1.lineNumber, INT_1)
             assertEquals(vertex1.argumentIndex, INT_1)
@@ -678,8 +678,8 @@ class ModelTest {
         @Test
         fun methodReturnVertexEquality() {
             val vertex1 = MethodReturnVertex(STRING_1, STRING_1, EVAL_1, INT_1, INT_1)
-            assertEquals(VertexLabels.METHOD_RETURN, MethodReturnVertex.LABEL)
-            assertEquals(EnumSet.of(VertexBaseTraits.CFG_NODE, VertexBaseTraits.TRACKING_POINT), MethodReturnVertex.TRAITS)
+            assertEquals(VertexLabel.METHOD_RETURN, MethodReturnVertex.LABEL)
+            assertEquals(EnumSet.of(VertexBaseTrait.CFG_NODE, VertexBaseTrait.TRACKING_POINT), MethodReturnVertex.TRAITS)
             assertEquals(vertex1.name, STRING_1)
             assertEquals(vertex1.order, INT_1)
             assertEquals(vertex1.typeFullName, STRING_1)
@@ -689,8 +689,8 @@ class ModelTest {
         @Test
         fun methodVertexEquality() {
             val vertex1 = MethodVertex(STRING_1, STRING_1, STRING_1, INT_1, INT_1)
-            assertEquals(VertexLabels.METHOD, MethodVertex.LABEL)
-            assertEquals(EnumSet.of(VertexBaseTraits.AST_NODE, VertexBaseTraits.DECLARATION, VertexBaseTraits.CFG_NODE), MethodVertex.TRAITS)
+            assertEquals(VertexLabel.METHOD, MethodVertex.LABEL)
+            assertEquals(EnumSet.of(VertexBaseTrait.AST_NODE, VertexBaseTrait.DECLARATION, VertexBaseTrait.CFG_NODE), MethodVertex.TRAITS)
             assertEquals(vertex1.name, STRING_1)
             assertEquals(vertex1.order, INT_1)
             assertEquals(vertex1.lineNumber, INT_1)
@@ -701,8 +701,8 @@ class ModelTest {
         @Test
         fun modifierVertexEquality() {
             val vertex1 = ModifierVertex(MOD_1, INT_1)
-            assertEquals(VertexLabels.MODIFIER, ModifierVertex.LABEL)
-            assertEquals(EnumSet.of(VertexBaseTraits.AST_NODE), ModifierVertex.TRAITS)
+            assertEquals(VertexLabel.MODIFIER, ModifierVertex.LABEL)
+            assertEquals(EnumSet.of(VertexBaseTrait.AST_NODE), ModifierVertex.TRAITS)
             assertEquals(vertex1.name, MOD_1)
             assertEquals(vertex1.order, INT_1)
         }
@@ -710,8 +710,8 @@ class ModelTest {
         @Test
         fun namespaceBlockVertexEquality() {
             val vertex1 = NamespaceBlockVertex(STRING_1, STRING_1, INT_1)
-            assertEquals(VertexLabels.NAMESPACE_BLOCK, NamespaceBlockVertex.LABEL)
-            assertEquals(EnumSet.of(VertexBaseTraits.AST_NODE), NamespaceBlockVertex.TRAITS)
+            assertEquals(VertexLabel.NAMESPACE_BLOCK, NamespaceBlockVertex.LABEL)
+            assertEquals(EnumSet.of(VertexBaseTrait.AST_NODE), NamespaceBlockVertex.TRAITS)
             assertEquals(vertex1.name, STRING_1)
             assertEquals(vertex1.fullName, STRING_1)
             assertEquals(vertex1.order, INT_1)
@@ -720,8 +720,8 @@ class ModelTest {
         @Test
         fun returnVertexEquality() {
             val vertex1 = ReturnVertex(INT_1, INT_1, INT_1, STRING_1)
-            assertEquals(VertexLabels.RETURN, ReturnVertex.LABEL)
-            assertEquals(EnumSet.of(VertexBaseTraits.EXPRESSION), ReturnVertex.TRAITS)
+            assertEquals(VertexLabel.RETURN, ReturnVertex.LABEL)
+            assertEquals(EnumSet.of(VertexBaseTrait.EXPRESSION), ReturnVertex.TRAITS)
             assertEquals(vertex1.order, INT_1)
             assertEquals(vertex1.lineNumber, INT_1)
             assertEquals(vertex1.argumentIndex, INT_1)
@@ -731,16 +731,16 @@ class ModelTest {
         @Test
         fun typeArgumentVertexEquality() {
             val vertex1 = TypeArgumentVertex(INT_1)
-            assertEquals(VertexLabels.TYPE_ARGUMENT, TypeArgumentVertex.LABEL)
-            assertEquals(EnumSet.of(VertexBaseTraits.AST_NODE), TypeArgumentVertex.TRAITS)
+            assertEquals(VertexLabel.TYPE_ARGUMENT, TypeArgumentVertex.LABEL)
+            assertEquals(EnumSet.of(VertexBaseTrait.AST_NODE), TypeArgumentVertex.TRAITS)
             assertEquals(vertex1.order, INT_1)
         }
 
         @Test
         fun typeDeclVertexEquality() {
             val vertex1 = TypeDeclVertex(STRING_1, STRING_1, STRING_1)
-            assertEquals(VertexLabels.TYPE_DECL, TypeDeclVertex.LABEL)
-            assertEquals(EnumSet.of(VertexBaseTraits.AST_NODE), TypeDeclVertex.TRAITS)
+            assertEquals(VertexLabel.TYPE_DECL, TypeDeclVertex.LABEL)
+            assertEquals(EnumSet.of(VertexBaseTrait.AST_NODE), TypeDeclVertex.TRAITS)
             assertEquals(vertex1.name, STRING_1)
             assertEquals(vertex1.fullName, STRING_1)
             assertEquals(vertex1.typeDeclFullName, STRING_1)
@@ -749,8 +749,8 @@ class ModelTest {
         @Test
         fun typeParameterVertexEquality() {
             val vertex1 = TypeParameterVertex(STRING_1, INT_1)
-            assertEquals(VertexLabels.TYPE_PARAMETER, TypeParameterVertex.LABEL)
-            assertEquals(EnumSet.of(VertexBaseTraits.AST_NODE), TypeParameterVertex.TRAITS)
+            assertEquals(VertexLabel.TYPE_PARAMETER, TypeParameterVertex.LABEL)
+            assertEquals(EnumSet.of(VertexBaseTrait.AST_NODE), TypeParameterVertex.TRAITS)
             assertEquals(vertex1.name, STRING_1)
             assertEquals(vertex1.order, INT_1)
         }
@@ -758,8 +758,8 @@ class ModelTest {
         @Test
         fun typeVertexEquality() {
             val vertex1 = TypeVertex(STRING_1, STRING_1, STRING_1)
-            assertEquals(VertexLabels.TYPE, TypeVertex.LABEL)
-            assertEquals(EnumSet.noneOf(VertexBaseTraits::class.java), TypeVertex.TRAITS)
+            assertEquals(VertexLabel.TYPE, TypeVertex.LABEL)
+            assertEquals(EnumSet.noneOf(VertexBaseTrait::class.java), TypeVertex.TRAITS)
             assertEquals(vertex1.name, STRING_1)
             assertEquals(vertex1.fullName, STRING_1)
             assertEquals(vertex1.typeDeclFullName, STRING_1)
@@ -768,8 +768,8 @@ class ModelTest {
         @Test
         fun unknownVertexEquality() {
             val vertex1 = UnknownVertex(STRING_1, INT_1, INT_1, INT_1, STRING_1)
-            assertEquals(VertexLabels.UNKNOWN, UnknownVertex.LABEL)
-            assertEquals(EnumSet.of(VertexBaseTraits.EXPRESSION), UnknownVertex.TRAITS)
+            assertEquals(VertexLabel.UNKNOWN, UnknownVertex.LABEL)
+            assertEquals(EnumSet.of(VertexBaseTrait.EXPRESSION), UnknownVertex.TRAITS)
             assertEquals(vertex1.order, INT_1)
             assertEquals(vertex1.typeFullName, STRING_1)
             assertEquals(vertex1.lineNumber, INT_1)
@@ -780,7 +780,7 @@ class ModelTest {
         @Test
         fun testInterfaceDefaults() {
             assertEquals("UNKNOWN", PlumeVertex.LABEL.toString())
-            assertEquals(EnumSet.noneOf(VertexBaseTraits::class.java), PlumeVertex.TRAITS)
+            assertEquals(EnumSet.noneOf(VertexBaseTrait::class.java), PlumeVertex.TRAITS)
         }
     }
 

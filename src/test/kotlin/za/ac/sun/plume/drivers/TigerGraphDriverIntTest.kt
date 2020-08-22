@@ -12,7 +12,7 @@ import za.ac.sun.plume.TestDomainResources.Companion.INT_4
 import za.ac.sun.plume.TestDomainResources.Companion.ROOT_PACKAGE
 import za.ac.sun.plume.TestDomainResources.Companion.SECOND_PACKAGE
 import za.ac.sun.plume.TestDomainResources.Companion.THIRD_PACKAGE
-import za.ac.sun.plume.domain.enums.VertexLabels
+import za.ac.sun.plume.domain.enums.VertexLabel
 import za.ac.sun.plume.domain.mappers.VertexMapper
 import za.ac.sun.plume.domain.models.vertices.*
 
@@ -46,9 +46,9 @@ class TigerGraphDriverIntTest : AbstractDriverTest() {
         @Test
         override fun joinMethodToMethodParamIn() {
             super.joinMethodToMethodParamIn()
-            val methodParamInRaw = get("graph/$GRAPH_NAME/vertices/${VertexLabels.METHOD_PARAMETER_IN.name}_VERT")
-            val methodRaw = get("graph/$GRAPH_NAME/vertices/${VertexLabels.METHOD.name}_VERT")
-            val fileRaw = get("graph/$GRAPH_NAME/vertices/${VertexLabels.FILE.name}_VERT")
+            val methodParamInRaw = get("graph/$GRAPH_NAME/vertices/${VertexLabel.METHOD_PARAMETER_IN.name}_VERT")
+            val methodRaw = get("graph/$GRAPH_NAME/vertices/${VertexLabel.METHOD.name}_VERT")
+            val fileRaw = get("graph/$GRAPH_NAME/vertices/${VertexLabel.FILE.name}_VERT")
             assertTrue(methodParamInRaw.any())
             assertTrue(methodRaw.any())
             assertTrue(fileRaw.any())
@@ -58,8 +58,8 @@ class TigerGraphDriverIntTest : AbstractDriverTest() {
             assertTrue(methodParamIn is MethodParameterInVertex)
             assertTrue(method is MethodVertex)
             assertTrue(file is FileVertex)
-            val methodEdges = get("graph/$GRAPH_NAME/edges/${VertexLabels.METHOD.name}_VERT/${method.hashCode()}")
-            val fileEdges = get("graph/$GRAPH_NAME/edges/${VertexLabels.FILE.name}_VERT/${file.hashCode()}")
+            val methodEdges = get("graph/$GRAPH_NAME/edges/${VertexLabel.METHOD.name}_VERT/${method.hashCode()}")
+            val fileEdges = get("graph/$GRAPH_NAME/edges/${VertexLabel.FILE.name}_VERT/${file.hashCode()}")
             assertTrue(methodEdges.any())
             assertTrue(fileEdges.any())
             assertEquals(method.hashCode().toString(), (methodEdges.first() as JSONObject)["from_id"])
@@ -71,9 +71,9 @@ class TigerGraphDriverIntTest : AbstractDriverTest() {
         @Test
         override fun joinMethodToMethodReturn() {
             super.joinMethodToMethodReturn()
-            val methodReturnRaw = get("graph/$GRAPH_NAME/vertices/${VertexLabels.METHOD_RETURN.name}_VERT")
-            val methodRaw = get("graph/$GRAPH_NAME/vertices/${VertexLabels.METHOD.name}_VERT")
-            val fileRaw = get("graph/$GRAPH_NAME/vertices/${VertexLabels.FILE.name}_VERT")
+            val methodReturnRaw = get("graph/$GRAPH_NAME/vertices/${VertexLabel.METHOD_RETURN.name}_VERT")
+            val methodRaw = get("graph/$GRAPH_NAME/vertices/${VertexLabel.METHOD.name}_VERT")
+            val fileRaw = get("graph/$GRAPH_NAME/vertices/${VertexLabel.FILE.name}_VERT")
             assertTrue(methodReturnRaw.any())
             assertTrue(methodRaw.any())
             assertTrue(fileRaw.any())
@@ -83,8 +83,8 @@ class TigerGraphDriverIntTest : AbstractDriverTest() {
             assertTrue(methodReturn is MethodReturnVertex)
             assertTrue(method is MethodVertex)
             assertTrue(file is FileVertex)
-            val methodEdges = get("graph/$GRAPH_NAME/edges/${VertexLabels.METHOD.name}_VERT/${method.hashCode()}")
-            val fileEdges = get("graph/$GRAPH_NAME/edges/${VertexLabels.FILE.name}_VERT/${file.hashCode()}")
+            val methodEdges = get("graph/$GRAPH_NAME/edges/${VertexLabel.METHOD.name}_VERT/${method.hashCode()}")
+            val fileEdges = get("graph/$GRAPH_NAME/edges/${VertexLabel.FILE.name}_VERT/${file.hashCode()}")
             assertTrue(methodEdges.any())
             assertTrue(fileEdges.any())
             assertEquals(method.hashCode().toString(), (methodEdges.first() as JSONObject)["from_id"])
@@ -96,9 +96,9 @@ class TigerGraphDriverIntTest : AbstractDriverTest() {
         @Test
         override fun joinMethodToModifier() {
             super.joinMethodToModifier()
-            val modifierRaw = get("graph/$GRAPH_NAME/vertices/${VertexLabels.MODIFIER.name}_VERT")
-            val methodRaw = get("graph/$GRAPH_NAME/vertices/${VertexLabels.METHOD.name}_VERT")
-            val fileRaw = get("graph/$GRAPH_NAME/vertices/${VertexLabels.FILE.name}_VERT")
+            val modifierRaw = get("graph/$GRAPH_NAME/vertices/${VertexLabel.MODIFIER.name}_VERT")
+            val methodRaw = get("graph/$GRAPH_NAME/vertices/${VertexLabel.METHOD.name}_VERT")
+            val fileRaw = get("graph/$GRAPH_NAME/vertices/${VertexLabel.FILE.name}_VERT")
             assertTrue(modifierRaw.any())
             assertTrue(methodRaw.any())
             assertTrue(fileRaw.any())
@@ -108,8 +108,8 @@ class TigerGraphDriverIntTest : AbstractDriverTest() {
             assertTrue(modifier is ModifierVertex)
             assertTrue(method is MethodVertex)
             assertTrue(file is FileVertex)
-            val methodEdges = get("graph/$GRAPH_NAME/edges/${VertexLabels.METHOD.name}_VERT/${method.hashCode()}")
-            val fileEdges = get("graph/$GRAPH_NAME/edges/${VertexLabels.FILE.name}_VERT/${file.hashCode()}")
+            val methodEdges = get("graph/$GRAPH_NAME/edges/${VertexLabel.METHOD.name}_VERT/${method.hashCode()}")
+            val fileEdges = get("graph/$GRAPH_NAME/edges/${VertexLabel.FILE.name}_VERT/${file.hashCode()}")
             assertTrue(methodEdges.any())
             assertTrue(fileEdges.any())
             assertEquals(method.hashCode().toString(), (methodEdges.first() as JSONObject)["from_id"])
@@ -132,15 +132,15 @@ class TigerGraphDriverIntTest : AbstractDriverTest() {
         @Test
         override fun testJoinFile2NamespaceBlock() {
             super.testJoinFile2NamespaceBlock()
-            val namespaceRaw = get("graph/$GRAPH_NAME/vertices/${VertexLabels.NAMESPACE_BLOCK.name}_VERT")
-            val fileRaw = get("graph/$GRAPH_NAME/vertices/${VertexLabels.FILE.name}_VERT")
+            val namespaceRaw = get("graph/$GRAPH_NAME/vertices/${VertexLabel.NAMESPACE_BLOCK.name}_VERT")
+            val fileRaw = get("graph/$GRAPH_NAME/vertices/${VertexLabel.FILE.name}_VERT")
             assertTrue(namespaceRaw.any())
             assertTrue(fileRaw.any())
             val namespace = VertexMapper.mapToVertex(tigerGraphHook.flattenVertexResult(namespaceRaw.first() as JSONObject))
             val file = VertexMapper.mapToVertex(tigerGraphHook.flattenVertexResult(fileRaw.first() as JSONObject))
             assertTrue(namespace is NamespaceBlockVertex)
             assertTrue(file is FileVertex)
-            val namespaceEdges = get("graph/$GRAPH_NAME/edges/${VertexLabels.NAMESPACE_BLOCK.name}_VERT/${namespace.hashCode()}")
+            val namespaceEdges = get("graph/$GRAPH_NAME/edges/${VertexLabel.NAMESPACE_BLOCK.name}_VERT/${namespace.hashCode()}")
             assertTrue(namespaceEdges.any())
             assertEquals(namespace.hashCode().toString(), (namespaceEdges.first() as JSONObject)["from_id"])
             assertEquals(file.hashCode().toString(), (namespaceEdges.first() as JSONObject)["to_id"])
@@ -149,15 +149,15 @@ class TigerGraphDriverIntTest : AbstractDriverTest() {
         @Test
         override fun testJoinFile2Method() {
             super.testJoinFile2Method()
-            val methodRaw = get("graph/$GRAPH_NAME/vertices/${VertexLabels.METHOD.name}_VERT")
-            val fileRaw = get("graph/$GRAPH_NAME/vertices/${VertexLabels.FILE.name}_VERT")
+            val methodRaw = get("graph/$GRAPH_NAME/vertices/${VertexLabel.METHOD.name}_VERT")
+            val fileRaw = get("graph/$GRAPH_NAME/vertices/${VertexLabel.FILE.name}_VERT")
             assertTrue(methodRaw.any())
             assertTrue(fileRaw.any())
             val method = VertexMapper.mapToVertex(tigerGraphHook.flattenVertexResult(methodRaw.first() as JSONObject))
             val file = VertexMapper.mapToVertex(tigerGraphHook.flattenVertexResult(fileRaw.first() as JSONObject))
             assertTrue(method is MethodVertex)
             assertTrue(file is FileVertex)
-            val fileEdges = get("graph/$GRAPH_NAME/edges/${VertexLabels.FILE.name}_VERT/${file.hashCode()}")
+            val fileEdges = get("graph/$GRAPH_NAME/edges/${VertexLabel.FILE.name}_VERT/${file.hashCode()}")
             assertTrue(fileEdges.any())
             assertEquals(file.hashCode().toString(), (fileEdges.first() as JSONObject)["from_id"])
             assertEquals(method.hashCode().toString(), (fileEdges.first() as JSONObject)["to_id"])
@@ -177,9 +177,9 @@ class TigerGraphDriverIntTest : AbstractDriverTest() {
         @Test
         override fun testMethodJoinBlockTest() {
             super.testMethodJoinBlockTest()
-            val blockRaw = get("graph/$GRAPH_NAME/vertices/${VertexLabels.BLOCK.name}_VERT")
-            val methodRaw = get("graph/$GRAPH_NAME/vertices/${VertexLabels.METHOD.name}_VERT")
-            val fileRaw = get("graph/$GRAPH_NAME/vertices/${VertexLabels.FILE.name}_VERT")
+            val blockRaw = get("graph/$GRAPH_NAME/vertices/${VertexLabel.BLOCK.name}_VERT")
+            val methodRaw = get("graph/$GRAPH_NAME/vertices/${VertexLabel.METHOD.name}_VERT")
+            val fileRaw = get("graph/$GRAPH_NAME/vertices/${VertexLabel.FILE.name}_VERT")
             assertTrue(blockRaw.any())
             assertTrue(methodRaw.any())
             assertTrue(fileRaw.any())
@@ -189,8 +189,8 @@ class TigerGraphDriverIntTest : AbstractDriverTest() {
             assertTrue(block is BlockVertex)
             assertTrue(method is MethodVertex)
             assertTrue(file is FileVertex)
-            val methodEdges = get("graph/$GRAPH_NAME/edges/${VertexLabels.METHOD.name}_VERT/${method.hashCode()}")
-            val fileEdges = get("graph/$GRAPH_NAME/edges/${VertexLabels.FILE.name}_VERT/${file.hashCode()}")
+            val methodEdges = get("graph/$GRAPH_NAME/edges/${VertexLabel.METHOD.name}_VERT/${method.hashCode()}")
+            val fileEdges = get("graph/$GRAPH_NAME/edges/${VertexLabel.FILE.name}_VERT/${file.hashCode()}")
             assertTrue(methodEdges.any())
             assertTrue(fileEdges.any())
             assertEquals(method.hashCode().toString(), (methodEdges.first() as JSONObject)["from_id"])
@@ -202,8 +202,8 @@ class TigerGraphDriverIntTest : AbstractDriverTest() {
         @Test
         override fun testBlockJoinBlockTest() {
             super.testBlockJoinBlockTest()
-            val blockRaw = get("graph/$GRAPH_NAME/vertices/${VertexLabels.BLOCK.name}_VERT")
-            val methodRaw = get("graph/$GRAPH_NAME/vertices/${VertexLabels.METHOD.name}_VERT")
+            val blockRaw = get("graph/$GRAPH_NAME/vertices/${VertexLabel.BLOCK.name}_VERT")
+            val methodRaw = get("graph/$GRAPH_NAME/vertices/${VertexLabel.METHOD.name}_VERT")
             assertTrue(blockRaw.any())
             assertTrue(methodRaw.any())
             val blockVertices = blockRaw.map { VertexMapper.mapToVertex(tigerGraphHook.flattenVertexResult(it as JSONObject)) as BlockVertex }
@@ -213,8 +213,8 @@ class TigerGraphDriverIntTest : AbstractDriverTest() {
             assertTrue(block1 is BlockVertex)
             assertTrue(block2 is BlockVertex)
             assertTrue(method is MethodVertex)
-            val methodEdges = get("graph/$GRAPH_NAME/edges/${VertexLabels.METHOD.name}_VERT/${method.hashCode()}")
-            val block1Edges = get("graph/$GRAPH_NAME/edges/${VertexLabels.BLOCK.name}_VERT/${block1.hashCode()}")
+            val methodEdges = get("graph/$GRAPH_NAME/edges/${VertexLabel.METHOD.name}_VERT/${method.hashCode()}")
+            val block1Edges = get("graph/$GRAPH_NAME/edges/${VertexLabel.BLOCK.name}_VERT/${block1.hashCode()}")
             assertTrue(methodEdges.any())
             assertTrue(block1Edges.any())
             assertEquals(method.hashCode().toString(), (methodEdges.first() as JSONObject)["from_id"])
@@ -226,9 +226,9 @@ class TigerGraphDriverIntTest : AbstractDriverTest() {
         @Test
         override fun testAssignLiteralToBlock() {
             super.testAssignLiteralToBlock()
-            val blockRaw = get("graph/$GRAPH_NAME/vertices/${VertexLabels.BLOCK.name}_VERT")
-            val methodRaw = get("graph/$GRAPH_NAME/vertices/${VertexLabels.METHOD.name}_VERT")
-            val literalRaw = get("graph/$GRAPH_NAME/vertices/${VertexLabels.LITERAL.name}_VERT")
+            val blockRaw = get("graph/$GRAPH_NAME/vertices/${VertexLabel.BLOCK.name}_VERT")
+            val methodRaw = get("graph/$GRAPH_NAME/vertices/${VertexLabel.METHOD.name}_VERT")
+            val literalRaw = get("graph/$GRAPH_NAME/vertices/${VertexLabel.LITERAL.name}_VERT")
             assertTrue(blockRaw.any())
             assertTrue(methodRaw.any())
             assertTrue(literalRaw.any())
@@ -238,8 +238,8 @@ class TigerGraphDriverIntTest : AbstractDriverTest() {
             assertTrue(block is BlockVertex)
             assertTrue(method is MethodVertex)
             assertTrue(literal is LiteralVertex)
-            val methodEdges = get("graph/$GRAPH_NAME/edges/${VertexLabels.METHOD.name}_VERT/${method.hashCode()}")
-            val blockEdges = get("graph/$GRAPH_NAME/edges/${VertexLabels.BLOCK.name}_VERT/${block.hashCode()}")
+            val methodEdges = get("graph/$GRAPH_NAME/edges/${VertexLabel.METHOD.name}_VERT/${method.hashCode()}")
+            val blockEdges = get("graph/$GRAPH_NAME/edges/${VertexLabel.BLOCK.name}_VERT/${block.hashCode()}")
             assertTrue(methodEdges.any())
             assertTrue(blockEdges.any())
             assertEquals(method.hashCode().toString(), (methodEdges.first() as JSONObject)["from_id"])
@@ -251,9 +251,9 @@ class TigerGraphDriverIntTest : AbstractDriverTest() {
         @Test
         override fun testAssignLocalToBlock() {
             super.testAssignLocalToBlock()
-            val blockRaw = get("graph/$GRAPH_NAME/vertices/${VertexLabels.BLOCK.name}_VERT")
-            val methodRaw = get("graph/$GRAPH_NAME/vertices/${VertexLabels.METHOD.name}_VERT")
-            val localRaw = get("graph/$GRAPH_NAME/vertices/${VertexLabels.LOCAL.name}_VERT")
+            val blockRaw = get("graph/$GRAPH_NAME/vertices/${VertexLabel.BLOCK.name}_VERT")
+            val methodRaw = get("graph/$GRAPH_NAME/vertices/${VertexLabel.METHOD.name}_VERT")
+            val localRaw = get("graph/$GRAPH_NAME/vertices/${VertexLabel.LOCAL.name}_VERT")
             assertTrue(blockRaw.any())
             assertTrue(methodRaw.any())
             assertTrue(localRaw.any())
@@ -263,8 +263,8 @@ class TigerGraphDriverIntTest : AbstractDriverTest() {
             assertTrue(block is BlockVertex)
             assertTrue(method is MethodVertex)
             assertTrue(local is LocalVertex)
-            val methodEdges = get("graph/$GRAPH_NAME/edges/${VertexLabels.METHOD.name}_VERT/${method.hashCode()}")
-            val blockEdges = get("graph/$GRAPH_NAME/edges/${VertexLabels.BLOCK.name}_VERT/${block.hashCode()}")
+            val methodEdges = get("graph/$GRAPH_NAME/edges/${VertexLabel.METHOD.name}_VERT/${method.hashCode()}")
+            val blockEdges = get("graph/$GRAPH_NAME/edges/${VertexLabel.BLOCK.name}_VERT/${block.hashCode()}")
             assertTrue(methodEdges.any())
             assertTrue(blockEdges.any())
             assertEquals(method.hashCode().toString(), (methodEdges.first() as JSONObject)["from_id"])
@@ -276,9 +276,9 @@ class TigerGraphDriverIntTest : AbstractDriverTest() {
         @Test
         override fun testAssignControlToBlock() {
             super.testAssignControlToBlock()
-            val blockRaw = get("graph/$GRAPH_NAME/vertices/${VertexLabels.BLOCK.name}_VERT")
-            val methodRaw = get("graph/$GRAPH_NAME/vertices/${VertexLabels.METHOD.name}_VERT")
-            val controlRaw = get("graph/$GRAPH_NAME/vertices/${VertexLabels.CONTROL_STRUCTURE.name}_VERT")
+            val blockRaw = get("graph/$GRAPH_NAME/vertices/${VertexLabel.BLOCK.name}_VERT")
+            val methodRaw = get("graph/$GRAPH_NAME/vertices/${VertexLabel.METHOD.name}_VERT")
+            val controlRaw = get("graph/$GRAPH_NAME/vertices/${VertexLabel.CONTROL_STRUCTURE.name}_VERT")
             assertTrue(blockRaw.any())
             assertTrue(methodRaw.any())
             assertTrue(controlRaw.any())
@@ -288,8 +288,8 @@ class TigerGraphDriverIntTest : AbstractDriverTest() {
             assertTrue(block is BlockVertex)
             assertTrue(method is MethodVertex)
             assertTrue(control is ControlStructureVertex)
-            val methodEdges = get("graph/$GRAPH_NAME/edges/${VertexLabels.METHOD.name}_VERT/${method.hashCode()}")
-            val blockEdges = get("graph/$GRAPH_NAME/edges/${VertexLabels.BLOCK.name}_VERT/${block.hashCode()}")
+            val methodEdges = get("graph/$GRAPH_NAME/edges/${VertexLabel.METHOD.name}_VERT/${method.hashCode()}")
+            val blockEdges = get("graph/$GRAPH_NAME/edges/${VertexLabel.BLOCK.name}_VERT/${block.hashCode()}")
             assertTrue(methodEdges.any())
             assertTrue(blockEdges.any())
             assertEquals(method.hashCode().toString(), (methodEdges.first() as JSONObject)["from_id"])
@@ -312,14 +312,14 @@ class TigerGraphDriverIntTest : AbstractDriverTest() {
         @Test
         override fun joinTwoNamespaceBlocks() {
             super.joinTwoNamespaceBlocks()
-            val namespaceRaw = get("graph/$GRAPH_NAME/vertices/${VertexLabels.NAMESPACE_BLOCK.name}_VERT")
+            val namespaceRaw = get("graph/$GRAPH_NAME/vertices/${VertexLabel.NAMESPACE_BLOCK.name}_VERT")
             assertTrue(namespaceRaw.any())
             val namespaceVertices = namespaceRaw.map { VertexMapper.mapToVertex(tigerGraphHook.flattenVertexResult(it as JSONObject)) as NamespaceBlockVertex }
             val namespace1 = namespaceVertices.find { it.name == ROOT_PACKAGE }
             val namespace2 = namespaceVertices.find { it.name == SECOND_PACKAGE }
             assertTrue(namespace1 is NamespaceBlockVertex)
             assertTrue(namespace2 is NamespaceBlockVertex)
-            val namespaceEdges = get("graph/$GRAPH_NAME/edges/${VertexLabels.NAMESPACE_BLOCK.name}_VERT/${namespace1.hashCode()}")
+            val namespaceEdges = get("graph/$GRAPH_NAME/edges/${VertexLabel.NAMESPACE_BLOCK.name}_VERT/${namespace1.hashCode()}")
             assertEquals(namespace1.hashCode().toString(), (namespaceEdges.first() as JSONObject)["from_id"])
             assertEquals(namespace2.hashCode().toString(), (namespaceEdges.first() as JSONObject)["to_id"])
         }
@@ -327,14 +327,14 @@ class TigerGraphDriverIntTest : AbstractDriverTest() {
         @Test
         override fun joinThreeNamespaceBlocks() {
             super.joinThreeNamespaceBlocks()
-            val namespaceRaw = get("graph/$GRAPH_NAME/vertices/${VertexLabels.NAMESPACE_BLOCK.name}_VERT")
+            val namespaceRaw = get("graph/$GRAPH_NAME/vertices/${VertexLabel.NAMESPACE_BLOCK.name}_VERT")
             assertTrue(namespaceRaw.any())
             val namespaceVertices = namespaceRaw.map { VertexMapper.mapToVertex(tigerGraphHook.flattenVertexResult(it as JSONObject)) as NamespaceBlockVertex }
             val namespace1 = namespaceVertices.find { it.name == ROOT_PACKAGE }
             val namespace2 = namespaceVertices.find { it.name == SECOND_PACKAGE }
             val namespace3 = namespaceVertices.find { it.name == THIRD_PACKAGE }
-            val namespace1Edges = get("graph/$GRAPH_NAME/edges/${VertexLabels.NAMESPACE_BLOCK.name}_VERT/${namespace1.hashCode()}")
-            val namespace2Edges = get("graph/$GRAPH_NAME/edges/${VertexLabels.NAMESPACE_BLOCK.name}_VERT/${namespace2.hashCode()}")
+            val namespace1Edges = get("graph/$GRAPH_NAME/edges/${VertexLabel.NAMESPACE_BLOCK.name}_VERT/${namespace1.hashCode()}")
+            val namespace2Edges = get("graph/$GRAPH_NAME/edges/${VertexLabel.NAMESPACE_BLOCK.name}_VERT/${namespace2.hashCode()}")
             assertEquals(namespace1.hashCode().toString(), (namespace1Edges.first() as JSONObject)["from_id"])
             assertEquals(namespace2.hashCode().toString(), (namespace1Edges.first() as JSONObject)["to_id"])
             assertEquals(namespace2.hashCode().toString(), (namespace2Edges.first() as JSONObject)["from_id"])
@@ -344,14 +344,14 @@ class TigerGraphDriverIntTest : AbstractDriverTest() {
         @Test
         override fun joinExistingConnection() {
             super.joinExistingConnection()
-            val namespaceRaw = get("graph/$GRAPH_NAME/vertices/${VertexLabels.NAMESPACE_BLOCK.name}_VERT")
+            val namespaceRaw = get("graph/$GRAPH_NAME/vertices/${VertexLabel.NAMESPACE_BLOCK.name}_VERT")
             assertTrue(namespaceRaw.any())
             val namespaceVertices = namespaceRaw.map { VertexMapper.mapToVertex(tigerGraphHook.flattenVertexResult(it as JSONObject)) as NamespaceBlockVertex }
             val namespace1 = namespaceVertices.find { it.name == ROOT_PACKAGE }
             val namespace2 = namespaceVertices.find { it.name == SECOND_PACKAGE }
             assertTrue(namespace1 is NamespaceBlockVertex)
             assertTrue(namespace2 is NamespaceBlockVertex)
-            val namespaceEdges = get("graph/$GRAPH_NAME/edges/${VertexLabels.NAMESPACE_BLOCK.name}_VERT/${namespace1.hashCode()}")
+            val namespaceEdges = get("graph/$GRAPH_NAME/edges/${VertexLabel.NAMESPACE_BLOCK.name}_VERT/${namespace1.hashCode()}")
             assertEquals(namespace1.hashCode().toString(), (namespaceEdges.first() as JSONObject)["from_id"])
             assertEquals(namespace2.hashCode().toString(), (namespaceEdges.first() as JSONObject)["to_id"])
         }
@@ -365,7 +365,7 @@ class TigerGraphDriverIntTest : AbstractDriverTest() {
         override fun setUp() {
             super.setUp()
             tigerGraphHook = hook as TigerGraphDriver
-            val blockRaw = get("graph/$GRAPH_NAME/vertices/${VertexLabels.BLOCK.name}_VERT")
+            val blockRaw = get("graph/$GRAPH_NAME/vertices/${VertexLabel.BLOCK.name}_VERT")
             assertTrue(blockRaw.any())
             val blockMap = tigerGraphHook.flattenVertexResult(blockRaw.first() as JSONObject)
             val block = VertexMapper.mapToVertex(blockMap)
@@ -376,7 +376,7 @@ class TigerGraphDriverIntTest : AbstractDriverTest() {
         @Test
         override fun testUpdateOnOneBlockProperty() {
             super.testUpdateOnOneBlockProperty()
-            val blockRaw = get("graph/$GRAPH_NAME/vertices/${VertexLabels.BLOCK.name}_VERT")
+            val blockRaw = get("graph/$GRAPH_NAME/vertices/${VertexLabel.BLOCK.name}_VERT")
             assertTrue(blockRaw.any())
             val blockMap = tigerGraphHook.flattenVertexResult(blockRaw.first() as JSONObject)
             val block = VertexMapper.mapToVertex(blockMap)

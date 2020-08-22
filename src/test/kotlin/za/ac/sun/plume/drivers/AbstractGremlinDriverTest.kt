@@ -11,7 +11,7 @@ import za.ac.sun.plume.TestDomainResources.Companion.SECOND_PACKAGE
 import za.ac.sun.plume.TestDomainResources.Companion.STRING_1
 import za.ac.sun.plume.TestDomainResources.Companion.TEST_ID
 import za.ac.sun.plume.TestDomainResources.Companion.THIRD_PACKAGE
-import za.ac.sun.plume.domain.enums.EdgeLabels
+import za.ac.sun.plume.domain.enums.EdgeLabel
 import za.ac.sun.plume.domain.models.vertices.*
 
 abstract class AbstractGremlinDriverTest : AbstractDriverTest() {
@@ -47,37 +47,37 @@ abstract class AbstractGremlinDriverTest : AbstractDriverTest() {
         @Test
         override fun joinMethodToMethodParamIn() {
             super.joinMethodToMethodParamIn()
-            gremlinHook.startTransaction()
-            Assertions.assertTrue(gremlinHook.g.E().hasLabel(EdgeLabels.AST.name).hasNext())
+            gremlinHook.openTx()
+            Assertions.assertTrue(gremlinHook.g.E().hasLabel(EdgeLabel.AST.name).hasNext())
             Assertions.assertTrue(gremlinHook.g.V().hasLabel(MethodVertex.LABEL.name)
-                    .out(EdgeLabels.AST.name)
+                    .out(EdgeLabel.AST.name)
                     .has(MethodParameterInVertex.LABEL.name, "name", STRING_1)
                     .hasNext())
-            gremlinHook.endTransaction()
+            gremlinHook.closeTx()
         }
 
         @Test
         override fun joinMethodToMethodReturn() {
             super.joinMethodToMethodReturn()
-            gremlinHook.startTransaction()
-            Assertions.assertTrue(gremlinHook.g.E().hasLabel(EdgeLabels.AST.name).hasNext())
+            gremlinHook.openTx()
+            Assertions.assertTrue(gremlinHook.g.E().hasLabel(EdgeLabel.AST.name).hasNext())
             Assertions.assertTrue(gremlinHook.g.V().hasLabel(MethodVertex.LABEL.name)
-                    .out(EdgeLabels.AST.name)
+                    .out(EdgeLabel.AST.name)
                     .has(MethodReturnVertex.LABEL.name, "name", STRING_1)
                     .hasNext())
-            gremlinHook.endTransaction()
+            gremlinHook.closeTx()
         }
 
         @Test
         override fun joinMethodToModifier() {
             super.joinMethodToModifier()
-            gremlinHook.startTransaction()
-            Assertions.assertTrue(gremlinHook.g.E().hasLabel(EdgeLabels.AST.name).hasNext())
+            gremlinHook.openTx()
+            Assertions.assertTrue(gremlinHook.g.E().hasLabel(EdgeLabel.AST.name).hasNext())
             Assertions.assertTrue(gremlinHook.g.V().hasLabel(MethodVertex.LABEL.name)
-                    .out(EdgeLabels.AST.name)
+                    .out(EdgeLabel.AST.name)
                     .has(ModifierVertex.LABEL.name, "name", MOD_1.name)
                     .hasNext())
-            gremlinHook.endTransaction()
+            gremlinHook.closeTx()
         }
     }
 
@@ -94,25 +94,25 @@ abstract class AbstractGremlinDriverTest : AbstractDriverTest() {
         @Test
         override fun testJoinFile2NamespaceBlock() {
             super.testJoinFile2NamespaceBlock()
-            gremlinHook.startTransaction()
-            Assertions.assertTrue(gremlinHook.g.E().hasLabel(EdgeLabels.AST.name).hasNext())
+            gremlinHook.openTx()
+            Assertions.assertTrue(gremlinHook.g.E().hasLabel(EdgeLabel.AST.name).hasNext())
             Assertions.assertTrue(gremlinHook.g.V().has(NamespaceBlockVertex.LABEL.name, "fullName", STRING_1)
-                    .out(EdgeLabels.AST.name)
+                    .out(EdgeLabel.AST.name)
                     .hasLabel(FileVertex.LABEL.name)
                     .hasNext())
-            gremlinHook.endTransaction()
+            gremlinHook.closeTx()
         }
 
         @Test
         override fun testJoinFile2Method() {
             super.testJoinFile2Method()
-            gremlinHook.startTransaction()
-            Assertions.assertTrue(gremlinHook.g.E().hasLabel(EdgeLabels.AST.name).hasNext())
+            gremlinHook.openTx()
+            Assertions.assertTrue(gremlinHook.g.E().hasLabel(EdgeLabel.AST.name).hasNext())
             Assertions.assertTrue(gremlinHook.g.V().hasLabel(FileVertex.LABEL.name)
-                    .out(EdgeLabels.AST.name)
+                    .out(EdgeLabel.AST.name)
                     .has(MethodVertex.LABEL.name, "fullName", STRING_1)
                     .hasNext())
-            gremlinHook.endTransaction()
+            gremlinHook.closeTx()
         }
     }
 
@@ -129,57 +129,57 @@ abstract class AbstractGremlinDriverTest : AbstractDriverTest() {
         @Test
         override fun testMethodJoinBlockTest() {
             super.testMethodJoinBlockTest()
-            gremlinHook.startTransaction()
-            Assertions.assertTrue(gremlinHook.g.E().hasLabel(EdgeLabels.AST.name).hasNext())
+            gremlinHook.openTx()
+            Assertions.assertTrue(gremlinHook.g.E().hasLabel(EdgeLabel.AST.name).hasNext())
             Assertions.assertTrue(gremlinHook.g.V().hasLabel(MethodVertex.LABEL.name)
-                    .out(EdgeLabels.AST.name)
+                    .out(EdgeLabel.AST.name)
                     .has(BlockVertex.LABEL.name, "name", FIRST_BLOCK)
                     .hasNext())
-            gremlinHook.endTransaction()
+            gremlinHook.closeTx()
         }
 
         @Test
         override fun testBlockJoinBlockTest() {
             super.testBlockJoinBlockTest()
-            gremlinHook.startTransaction()
+            gremlinHook.openTx()
             Assertions.assertTrue(gremlinHook.g.V().has(BlockVertex.LABEL.name, "name", FIRST_BLOCK)
-                    .out(EdgeLabels.AST.name)
+                    .out(EdgeLabel.AST.name)
                     .has(BlockVertex.LABEL.name, "name", TEST_ID)
                     .hasNext())
-            gremlinHook.endTransaction()
+            gremlinHook.closeTx()
         }
 
         @Test
         override fun testAssignLiteralToBlock() {
             super.testAssignLiteralToBlock()
-            gremlinHook.startTransaction()
+            gremlinHook.openTx()
             Assertions.assertTrue(gremlinHook.g.V().has(BlockVertex.LABEL.name, "name", FIRST_BLOCK)
-                    .out(EdgeLabels.AST.name)
+                    .out(EdgeLabel.AST.name)
                     .has(LiteralVertex.LABEL.name, "name", TEST_ID)
                     .hasNext())
-            gremlinHook.endTransaction()
+            gremlinHook.closeTx()
         }
 
         @Test
         override fun testAssignLocalToBlock() {
             super.testAssignLocalToBlock()
-            gremlinHook.startTransaction()
+            gremlinHook.openTx()
             Assertions.assertTrue(gremlinHook.g.V().has(BlockVertex.LABEL.name, "name", FIRST_BLOCK)
-                    .out(EdgeLabels.AST.name)
+                    .out(EdgeLabel.AST.name)
                     .has(LocalVertex.LABEL.name, "name", TEST_ID)
                     .hasNext())
-            gremlinHook.endTransaction()
+            gremlinHook.closeTx()
         }
 
         @Test
         override fun testAssignControlToBlock() {
             super.testAssignControlToBlock()
-            gremlinHook.startTransaction()
+            gremlinHook.openTx()
             Assertions.assertTrue(gremlinHook.g.V().has(BlockVertex.LABEL.name, "name", FIRST_BLOCK)
-                    .out(EdgeLabels.AST.name)
+                    .out(EdgeLabel.AST.name)
                     .has(ControlStructureVertex.LABEL.name, "name", TEST_ID)
                     .hasNext())
-            gremlinHook.endTransaction()
+            gremlinHook.closeTx()
         }
     }
 
@@ -196,33 +196,33 @@ abstract class AbstractGremlinDriverTest : AbstractDriverTest() {
         @Test
         override fun joinTwoNamespaceBlocks() {
             super.joinTwoNamespaceBlocks()
-            gremlinHook.startTransaction()
+            gremlinHook.openTx()
             Assertions.assertTrue(gremlinHook.g.V().has(NamespaceBlockVertex.LABEL.name, "name", ROOT_PACKAGE)
-                    .out(EdgeLabels.AST.name)
+                    .out(EdgeLabel.AST.name)
                     .has(NamespaceBlockVertex.LABEL.name, "name", SECOND_PACKAGE).hasNext())
-            gremlinHook.endTransaction()
+            gremlinHook.closeTx()
         }
 
         @Test
         override fun joinThreeNamespaceBlocks() {
             super.joinThreeNamespaceBlocks()
-            gremlinHook.startTransaction()
+            gremlinHook.openTx()
             Assertions.assertTrue(gremlinHook.g.V().has(NamespaceBlockVertex.LABEL.name, "name", ROOT_PACKAGE)
-                    .out(EdgeLabels.AST.name)
+                    .out(EdgeLabel.AST.name)
                     .has(NamespaceBlockVertex.LABEL.name, "name", SECOND_PACKAGE).hasNext())
             Assertions.assertTrue(gremlinHook.g.V().has(NamespaceBlockVertex.LABEL.name, "name", SECOND_PACKAGE)
-                    .out(EdgeLabels.AST.name)
+                    .out(EdgeLabel.AST.name)
                     .has(NamespaceBlockVertex.LABEL.name, "name", THIRD_PACKAGE).hasNext())
-            gremlinHook.endTransaction()
+            gremlinHook.closeTx()
         }
 
         @Test
         override fun joinExistingConnection() {
             super.joinExistingConnection()
-            gremlinHook.startTransaction()
+            gremlinHook.openTx()
             Assertions.assertEquals(1, gremlinHook.g.V().has(NamespaceBlockVertex.LABEL.name, "name", ROOT_PACKAGE)
-                    .out(EdgeLabels.AST.name).count().next())
-            gremlinHook.endTransaction()
+                    .out(EdgeLabel.AST.name).count().next())
+            gremlinHook.closeTx()
         }
     }
 
@@ -234,17 +234,17 @@ abstract class AbstractGremlinDriverTest : AbstractDriverTest() {
         override fun setUp() {
             super.setUp()
             gremlinHook = hook as GremlinDriver
-            gremlinHook.startTransaction()
+            gremlinHook.openTx()
             Assertions.assertTrue(gremlinHook.g.V().hasLabel(BlockVertex.LABEL.name).has(super.keyToTest, super.initValue).hasNext())
-            gremlinHook.endTransaction()
+            gremlinHook.closeTx()
         }
 
         @Test
         override fun testUpdateOnOneBlockProperty() {
             super.testUpdateOnOneBlockProperty()
-            gremlinHook.startTransaction()
+            gremlinHook.openTx()
             Assertions.assertTrue(gremlinHook.g.V().hasLabel(BlockVertex.LABEL.name).has(super.keyToTest, super.updatedValue).hasNext())
-            gremlinHook.endTransaction()
+            gremlinHook.closeTx()
         }
     }
 }

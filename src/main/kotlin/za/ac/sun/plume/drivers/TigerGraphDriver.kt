@@ -4,8 +4,8 @@ import org.apache.logging.log4j.LogManager
 import org.apache.tinkerpop.shaded.jackson.databind.ObjectMapper
 import org.json.JSONArray
 import org.json.JSONObject
-import za.ac.sun.plume.domain.enums.EdgeLabels
-import za.ac.sun.plume.domain.enums.VertexLabels
+import za.ac.sun.plume.domain.enums.EdgeLabel
+import za.ac.sun.plume.domain.enums.VertexLabel
 import za.ac.sun.plume.domain.mappers.VertexMapper
 import za.ac.sun.plume.domain.models.PlumeVertex
 import za.ac.sun.plume.domain.models.vertices.FileVertex
@@ -28,23 +28,23 @@ class TigerGraphDriver private constructor(
     private val api: String = "http${if (secure) "s" else ""}://$hostname:$port"
     private val objectMapper = ObjectMapper()
 
-    override fun joinFileVertexTo(to: FileVertex, from: NamespaceBlockVertex) = upsertAndJoinVertices(from, to, EdgeLabels.AST)
+    override fun joinFileVertexTo(to: FileVertex, from: NamespaceBlockVertex) = upsertAndJoinVertices(from, to, EdgeLabel.AST)
 
-    override fun joinFileVertexTo(from: FileVertex, to: MethodVertex) = upsertAndJoinVertices(from, to, EdgeLabels.AST)
+    override fun joinFileVertexTo(from: FileVertex, to: MethodVertex) = upsertAndJoinVertices(from, to, EdgeLabel.AST)
 
-    override fun createAndAddToMethod(from: MethodVertex, to: MethodDescriptorVertex) = upsertAndJoinVertices(from, to, EdgeLabels.AST)
+    override fun createAndAddToMethod(from: MethodVertex, to: MethodDescriptorVertex) = upsertAndJoinVertices(from, to, EdgeLabel.AST)
 
-    override fun createAndAddToMethod(from: MethodVertex, to: ModifierVertex) = upsertAndJoinVertices(from, to, EdgeLabels.AST)
+    override fun createAndAddToMethod(from: MethodVertex, to: ModifierVertex) = upsertAndJoinVertices(from, to, EdgeLabel.AST)
 
-    override fun joinASTVerticesByOrder(blockFrom: Int, blockTo: Int, edgeLabel: EdgeLabels) {
+    override fun joinASTVerticesByOrder(blockFrom: Int, blockTo: Int, edgeLabel: EdgeLabel) {
         val from = getVertexByASTOrder(blockFrom)
         val to = getVertexByASTOrder(blockTo)
-        if (from != null && to != null) upsertAndJoinVertices(from, to, EdgeLabels.AST)
+        if (from != null && to != null) upsertAndJoinVertices(from, to, EdgeLabel.AST)
     }
 
-    override fun areASTVerticesConnected(orderFrom: Int, orderTo: Int, edgeLabel: EdgeLabels): Boolean = ((get("query/$GRAPH_NAME/areASTVerticesJoinedByEdge?blockFrom=$orderFrom&blockTo=$orderTo&edgeLabel=${edgeLabel.name}")).first() as JSONObject)["result"] as Boolean
+    override fun areASTVerticesConnected(orderFrom: Int, orderTo: Int, edgeLabel: EdgeLabel): Boolean = ((get("query/$GRAPH_NAME/areASTVerticesJoinedByEdge?blockFrom=$orderFrom&blockTo=$orderTo&edgeLabel=${edgeLabel.name}")).first() as JSONObject)["result"] as Boolean
 
-    override fun joinNamespaceBlocks(from: NamespaceBlockVertex, to: NamespaceBlockVertex) = upsertAndJoinVertices(from, to, EdgeLabels.AST)
+    override fun joinNamespaceBlocks(from: NamespaceBlockVertex, to: NamespaceBlockVertex) = upsertAndJoinVertices(from, to, EdgeLabel.AST)
 
     override fun maxOrder() = (get("query/$GRAPH_NAME/maxOrder").first() as JSONObject)["@@maxAstOrder"] as Int
 
@@ -63,11 +63,11 @@ class TigerGraphDriver private constructor(
 
     override fun isASTVertex(blockOrder: Int): Boolean = ((get("query/$GRAPH_NAME/isASTVertex?astOrder=$blockOrder")).first() as JSONObject)["result"] as Boolean
 
-    override fun createAndAssignToBlock(parentVertex: MethodVertex, newVertex: PlumeVertex) = upsertAndJoinVertices(parentVertex, newVertex, EdgeLabels.AST)
+    override fun createAndAssignToBlock(parentVertex: MethodVertex, newVertex: PlumeVertex) = upsertAndJoinVertices(parentVertex, newVertex, EdgeLabel.AST)
 
     override fun createAndAssignToBlock(newVertex: PlumeVertex, blockOrder: Int) {
         val from = getVertexByASTOrder(blockOrder) ?: return
-        upsertAndJoinVertices(from, newVertex, EdgeLabels.AST)
+        upsertAndJoinVertices(from, newVertex, EdgeLabel.AST)
     }
 
     override fun createVertex(plumeVertex: PlumeVertex) {
@@ -84,7 +84,7 @@ class TigerGraphDriver private constructor(
         post("graph/$GRAPH_NAME", payload)
     }
 
-    private fun upsertAndJoinVertices(from: PlumeVertex, to: PlumeVertex, edgeLabel: EdgeLabels) {
+    private fun upsertAndJoinVertices(from: PlumeVertex, to: PlumeVertex, edgeLabel: EdgeLabel) {
         val fromPayload = createVertexPayload(from)
         val toPayload = createVertexPayload(to)
         val vertexPayload = if (fromPayload.keys.first() == toPayload.keys.first()) mapOf(
@@ -129,7 +129,7 @@ class TigerGraphDriver private constructor(
     }
 
 
-    private fun createEdgePayload(from: PlumeVertex, to: PlumeVertex, edge: EdgeLabels): Map<String, Any> {
+    private fun createEdgePayload(from: PlumeVertex, to: PlumeVertex, edge: EdgeLabel): Map<String, Any> {
         val fromPayload = createVertexPayload(from)
         val toPayload = createVertexPayload(to)
         val fromLabel = fromPayload.keys.first()
@@ -179,7 +179,7 @@ class TigerGraphDriver private constructor(
     }
 
     override fun clearGraph() =
-            EnumSet.allOf(VertexLabels::class.java).forEach {
+            EnumSet.allOf(VertexLabel::class.java).forEach {
                 delete("graph/$GRAPH_NAME/delete_by_type/vertices/${it.name}_VERT")
             }
 
