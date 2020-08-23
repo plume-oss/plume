@@ -17,16 +17,17 @@ import java.lang.Thread.sleep
 import java.util.*
 
 
-class TigerGraphDriver private constructor(
-        hostname: String,
-        port: Int,
-        secure: Boolean,
-        private val authKey: String?
-) : IDriver {
+class TigerGraphDriver : IDriver {
 
     private val logger = LogManager.getLogger(TigerGraphDriver::class.java)
-    private val api: String = "http${if (secure) "s" else ""}://$hostname:$port"
     private val objectMapper = ObjectMapper()
+
+    var hostname: String = DEFAULT_HOSTNAME
+    var port: Int = DEFAULT_PORT
+    var secure: Boolean = false
+    var authKey: String? = null
+
+    private fun api() = "http${if (secure) "s" else ""}://$hostname:$port"
 
     override fun joinFileVertexTo(to: FileVertex, from: NamespaceBlockVertex) = upsertAndJoinVertices(from, to, EdgeLabel.AST)
 
@@ -193,14 +194,14 @@ class TigerGraphDriver private constructor(
         var tryCount = 0
         while (++tryCount < MAX_RETRY) {
             val response = khttp.get(
-                    url = "$api/$endpoint",
+                    url = "${api()}/$endpoint",
                     headers = headers()
             )
             logger.debug("Get ${response.url}")
             logger.debug("Response ${response.text}")
             when {
                 response.statusCode == 200 -> return response.jsonObject["results"] as JSONArray
-                tryCount >= MAX_RETRY -> throw IOException("Could not complete get request due to status code ${response.statusCode} at $api/$endpoint")
+                tryCount >= MAX_RETRY -> throw IOException("Could not complete get request due to status code ${response.statusCode} at ${api()}/$endpoint")
                 else -> sleep(500)
             }
         }
@@ -212,7 +213,7 @@ class TigerGraphDriver private constructor(
 
         while (++tryCount < MAX_RETRY) {
             val response = khttp.post(
-                    url = "$api/$endpoint",
+                    url = "${api()}/$endpoint",
                     headers = headers(),
                     data = objectMapper.writeValueAsString(payload)
             )
@@ -220,7 +221,7 @@ class TigerGraphDriver private constructor(
             logger.debug("Response ${response.text}")
             when {
                 response.statusCode == 200 -> return
-                tryCount >= MAX_RETRY -> throw IOException("Could not complete post request due to status code ${response.statusCode} at $api/$endpoint")
+                tryCount >= MAX_RETRY -> throw IOException("Could not complete post request due to status code ${response.statusCode} at ${api()}/$endpoint")
                 else -> sleep(500)
             }
         }
@@ -229,12 +230,12 @@ class TigerGraphDriver private constructor(
     private fun delete(endpoint: String) {
         var tryCount = 0
         while (++tryCount < MAX_RETRY) {
-            val response = khttp.delete(url = "$api/$endpoint", headers = headers())
+            val response = khttp.delete(url = "${api()}/$endpoint", headers = headers())
             logger.debug("Delete ${response.url}")
             logger.debug("Response ${response.text}")
             when {
                 response.statusCode == 200 -> return
-                tryCount >= MAX_RETRY -> throw IOException("Could not complete delete request due to status code ${response.statusCode} at $api/$endpoint")
+                tryCount >= MAX_RETRY -> throw IOException("Could not complete delete request due to status code ${response.statusCode} at ${api()}/$endpoint")
                 else -> sleep(500)
             }
         }
@@ -245,23 +246,5 @@ class TigerGraphDriver private constructor(
         private const val DEFAULT_PORT = 9000
         private const val GRAPH_NAME = "cpg"
         private const val MAX_RETRY = 5
-    }
-
-    data class Builder(
-            var hostname: String = DEFAULT_HOSTNAME,
-            var port: Int = DEFAULT_PORT,
-            var secure: Boolean = false,
-            var authKey: String?
-    ) : IDriverBuilder {
-
-        constructor() : this(DEFAULT_HOSTNAME, DEFAULT_PORT, false, null)
-
-        fun hostname(hostname: String) = apply { this.hostname = hostname }
-        fun port(port: Int) = apply { this.port = port }
-        fun secure(secure: Boolean) = apply { this.secure = secure }
-        fun authKey(authKey: String) = apply { this.authKey = authKey }
-
-        override fun build(): TigerGraphDriver = TigerGraphDriver(hostname, port, secure, authKey)
-
     }
 }

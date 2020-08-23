@@ -10,6 +10,9 @@ import za.ac.sun.plume.domain.mappers.VertexMapper.Companion.propertiesToMap
 import za.ac.sun.plume.domain.models.PlumeVertex
 import java.lang.IllegalArgumentException
 
+/**
+ * The driver used to connect to a remote JanusGraph instance.
+ */
 class JanusGraphDriver : GremlinDriver() {
     private val logger = LogManager.getLogger(JanusGraphDriver::class.java)
 

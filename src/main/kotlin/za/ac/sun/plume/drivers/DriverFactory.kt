@@ -1,11 +1,12 @@
 package za.ac.sun.plume.drivers
 
-class DriverFactory {
+object DriverFactory {
+    @JvmStatic
     fun makeDriver(driverType: GraphDatabase): IDriver {
         return when(driverType) {
             GraphDatabase.TINKER_GRAPH -> TinkerGraphDriver()
-            GraphDatabase.JANUS_GRAPH -> TODO()
-            GraphDatabase.TIGER_GRAPH -> TODO()
+            GraphDatabase.JANUS_GRAPH -> JanusGraphDriver()
+            GraphDatabase.TIGER_GRAPH -> TigerGraphDriver()
         }
     }
 }
