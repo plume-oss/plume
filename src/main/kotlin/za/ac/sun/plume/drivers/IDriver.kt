@@ -37,7 +37,7 @@ interface IDriver : AutoCloseable {
 
     /**
      * Creates an edge with the label from enum [EdgeLabel] between two [PlumeVertex] vertices in the graph database.
-     * If the given vertices are not already present in the database, they are created using [upsertVertex].
+     * If the given vertices are not already present in the database, they are created.
      *
      * @param fromV the source [PlumeVertex].
      * @param toV the target [PlumeVertex].

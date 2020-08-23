@@ -3,7 +3,7 @@ package za.ac.sun.plume.drivers
 class JanusGraphDriverIntTest : AbstractGremlinDriverTest() {
 
     override fun provideBuilder(): GremlinDriverBuilder {
-        return JanusGraphDriver.Builder("src/test/resources/conf/remote.properties")
+        return JanusGraphDriver.Builder("src/test/resources/conf/remote-graph.properties")
     }
 
     override fun provideHook(): GremlinDriver {

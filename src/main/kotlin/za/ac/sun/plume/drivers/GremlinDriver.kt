@@ -27,9 +27,13 @@ abstract class GremlinDriver : IDriver {
 
     protected lateinit var graph: Graph
     protected lateinit var g: GraphTraversalSource
-    protected var config: BaseConfiguration = BaseConfiguration()
+    val config: BaseConfiguration = BaseConfiguration()
     var connected = false
     var transactionOpen = false
+
+    init {
+        config.setProperty("gremlin.graph", "org.apache.tinkerpop.gremlin.tinkergraph.structure.TinkerGraph")
+    }
 
     /**
      * Connects to the graph database with the given configuration.
@@ -137,11 +141,19 @@ abstract class GremlinDriver : IDriver {
         return maybeEdge != null
     }
 
+    override fun addEdge(fromV: PlumeVertex, toV: PlumeVertex, edge: EdgeLabel) {
+        val source = if (findVertexTraversal(fromV).hasNext()) findVertexTraversal(fromV).next()
+        else createVertex(fromV)
+        val target = if (findVertexTraversal(toV).hasNext()) findVertexTraversal(toV).next()
+        else createVertex(toV)
+        createEdge(source, edge, target)
+    }
+
     override fun maxOrder(): Int {
         openTx()
         val result =
-        if (g.V().has("order").hasNext()) g.V().has("order").order().by("order", Order.desc).limit(1).values<Any>("order").next() as Int
-        else 0
+                if (g.V().has("order").hasNext()) g.V().has("order").order().by("order", Order.desc).limit(1).values<Any>("order").next() as Int
+                else 0
         closeTx()
         return result
     }
@@ -158,7 +170,7 @@ abstract class GremlinDriver : IDriver {
 
     /**
      * Given a [PlumeVertex], creates a [Vertex] and translates the object's field properties to key-value
-     * pairs on the [Vertex] object. This is then added to this hook's [Graph].
+     * pairs on the [Vertex] object. This is then added to this driver's [Graph].
      *
      * @param v the [PlumeVertex] to translate into a [Vertex].
      * @return the newly created [Vertex].
@@ -182,15 +194,11 @@ abstract class GremlinDriver : IDriver {
      * @param v2        the to [Vertex].
      * @return the newly created [Edge].
      */
-    private fun createTinkerGraphEdge(v1: Vertex, edgeLabel: EdgeLabel, v2: Vertex): Edge {
+    private fun createEdge(v1: Vertex, edgeLabel: EdgeLabel, v2: Vertex): Edge {
         return if (this is TinkerGraphDriver) {
             v1.addEdge(edgeLabel.name, v2, T.id, UUID.randomUUID())
         } else {
             g.V(v1.id()).addE(edgeLabel.name).to(g.V(v2.id())).next()
         }
-    }
-
-    init {
-        config.setProperty("gremlin.graph", "org.apache.tinkerpop.gremlin.tinkergraph.structure.TinkerGraph")
     }
 }
