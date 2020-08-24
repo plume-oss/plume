@@ -11,11 +11,11 @@ import za.ac.sun.plume.domain.models.PlumeVertex
 interface IDriver : AutoCloseable {
 
     /**
-     * Inserts a vertex in the graph database or updates it if the vertex is already present.
+     * Inserts a vertex in the graph database.
      *
-     * @param v the [PlumeVertex] to upsert.
+     * @param v the [PlumeVertex] to insert.
      */
-    fun upsertVertex(v: PlumeVertex)
+    fun addVertex(v: PlumeVertex)
 
     /**
      * Checks if the given [PlumeVertex] exists in the database.

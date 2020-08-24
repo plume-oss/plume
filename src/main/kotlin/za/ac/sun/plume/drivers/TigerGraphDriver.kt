@@ -21,77 +21,95 @@ class TigerGraphDriver : IDriver {
 
     private val logger = LogManager.getLogger(TigerGraphDriver::class.java)
     private val objectMapper = ObjectMapper()
+    private var api: String
 
+    /**
+     * The TigerGraph REST++ server hostname.
+     * @see DEFAULT_HOSTNAME
+     */
     var hostname: String = DEFAULT_HOSTNAME
+        private set
+
+    /**
+     * The TigerGraph REST++ server port number.
+     * @see DEFAULT_PORT
+     */
     var port: Int = DEFAULT_PORT
+        private set
+
+    /**
+     * The TigerGraph REST++ server security status. Used for determining the protocol used between HTTPS or HTTP.
+     */
     var secure: Boolean = false
+        private set
+
+    /**
+     * The authorization key used for TigerGraph servers with token authorization turned on. This is placed under
+     * the Authorization header when making requests.
+     */
     var authKey: String? = null
+        private set
 
-    private fun api() = "http${if (secure) "s" else ""}://$hostname:$port"
-
-    override fun joinFileVertexTo(to: FileVertex, from: NamespaceBlockVertex) = upsertAndJoinVertices(from, to, EdgeLabel.AST)
-
-    override fun joinFileVertexTo(from: FileVertex, to: MethodVertex) = upsertAndJoinVertices(from, to, EdgeLabel.AST)
-
-    override fun createAndAddToMethod(from: MethodVertex, to: MethodDescriptorVertex) = upsertAndJoinVertices(from, to, EdgeLabel.AST)
-
-    override fun createAndAddToMethod(from: MethodVertex, to: ModifierVertex) = upsertAndJoinVertices(from, to, EdgeLabel.AST)
-
-    override fun joinASTVerticesByOrder(blockFrom: Int, blockTo: Int, edgeLabel: EdgeLabel) {
-        val from = getVertexByASTOrder(blockFrom)
-        val to = getVertexByASTOrder(blockTo)
-        if (from != null && to != null) upsertAndJoinVertices(from, to, EdgeLabel.AST)
+    init {
+        api = "http://$hostname:$port/"
     }
 
-    override fun areASTVerticesConnected(orderFrom: Int, orderTo: Int, edgeLabel: EdgeLabel): Boolean = ((get("query/$GRAPH_NAME/areASTVerticesJoinedByEdge?blockFrom=$orderFrom&blockTo=$orderTo&edgeLabel=${edgeLabel.name}")).first() as JSONObject)["result"] as Boolean
+    /**
+     * Recreates the API variable based on saved configurations.
+     */
+    private fun setApi() = run { api = "http${if (secure) "s" else ""}://$hostname:$port/" }
 
-    override fun joinNamespaceBlocks(from: NamespaceBlockVertex, to: NamespaceBlockVertex) = upsertAndJoinVertices(from, to, EdgeLabel.AST)
+    /**
+     * Set the hostname for the TigerGraph REST++ server.
+     *
+     * @param value the hostname e.g. 127.0.0.1, www.tgserver.com, etc.
+     */
+    fun hostname(value: String): TigerGraphDriver = apply { hostname = value; setApi() }
 
-    override fun maxOrder() = (get("query/$GRAPH_NAME/maxOrder").first() as JSONObject)["@@maxAstOrder"] as Int
+    /**
+     * Set the port for the TigerGraph REST++ server.
+     *
+     * @param value the port number e.g. 9000
+     */
+    fun port(value: Int): TigerGraphDriver = apply { port = value; setApi() }
 
-    override fun updateASTVertexProperty(order: Int, key: String, value: String) {
-        val result = (get("query/$GRAPH_NAME/findVertexByAstOrder?astOrder=$order").first() as JSONObject)["result"] as JSONArray
-        if (result.length() > 0) {
-            val vertexMap = result.first() as JSONObject
-            val flatMap = flattenVertexResult(vertexMap)
-            // Update key-value pair and reconstruct as PlumeVertex
-            flatMap[key] = value
-            val vertex = VertexMapper.mapToVertex(flatMap)
-            // Upsert vertex
-            createVertex(vertex, vertexMap["v_id"] as String)
-        }
-    }
+    /**
+     * Sets the secure flag when building the API path.
+     *
+     * @param value set to true if using HTTPS and false if using HTTP.
+     */
+    fun secure(value: Boolean): TigerGraphDriver = apply { secure = value; setApi() }
 
-    override fun isASTVertex(blockOrder: Int): Boolean = ((get("query/$GRAPH_NAME/isASTVertex?astOrder=$blockOrder")).first() as JSONObject)["result"] as Boolean
+    /**
+     * Sets the authorization token used in requests.
+     *
+     * An example of where this is used is in
+     * [TigerGraph Cloud](https://docs-beta.tigergraph.com/cloud/tigergraph-cloud-faqs).
+     */
+    fun authKey(value: String): TigerGraphDriver = apply { authKey = value }
 
-    override fun createAndAssignToBlock(parentVertex: MethodVertex, newVertex: PlumeVertex) = upsertAndJoinVertices(parentVertex, newVertex, EdgeLabel.AST)
-
-    override fun createAndAssignToBlock(newVertex: PlumeVertex, blockOrder: Int) {
-        val from = getVertexByASTOrder(blockOrder) ?: return
-        upsertAndJoinVertices(from, newVertex, EdgeLabel.AST)
-    }
-
-    override fun createVertex(plumeVertex: PlumeVertex) {
+    override fun addVertex(v: PlumeVertex) {
         val payload = mutableMapOf<String, Any>(
-                "vertices" to createVertexPayload(plumeVertex)
+                "vertices" to createVertexPayload(v)
         )
         post("graph/$GRAPH_NAME", payload)
     }
 
-    private fun createVertex(plumeVertex: PlumeVertex, id: String) {
-        val payload = mutableMapOf<String, Any>(
-                "vertices" to createVertexPayload(plumeVertex, id)
-        )
-        post("graph/$GRAPH_NAME", payload)
+    override fun exists(v: PlumeVertex): Boolean {
+        TODO("Not yet implemented")
     }
 
-    private fun upsertAndJoinVertices(from: PlumeVertex, to: PlumeVertex, edgeLabel: EdgeLabel) {
-        val fromPayload = createVertexPayload(from)
-        val toPayload = createVertexPayload(to)
+    override fun exists(fromV: PlumeVertex, toV: PlumeVertex, edge: EdgeLabel): Boolean {
+        TODO("Not yet implemented")
+    }
+
+    override fun addEdge(fromV: PlumeVertex, toV: PlumeVertex, edge: EdgeLabel) {
+        val fromPayload = createVertexPayload(fromV)
+        val toPayload = createVertexPayload(toV)
         val vertexPayload = if (fromPayload.keys.first() == toPayload.keys.first()) mapOf(
                 fromPayload.keys.first() to mapOf(
-                        from.hashCode().toString() to (fromPayload.values.first() as Map<*, *>)[from.hashCode().toString()],
-                        to.hashCode().toString() to (toPayload.values.first() as Map<*, *>)[to.hashCode().toString()]
+                        fromV.hashCode().toString() to (fromPayload.values.first() as Map<*, *>)[fromV.hashCode().toString()],
+                        toV.hashCode().toString() to (toPayload.values.first() as Map<*, *>)[toV.hashCode().toString()]
                 ))
         else mapOf(
                 fromPayload.keys.first() to fromPayload.values.first(),
@@ -99,24 +117,18 @@ class TigerGraphDriver : IDriver {
         )
         val payload = mutableMapOf(
                 "vertices" to vertexPayload,
-                "edges" to createEdgePayload(from, to, edgeLabel)
+                "edges" to createEdgePayload(fromV, toV, edge)
         )
         post("graph/$GRAPH_NAME", payload)
     }
+
+    override fun maxOrder() = (get("query/$GRAPH_NAME/maxOrder").first() as JSONObject)["@@maxAstOrder"] as Int
 
     private fun createVertexPayload(plumeVertex: PlumeVertex): Map<String, Any> {
         val propertyMap = VertexMapper.propertiesToMap(plumeVertex)
         val vertexLabel = propertyMap.remove("label")
         return mapOf("${vertexLabel}_VERT" to mapOf<String, Any>(
                 plumeVertex.hashCode().toString() to extractAttributesFromMap(propertyMap)
-        ))
-    }
-
-    private fun createVertexPayload(plumeVertex: PlumeVertex, id: String): Map<String, Any> {
-        val propertyMap = VertexMapper.propertiesToMap(plumeVertex)
-        val vertexLabel = propertyMap.remove("label")
-        return mapOf("${vertexLabel}_VERT" to mapOf<String, Any>(
-                id to extractAttributesFromMap(propertyMap)
         ))
     }
 
@@ -128,7 +140,6 @@ class TigerGraphDriver : IDriver {
         }
         return attributes
     }
-
 
     private fun createEdgePayload(from: PlumeVertex, to: PlumeVertex, edge: EdgeLabel): Map<String, Any> {
         val fromPayload = createVertexPayload(from)
@@ -164,17 +175,6 @@ class TigerGraphDriver : IDriver {
         return map
     }
 
-    private fun getVertexByASTOrder(order: Int): PlumeVertex? {
-        val result = (get("query/$GRAPH_NAME/findVertexByAstOrder?astOrder=$order").first() as JSONObject)["result"] as JSONArray
-        if (result.length() > 0) {
-            val vertexMap = result.first() as JSONObject
-            val flatMap = flattenVertexResult(vertexMap)
-            // Update key-value pair and reconstruct as PlumeVertex
-            return VertexMapper.mapToVertex(flatMap)
-        }
-        return null
-    }
-
     override fun close() {
         /* No need to close anything - this hook uses REST */
     }
@@ -194,14 +194,14 @@ class TigerGraphDriver : IDriver {
         var tryCount = 0
         while (++tryCount < MAX_RETRY) {
             val response = khttp.get(
-                    url = "${api()}/$endpoint",
+                    url = "${api}/$endpoint",
                     headers = headers()
             )
             logger.debug("Get ${response.url}")
             logger.debug("Response ${response.text}")
             when {
                 response.statusCode == 200 -> return response.jsonObject["results"] as JSONArray
-                tryCount >= MAX_RETRY -> throw IOException("Could not complete get request due to status code ${response.statusCode} at ${api()}/$endpoint")
+                tryCount >= MAX_RETRY -> throw IOException("Could not complete get request due to status code ${response.statusCode} at $api/$endpoint")
                 else -> sleep(500)
             }
         }
@@ -213,7 +213,7 @@ class TigerGraphDriver : IDriver {
 
         while (++tryCount < MAX_RETRY) {
             val response = khttp.post(
-                    url = "${api()}/$endpoint",
+                    url = "$api/$endpoint",
                     headers = headers(),
                     data = objectMapper.writeValueAsString(payload)
             )
@@ -221,7 +221,7 @@ class TigerGraphDriver : IDriver {
             logger.debug("Response ${response.text}")
             when {
                 response.statusCode == 200 -> return
-                tryCount >= MAX_RETRY -> throw IOException("Could not complete post request due to status code ${response.statusCode} at ${api()}/$endpoint")
+                tryCount >= MAX_RETRY -> throw IOException("Could not complete post request due to status code ${response.statusCode} at $api/$endpoint")
                 else -> sleep(500)
             }
         }
@@ -230,21 +230,36 @@ class TigerGraphDriver : IDriver {
     private fun delete(endpoint: String) {
         var tryCount = 0
         while (++tryCount < MAX_RETRY) {
-            val response = khttp.delete(url = "${api()}/$endpoint", headers = headers())
+            val response = khttp.delete(url = "$api/$endpoint", headers = headers())
             logger.debug("Delete ${response.url}")
             logger.debug("Response ${response.text}")
             when {
                 response.statusCode == 200 -> return
-                tryCount >= MAX_RETRY -> throw IOException("Could not complete delete request due to status code ${response.statusCode} at ${api()}/$endpoint")
+                tryCount >= MAX_RETRY -> throw IOException("Could not complete delete request due to status code ${response.statusCode} at $api/$endpoint")
                 else -> sleep(500)
             }
         }
     }
 
     companion object {
+        /**
+         * Default hostname for a locally running TigerGraph server with a value of 127.0.0.1.
+         */
         private const val DEFAULT_HOSTNAME = "127.0.0.1"
+
+        /**
+         * Default port number for a locally running TigerGraph server with a value of 9000.
+         */
         private const val DEFAULT_PORT = 9000
+
+        /**
+         * Default graph name for a TigerGraph server a with value of cpg.
+         */
         private const val GRAPH_NAME = "cpg"
+
+        /**
+         * Default number of request retries for a TigerGraph server with a value of 5.
+         */
         private const val MAX_RETRY = 5
     }
 }

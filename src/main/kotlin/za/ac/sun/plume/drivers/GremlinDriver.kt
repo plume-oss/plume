@@ -99,7 +99,7 @@ abstract class GremlinDriver : IDriver {
         }
     }
 
-    override fun upsertVertex(v: PlumeVertex) {
+    override fun addVertex(v: PlumeVertex) {
         openTx()
         if (!exists(v)) createVertex(v) else updateVertex(v)
         closeTx()
