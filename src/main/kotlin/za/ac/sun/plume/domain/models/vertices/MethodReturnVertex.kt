@@ -11,9 +11,9 @@ import java.util.*
  */
 class MethodReturnVertex(
         val name: String,
-        code: String,
         val typeFullName: String,
         val evaluationStrategy: EvaluationStrategy,
+        code: String,
         lineNumber: Int,
         order: Int
 ) :  CFGVertex(lineNumber, code, order) {
