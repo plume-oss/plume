@@ -27,9 +27,23 @@ abstract class GremlinDriver : IDriver {
 
     protected lateinit var graph: Graph
     protected lateinit var g: GraphTraversalSource
+
+    /**
+     * The key-value configuration object used in creating the connection to the Gremlin server.
+     */
     val config: BaseConfiguration = BaseConfiguration()
+
+    /**
+     * Indicates whether the driver is connected to the graph database or not.
+     */
     var connected = false
+        private set
+
+    /**
+     * Indicates if there is currently a transaction open or not.
+     */
     var transactionOpen = false
+        private set
 
     init {
         config.setProperty("gremlin.graph", "org.apache.tinkerpop.gremlin.tinkergraph.structure.TinkerGraph")
