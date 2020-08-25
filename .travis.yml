@@ -24,6 +24,7 @@ script:
   - ./gradlew janusGraphIntTest
   - ./gradlew tigerGraphIntTest
   - ./gradlew jacocoTestReport
+  - ./gradlew :orchidDeploy -PorchidEnvironment=prod
 
 after_success:
   - bash <(curl -s https://codecov.io/bash)
