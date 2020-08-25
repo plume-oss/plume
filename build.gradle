@@ -109,7 +109,7 @@ orchid {
     theme = "Editorial"
     baseUrl = "https://plume-oss.github.io/plume-driver"
     version = "0.0.1"
-    githubToken = project.property("ORCHID_TOKEN")
+    githubToken = System.getenv("ORCHID_TOKEN")
 }
 
 check.dependsOn jacocoTestCoverageVerification
