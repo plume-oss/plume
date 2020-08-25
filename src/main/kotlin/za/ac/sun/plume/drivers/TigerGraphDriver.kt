@@ -96,7 +96,9 @@ class TigerGraphDriver : IDriver {
     }
 
     override fun exists(v: PlumeVertex): Boolean {
-        TODO("Not yet implemented")
+        val vLabel = v.javaClass.getDeclaredField("LABEL").get(v).toString()
+        println(get("graph/$GRAPH_NAME/vertices/$vLabel/${v.hashCode()}"))
+        return true
     }
 
     override fun exists(fromV: PlumeVertex, toV: PlumeVertex, edge: EdgeLabel): Boolean {

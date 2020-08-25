@@ -1,17 +1,6 @@
 package za.ac.sun.plume.drivers
 
-class JanusGraphDriverIntTest : AbstractGremlinDriverTest() {
+class JanusGraphDriverIntTest  {
 
-    override fun provideBuilder(): GremlinDriverBuilder {
-        return JanusGraphDriver.Builder("src/test/resources/conf/remote-graph.properties")
-    }
-
-    override fun provideHook(): GremlinDriver {
-        return try {
-            provideBuilder().build() as GremlinDriver
-        } catch (e: Exception) {
-            throw Exception("Unable to build JanusGraphHook!")
-        }
-    }
 
 }
