@@ -11,20 +11,12 @@ class TestDomainResources {
         const val STRING_2 = "TEST2"
         const val INT_1 = 0
         const val INT_2 = 1
-        const val INT_3 = 2
-        const val INT_4 = 3
         val DISPATCH_1 = DispatchType.DYNAMIC_DISPATCH
         val DISPATCH_2 = DispatchType.STATIC_DISPATCH
         val EVAL_1 = EvaluationStrategy.BY_REFERENCE
         val EVAL_2 = EvaluationStrategy.BY_SHARING
         val MOD_1 = ModifierType.ABSTRACT
         val MOD_2 = ModifierType.CONSTRUCTOR
-        const val ROOT_METHOD = "root"
-        const val FIRST_BLOCK = "firstBlock"
-        const val TEST_ID = "test"
-        const val ROOT_PACKAGE = "za"
-        const val SECOND_PACKAGE = "ac"
-        const val THIRD_PACKAGE = "sun"
 
         val vertices = listOf(
                 ArrayInitializerVertex(INT_1),

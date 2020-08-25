@@ -183,7 +183,7 @@ abstract class GremlinDriver : IDriver {
         this.g = g
     }
 
-    override fun clearGraph() {
+    override fun clearGraph() = apply {
         if (!transactionOpen) openTx()
         g.V().drop().iterate()
         if (transactionOpen) closeTx()

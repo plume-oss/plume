@@ -54,7 +54,9 @@ interface IDriver : AutoCloseable {
 
     /**
      * Clears the graph of all vertices and edges.
+     *
+     * @return itself as so to be chained in method calls.
      */
-    fun clearGraph()
+    fun clearGraph(): IDriver
 
 }

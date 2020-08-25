@@ -38,15 +38,11 @@ class TinkerGraphDriverTest {
 
     @BeforeEach
     fun setUp() {
-        driver = DriverFactory(GraphDatabase.TINKER_GRAPH) as TinkerGraphDriver
-        driver.connect()
+        driver = (DriverFactory(GraphDatabase.TINKER_GRAPH) as TinkerGraphDriver).apply { connect() }
     }
 
     @AfterEach
-    fun tearDown() {
-        driver.clearGraph()
-        driver.close()
-    }
+    fun tearDown() = driver.clearGraph().close()
 
     @Nested
     @DisplayName("Test driver vertex find and exist methods")

@@ -183,10 +183,11 @@ class TigerGraphDriver : IDriver {
         /* No need to close anything - this hook uses REST */
     }
 
-    override fun clearGraph() =
-            EnumSet.allOf(VertexLabel::class.java).forEach {
-                delete("graph/$GRAPH_NAME/delete_by_type/vertices/${it.name}_VERT")
-            }
+    override fun clearGraph() = apply {
+        EnumSet.allOf(VertexLabel::class.java).forEach {
+            delete("graph/$GRAPH_NAME/delete_by_type/vertices/${it.name}_VERT")
+        }
+    }
 
     private fun headers(): Map<String, String> = if (authKey == null) {
         mapOf("Content-Type" to "application/json")

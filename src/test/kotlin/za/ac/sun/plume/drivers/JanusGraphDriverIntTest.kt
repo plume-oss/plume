@@ -8,7 +8,7 @@ import za.ac.sun.plume.domain.models.vertices.BindingVertex
 import za.ac.sun.plume.domain.models.vertices.MetaDataVertex
 import za.ac.sun.plume.domain.models.vertices.TypeVertex
 
-class JanusGraphDriverIntTest  {
+class JanusGraphDriverIntTest {
 
     companion object {
         lateinit var driver: JanusGraphDriver
@@ -16,16 +16,13 @@ class JanusGraphDriverIntTest  {
 
     @BeforeEach
     fun setUp() {
-        driver = DriverFactory(GraphDatabase.JANUS_GRAPH) as JanusGraphDriver
-        driver.remoteConfig("src/test/resources/conf/remote-graph.properties")
-        driver.connect()
+        driver = (DriverFactory(GraphDatabase.JANUS_GRAPH) as JanusGraphDriver).apply {
+            remoteConfig("src/test/resources/conf/remote-graph.properties").connect()
+        }
     }
 
     @AfterEach
-    fun tearDown() {
-        driver.clearGraph()
-        driver.close()
-    }
+    fun tearDown() = driver.clearGraph().close()
 
     @Nested
     @DisplayName("Test driver vertex find and exist methods")
