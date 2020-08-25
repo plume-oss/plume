@@ -29,7 +29,7 @@ CREATE VERTEX TYPE_VERT (PRIMARY_ID id INT, name STRING, fullName STRING, typeDe
 CREATE VERTEX UNKNOWN_VERT (PRIMARY_ID id INT, code STRING, typeFullName STRING, astOrder INT, argumentIndex INT, lineNumber INT)
 ### Edges
 # Traits
-CREATE DIRECTED EDGE ARRAY_INITIALIZER_VERT_TRAIT (FROM FILE_VERT, TO TRAIT)
+CREATE DIRECTED EDGE ARRAY_INITIALIZER_TRAIT (FROM FILE_VERT, TO TRAIT)
 CREATE DIRECTED EDGE BLOCK_TRAIT (FROM BLOCK_VERT, TO TRAIT)
 CREATE DIRECTED EDGE CALL_TRAIT (FROM CALL_VERT, TO TRAIT)
 CREATE DIRECTED EDGE CONTROL_STRUCTURE_TRAIT (FROM CONTROL_STRUCTURE_VERT, TO TRAIT)
@@ -52,6 +52,7 @@ CREATE DIRECTED EDGE TYPE_DECL_TRAIT (FROM TYPE_DECL_VERT, TO TRAIT)
 CREATE DIRECTED EDGE TYPE_PARAMETER_TRAIT (FROM TYPE_PARAMETER_VERT, TO TRAIT)
 CREATE DIRECTED EDGE UNKNOWN_TRAIT (FROM UNKNOWN_VERT, TO TRAIT)
 # File
+CREATE DIRECTED EDGE FILE_NAMESPACE_BLOCK (FROM FILE_VERT, TO NAMESPACE_BLOCK_VERT, name STRING)
 CREATE DIRECTED EDGE FILE_METHOD (FROM FILE_VERT, TO METHOD_VERT, name STRING) 
 CREATE DIRECTED EDGE FILE_UNKNOWN (FROM FILE_VERT, TO UNKNOWN_VERT, name STRING)
 # Method
@@ -209,35 +210,13 @@ CREATE DIRECTED EDGE UNKNOWN_UNKNOWN (FROM UNKNOWN_VERT, TO UNKNOWN_VERT, name S
 
 CREATE GRAPH cpg (*)
 
-CREATE QUERY findVertexByAstOrder(INT astOrder) FOR GRAPH cpg RETURNS (Set<VERTEX>) {
-  start = {ANY};
-  result = SELECT s
-           FROM start:s
-           WHERE s.astOrder == astOrder;
-  PRINT result;
-  RETURN result;
-}
-
-CREATE QUERY isASTVertex(INT astOrder) FOR GRAPH cpg {
-  BOOL result;
-  start = {ANY};
-  temp = SELECT s
-         FROM start:s
-         WHERE s.astOrder == astOrder;
-  IF temp.size() > 0 THEN result = TRUE; ELSE result = FALSE; END;
-  PRINT result;
-}
-
-CREATE QUERY areASTVerticesJoinedByEdge(INT blockFrom, INT blockTo, STRING edgeLabel) FOR GRAPH cpg {
+CREATE QUERY areVerticesJoinedByEdge(VERTEX vFrom, VERTEX vTo, STRING edgeLabel) FOR GRAPH cpg {
   bool result;
   setFrom = {ANY};
   temp = SELECT tgt
           FROM setFrom:src -(:e)- :tgt
-          WHERE ((src.astOrder == blockFrom
-            AND tgt.astOrder == blockTo)
-            OR
-            (src.astOrder == blockTo
-            AND tgt.astOrder == blockFrom))
+          WHERE src == vFrom
+            AND tgt == vTo
             AND e.name == edgeLabel;
   result = (temp.size() > 0);
   PRINT result;

@@ -6,6 +6,7 @@ import org.json.JSONArray
 import org.json.JSONObject
 import za.ac.sun.plume.domain.enums.EdgeLabel
 import za.ac.sun.plume.domain.enums.VertexLabel
+import za.ac.sun.plume.domain.exceptions.PlumeTransactionException
 import za.ac.sun.plume.domain.mappers.VertexMapper
 import za.ac.sun.plume.domain.models.PlumeVertex
 import java.io.IOException
@@ -49,13 +50,13 @@ class TigerGraphDriver : IDriver {
         private set
 
     init {
-        api = "http://$hostname:$port/"
+        api = "http://$hostname:$port"
     }
 
     /**
      * Recreates the API variable based on saved configurations.
      */
-    private fun setApi() = run { api = "http${if (secure) "s" else ""}://$hostname:$port/" }
+    private fun setApi() = run { api = "http${if (secure) "s" else ""}://$hostname:$port" }
 
     /**
      * Set the hostname for the TigerGraph REST++ server.
@@ -95,12 +96,26 @@ class TigerGraphDriver : IDriver {
 
     override fun exists(v: PlumeVertex): Boolean {
         val vLabel = v.javaClass.getDeclaredField("LABEL").get(v).toString()
-        println(get("graph/$GRAPH_NAME/vertices/$vLabel/${v.hashCode()}"))
-        return true
+        return try {
+            get("graph/$GRAPH_NAME/vertices/${vLabel}_VERT/${v.hashCode()}")
+            true
+        } catch (e: PlumeTransactionException) {
+            false
+        }
     }
 
     override fun exists(fromV: PlumeVertex, toV: PlumeVertex, edge: EdgeLabel): Boolean {
-        TODO("Not yet implemented")
+        val vLabelFrom = fromV.javaClass.getDeclaredField("LABEL").get(fromV).toString()
+        val vLabelTo = toV.javaClass.getDeclaredField("LABEL").get(toV).toString()
+        return try {
+            val response = get("query/$GRAPH_NAME/areVerticesJoinedByEdge?" +
+                    "vFrom=${fromV.hashCode()}&vFrom.type=${vLabelFrom}_VERT&" +
+                    "vTo=${toV.hashCode()}&vTo.type=${vLabelTo}_VERT&" +
+                    "edgeLabel=${edge.name}").firstOrNull() as JSONObject
+            return response["result"] as Boolean
+        } catch (e: PlumeTransactionException) {
+            false
+        }
     }
 
     override fun addEdge(fromV: PlumeVertex, toV: PlumeVertex, edge: EdgeLabel) {
@@ -162,7 +177,7 @@ class TigerGraphDriver : IDriver {
         )
     }
 
-    fun flattenVertexResult(o: JSONObject): MutableMap<String, Any> {
+    private fun flattenVertexResult(o: JSONObject): MutableMap<String, Any> {
         val map = mutableMapOf<String, Any>()
         val attributes = o["attributes"] as JSONObject
         map["label"] = (o["v_type"] as String).removeSuffix("_VERT")
@@ -191,6 +206,15 @@ class TigerGraphDriver : IDriver {
         mapOf("Content-Type" to "application/json", "Authorization" to "Bearer $authKey")
     }
 
+    /**
+     * Sends a GET request to the configured REST++ server.
+     *
+     * @param endpoint The endpoint to send the request to. This is appended after [api].
+     * @return the value for the "results" key of the REST++ response as a [JSONArray]
+     * @throws PlumeTransactionException if the REST++ response returned a query related error.
+     * @throws IOException if the request could not be sent based on an I/O communication failure.
+     */
+    @Throws(PlumeTransactionException::class)
     private fun get(endpoint: String): JSONArray {
         var tryCount = 0
         while (++tryCount < MAX_RETRY) {
@@ -201,7 +225,8 @@ class TigerGraphDriver : IDriver {
             logger.debug("Get ${response.url}")
             logger.debug("Response ${response.text}")
             when {
-                response.statusCode == 200 -> return response.jsonObject["results"] as JSONArray
+                response.statusCode == 200 -> if (response.jsonObject["error"] as Boolean) throw PlumeTransactionException(response.jsonObject["message"] as String)
+                else return response.jsonObject["results"] as JSONArray
                 tryCount >= MAX_RETRY -> throw IOException("Could not complete get request due to status code ${response.statusCode} at $api/$endpoint")
                 else -> sleep(500)
             }
@@ -209,9 +234,17 @@ class TigerGraphDriver : IDriver {
         return JSONArray()
     }
 
+    /**
+     * Sends a POST request to the configured REST++ server.
+     *
+     * @param endpoint The endpoint to send the request to. This is appended after [api].
+     * @param payload the JSON payload to send with the POST request.
+     * @throws PlumeTransactionException if the REST++ response returned a query related error.
+     * @throws IOException if the request could not be sent based on an I/O communication failure.
+     */
+    @Throws(PlumeTransactionException::class)
     private fun post(endpoint: String, payload: Map<String, Any>) {
         var tryCount = 0
-
         while (++tryCount < MAX_RETRY) {
             val response = khttp.post(
                     url = "$api/$endpoint",
@@ -221,13 +254,21 @@ class TigerGraphDriver : IDriver {
             logger.debug("Post ${response.url} ${response.request.data}")
             logger.debug("Response ${response.text}")
             when {
-                response.statusCode == 200 -> return
+                response.statusCode == 200 -> if (response.jsonObject["error"] as Boolean) throw PlumeTransactionException(response.jsonObject["message"] as String)
+                else return
                 tryCount >= MAX_RETRY -> throw IOException("Could not complete post request due to status code ${response.statusCode} at $api/$endpoint")
                 else -> sleep(500)
             }
         }
     }
 
+    /**
+     * Sends a DELETE request to the configured REST++ server.
+     *
+     * @param endpoint The endpoint to send the request to. This is appended after [api].
+     * @throws PlumeTransactionException if the REST++ response returned a query related error.
+     * @throws IOException if the request could not be sent based on an I/O communication failure.
+     */
     private fun delete(endpoint: String) {
         var tryCount = 0
         while (++tryCount < MAX_RETRY) {
