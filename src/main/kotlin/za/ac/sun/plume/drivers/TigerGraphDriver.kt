@@ -8,10 +8,6 @@ import za.ac.sun.plume.domain.enums.EdgeLabel
 import za.ac.sun.plume.domain.enums.VertexLabel
 import za.ac.sun.plume.domain.mappers.VertexMapper
 import za.ac.sun.plume.domain.models.PlumeVertex
-import za.ac.sun.plume.domain.models.vertices.FileVertex
-import za.ac.sun.plume.domain.models.vertices.MethodVertex
-import za.ac.sun.plume.domain.models.vertices.ModifierVertex
-import za.ac.sun.plume.domain.models.vertices.NamespaceBlockVertex
 import java.io.IOException
 import java.lang.Thread.sleep
 import java.util.*
@@ -129,7 +125,7 @@ class TigerGraphDriver : IDriver {
     override fun maxOrder() = (get("query/$GRAPH_NAME/maxOrder").first() as JSONObject)["@@maxAstOrder"] as Int
 
     private fun createVertexPayload(plumeVertex: PlumeVertex): Map<String, Any> {
-        val propertyMap = VertexMapper.propertiesToMap(plumeVertex)
+        val propertyMap = VertexMapper.vertexToMap(plumeVertex)
         val vertexLabel = propertyMap.remove("label")
         return mapOf("${vertexLabel}_VERT" to mapOf<String, Any>(
                 plumeVertex.hashCode().toString() to extractAttributesFromMap(propertyMap)

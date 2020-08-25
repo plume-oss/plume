@@ -6,7 +6,7 @@ import org.apache.tinkerpop.gremlin.structure.Graph
 import org.apache.tinkerpop.gremlin.structure.Transaction
 import org.apache.tinkerpop.gremlin.structure.Vertex
 import za.ac.sun.plume.domain.exceptions.PlumeTransactionException
-import za.ac.sun.plume.domain.mappers.VertexMapper.Companion.propertiesToMap
+import za.ac.sun.plume.domain.mappers.VertexMapper.Companion.vertexToMap
 import za.ac.sun.plume.domain.models.PlumeVertex
 import java.lang.IllegalArgumentException
 
@@ -120,7 +120,7 @@ class JanusGraphDriver : GremlinDriver() {
      * @return the newly created [Vertex].
      */
     override fun createVertex(v: PlumeVertex): Vertex {
-        val propertyMap = propertiesToMap(v)
+        val propertyMap = vertexToMap(v)
         // Get the implementing class label parameter
         val label = propertyMap.remove("label") as String?
         // Get the implementing classes fields and values

@@ -13,7 +13,7 @@ class MapperTest {
     @Test
     fun propertiesToMapTest() {
         vertices.forEach { v ->
-            val map = VertexMapper.propertiesToMap(v)
+            val map = VertexMapper.vertexToMap(v)
             map.remove("label")
             map.forEach { entry ->
                 val property = v::class.memberProperties.find { it.name == entry.key }
@@ -29,7 +29,7 @@ class MapperTest {
     @Test
     fun mapToVertexTest() {
         vertices.forEach { v ->
-            val map = VertexMapper.propertiesToMap(v)
+            val map = VertexMapper.vertexToMap(v)
             assertEquals(v, VertexMapper.mapToVertex(map))
         }
     }

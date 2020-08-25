@@ -9,22 +9,36 @@ import za.ac.sun.plume.domain.models.vertices.*
 import kotlin.reflect.KVisibility
 import kotlin.reflect.full.memberProperties
 
+/**
+ * Responsible for marshalling and unmarshalling vertex properties to and from [PlumeVertex] objects to [Map] objects.
+ */
 class VertexMapper {
-
     companion object {
+        /**
+         * Converts a [PlumeVertex]'s properties to a key-value [Map].
+         *
+         * @param v The vertex to serialize.
+         * @return a [MutableMap] of the vertex's
+         */
         @JvmStatic
-        fun propertiesToMap(objectVertex: PlumeVertex): MutableMap<String, Any> {
+        fun vertexToMap(v: PlumeVertex): MutableMap<String, Any> {
             val properties = emptyMap<String, Any>().toMutableMap()
-            properties["label"] = objectVertex.javaClass.getDeclaredField("LABEL").get(objectVertex).toString()
-            objectVertex::class.memberProperties.forEach {
+            properties["label"] = v.javaClass.getDeclaredField("LABEL").get(v).toString()
+            v::class.memberProperties.forEach {
                 if (it.visibility == KVisibility.PUBLIC) {
-                    if (it.getter.call(objectVertex) is Enum<*>) properties[it.name] = it.getter.call(objectVertex).toString()
-                    else properties[it.name] = it.getter.call(objectVertex)!!
+                    if (it.getter.call(v) is Enum<*>) properties[it.name] = it.getter.call(v).toString()
+                    else properties[it.name] = it.getter.call(v)!!
                 }
             }
             return properties
         }
 
+        /**
+         * Converts a [Map] containing vertex properties to its respective [PlumeVertex] object.
+         *
+         * @param map The [Map] to deserialize.
+         * @return a [PlumeVertex] represented by the information in the given map.
+         */
         @JvmStatic
         fun mapToVertex(map: Map<String, Any>): PlumeVertex {
             when (valueOf(map["label"] as String)) {
@@ -186,5 +200,4 @@ class VertexMapper {
             }
         }
     }
-
 }

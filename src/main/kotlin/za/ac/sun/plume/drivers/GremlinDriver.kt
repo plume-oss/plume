@@ -12,7 +12,7 @@ import org.apache.tinkerpop.gremlin.structure.T
 import org.apache.tinkerpop.gremlin.structure.Vertex
 import org.apache.tinkerpop.gremlin.tinkergraph.structure.TinkerGraph
 import za.ac.sun.plume.domain.enums.EdgeLabel
-import za.ac.sun.plume.domain.mappers.VertexMapper.Companion.propertiesToMap
+import za.ac.sun.plume.domain.mappers.VertexMapper.Companion.vertexToMap
 import za.ac.sun.plume.domain.models.ASTVertex
 import za.ac.sun.plume.domain.models.PlumeVertex
 import za.ac.sun.plume.domain.models.vertices.*
@@ -199,7 +199,7 @@ abstract class GremlinDriver : IDriver {
     protected open fun createVertex(v: PlumeVertex): Vertex =
             try {
                 if (!transactionOpen) openTx()
-                val propertyMap = propertiesToMap(v)
+                val propertyMap = vertexToMap(v)
                 // Get the implementing class label parameter
                 val label = propertyMap.remove("label") as String?
                 // Get the implementing classes fields and values
