@@ -17,7 +17,7 @@ class JumpTargetVertex(
 ) : CFGVertex(lineNumber, code, order) {
     companion object {
         @kotlin.jvm.JvmField
-        val LABEL = VertexLabel.TYPE_PARAMETER
+        val LABEL = VertexLabel.JUMP_TARGET
         @kotlin.jvm.JvmField
         val TRAITS: EnumSet<VertexBaseTrait> = EnumSet.of(VertexBaseTrait.AST_NODE)
     }
