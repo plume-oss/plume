@@ -27,8 +27,4 @@ abstract class DeclarationVertex(val name: String, order: Int) : ASTVertex(order
         result = 31 * result + name.hashCode()
         return result
     }
-
-    override fun toString(): String {
-        return "DeclarationVertex(name='$name')"
-    }
 }
