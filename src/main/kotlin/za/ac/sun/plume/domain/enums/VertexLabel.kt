@@ -26,6 +26,7 @@ enum class VertexLabel {
     BLOCK,
     ARRAY_INITIALIZER,
     METHOD_REF,
+    JUMP_TARGET,
     CONTROL_STRUCTURE,
     UNKNOWN,
 }

@@ -43,6 +43,7 @@ class VertexMapper {
                 )
                 METHOD -> return MethodVertex(
                         name = map["name"] as String,
+                        code = map["code"] as String,
                         fullName = map["fullName"] as String,
                         signature = map["signature"] as String,
                         lineNumber = map["lineNumber"] as Int,
@@ -58,6 +59,7 @@ class VertexMapper {
                 )
                 METHOD_RETURN -> return MethodReturnVertex(
                         name = map["name"] as String,
+                        code = map["code"] as String,
                         evaluationStrategy = EvaluationStrategy.valueOf(map["evaluationStrategy"] as String),
                         typeFullName = map["typeFullName"] as String,
                         lineNumber = map["lineNumber"] as Int,
@@ -74,6 +76,7 @@ class VertexMapper {
                 )
                 TYPE_DECL -> return TypeDeclVertex(
                         name = map["name"] as String,
+                        order = map["order"] as Int,
                         fullName = map["fullName"] as String,
                         typeDeclFullName = map["typeDeclFullName"] as String
                 )
@@ -97,6 +100,7 @@ class VertexMapper {
                 )
                 LITERAL -> return LiteralVertex(
                         name = map["name"] as String,
+                        code = map["code"] as String,
                         typeFullName = map["typeFullName"] as String,
                         lineNumber = map["lineNumber"] as Int,
                         order = map["order"] as Int,
@@ -144,6 +148,7 @@ class VertexMapper {
                 )
                 BLOCK -> return BlockVertex(
                         name = map["name"] as String,
+                        code = map["code"] as String,
                         typeFullName = map["typeFullName"] as String,
                         order = map["order"] as Int,
                         argumentIndex = map["argumentIndex"] as Int,
@@ -157,8 +162,16 @@ class VertexMapper {
                         methodInstFullName = map["methodInstFullName"] as String,
                         lineNumber = map["lineNumber"] as Int
                 )
+                JUMP_TARGET -> return JumpTargetVertex(
+                        name = map["name"] as String,
+                        code = map["code"] as String,
+                        order = map["order"] as Int,
+                        argumentIndex = map["argumentIndex"] as Int,
+                        lineNumber = map["lineNumber"] as Int
+                )
                 CONTROL_STRUCTURE -> return ControlStructureVertex(
                         name = map["name"] as String,
+                        code = map["code"] as String,
                         order = map["order"] as Int,
                         argumentIndex = map["argumentIndex"] as Int,
                         lineNumber = map["lineNumber"] as Int
