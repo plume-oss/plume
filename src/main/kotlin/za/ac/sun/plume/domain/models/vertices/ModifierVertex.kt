@@ -36,9 +36,6 @@ class ModifierVertex(val name: ModifierType, order: Int) : ASTVertex(order) {
     }
 
     override fun toString(): String {
-        return "ModifierVertex{" +
-                "name=" + name +
-                ", order=" + order +
-                '}'
+        return "ModifierVertex(name=$name, order=$order)"
     }
 }

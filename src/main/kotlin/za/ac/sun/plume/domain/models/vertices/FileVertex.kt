@@ -35,9 +35,6 @@ class FileVertex(val name: String, order: Int) : ASTVertex(order) {
     }
 
     override fun toString(): String {
-        return "FileVertex{" +
-                "name='" + name + '\'' +
-                ", order=" + order +
-                '}'
+        return "FileVertex(name='$name', order=$order)"
     }
 }

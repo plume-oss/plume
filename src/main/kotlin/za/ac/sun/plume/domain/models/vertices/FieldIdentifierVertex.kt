@@ -43,7 +43,7 @@ class FieldIdentifierVertex(
     }
 
     override fun toString(): String {
-        return "FieldIdentifierVertex(canonicalName='$canonicalName', order='$order')"
+        return "FieldIdentifierVertex(canonicalName='$canonicalName', order=$order)"
     }
 
 }

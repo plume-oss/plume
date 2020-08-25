@@ -17,7 +17,7 @@ class ArrayInitializerVertex(order: Int) : ASTVertex(order) {
     }
 
     override fun toString(): String {
-        return "ArrayInitializerVertex{order=$order}"
+        return "ArrayInitializerVertex(order=$order)"
     }
 
     override fun equals(other: Any?): Boolean {

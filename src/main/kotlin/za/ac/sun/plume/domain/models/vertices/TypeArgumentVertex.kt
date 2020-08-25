@@ -24,6 +24,6 @@ class TypeArgumentVertex(order: Int) : ASTVertex(order) {
     }
 
     override fun toString(): String {
-        return "TypeArgumentVertex()"
+        return "TypeArgumentVertex(order=$order)"
     }
 }

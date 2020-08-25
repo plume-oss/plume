@@ -17,10 +17,7 @@ class MetaDataVertex(val language: String, val version: String) : PlumeVertex {
     }
 
     override fun toString(): String {
-        return "MetaDataVertex{" +
-                "language='" + language + '\'' +
-                ", version='" + version + '\'' +
-                '}'
+        return "MetaDataVertex(language='$language', version='$version')"
     }
 
     override fun equals(other: Any?): Boolean {

@@ -17,10 +17,7 @@ class BindingVertex(val name: String, val signature: String) : PlumeVertex {
     }
 
     override fun toString(): String {
-        return "BindingVertex{" +
-                "name='" + name + '\'' +
-                ", signature='" + signature + '\'' +
-                '}'
+        return "BindingVertex(name='$name', signature='$signature')"
     }
 
     override fun equals(other: Any?): Boolean {

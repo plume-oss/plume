@@ -39,6 +39,6 @@ class UnknownVertex(
     }
 
     override fun toString(): String {
-        return "UnknownVertex(typeFullName='$typeFullName')"
+        return "UnknownVertex(order=$order, typeFullName='$typeFullName')"
     }
 }

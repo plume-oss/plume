@@ -33,6 +33,6 @@ class TypeParameterVertex(val name: String, order: Int) : ASTVertex(order) {
     }
 
     override fun toString(): String {
-        return "TypeParameterVertex(name='$name')"
+        return "TypeParameterVertex(name='$name', order=$order)"
     }
 }

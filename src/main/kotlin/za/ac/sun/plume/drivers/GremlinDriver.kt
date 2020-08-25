@@ -37,7 +37,7 @@ abstract class GremlinDriver : IDriver {
      * Indicates whether the driver is connected to the graph database or not.
      */
     var connected = false
-        private set
+        protected set
 
     /**
      * Indicates if there is currently a transaction open or not.

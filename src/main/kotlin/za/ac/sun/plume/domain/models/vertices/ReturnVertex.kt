@@ -29,6 +29,6 @@ class ReturnVertex(
     }
 
     override fun toString(): String {
-        return "ReturnVertex()"
+        return "ReturnVertex(lineNumber=$lineNumber, order=$order, argumentIndex=$argumentIndex, code='$code')"
     }
 }

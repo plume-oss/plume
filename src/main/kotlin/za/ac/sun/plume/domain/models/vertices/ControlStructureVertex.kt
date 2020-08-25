@@ -39,7 +39,7 @@ class ControlStructureVertex(
     }
 
     override fun toString(): String {
-        return "ControlStructureVertex(name='$name', order='$order')"
+        return "ControlStructureVertex(name='$name', order=$order)"
     }
 
 }

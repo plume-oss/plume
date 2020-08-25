@@ -2,7 +2,7 @@ package za.ac.sun.plume.drivers
 
 object DriverFactory {
     @JvmStatic
-    fun makeDriver(driverType: GraphDatabase): IDriver {
+    operator fun invoke(driverType: GraphDatabase): IDriver {
         return when(driverType) {
             GraphDatabase.TINKER_GRAPH -> TinkerGraphDriver()
             GraphDatabase.JANUS_GRAPH -> JanusGraphDriver()
