@@ -26,7 +26,7 @@ interface IDriver : AutoCloseable {
     fun exists(v: PlumeVertex): Boolean
 
     /**
-     * Checks if an edge of the given label exists between two [PlumeVertex] vertices.
+     * Checks if there exists a directed edge of the given label between two [PlumeVertex] vertices.
      *
      * @param fromV the source [PlumeVertex].
      * @param toV the target [PlumeVertex].

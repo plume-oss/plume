@@ -16,7 +16,9 @@ import java.io.IOException
 import java.lang.Thread.sleep
 import java.util.*
 
-
+/**
+ * The driver used to connect to a remote TigerGraph instance.
+ */
 class TigerGraphDriver : IDriver {
 
     private val logger = LogManager.getLogger(TigerGraphDriver::class.java)

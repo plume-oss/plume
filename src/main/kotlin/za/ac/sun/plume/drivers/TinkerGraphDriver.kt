@@ -3,6 +3,9 @@ package za.ac.sun.plume.drivers
 import org.apache.commons.configuration.BaseConfiguration
 import java.io.File
 
+/**
+ * The driver used to connect to an in-memory TinkerGraph instance.
+ */
 class TinkerGraphDriver : GremlinDriver() {
 
     /**

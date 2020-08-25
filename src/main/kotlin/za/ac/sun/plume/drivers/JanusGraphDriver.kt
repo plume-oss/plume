@@ -25,6 +25,8 @@ class JanusGraphDriver : GremlinDriver() {
         /**
          * The configuration key to set the remote-graph.properties path.
          * See [JanusGraph Documentation](https://docs.janusgraph.org/connecting/java/) for what to set the value to.
+         *
+         * @see remoteConfig
          */
         const val REMOTE_CONFIG = "remote.config"
     }
@@ -33,6 +35,7 @@ class JanusGraphDriver : GremlinDriver() {
      * Connects to the graph database with the given configuration. Set [REMOTE_CONFIG] to the path of the
      * remote-graph.properties configuration file. See [JanusGraph Documentation](https://docs.janusgraph.org/connecting/java/).
      *
+     * @see remoteConfig
      * @throws IllegalArgumentException if the graph database is already connected to or if the remote config path is
      * not set.
      */
@@ -43,6 +46,14 @@ class JanusGraphDriver : GremlinDriver() {
         connected = true
         supportsTransactions = graph.features().graph().supportsTransactions()
     }
+
+    /**
+     * Sets the path of the remote-graph.properties configuration file.
+     * See [JanusGraph Documentation](https://docs.janusgraph.org/connecting/java/).
+     *
+     * @param remoteConfigPath the path to remote-graph.properties.
+     */
+    fun remoteConfig(remoteConfigPath: String) = apply { config.setProperty(REMOTE_CONFIG, remoteConfigPath) }
 
     /**
      * Starts a new traversal and opens a transaction if the database supports transactions.

@@ -54,7 +54,7 @@ abstract class GremlinDriver : IDriver {
      *
      * @throws IllegalArgumentException if the graph database is already connected to.
      */
-    protected open fun connect() {
+    open fun connect() {
         require(!connected) { "Please close the graph before trying to make another connection." }
         graph = TinkerGraph.open(config)
         connected = true
@@ -67,6 +67,7 @@ abstract class GremlinDriver : IDriver {
      */
     protected open fun openTx() {
         require(!transactionOpen) { "Please close the current transaction before creating a new one." }
+        transactionOpen = true
         g = graph.traversal()
     }
 
@@ -81,6 +82,8 @@ abstract class GremlinDriver : IDriver {
             g.close()
         } catch (e: Exception) {
             logger.warn("Unable to close existing transaction! Object will be orphaned and a new traversal will continue.")
+        } finally {
+            transactionOpen = false
         }
     }
 
@@ -100,12 +103,16 @@ abstract class GremlinDriver : IDriver {
     }
 
     override fun addVertex(v: PlumeVertex) {
-        openTx()
-        if (!exists(v)) createVertex(v) else updateVertex(v)
-        closeTx()
+        if (!exists(v)) createVertex(v)
     }
 
-    override fun exists(v: PlumeVertex): Boolean = findVertexTraversal(v).hasNext()
+    override fun exists(v: PlumeVertex): Boolean =
+            try {
+                if (!transactionOpen) openTx()
+                findVertexTraversal(v).hasNext()
+            } finally {
+                if (transactionOpen) closeTx()
+            }
 
     private fun findVertexTraversal(v: PlumeVertex): GraphTraversal<Vertex, Vertex> =
             when (v) {
@@ -135,51 +142,51 @@ abstract class GremlinDriver : IDriver {
             .has("fullName", v.fullName)
             .has("typeDeclFullName", v.typeDeclFullName)
 
-    private fun updateVertex(v: PlumeVertex) {
-        val propertyMap = propertiesToMap(v).apply { remove("label") }
-        val existingVertex = findVertexTraversal(v).next()
-        propertyMap.forEach { (key: String?, value: Any?) -> g.V(existingVertex).property(key, value).iterate() }
-    }
-
     override fun exists(fromV: PlumeVertex, toV: PlumeVertex, edge: EdgeLabel): Boolean {
-        openTx()
-        if (!findVertexTraversal(fromV).hasNext() || !findVertexTraversal(toV).hasNext()) return false
-        val a = findVertexTraversal(fromV).next()
-        val b = findVertexTraversal(toV).next()
-        val maybeEdge = g.V(a).outE(EdgeLabel.AST.toString()).filter(underscore.inV().`is`(b)).hasLabel(edge.name).tryNext()
-                .orElseGet {
-                    g.V(b).outE(EdgeLabel.AST.toString()).filter(underscore.inV().`is`(a)).hasLabel(edge.name).tryNext()
-                            .orElse(null)
-                }
-        closeTx()
-        return maybeEdge != null
+        try {
+            if (!transactionOpen) openTx()
+            if (!findVertexTraversal(fromV).hasNext() || !findVertexTraversal(toV).hasNext()) return false
+            val a = findVertexTraversal(fromV).next()
+            val b = findVertexTraversal(toV).next()
+            return g.V(a).outE(edge.name).filter(underscore.inV().`is`(b)).hasLabel(edge.name).hasNext()
+        } finally {
+            if (transactionOpen) closeTx()
+        }
     }
 
     override fun addEdge(fromV: PlumeVertex, toV: PlumeVertex, edge: EdgeLabel) {
+        if (!transactionOpen) openTx()
         val source = if (findVertexTraversal(fromV).hasNext()) findVertexTraversal(fromV).next()
         else createVertex(fromV)
+        if (!transactionOpen) openTx()
         val target = if (findVertexTraversal(toV).hasNext()) findVertexTraversal(toV).next()
         else createVertex(toV)
-        createEdge(source, edge, target)
+        if (!transactionOpen) openTx()
+        try {
+            createEdge(source, edge, target)
+        } finally {
+            if (transactionOpen) closeTx()
+        }
     }
 
-    override fun maxOrder(): Int {
-        openTx()
-        val result =
-                if (g.V().has("order").hasNext()) g.V().has("order").order().by("order", Order.desc).limit(1).values<Any>("order").next() as Int
+    override fun maxOrder(): Int =
+            try {
+                if (!transactionOpen) openTx()
+                if (g.V().has("order").hasNext())
+                    g.V().has("order").order().by("order", Order.desc).limit(1).values<Any>("order").next() as Int
                 else 0
-        closeTx()
-        return result
-    }
+            } finally {
+                if (transactionOpen) closeTx()
+            }
 
     protected fun setTraversalSource(g: GraphTraversalSource) {
         this.g = g
     }
 
     override fun clearGraph() {
-        openTx()
+        if (!transactionOpen) openTx()
         g.V().drop().iterate()
-        closeTx()
+        if (transactionOpen) closeTx()
     }
 
     /**
@@ -189,15 +196,19 @@ abstract class GremlinDriver : IDriver {
      * @param v the [PlumeVertex] to translate into a [Vertex].
      * @return the newly created [Vertex].
      */
-    protected open fun createVertex(v: PlumeVertex): Vertex {
-        val propertyMap = propertiesToMap(v)
-        // Get the implementing class label parameter
-        val label = propertyMap.remove("label") as String?
-        // Get the implementing classes fields and values
-        val newV = g.graph.addVertex(T.label, label, T.id, UUID.randomUUID())
-        propertyMap.forEach { (key: String?, value: Any?) -> newV.property(key, value) }
-        return newV
-    }
+    protected open fun createVertex(v: PlumeVertex): Vertex =
+            try {
+                if (!transactionOpen) openTx()
+                val propertyMap = propertiesToMap(v)
+                // Get the implementing class label parameter
+                val label = propertyMap.remove("label") as String?
+                // Get the implementing classes fields and values
+                val newV = g.graph.addVertex(T.label, label, T.id, UUID.randomUUID())
+                propertyMap.forEach { (key: String?, value: Any?) -> newV.property(key, value) }
+                newV
+            } finally {
+                if (transactionOpen) closeTx()
+            }
 
     /**
      * Wrapper method for creating an edge between two vertices. This wrapper method assigns a random UUID as the ID
