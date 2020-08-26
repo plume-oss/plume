@@ -2,6 +2,7 @@ plugins {
     id 'java'
     id 'maven-publish'
     id 'jacoco'
+    id "com.eden.orchidPlugin" version "0.21.0"
     id 'com.avast.gradle.docker-compose' version '0.10.11'
     id 'org.jetbrains.kotlin.jvm' version '1.3.72'
 }
@@ -13,6 +14,7 @@ repositories {
     }
     mavenCentral()
     jcenter()
+    maven { url = "https://kotlin.bintray.com/kotlinx/" }
 }
 
 dependencies {
@@ -26,6 +28,18 @@ dependencies {
     testImplementation 'org.junit.jupiter:junit-jupiter-engine:5.4.0'
     implementation "org.jetbrains.kotlin:kotlin-stdlib-jdk8"
     implementation "org.jetbrains.kotlin:kotlin-reflect:1.3.72"
+    orchidRuntime "io.github.javaeden.orchid:OrchidDocs:0.21.0"
+    orchidRuntime "io.github.javaeden.orchid:OrchidKotlindoc:0.21.0"
+    orchidRuntime "io.github.javaeden.orchid:OrchidPluginDocs:0.21.0"
+    orchidRuntime("io.github.javaeden.orchid:OrchidGithub:0.21.0")
+}
+
+sourceSets {
+    main.java.srcDirs = []
+    main.kotlin.srcDirs = ['src/main/kotlin']
+    main.resources.srcDirs = ['src/main/resources']
+    test.java.srcDirs = ['src/test/kotlin']
+    test.resources.srcDirs = ['src/test/resources']
 }
 
 test {
@@ -85,9 +99,17 @@ jacocoTestReport {
         xml.enabled true
         xml.destination file("${buildDir}/reports/jacoco/report.xml")
         html.enabled true
+        html.destination file("${buildDir}/reports/jacoco")
         csv.enabled false
     }
     executionData test, janusGraphIntTest, tigerGraphIntTest
+}
+
+orchid {
+    theme = "Editorial"
+    baseUrl = "https://plume-oss.github.io/plume-driver"
+    version = "0.0.1"
+    githubToken = System.getenv("ORCHID_TOKEN")
 }
 
 check.dependsOn jacocoTestCoverageVerification
@@ -95,7 +117,7 @@ jacocoTestCoverageVerification.dependsOn jacocoTestReport
 
 group = 'za.ac.sun.plume'
 version = 'X.X.X'
-description = 'plume-driver'
+description = 'Provides a type-safe interface for connecting and writing to various graph databases based on the code-property graph schema.'
 sourceCompatibility = '8'
 
 task fatJar(type: Jar) {
