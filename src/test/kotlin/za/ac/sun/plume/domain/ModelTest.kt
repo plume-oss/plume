@@ -487,11 +487,9 @@ class ModelTest {
             val vertex2 = NamespaceBlockVertex(STRING_1, STRING_1, INT_1)
             val vertex3 = NamespaceBlockVertex(STRING_2, STRING_1, INT_1)
             val vertex4 = NamespaceBlockVertex(STRING_1, STRING_2, INT_1)
-            val vertex5 = NamespaceBlockVertex(STRING_1, STRING_1, INT_2)
             assertVertexEquality(vertex1, vertex2)
             assertVertexInequality(vertex1, vertex3)
             assertVertexInequality(vertex1, vertex4)
-            assertVertexInequality(vertex1, vertex5)
         }
 
         @Test

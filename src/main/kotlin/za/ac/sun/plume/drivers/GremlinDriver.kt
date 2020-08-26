@@ -114,33 +114,7 @@ abstract class GremlinDriver : IDriver {
                 if (transactionOpen) closeTx()
             }
 
-    private fun findVertexTraversal(v: PlumeVertex): GraphTraversal<Vertex, Vertex> =
-            when (v) {
-                is ASTVertex -> findVertexTraversal(v)
-                is BindingVertex -> findVertexTraversal(v)
-                is MetaDataVertex -> findVertexTraversal(v)
-                is TypeVertex -> findVertexTraversal(v)
-                else -> throw IllegalArgumentException("Unsupported PlumeVertex type")
-            }
-
-    private fun findVertexTraversal(v: ASTVertex): GraphTraversal<Vertex, Vertex> =
-            run {
-                val label = v.javaClass.getDeclaredField("LABEL").get(v).toString()
-                g.V().has(label, "order", v.order)
-            }
-
-    private fun findVertexTraversal(v: BindingVertex): GraphTraversal<Vertex, Vertex> = g.V()
-            .has(BindingVertex.LABEL.toString(), "name", v.name)
-            .has("signature", v.signature)
-
-    private fun findVertexTraversal(v: MetaDataVertex): GraphTraversal<Vertex, Vertex> = g.V()
-            .has(MetaDataVertex.LABEL.toString(), "language", v.language)
-            .has("version", v.version)
-
-    private fun findVertexTraversal(v: TypeVertex): GraphTraversal<Vertex, Vertex> = g.V()
-            .has(TypeVertex.LABEL.toString(), "name", v.name)
-            .has("fullName", v.fullName)
-            .has("typeDeclFullName", v.typeDeclFullName)
+    protected open fun findVertexTraversal(v: PlumeVertex): GraphTraversal<Vertex, Vertex> = g.V(v.hashCode().toString())
 
     override fun exists(fromV: PlumeVertex, toV: PlumeVertex, edge: EdgeLabel): Boolean {
         try {
@@ -203,9 +177,9 @@ abstract class GremlinDriver : IDriver {
                 // Get the implementing class label parameter
                 val label = propertyMap.remove("label") as String?
                 // Get the implementing classes fields and values
-                val newV = g.graph.addVertex(T.label, label, T.id, UUID.randomUUID())
-                propertyMap.forEach { (key: String?, value: Any?) -> newV.property(key, value) }
-                newV
+                g.graph.addVertex(T.label, label, T.id, v.hashCode().toString()).apply {
+                    propertyMap.forEach { (key: String?, value: Any?) -> this.property(key, value) }
+                }
             } finally {
                 if (transactionOpen) closeTx()
             }
