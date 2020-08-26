@@ -31,5 +31,5 @@ services:
   publications:
     stages:
       - type: 'githubPages'
-        username: '[DavidBakerEffendi]' # the username which created the personal access token
-        repo: '[plume-oss/plume-driver]' # the repo to publish to
+        username: 'DavidBakerEffendi' # the username which created the personal access token
+        repo: 'plume-oss/plume-driver' # the repo to publish to
