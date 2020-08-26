@@ -2,7 +2,7 @@ plugins {
     id 'java'
     id 'maven-publish'
     id 'jacoco'
-    id "com.eden.orchidPlugin" version "0.21.0"
+    id 'com.eden.orchidPlugin' version "0.21.0"
     id 'com.avast.gradle.docker-compose' version '0.10.11'
     id 'org.jetbrains.kotlin.jvm' version '1.3.72'
 }
@@ -26,12 +26,12 @@ dependencies {
     implementation 'khttp:khttp:1.0.0'
     compile 'com.fasterxml.jackson.core:jackson-databind:2.9.9'
     testImplementation 'org.junit.jupiter:junit-jupiter-engine:5.4.0'
-    implementation "org.jetbrains.kotlin:kotlin-stdlib-jdk8"
-    implementation "org.jetbrains.kotlin:kotlin-reflect:1.3.72"
-    orchidRuntime "io.github.javaeden.orchid:OrchidDocs:0.21.0"
-    orchidRuntime "io.github.javaeden.orchid:OrchidKotlindoc:0.21.0"
-    orchidRuntime "io.github.javaeden.orchid:OrchidPluginDocs:0.21.0"
-    orchidRuntime("io.github.javaeden.orchid:OrchidGithub:0.21.0")
+    implementation 'org.jetbrains.kotlin:kotlin-stdlib-jdk8'
+    implementation 'org.jetbrains.kotlin:kotlin-reflect:1.3.72'
+    orchidRuntime 'io.github.javaeden.orchid:OrchidDocs:0.21.0'
+    orchidRuntime 'io.github.javaeden.orchid:OrchidKotlindoc:0.21.0'
+    orchidRuntime 'io.github.javaeden.orchid:OrchidPluginDocs:0.21.0'
+    orchidRuntime 'io.github.javaeden.orchid:OrchidGithub:0.21.0'
 }
 
 sourceSets {

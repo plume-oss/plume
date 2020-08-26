@@ -2,6 +2,7 @@ package za.ac.sun.plume.drivers
 
 import org.apache.logging.log4j.LogManager
 import org.apache.tinkerpop.gremlin.process.traversal.AnonymousTraversalSource
+import org.apache.tinkerpop.gremlin.process.traversal.dsl.graph.GraphTraversal
 import org.apache.tinkerpop.gremlin.structure.Graph
 import org.apache.tinkerpop.gremlin.structure.Transaction
 import org.apache.tinkerpop.gremlin.structure.Vertex
@@ -112,6 +113,9 @@ class JanusGraphDriver : GremlinDriver() {
         }
     }
 
+    override fun findVertexTraversal(v: PlumeVertex): GraphTraversal<Vertex, Vertex> =
+            g.V().has(v.javaClass.getDeclaredField("LABEL").get(v).toString(), "id", v.hashCode().toString())
+
     /**
      * Given a [PlumeVertex], creates a [Vertex] and translates the object's field properties to key-value
      * pairs on the [Vertex] object. This is then added to this driver's [Graph].
@@ -124,7 +128,7 @@ class JanusGraphDriver : GremlinDriver() {
         // Get the implementing class label parameter
         val label = propertyMap.remove("label") as String?
         // Get the implementing classes fields and values
-        var traversalPointer = g.addV(label)
+        var traversalPointer = g.addV(label).property("id", v.hashCode().toString())
         for ((key, value) in propertyMap) traversalPointer = traversalPointer.property(key, value)
         return traversalPointer.next()
     }
