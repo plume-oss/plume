@@ -1,0 +1,1 @@
+Projects a Java program, JAR or class file into a code-property graph which is inserted it into a graph database.

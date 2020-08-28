@@ -17,12 +17,15 @@ object ExtractorConst {
     const val VOID = "void"
 
     // block bodies
-    const val STORE = "STORE"
+    const val ASSIGN = "ASSIGN"
     const val CAST = "CAST"
-    const val METHOD_BODY = "BODY"
+    const val ENTRYPOINT = "ENTRYPOINT"
     const val IF_ROOT = "IF"
-    const val IF_BODY = "IF_BODY"
-    const val ELSE_BODY = "ELSE_BODY"
+    const val TRUE_TARGET = "TRUE"
+    const val FALSE_TARGET = "FALSE"
+
+    // return text
+    const val RETURN = "RETURN"
 
     init {
         PRIMITIVES = listOf(BOOLEAN, BYTE, CHAR, DOUBLE, FLOAT, INT, LONG, NULL, SHORT, VOID)
@@ -38,7 +41,13 @@ object ExtractorConst {
                 "~" to "COMPLIMENT",
                 "<<" to "SHL",
                 ">>" to "SHR",
-                ">>>" to "USHR"
+                ">>>" to "USHR",
+                "==" to "EQ",
+                "<" to "LT",
+                ">" to "GT",
+                "!=" to "NEQ",
+                "<=" to "LTE",
+                ">=" to "GTE"
         )
     }
 }

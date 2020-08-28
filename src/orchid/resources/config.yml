@@ -1,0 +1,35 @@
+site:
+  about:
+    siteName: Plume Extractor
+    siteDescription: Projects a Java program, JAR or class file into a code-property graph which is inserted it into a graph database.
+Editorial:
+  primaryColor: '#02a6f2'
+  legacySearch: false
+  metaComponents:
+    - type: 'orchidSearch'
+  social:
+    github: 'plume-oss/plume-extractor'
+  menu:
+    - type: 'separator'
+      title: 'API Docs'
+    - type: 'sourcedocPages'
+      moduleType: 'kotlindoc'
+      node: 'classes'
+      asSubmenu: true
+      submenuTitle: 'Classes'
+    - type: 'sourcedocPages'
+      moduleType: 'kotlindoc'
+      node: 'packages'
+      asSubmenu: true
+      submenuTitle: 'Packages'
+
+kotlindoc:
+  sourceDirs:
+    - './../../main/kotlin'
+
+services:
+  publications:
+    stages:
+      - type: 'githubPages'
+        username: 'DavidBakerEffendi' # the username which created the personal access token
+        repo: 'plume-oss/plume-extractor' # the repo to publish to

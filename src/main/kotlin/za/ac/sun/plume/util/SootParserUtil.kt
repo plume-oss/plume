@@ -1,8 +1,9 @@
 package za.ac.sun.plume.util
 
 import org.objectweb.asm.Opcodes
-import za.ac.sun.plume.domain.enums.EvaluationStrategies
-import za.ac.sun.plume.domain.enums.ModifierTypes
+import za.ac.sun.plume.domain.enums.EvaluationStrategy
+import za.ac.sun.plume.domain.enums.ModifierType
+import za.ac.sun.plume.util.ExtractorConst.BINOPS
 import za.ac.sun.plume.util.ExtractorConst.PRIMITIVES
 import java.util.*
 
@@ -19,27 +20,27 @@ object SootParserUtil {
      */
     @JvmStatic
     @JvmOverloads
-    fun determineModifiers(access: Int, name: String? = null): EnumSet<ModifierTypes> {
-        val modifiers = EnumSet.of(ModifierTypes.VIRTUAL)
-        if ("<init>" == name) modifiers.add(ModifierTypes.CONSTRUCTOR)
+    fun determineModifiers(access: Int, name: String? = null): EnumSet<ModifierType> {
+        val modifiers = EnumSet.of(ModifierType.VIRTUAL)
+        if ("<init>" == name) modifiers.add(ModifierType.CONSTRUCTOR)
         var remaining = access
         var bit: Int
         while (remaining != 0) {
             bit = Integer.lowestOneBit(remaining)
             when (bit) {
                 Opcodes.ACC_STATIC -> {
-                    modifiers.add(ModifierTypes.STATIC)
-                    modifiers.remove(ModifierTypes.VIRTUAL)
+                    modifiers.add(ModifierType.STATIC)
+                    modifiers.remove(ModifierType.VIRTUAL)
                 }
-                Opcodes.ACC_PUBLIC -> modifiers.add(ModifierTypes.PUBLIC)
+                Opcodes.ACC_PUBLIC -> modifiers.add(ModifierType.PUBLIC)
                 Opcodes.ACC_PRIVATE -> {
-                    modifiers.add(ModifierTypes.PRIVATE)
-                    modifiers.remove(ModifierTypes.VIRTUAL)
+                    modifiers.add(ModifierType.PRIVATE)
+                    modifiers.remove(ModifierType.VIRTUAL)
                 }
-                Opcodes.ACC_PROTECTED -> modifiers.add(ModifierTypes.PROTECTED)
-                Opcodes.ACC_NATIVE -> modifiers.add(ModifierTypes.NATIVE)
-                Opcodes.ACC_ABSTRACT -> modifiers.add(ModifierTypes.ABSTRACT)
-                Opcodes.ACC_FINAL -> modifiers.remove(ModifierTypes.VIRTUAL)
+                Opcodes.ACC_PROTECTED -> modifiers.add(ModifierType.PROTECTED)
+                Opcodes.ACC_NATIVE -> modifiers.add(ModifierType.NATIVE)
+                Opcodes.ACC_ABSTRACT -> modifiers.add(ModifierType.ABSTRACT)
+                Opcodes.ACC_FINAL -> modifiers.remove(ModifierType.VIRTUAL)
             }
             remaining -= bit
         }
@@ -55,10 +56,29 @@ object SootParserUtil {
      * @return the type of evaluation strategy used
      */
     @JvmStatic
-    fun determineEvaluationStrategy(paramType: String, isMethodReturn: Boolean): EvaluationStrategies {
+    fun determineEvaluationStrategy(paramType: String, isMethodReturn: Boolean): EvaluationStrategy {
         return if (isArrayType(paramType) || !PRIMITIVES.contains(paramType))
-            if (isMethodReturn) EvaluationStrategies.BY_SHARING else EvaluationStrategies.BY_REFERENCE
-        else EvaluationStrategies.BY_VALUE
+            if (isMethodReturn) EvaluationStrategy.BY_SHARING else EvaluationStrategy.BY_REFERENCE
+        else EvaluationStrategy.BY_VALUE
+    }
+
+    /**
+     * Parses the jump statement equality and returns the opposite.
+     *
+     * @param jumpStatement the string of a jump statement e.g. NEQ.
+     * @return the of the opposite jump statement, NOP if it could not be determined.
+     */
+    @JvmStatic
+    fun parseAndFlipEquality(jumpStatement: String): String {
+        return when (BINOPS[jumpStatement]) {
+            "EQ" -> "NEQ"
+            "NEQ" -> "EQ"
+            "LT" -> "GTE"
+            "GTE" -> "LT"
+            "LTE" -> "GT"
+            "GT" -> "LTE"
+            else -> "NOP"
+        }
     }
 
     @JvmStatic

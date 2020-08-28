@@ -17,10 +17,14 @@ package za.ac.sun.plume
 
 import org.apache.logging.log4j.LogManager
 import org.apache.logging.log4j.Logger
-import soot.PhaseOptions
-import soot.Scene
+import soot.*
+import soot.Unit
+import soot.dava.Dava
+import soot.javaToJimple.JavaToJimple
+import soot.jimple.parser.JimpleAST
 import soot.options.Options
 import soot.toolkits.graph.BriefUnitGraph
+import za.ac.sun.plume.domain.models.PlumeVertex
 import za.ac.sun.plume.drivers.IDriver
 import za.ac.sun.plume.graph.ASTBuilder
 import za.ac.sun.plume.graph.CFGBuilder
@@ -29,20 +33,20 @@ import za.ac.sun.plume.util.ResourceCompilationUtil.compileJavaFile
 import za.ac.sun.plume.util.ResourceCompilationUtil.compileJavaFiles
 import za.ac.sun.plume.util.ResourceCompilationUtil.fetchClassFiles
 import java.io.File
+import java.io.FileInputStream
 import java.io.IOException
 import java.util.*
 import java.util.function.Consumer
 import java.util.jar.JarFile
+import kotlin.math.log
 
-class Extractor(hook: IDriver, private val classPath: File?) {
+class Extractor(hook: IDriver, private val classPath: File) {
     private val logger: Logger = LogManager.getLogger(Extractor::javaClass)
 
     private val loadedFiles: LinkedList<File> = LinkedList()
     private val astBuilder: ASTBuilder
     private val cfgBuilder: CFGBuilder
     private val pdgBuilder: PDGBuilder
-
-    constructor(hook: IDriver) : this(hook, null)
 
     init {
         configureSoot()
@@ -106,9 +110,10 @@ class Extractor(hook: IDriver, private val classPath: File?) {
             astBuilder.buildFileAndNamespace(cls)
             cls.methods.filter { it.isConcrete }.forEach {
                 val unitGraph = BriefUnitGraph(it.retrieveActiveBody())
-                astBuilder.build(it, unitGraph)
-                cfgBuilder.build(it, unitGraph)
-                pdgBuilder.build(it, unitGraph)
+                val unitToVertex = mutableMapOf<Unit, PlumeVertex>()
+                astBuilder.build(it, unitGraph, unitToVertex)
+                cfgBuilder.build(it, unitGraph, unitToVertex)
+                pdgBuilder.build(it, unitGraph, unitToVertex)
             }
         } catch (e: Exception) {
             logger.error("IOException encountered while projecting $classPath", e)
@@ -122,7 +127,7 @@ class Extractor(hook: IDriver, private val classPath: File?) {
         // set application mode
         Options.v().set_app(true)
         // make sure classpath is configured correctly
-        Options.v().set_soot_classpath(classPath?.absolutePath)
+        Options.v().set_soot_classpath(classPath.absolutePath)
         Options.v().set_prepend_classpath(true)
         // keep debugging info
         Options.v().set_keep_line_number(true)
@@ -138,7 +143,7 @@ class Extractor(hook: IDriver, private val classPath: File?) {
         PhaseOptions.v().setPhaseOption("jb", "use-original-names:true")
     }
 
-    private fun getQualifiedClassPath(classFile: File): String = classFile.absolutePath.removePrefix(classPath?.absolutePath + "/").replace(File.separator, ".").removeSuffix(".class")
+    private fun getQualifiedClassPath(classFile: File): String = classFile.absolutePath.removePrefix(classPath.absolutePath + "/").replace(File.separator, ".").removeSuffix(".class")
 
     /**
      * Given a list of class names, load them into the Scene.
