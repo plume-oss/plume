@@ -30,7 +30,6 @@ class MethodVertex(
     override fun equals(other: Any?): Boolean {
         if (this === other) return true
         if (other !is MethodVertex) return false
-        if (!super.equals(other)) return false
 
         if (name != other.name) return false
         if (fullName != other.fullName) return false
@@ -40,8 +39,7 @@ class MethodVertex(
     }
 
     override fun hashCode(): Int {
-        var result = super.hashCode()
-        result = 31 * result + name.hashCode()
+        var result = 31 * name.hashCode()
         result = 31 * result + fullName.hashCode()
         result = 31 * result + signature.hashCode()
         return result

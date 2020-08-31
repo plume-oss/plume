@@ -119,6 +119,7 @@ class TigerGraphDriver : IDriver {
     }
 
     override fun addEdge(fromV: PlumeVertex, toV: PlumeVertex, edge: EdgeLabel) {
+        if (exists(fromV, toV, edge)) return
         val fromPayload = createVertexPayload(fromV)
         val toPayload = createVertexPayload(toV)
         val vertexPayload = if (fromPayload.keys.first() == toPayload.keys.first()) mapOf(
