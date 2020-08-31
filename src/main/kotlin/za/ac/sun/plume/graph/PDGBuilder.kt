@@ -16,19 +16,37 @@
 package za.ac.sun.plume.graph
 
 import org.apache.logging.log4j.LogManager
-import soot.SootClass
+import soot.Local
 import soot.SootMethod
-import soot.Unit
 import soot.toolkits.graph.BriefUnitGraph
-import soot.toolkits.graph.UnitGraph
+import za.ac.sun.plume.domain.enums.EdgeLabel
 import za.ac.sun.plume.domain.models.PlumeVertex
+import za.ac.sun.plume.domain.models.vertices.CallVertex
+import za.ac.sun.plume.domain.models.vertices.IdentifierVertex
+import za.ac.sun.plume.domain.models.vertices.LocalVertex
+import za.ac.sun.plume.domain.models.vertices.MethodParameterInVertex
 import za.ac.sun.plume.drivers.IDriver
 
 class PDGBuilder(private val driver: IDriver) : IGraphBuilder {
     private val logger = LogManager.getLogger(PDGBuilder::javaClass)
+    private lateinit var graph: BriefUnitGraph
+    private lateinit var sootToPlume: MutableMap<Any, MutableList<PlumeVertex>>
 
-    override fun build(mtd: SootMethod, graph: BriefUnitGraph, unitToVertex: MutableMap<Unit, PlumeVertex>) {
+    override fun build(mtd: SootMethod, graph: BriefUnitGraph, sootToPlume: MutableMap<Any, MutableList<PlumeVertex>>) {
         logger.debug("Building PDG for ${mtd.declaration}")
+        this.graph = graph
+        this.sootToPlume = sootToPlume
+        (this.graph.body.parameterLocals + this.graph.body.locals).forEach { projectLocalVariable(it) }
+    }
+
+    private fun projectLocalVariable(local: Local) {
+        val src = sootToPlume[local]?.first { it is LocalVertex || it is MethodParameterInVertex }
+        val identifierVertices = sootToPlume[local]?.filter { it is IdentifierVertex || it is CallVertex }
+        identifierVertices?.forEach {
+            if (src != null) {
+                driver.addEdge(src, it, EdgeLabel.REF)
+            }
+        }
     }
 
 }

@@ -16,19 +16,85 @@
 package za.ac.sun.plume.graph
 
 import org.apache.logging.log4j.LogManager
-import soot.SootClass
 import soot.SootMethod
 import soot.Unit
+import soot.jimple.*
 import soot.toolkits.graph.BriefUnitGraph
-import soot.toolkits.graph.UnitGraph
+import za.ac.sun.plume.domain.enums.EdgeLabel
 import za.ac.sun.plume.domain.models.PlumeVertex
+import za.ac.sun.plume.domain.models.vertices.BlockVertex
+import za.ac.sun.plume.domain.models.vertices.JumpTargetVertex
 import za.ac.sun.plume.drivers.IDriver
+import za.ac.sun.plume.util.ExtractorConst.FALSE_TARGET
+import za.ac.sun.plume.util.ExtractorConst.TRUE_TARGET
 
 class CFGBuilder(private val driver: IDriver) : IGraphBuilder {
     private val logger = LogManager.getLogger(CFGBuilder::javaClass)
+    private val traversedControlUnits = HashSet<Unit>()
+    private lateinit var graph: BriefUnitGraph
+    private lateinit var sootToVertex: MutableMap<Any, MutableList<PlumeVertex>>
 
-    override fun build(mtd: SootMethod, graph: BriefUnitGraph, unitToVertex: MutableMap<Unit, PlumeVertex>) {
+    override fun build(mtd: SootMethod, graph: BriefUnitGraph, sootToPlume: MutableMap<Any, MutableList<PlumeVertex>>) {
         logger.debug("Building CFG for ${mtd.declaration}")
+        this.graph = graph
+        this.sootToVertex = sootToPlume
+        this.graph.heads.forEach {
+            graph.getSuccsOf(it).firstOrNull()?.let { succ ->
+                driver.addEdge(
+                        fromV = sootToPlume[mtd]?.first { mtdVertices -> mtdVertices is BlockVertex }!!,
+                        toV = sootToPlume[succ]?.first()!!,
+                        edge = EdgeLabel.CFG
+                )
+            }
+            projectUnit(it)
+        }
     }
 
+    private fun projectUnit(unit: Unit) {
+        when (unit) {
+            is GotoStmt -> projectUnit(unit.target)
+            is IfStmt -> projectIfStatement(unit)
+            is LookupSwitchStmt -> projectLookupSwitch(unit)
+            is TableSwitchStmt -> projectTableSwitch(unit)
+            else -> {
+                val sourceUnit = if (unit is GotoStmt) unit.target else unit
+                val sourceVertex = sootToVertex[sourceUnit]?.firstOrNull()
+                graph.getSuccsOf(sourceUnit).forEach {
+                    val targetUnit = if (it is GotoStmt) it.target else it
+                    if (sourceVertex != null) {
+                        sootToVertex[targetUnit]?.let { vList -> driver.addEdge(sourceVertex, vList.first(), EdgeLabel.CFG) }
+                    }
+                    // Avoid infinite loops
+                    if (!traversedControlUnits.contains(targetUnit)) projectUnit(targetUnit)
+                }
+                traversedControlUnits.add(unit)
+            }
+        }
+    }
+
+    private fun projectTableSwitch(unit: TableSwitchStmt) {
+        TODO("Not yet implemented")
+    }
+
+    private fun projectLookupSwitch(unit: LookupSwitchStmt) {
+        TODO("Not yet implemented")
+    }
+
+    private fun projectIfStatement(unit: IfStmt) {
+        val ifVertices = sootToVertex[unit]!!
+        traversedControlUnits.add(unit)
+        graph.getSuccsOf(unit).forEach {
+            val srcVertex = if (it == unit.target) {
+                ifVertices.first { vert -> vert is JumpTargetVertex && vert.name == FALSE_TARGET }
+            } else {
+                ifVertices.first { vert -> vert is JumpTargetVertex && vert.name == TRUE_TARGET }
+            }
+            sootToVertex[it]?.let { vList ->
+                driver.addEdge(ifVertices.first(), srcVertex, EdgeLabel.CFG)
+                driver.addEdge(srcVertex, vList.first(), EdgeLabel.CFG)
+            }
+            // Avoid infinite loops
+            if (!traversedControlUnits.contains(it)) projectUnit(it)
+        }
+    }
 }

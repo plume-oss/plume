@@ -12,14 +12,10 @@ import za.ac.sun.plume.domain.enums.VertexLabel
 import za.ac.sun.plume.drivers.DriverFactory
 import za.ac.sun.plume.drivers.GraphDatabase
 import za.ac.sun.plume.drivers.TinkerGraphDriver
-import za.ac.sun.plume.intraprocedural.ArithmeticTest
-import za.ac.sun.plume.intraprocedural.BasicIntraproceduralTest
-import za.ac.sun.plume.intraprocedural.BasicIntraproceduralTest.Companion.testBasic1Structure
 import za.ac.sun.plume.intraprocedural.ConditionalIntraproceduralTest
 import za.ac.sun.plume.util.TestQueryBuilderUtil
 import java.io.File
 import java.io.IOException
-import java.util.*
 
 class ExtractorTest {
     @AfterEach
@@ -76,8 +72,6 @@ class ExtractorTest {
         val basic6MethodTraversal = TestQueryBuilderUtil.getVertexAlongEdge(g, EdgeLabel.AST, basic6NamespaceVertex, VertexLabel.METHOD, "name", "main")
         assertTrue(basic6MethodTraversal.hasNext())
         assertEquals(6, TestQueryBuilderUtil.buildStoreTraversal(g, EdgeLabel.AST, intraNamespaceVertex).count().next())
-        testBasic1Structure(g, basicNamespaceVertex)
-        testBasic1Structure(g, basic6NamespaceVertex)
     }
 
     @Test

@@ -18,10 +18,6 @@ package za.ac.sun.plume
 import org.apache.logging.log4j.LogManager
 import org.apache.logging.log4j.Logger
 import soot.*
-import soot.Unit
-import soot.dava.Dava
-import soot.javaToJimple.JavaToJimple
-import soot.jimple.parser.JimpleAST
 import soot.options.Options
 import soot.toolkits.graph.BriefUnitGraph
 import za.ac.sun.plume.domain.models.PlumeVertex
@@ -33,12 +29,10 @@ import za.ac.sun.plume.util.ResourceCompilationUtil.compileJavaFile
 import za.ac.sun.plume.util.ResourceCompilationUtil.compileJavaFiles
 import za.ac.sun.plume.util.ResourceCompilationUtil.fetchClassFiles
 import java.io.File
-import java.io.FileInputStream
 import java.io.IOException
 import java.util.*
 import java.util.function.Consumer
 import java.util.jar.JarFile
-import kotlin.math.log
 
 class Extractor(hook: IDriver, private val classPath: File) {
     private val logger: Logger = LogManager.getLogger(Extractor::javaClass)
@@ -110,10 +104,10 @@ class Extractor(hook: IDriver, private val classPath: File) {
             astBuilder.buildFileAndNamespace(cls)
             cls.methods.filter { it.isConcrete }.forEach {
                 val unitGraph = BriefUnitGraph(it.retrieveActiveBody())
-                val unitToVertex = mutableMapOf<Unit, PlumeVertex>()
-                astBuilder.build(it, unitGraph, unitToVertex)
-                cfgBuilder.build(it, unitGraph, unitToVertex)
-                pdgBuilder.build(it, unitGraph, unitToVertex)
+                val sootToPlume = mutableMapOf<Any, MutableList<PlumeVertex>>()
+                astBuilder.build(it, unitGraph, sootToPlume)
+                cfgBuilder.build(it, unitGraph, sootToPlume)
+                pdgBuilder.build(it, unitGraph, sootToPlume)
             }
         } catch (e: Exception) {
             logger.error("IOException encountered while projecting $classPath", e)
