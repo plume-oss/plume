@@ -209,19 +209,17 @@ class ModelTest {
         fun blockVertexEquality() {
             val vertex1 = BlockVertex(STRING_1, STRING_1, INT_1, INT_1, STRING_1, INT_1)
             val vertex2 = BlockVertex(STRING_1, STRING_1, INT_1, INT_1, STRING_1, INT_1)
-            val vertex3 = BlockVertex(STRING_2, STRING_1, INT_1, INT_1, STRING_1, INT_1)
-            val vertex4 = BlockVertex(STRING_1, STRING_2, INT_1, INT_1, STRING_1, INT_1)
-            val vertex5 = BlockVertex(STRING_1, STRING_1, INT_2, INT_1, STRING_1, INT_1)
-            val vertex6 = BlockVertex(STRING_1, STRING_1, INT_1, INT_2, STRING_1, INT_1)
-            val vertex7 = BlockVertex(STRING_1, STRING_1, INT_1, INT_1, STRING_2, INT_1)
-            val vertex8 = BlockVertex(STRING_1, STRING_1, INT_1, INT_1, STRING_1, INT_2)
+            val vertex3 = BlockVertex(STRING_1, STRING_2, INT_1, INT_1, STRING_1, INT_1)
+            val vertex4 = BlockVertex(STRING_1, STRING_1, INT_2, INT_1, STRING_1, INT_1)
+            val vertex5 = BlockVertex(STRING_1, STRING_1, INT_1, INT_2, STRING_1, INT_1)
+            val vertex6 = BlockVertex(STRING_1, STRING_1, INT_1, INT_1, STRING_2, INT_1)
+            val vertex7 = BlockVertex(STRING_1, STRING_1, INT_1, INT_1, STRING_1, INT_2)
             assertVertexEquality(vertex1, vertex2)
             assertVertexInequality(vertex1, vertex3)
             assertVertexInequality(vertex1, vertex4)
             assertVertexInequality(vertex1, vertex5)
             assertVertexInequality(vertex1, vertex6)
             assertVertexInequality(vertex1, vertex7)
-            assertVertexInequality(vertex1, vertex8)
         }
 
         @Test
@@ -458,16 +456,10 @@ class ModelTest {
             val vertex3 = MethodVertex(STRING_2, STRING_1, STRING_1, STRING_1, INT_1, INT_1)
             val vertex4 = MethodVertex(STRING_1, STRING_2, STRING_1, STRING_1, INT_1, INT_1)
             val vertex5 = MethodVertex(STRING_1, STRING_1, STRING_2, STRING_1, INT_1, INT_1)
-            val vertex6 = MethodVertex(STRING_1, STRING_1, STRING_1, STRING_2, INT_1, INT_1)
-            val vertex7 = MethodVertex(STRING_1, STRING_1, STRING_1, STRING_1, INT_2, INT_1)
-            val vertex8 = MethodVertex(STRING_1, STRING_1, STRING_1, STRING_1, INT_2, INT_1)
             assertVertexEquality(vertex1, vertex2)
             assertVertexInequality(vertex1, vertex3)
             assertVertexInequality(vertex1, vertex4)
             assertVertexInequality(vertex1, vertex5)
-            assertVertexInequality(vertex1, vertex6)
-            assertVertexInequality(vertex1, vertex7)
-            assertVertexInequality(vertex1, vertex8)
         }
 
         @Test

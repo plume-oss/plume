@@ -129,6 +129,7 @@ abstract class GremlinDriver : IDriver {
     }
 
     override fun addEdge(fromV: PlumeVertex, toV: PlumeVertex, edge: EdgeLabel) {
+        if (exists(fromV, toV, edge)) return
         if (!transactionOpen) openTx()
         val source = if (findVertexTraversal(fromV).hasNext()) findVertexTraversal(fromV).next()
         else createVertex(fromV)
