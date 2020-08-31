@@ -28,7 +28,6 @@ class BlockVertex(
         if (other !is BlockVertex) return false
         if (!super.equals(other)) return false
 
-        if (name != other.name) return false
         if (typeFullName != other.typeFullName) return false
 
         return true
@@ -36,7 +35,6 @@ class BlockVertex(
 
     override fun hashCode(): Int {
         var result = super.hashCode()
-        result = 31 * result + name.hashCode()
         result = 31 * result + typeFullName.hashCode()
         return result
     }
