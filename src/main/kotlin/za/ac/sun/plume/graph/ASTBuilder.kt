@@ -137,20 +137,20 @@ class ASTBuilder(private val driver: IDriver) : IGraphBuilder {
             is AssignStmt -> projectVariableAssignment(unit)
             is LookupSwitchStmt -> projectLookupSwitch(unit)
             is TableSwitchStmt -> projectTableSwitch(unit)
-            is InvokeStmt -> projectCallVertex(unit, parentV)
+            is InvokeStmt -> projectCallVertex(unit)
             // TODO: Discern between method return and return statement
             is ReturnStmt -> projectReturnVertex(unit)
             is ReturnVoidStmt -> projectReturnVertex(unit)
             else -> null
         }
         if (unitVertex != null) {
-            driver.addEdge(parentV, unitVertex, EdgeLabel.AST)
+            if (unitVertex !is MethodReturnVertex) driver.addEdge(parentV, unitVertex, EdgeLabel.AST)
             sootToPlume[unit]!!.add(0, unitVertex)
         }
         return unitVertex
     }
 
-    private fun projectCallVertex(unit: InvokeStmt, parentV: PlumeVertex): PlumeVertex? {
+    private fun projectCallVertex(unit: InvokeStmt): PlumeVertex {
         val callVertex = CallVertex(
                 name = unit.invokeExpr.methodRef.name,
                 signature = unit.invokeExpr.methodRef.signature,
@@ -164,7 +164,6 @@ class ASTBuilder(private val driver: IDriver) : IGraphBuilder {
                 typeFullName = unit.invokeExpr.type.toString()
         )
         unit.invokeExpr.useBoxes.forEach { sootToPlume[it.value]!!.add(callVertex) }
-        driver.addEdge(parentV, callVertex, EdgeLabel.AST)
         return callVertex
     }
 

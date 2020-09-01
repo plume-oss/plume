@@ -30,7 +30,6 @@ import za.ac.sun.plume.util.ExtractorConst.TRUE_TARGET
 
 class CFGBuilder(private val driver: IDriver) : IGraphBuilder {
     private val logger = LogManager.getLogger(CFGBuilder::javaClass)
-    private val traversedControlUnits = HashSet<Unit>()
     private lateinit var graph: BriefUnitGraph
     private lateinit var sootToVertex: MutableMap<Any, MutableList<PlumeVertex>>
 
@@ -38,16 +37,18 @@ class CFGBuilder(private val driver: IDriver) : IGraphBuilder {
         logger.debug("Building CFG for ${mtd.declaration}")
         this.graph = graph
         this.sootToVertex = sootToPlume
-        this.graph.heads.forEach {
-            graph.getSuccsOf(it).firstOrNull()?.let { succ ->
+        // Connect entrypoint to the first CFG vertex
+        this.graph.heads.forEach { head ->
+            graph.getSuccsOf(head).firstOrNull()?.let {
                 driver.addEdge(
                         fromV = sootToPlume[mtd]?.first { mtdVertices -> mtdVertices is BlockVertex }!!,
-                        toV = sootToPlume[succ]?.first()!!,
+                        toV = sootToPlume[it]?.first()!!,
                         edge = EdgeLabel.CFG
                 )
             }
-            projectUnit(it)
         }
+        // Connect all units to their successors
+        this.graph.body.units.forEach { projectUnit(it) }
     }
 
     private fun projectUnit(unit: Unit) {
@@ -64,10 +65,7 @@ class CFGBuilder(private val driver: IDriver) : IGraphBuilder {
                     if (sourceVertex != null) {
                         sootToVertex[targetUnit]?.let { vList -> driver.addEdge(sourceVertex, vList.first(), EdgeLabel.CFG) }
                     }
-                    // Avoid infinite loops
-                    if (!traversedControlUnits.contains(targetUnit)) projectUnit(targetUnit)
                 }
-                traversedControlUnits.add(unit)
             }
         }
     }
@@ -82,7 +80,6 @@ class CFGBuilder(private val driver: IDriver) : IGraphBuilder {
 
     private fun projectIfStatement(unit: IfStmt) {
         val ifVertices = sootToVertex[unit]!!
-        traversedControlUnits.add(unit)
         graph.getSuccsOf(unit).forEach {
             val srcVertex = if (it == unit.target) {
                 ifVertices.first { vert -> vert is JumpTargetVertex && vert.name == FALSE_TARGET }
@@ -93,8 +90,6 @@ class CFGBuilder(private val driver: IDriver) : IGraphBuilder {
                 driver.addEdge(ifVertices.first(), srcVertex, EdgeLabel.CFG)
                 driver.addEdge(srcVertex, vList.first(), EdgeLabel.CFG)
             }
-            // Avoid infinite loops
-            if (!traversedControlUnits.contains(it)) projectUnit(it)
         }
     }
 }
