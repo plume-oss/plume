@@ -1,8 +1,8 @@
-package intraprocedural.lookup;
+package intraprocedural.switches;
 
-public class Switch1 {
+public class Switch2 {
 
-    public static String main(String args[]) {
+    public static String main(String[] args) {
         String animal = "DOG";
         String result;
         switch (animal) {

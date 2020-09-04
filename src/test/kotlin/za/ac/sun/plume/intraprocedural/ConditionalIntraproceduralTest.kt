@@ -1,9 +1,7 @@
 package za.ac.sun.plume.intraprocedural
 
 import org.apache.logging.log4j.LogManager
-import org.apache.tinkerpop.gremlin.tinkergraph.structure.TinkerGraph
 import org.junit.jupiter.api.AfterAll
-import org.junit.jupiter.api.Assertions.assertEquals
 import org.junit.jupiter.api.BeforeEach
 import org.junit.jupiter.api.Test
 import org.junit.jupiter.api.TestInfo
@@ -12,7 +10,6 @@ import za.ac.sun.plume.TestConstants
 import za.ac.sun.plume.drivers.DriverFactory
 import za.ac.sun.plume.drivers.GraphDatabase
 import za.ac.sun.plume.drivers.TinkerGraphDriver
-import za.ac.sun.plume.util.GraphDiff
 import za.ac.sun.plume.util.ResourceCompilationUtil.deleteClassFiles
 import java.io.File
 import java.io.IOException
@@ -66,12 +63,6 @@ class ConditionalIntraproceduralTest {
 
     @Test
     fun conditional1Test() {
-        val a = TinkerGraph.open()
-        val b = TinkerGraph.open()
-        a.traversal().io<Any>(TEST_GRAPH).read().iterate()
-        b.traversal().io<Any>("$testResourcePath.xml").read().iterate()
-        val c = GraphDiff.diff(a, b)
-        assertEquals(0L, c.traversal().V().count().next())
     }
 
     @Test

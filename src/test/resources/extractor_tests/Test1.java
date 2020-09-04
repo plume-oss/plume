@@ -1,4 +1,4 @@
-package cannon_tests;
+package extractor_tests;
 
 public class Test1 {
 

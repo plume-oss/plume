@@ -23,11 +23,15 @@ import soot.toolkits.graph.BriefUnitGraph
 import za.ac.sun.plume.domain.enums.EdgeLabel
 import za.ac.sun.plume.domain.models.PlumeVertex
 import za.ac.sun.plume.domain.models.vertices.BlockVertex
+import za.ac.sun.plume.domain.models.vertices.ControlStructureVertex
 import za.ac.sun.plume.domain.models.vertices.JumpTargetVertex
 import za.ac.sun.plume.drivers.IDriver
 import za.ac.sun.plume.util.ExtractorConst.FALSE_TARGET
 import za.ac.sun.plume.util.ExtractorConst.TRUE_TARGET
 
+/**
+ * The [IGraphBuilder] which adds the control flow edges to the CPG.
+ */
 class CFGBuilder(private val driver: IDriver) : IGraphBuilder {
     private val logger = LogManager.getLogger(CFGBuilder::javaClass)
     private lateinit var graph: BriefUnitGraph
@@ -71,11 +75,46 @@ class CFGBuilder(private val driver: IDriver) : IGraphBuilder {
     }
 
     private fun projectTableSwitch(unit: TableSwitchStmt) {
-        TODO("Not yet implemented")
+        val switchVertices = sootToVertex[unit]!!
+        val switchVertex = switchVertices.first { it is ControlStructureVertex } as ControlStructureVertex
+        // Handle default target jump
+        projectSwitchDefault(unit, switchVertices, switchVertex)
+        // Handle case jumps
+        unit.targets.forEach { tgt ->
+            val i = unit.targets.indexOf(tgt)
+            if (unit.defaultTarget != tgt) projectSwitchTarget(switchVertices, i, switchVertex, tgt)
+        }
     }
 
     private fun projectLookupSwitch(unit: LookupSwitchStmt) {
-        TODO("Not yet implemented")
+        val lookupVertices = sootToVertex[unit]!!
+        val lookupVertex = lookupVertices.first { it is ControlStructureVertex } as ControlStructureVertex
+        // Handle default target jump
+        projectSwitchDefault(unit, lookupVertices, lookupVertex)
+        // Handle case jumps
+        for (i in 0 until unit.targetCount) {
+            val tgt = unit.getTarget(i)
+            val lookupValue = unit.getLookupValue(i)
+            if (unit.defaultTarget != tgt) projectSwitchTarget(lookupVertices, lookupValue, lookupVertex, tgt)
+        }
+    }
+
+    private fun projectSwitchTarget(lookupVertices: MutableList<PlumeVertex>, lookupValue: Int, lookupVertex: ControlStructureVertex, tgt: Unit) {
+        val tgtV = lookupVertices.first { it is JumpTargetVertex && it.argumentIndex == lookupValue }
+        driver.addEdge(lookupVertex, tgtV, EdgeLabel.CFG)
+        sootToVertex[tgt]?.let { vList ->
+            driver.addEdge(tgtV, vList.first(), EdgeLabel.CFG)
+        }
+    }
+
+    private fun projectSwitchDefault(unit: SwitchStmt, switchVertices: MutableList<PlumeVertex>, switchVertex: ControlStructureVertex) {
+        unit.defaultTarget.let { defaultUnit ->
+            val tgtV = switchVertices.first { it is JumpTargetVertex && it.name == "DEFAULT" }
+            driver.addEdge(switchVertex, tgtV, EdgeLabel.CFG)
+            sootToVertex[defaultUnit]?.let { vList ->
+                driver.addEdge(tgtV, vList.first(), EdgeLabel.CFG)
+            }
+        }
     }
 
     private fun projectIfStatement(unit: IfStmt) {

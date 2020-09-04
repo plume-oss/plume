@@ -11,15 +11,14 @@ import za.ac.sun.plume.util.ResourceCompilationUtil.deleteClassFiles
 import java.io.File
 import java.io.IOException
 
-@Disabled
-class LookUpIntraproceduralTest {
+class SwitchIntraproceduralTest {
     private lateinit var testResourcePath: String
 
     companion object {
-        private val logger = LogManager.getLogger(LookUpIntraproceduralTest::javaClass)
+        private val logger = LogManager.getLogger(SwitchIntraproceduralTest::javaClass)
         private var PATH: File
         private var CLS_PATH: File
-        private val TEST_PATH = "intraprocedural${File.separator}lookup"
+        private val TEST_PATH = "intraprocedural${File.separator}switches"
         private val TEST_GRAPH = TestConstants.testGraph
 
         @AfterAll
@@ -29,12 +28,12 @@ class LookUpIntraproceduralTest {
             deleteClassFiles(PATH)
             val f = File(TEST_GRAPH)
             if (f.exists() && !f.delete()) {
-                logger.warn("Could not clear " + LookUpIntraproceduralTest::class.java.name + "'s test resources.")
+                logger.warn("Could not clear ${SwitchIntraproceduralTest::class.java.name}'s test resources.")
             }
         }
 
         init {
-            val testFileUrl = LookUpIntraproceduralTest::class.java.classLoader.getResource(TEST_PATH)
+            val testFileUrl = SwitchIntraproceduralTest::class.java.classLoader.getResource(TEST_PATH)
                     ?: throw NullPointerException("Unable to obtain test resource")
             PATH = File(testFileUrl.file)
             CLS_PATH = File(PATH.absolutePath.replace(System.getProperty("user.dir") + File.separator, "").replace(TEST_PATH, ""))
@@ -60,7 +59,23 @@ class LookUpIntraproceduralTest {
     }
 
     @Test
-    fun lookUp1Test() {
+    fun switch1Test() {
+    }
+
+    @Test
+    fun switch2Test() {
+    }
+
+    @Test
+    fun switch3Test() {
+    }
+
+    @Test
+    fun switch4Test() {
+    }
+
+    @Test
+    fun switch5Test() {
     }
 
 }

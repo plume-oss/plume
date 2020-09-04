@@ -17,6 +17,7 @@ package za.ac.sun.plume.util
 
 import org.apache.logging.log4j.LogManager
 import org.apache.logging.log4j.Logger
+import za.ac.sun.plume.domain.exceptions.PlumeCompileException
 import java.io.BufferedOutputStream
 import java.io.File
 import java.io.FileOutputStream
@@ -25,7 +26,6 @@ import java.nio.file.Files
 import java.nio.file.Path
 import java.nio.file.Paths
 import java.util.*
-import java.util.function.Consumer
 import java.util.jar.JarEntry
 import java.util.jar.JarFile
 import java.util.stream.Collectors
@@ -53,8 +53,9 @@ object ResourceCompilationUtil {
      * @param file the source file to compile
      */
     @JvmStatic
-    fun compileJavaFile(file: File?) {
-        val javac = ToolProvider.getSystemJavaCompiler()
+    fun compileJavaFile(file: File) {
+        val javac = ToolProvider.getSystemJavaCompiler() ?: throw PlumeCompileException("Unable to find a Java compiler on the system!")
+        if (javac.sourceVersions.none { it.ordinal >= 8 }) throw PlumeCompileException("Plume requires JDK version >= 8. Please install a suitable JDK and re-run the process.")
         val fileManager = javac.getStandardFileManager(null, null, null)
         javac.getTask(null, fileManager, null, listOf("-g"), null,
                 fileManager.getJavaFileObjects(file)).call()

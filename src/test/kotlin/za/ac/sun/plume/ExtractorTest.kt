@@ -12,7 +12,6 @@ import za.ac.sun.plume.domain.enums.VertexLabel
 import za.ac.sun.plume.drivers.DriverFactory
 import za.ac.sun.plume.drivers.GraphDatabase
 import za.ac.sun.plume.drivers.TinkerGraphDriver
-import za.ac.sun.plume.intraprocedural.ConditionalIntraproceduralTest
 import za.ac.sun.plume.util.TestQueryBuilderUtil
 import java.io.File
 import java.io.IOException
@@ -104,7 +103,7 @@ class ExtractorTest {
             validClassFile = getTestResource("${TEST_PATH}Test2.class")
             validJarFile = getTestResource("${TEST_PATH}Test3.jar")
             validDirectory = getTestResource("${TEST_PATH}dir_test")
-            CLS_PATH = File(getTestResource(TEST_PATH).absolutePath.replace(System.getProperty("user.dir") + File.separator, "").replace(TEST_PATH, ""))
+            CLS_PATH = File(getTestResource(TEST_PATH).absolutePath.replace(System.getProperty("user.dir") + File.separator, "").removeSuffix(TEST_PATH.replace(File.separator, "")))
             driver = (DriverFactory(GraphDatabase.TINKER_GRAPH) as TinkerGraphDriver).apply { connect() }
             extractor = Extractor(driver, CLS_PATH)
         }
@@ -114,7 +113,7 @@ class ExtractorTest {
         fun tearDownAll() {
             val f = File(TEST_GRAPH)
             if (f.exists() && !f.delete()) {
-                logger.warn("Could not clear ${ConditionalIntraproceduralTest::javaClass.name}'s test resources.")
+                logger.warn("Could not clear ${ExtractorTest::javaClass.name}'s test resources.")
             }
         }
     }

@@ -1,4 +1,4 @@
-package cannon_tests.dir_test.pack;
+package extractor_tests.dir_test.pack;
 
 public class Dir2 {
 

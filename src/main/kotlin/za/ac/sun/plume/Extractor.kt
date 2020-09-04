@@ -34,6 +34,12 @@ import java.util.*
 import java.util.function.Consumer
 import java.util.jar.JarFile
 
+/**
+ * The main entrypoint of the extractor from which the CPG will be created.
+ *
+ * @param hook the [IDriver] with which the graph will be constructed with.
+ * @param classPath the root of the source and class files to be analyzed.
+ */
 class Extractor(hook: IDriver, private val classPath: File) {
     private val logger: Logger = LogManager.getLogger(Extractor::javaClass)
 

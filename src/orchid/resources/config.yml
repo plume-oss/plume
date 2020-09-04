@@ -1,7 +1,7 @@
 site:
   about:
     siteName: Plume Extractor
-    siteDescription: Projects a Java program, JAR or class file into a code-property graph which is inserted it into a graph database.
+    siteDescription: Projects a Java program into a code-property graph which is inserted it into a graph database.
 Editorial:
   primaryColor: '#02a6f2'
   legacySearch: false
