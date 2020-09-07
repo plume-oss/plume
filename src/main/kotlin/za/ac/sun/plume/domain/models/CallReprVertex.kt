@@ -11,8 +11,9 @@ abstract class CallReprVertex (
         val signature: String,
         code: String,
         lineNumber: Int,
+        columnNumber: Int,
         order: Int
-): CFGVertex(lineNumber, code, order) {
+): CFGVertex(lineNumber, columnNumber, code, order) {
     companion object {
         @JvmField
         val TRAITS: EnumSet<VertexBaseTrait> = EnumSet.of(

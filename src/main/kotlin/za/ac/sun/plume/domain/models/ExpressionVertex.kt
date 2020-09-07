@@ -10,8 +10,9 @@ abstract class ExpressionVertex(
         code: String,
         val argumentIndex: Int,
         lineNumber: Int,
+        columnNumber: Int,
         order: Int
-) : CFGVertex(lineNumber, code, order) {
+) : CFGVertex(lineNumber, columnNumber, code, order) {
     companion object {
         @JvmField
         val TRAITS: EnumSet<VertexBaseTrait> = EnumSet.of(

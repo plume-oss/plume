@@ -8,6 +8,7 @@ import java.util.*
  */
 abstract class CFGVertex(
         val lineNumber: Int,
+        val columnNumber: Int,
         val code: String,
         order: Int
 ) : TrackingPoint(order) {
@@ -26,6 +27,7 @@ abstract class CFGVertex(
         if (!super.equals(other)) return false
 
         if (lineNumber != other.lineNumber) return false
+        if (columnNumber != other.columnNumber) return false
         if (code != other.code) return false
 
         return true
@@ -34,6 +36,7 @@ abstract class CFGVertex(
     override fun hashCode(): Int {
         var result = super.hashCode()
         result = 31 * result + lineNumber
+        result = 31 * result + columnNumber
         result = 31 * result + code.hashCode()
         return result
     }

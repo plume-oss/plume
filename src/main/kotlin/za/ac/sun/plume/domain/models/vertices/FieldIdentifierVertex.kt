@@ -1,5 +1,6 @@
 package za.ac.sun.plume.domain.models.vertices
 
+import za.ac.sun.plume.domain.enums.EdgeLabel
 import za.ac.sun.plume.domain.enums.VertexBaseTrait
 import za.ac.sun.plume.domain.enums.VertexLabel
 import za.ac.sun.plume.domain.models.ExpressionVertex
@@ -16,14 +17,33 @@ class FieldIdentifierVertex(
         code: String,
         argumentIndex: Int,
         lineNumber: Int,
+        columnNumber: Int,
         order: Int
-) : ExpressionVertex(code, argumentIndex, lineNumber, order) {
+) : ExpressionVertex(code, argumentIndex, lineNumber, columnNumber, order) {
 
     companion object {
-        @kotlin.jvm.JvmField
+        @JvmField
         val LABEL = VertexLabel.FIELD_IDENTIFIER
-        @kotlin.jvm.JvmField
+
+        @JvmField
         val TRAITS: EnumSet<VertexBaseTrait> = EnumSet.of(VertexBaseTrait.EXPRESSION)
+
+        @JvmField
+        val VALID_OUT_EDGES = mapOf(
+                EdgeLabel.CFG to listOf(
+                        VertexLabel.CALL,
+                        VertexLabel.IDENTIFIER,
+                        VertexLabel.FIELD_IDENTIFIER,
+                        VertexLabel.LITERAL,
+                        VertexLabel.METHOD_REF,
+                        VertexLabel.TYPE_REF,
+                        VertexLabel.RETURN,
+                        VertexLabel.BLOCK,
+                        VertexLabel.JUMP_TARGET,
+                        VertexLabel.CONTROL_STRUCTURE,
+                        VertexLabel.UNKNOWN
+                )
+        )
     }
 
     override fun equals(other: Any?): Boolean {

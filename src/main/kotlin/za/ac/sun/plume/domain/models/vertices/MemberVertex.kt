@@ -1,22 +1,27 @@
 package za.ac.sun.plume.domain.models.vertices
 
+import za.ac.sun.plume.domain.enums.EdgeLabel
 import za.ac.sun.plume.domain.enums.VertexBaseTrait
 import za.ac.sun.plume.domain.enums.VertexLabel
 import za.ac.sun.plume.domain.models.DeclarationVertex
 import java.util.*
 
 /**
- * Member of a class struct or union
+ * Member of a class struct or union.
  */
 class MemberVertex(val code: String, name: String, val typeFullName: String, order: Int) : DeclarationVertex(name, order) {
     companion object {
-        @kotlin.jvm.JvmField
+        @JvmField
         val LABEL = VertexLabel.MEMBER
-        @kotlin.jvm.JvmField
+
+        @JvmField
         val TRAITS: EnumSet<VertexBaseTrait> = EnumSet.of(
                 VertexBaseTrait.DECLARATION,
                 VertexBaseTrait.AST_NODE
         )
+
+        @JvmField
+        val VALID_OUT_EDGES = emptyMap<EdgeLabel, List<VertexLabel>>()
     }
 
     override fun equals(other: Any?): Boolean {

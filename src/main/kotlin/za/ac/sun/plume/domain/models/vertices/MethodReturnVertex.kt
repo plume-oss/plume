@@ -1,5 +1,6 @@
 package za.ac.sun.plume.domain.models.vertices
 
+import za.ac.sun.plume.domain.enums.EdgeLabel
 import za.ac.sun.plume.domain.enums.EvaluationStrategy
 import za.ac.sun.plume.domain.enums.VertexBaseTrait
 import za.ac.sun.plume.domain.enums.VertexLabel
@@ -15,16 +16,21 @@ class MethodReturnVertex(
         val evaluationStrategy: EvaluationStrategy,
         code: String,
         lineNumber: Int,
+        columnNumber: Int,
         order: Int
-) :  CFGVertex(lineNumber, code, order) {
+) : CFGVertex(lineNumber, columnNumber, code, order) {
     companion object {
         @kotlin.jvm.JvmField
         val LABEL = VertexLabel.METHOD_RETURN
+
         @kotlin.jvm.JvmField
         val TRAITS: EnumSet<VertexBaseTrait> = EnumSet.of(
                 VertexBaseTrait.CFG_NODE,
                 VertexBaseTrait.TRACKING_POINT
         )
+
+        @JvmField
+        val VALID_OUT_EDGES = emptyMap<EdgeLabel, List<VertexLabel>>()
     }
 
     override fun equals(other: Any?): Boolean {

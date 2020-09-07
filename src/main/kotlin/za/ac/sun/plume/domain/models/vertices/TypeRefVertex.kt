@@ -7,20 +7,20 @@ import za.ac.sun.plume.domain.models.ExpressionVertex
 import java.util.*
 
 /**
- * A structuring block in the AST.
+ * Reference to a type/class.
  */
-class BlockVertex(
-        val name: String,
+class TypeRefVertex(
         val typeFullName: String,
+        val dynamicTypeFullName: String,
         code: String,
-        order: Int,
         argumentIndex: Int,
         lineNumber: Int,
-        columnNumber: Int
+        columnNumber: Int,
+        order: Int
 ) : ExpressionVertex(code, argumentIndex, lineNumber, columnNumber, order) {
     companion object {
         @JvmField
-        val LABEL = VertexLabel.BLOCK
+        val LABEL = VertexLabel.TYPE_REF
 
         @JvmField
         val TRAITS: EnumSet<VertexBaseTrait> = EnumSet.of(VertexBaseTrait.EXPRESSION)
@@ -28,26 +28,41 @@ class BlockVertex(
         @JvmField
         val VALID_OUT_EDGES = mapOf(
                 EdgeLabel.AST to listOf(
-                        VertexLabel.CALL,
-                        VertexLabel.IDENTIFIER,
                         VertexLabel.LITERAL,
-                        VertexLabel.METHOD_REF,
-                        VertexLabel.TYPE_REF,
+                        VertexLabel.MODIFIER,
+                        VertexLabel.ARRAY_INITIALIZER,
+                        VertexLabel.CALL,
+                        VertexLabel.LOCAL,
+                        VertexLabel.IDENTIFIER,
                         VertexLabel.RETURN,
                         VertexLabel.BLOCK,
-                        VertexLabel.LOCAL,
-                        VertexLabel.UNKNOWN,
                         VertexLabel.JUMP_TARGET,
-                        VertexLabel.CONTROL_STRUCTURE
+                        VertexLabel.UNKNOWN,
+                        VertexLabel.CONTROL_STRUCTURE,
+                        VertexLabel.METHOD_REF,
+                        VertexLabel.TYPE_REF
+                ),
+                EdgeLabel.CONDITION to listOf(
+                        VertexLabel.LITERAL,
+                        VertexLabel.CALL,
+                        VertexLabel.IDENTIFIER,
+                        VertexLabel.RETURN,
+                        VertexLabel.BLOCK,
+                        VertexLabel.METHOD_REF,
+                        VertexLabel.TYPE_REF,
+                        VertexLabel.CONTROL_STRUCTURE,
+                        VertexLabel.JUMP_TARGET,
+                        VertexLabel.UNKNOWN,
+                        VertexLabel.ARRAY_INITIALIZER
                 ),
                 EdgeLabel.CFG to listOf(
                         VertexLabel.CALL,
                         VertexLabel.IDENTIFIER,
                         VertexLabel.FIELD_IDENTIFIER,
                         VertexLabel.LITERAL,
+                        VertexLabel.RETURN,
                         VertexLabel.METHOD_REF,
                         VertexLabel.TYPE_REF,
-                        VertexLabel.RETURN,
                         VertexLabel.BLOCK,
                         VertexLabel.JUMP_TARGET,
                         VertexLabel.CONTROL_STRUCTURE,
@@ -58,22 +73,19 @@ class BlockVertex(
 
     override fun equals(other: Any?): Boolean {
         if (this === other) return true
-        if (other !is BlockVertex) return false
-        if (!super.equals(other)) return false
+        if (other !is TypeRefVertex) return false
 
         if (typeFullName != other.typeFullName) return false
+        if (dynamicTypeFullName != other.dynamicTypeFullName) return false
 
         return true
     }
 
     override fun hashCode(): Int {
-        var result = super.hashCode()
-        result = 31 * result + typeFullName.hashCode()
+        var result = 31 * typeFullName.hashCode()
+        result = 31 * result + dynamicTypeFullName.hashCode()
         return result
     }
 
-    override fun toString(): String {
-        return "BlockVertex(name='$name', typeFullName='$typeFullName')"
-    }
 
 }
