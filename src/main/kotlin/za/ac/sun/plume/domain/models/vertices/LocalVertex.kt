@@ -13,6 +13,7 @@ class LocalVertex(
         val code: String,
         val typeFullName: String,
         val lineNumber: Int,
+        val columnNumber: Int,
         name: String,
         order: Int
 ) : LocalLikeVertex(name, order) {
