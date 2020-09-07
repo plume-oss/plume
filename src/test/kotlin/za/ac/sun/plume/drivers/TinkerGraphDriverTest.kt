@@ -120,6 +120,7 @@ class TinkerGraphDriverTest {
         private val v9 = TypeArgumentVertex(INT_1)
         private val v10 = TypeParameterVertex(STRING_1, INT_1)
         private val v11 = TypeDeclVertex(STRING_1, STRING_1, STRING_1, INT_1)
+        private val v12 = FileVertex(STRING_1, INT_1)
 
         @BeforeEach
         fun setUp() {
@@ -238,6 +239,15 @@ class TinkerGraphDriverTest {
             assertTrue(driver.exists(v8))
             assertTrue(driver.exists(v4))
             assertTrue(driver.exists(v8, v4, EdgeLabel.ARGUMENT))
+        }
+
+        @Test
+        fun testSourceFileEdgeCreation() {
+            assertFalse(driver.exists(v6, v12, EdgeLabel.SOURCE_FILE))
+            driver.addEdge(v6, v12, EdgeLabel.SOURCE_FILE)
+            assertTrue(driver.exists(v6))
+            assertTrue(driver.exists(v12))
+            assertTrue(driver.exists(v6, v12, EdgeLabel.SOURCE_FILE))
         }
     }
 

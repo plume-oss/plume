@@ -51,7 +51,8 @@ class MethodVertex(
                         VertexLabel.JUMP_TARGET,
                         VertexLabel.CONTROL_STRUCTURE,
                         VertexLabel.UNKNOWN
-                )
+                ),
+                EdgeLabel.SOURCE_FILE to listOf(VertexLabel.FILE)
         )
     }
 
