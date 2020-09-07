@@ -29,7 +29,7 @@ class LocalVertex(
         )
 
         @JvmField
-        val VALID_OUT_EDGES = emptyMap<EdgeLabel, List<VertexLabel>>()
+        val VALID_OUT_EDGES = mapOf(EdgeLabel.CAPTURED_BY to listOf(VertexLabel.BINDING))
     }
 
     override fun equals(other: Any?): Boolean {
@@ -44,7 +44,7 @@ class LocalVertex(
     }
 
     override fun hashCode(): Int {
-        var result =  31 * code.hashCode()
+        var result = 31 * code.hashCode()
         result = 31 * result + typeFullName.hashCode()
         result = 31 * result + lineNumber
         return result

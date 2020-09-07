@@ -26,6 +26,34 @@ class ControlStructureVertex(
 
         @JvmField
         val VALID_OUT_EDGES = mapOf(
+                EdgeLabel.AST to listOf(
+                        VertexLabel.LITERAL,
+                        VertexLabel.MODIFIER,
+                        VertexLabel.ARRAY_INITIALIZER,
+                        VertexLabel.CALL,
+                        VertexLabel.LOCAL,
+                        VertexLabel.IDENTIFIER,
+                        VertexLabel.RETURN,
+                        VertexLabel.BLOCK,
+                        VertexLabel.JUMP_TARGET,
+                        VertexLabel.UNKNOWN,
+                        VertexLabel.CONTROL_STRUCTURE,
+                        VertexLabel.METHOD_REF,
+                        VertexLabel.TYPE_REF
+                ),
+                EdgeLabel.CONDITION to listOf(
+                        VertexLabel.LITERAL,
+                        VertexLabel.CALL,
+                        VertexLabel.IDENTIFIER,
+                        VertexLabel.RETURN,
+                        VertexLabel.BLOCK,
+                        VertexLabel.METHOD_REF,
+                        VertexLabel.TYPE_REF,
+                        VertexLabel.CONTROL_STRUCTURE,
+                        VertexLabel.JUMP_TARGET,
+                        VertexLabel.UNKNOWN,
+                        VertexLabel.ARRAY_INITIALIZER
+                ),
                 EdgeLabel.CFG to listOf(
                         VertexLabel.CALL,
                         VertexLabel.IDENTIFIER,

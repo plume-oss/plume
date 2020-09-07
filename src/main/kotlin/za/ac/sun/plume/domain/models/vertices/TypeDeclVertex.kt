@@ -25,7 +25,7 @@ class TypeDeclVertex(
         @JvmField
         val VALID_OUT_EDGES = mapOf(
                 EdgeLabel.AST to listOf(
-                        VertexLabel.TYPE_ARGUMENT,
+                        VertexLabel.TYPE_PARAMETER,
                         VertexLabel.MEMBER,
                         VertexLabel.MODIFIER
                 ),
