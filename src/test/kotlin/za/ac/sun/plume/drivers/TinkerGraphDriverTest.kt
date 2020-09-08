@@ -41,31 +41,6 @@ class TinkerGraphDriverTest {
         }
     }
 
-    @Test
-    fun schemaPlz() {
-        val schemaLines = HashSet<String>();
-        VertexLabel.values().forEach { v1 ->
-            EdgeLabel.values().forEach { e ->
-                VertexLabel.values().forEach { v2 ->
-                    if (VertexMapper.checkSchemaConstraints(v1, e, v2)) {
-                        schemaLines.add("CREATE DIRECTED EDGE ${v1}_$v2 (FROM ${v1}_VERT, TO ${v2}_VERT, name STRING)")
-                    }
-                }
-            }
-        }
-        schemaLines.toList().sorted().forEach(::println)
-    }
-
-    @Test
-    fun verticesPlz() {
-        vertices.forEach { v ->
-            val props =  VertexMapper.vertexToMap(v)
-            val sb = StringBuilder("CREATE VERTEX ${props.remove("label")}_VERT (PRIMARY_ID id INT,")
-            VertexMapper.vertexToMap(v).keys.filter { it != "label" }.map { if (it == "order") "astOrder" else it }.forEach { sb.append(" $it TYPE,") }
-            println(sb.append(")").toString().replace(",)", ")"))
-        }
-    }
-
     @BeforeEach
     fun setUp() {
         driver = (DriverFactory(GraphDatabase.TINKER_GRAPH) as TinkerGraphDriver).apply { connect() }
