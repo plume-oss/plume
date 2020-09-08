@@ -89,6 +89,7 @@ class CallVertex(
     override fun equals(other: Any?): Boolean {
         if (this === other) return true
         if (other !is CallVertex) return false
+        if (!super.equals(other)) return false
 
         if (methodFullName != other.methodFullName) return false
         if (argumentIndex != other.argumentIndex) return false
@@ -100,10 +101,12 @@ class CallVertex(
     }
 
     override fun hashCode(): Int {
-        var result = 31 * methodFullName.hashCode()
+        var result = super.hashCode()
+        result = 31 * result + methodFullName.hashCode()
         result = 31 * result + argumentIndex
         result = 31 * result + dispatchType.hashCode()
         result = 31 * result + typeFullName.hashCode()
+        result = 31 * result + dynamicTypeHintFullName.hashCode()
         return result
     }
 
