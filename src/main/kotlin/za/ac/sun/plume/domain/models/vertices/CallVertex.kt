@@ -11,7 +11,6 @@ import java.util.*
  * A (method)-call.
  */
 class CallVertex(
-        val methodInstFullName: String,
         val methodFullName: String,
         val argumentIndex: Int,
         val dispatchType: DispatchType,
@@ -91,7 +90,6 @@ class CallVertex(
         if (this === other) return true
         if (other !is CallVertex) return false
 
-        if (methodInstFullName != other.methodInstFullName) return false
         if (methodFullName != other.methodFullName) return false
         if (argumentIndex != other.argumentIndex) return false
         if (dispatchType != other.dispatchType) return false
@@ -102,8 +100,7 @@ class CallVertex(
     }
 
     override fun hashCode(): Int {
-        var result = 31 * methodInstFullName.hashCode()
-        result = 31 * result + methodFullName.hashCode()
+        var result = 31 * methodFullName.hashCode()
         result = 31 * result + argumentIndex
         result = 31 * result + dispatchType.hashCode()
         result = 31 * result + typeFullName.hashCode()
@@ -111,6 +108,6 @@ class CallVertex(
     }
 
     override fun toString(): String {
-        return "CallVertex(methodInstFullName='$methodInstFullName', methodFullName='$methodFullName', argumentIndex=$argumentIndex, dispatchType=$dispatchType, typeFullName='$typeFullName', dynamicTypeHintFullName='$dynamicTypeHintFullName')"
+        return "CallVertex(methodFullName='$methodFullName', argumentIndex=$argumentIndex, dispatchType=$dispatchType, typeFullName='$typeFullName', dynamicTypeHintFullName='$dynamicTypeHintFullName')"
     }
 }

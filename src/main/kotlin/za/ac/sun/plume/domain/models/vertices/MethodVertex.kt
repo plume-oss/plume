@@ -36,7 +36,8 @@ class MethodVertex(
                         VertexLabel.METHOD_PARAMETER_IN,
                         VertexLabel.MODIFIER,
                         VertexLabel.BLOCK,
-                        VertexLabel.TYPE_PARAMETER
+                        VertexLabel.TYPE_PARAMETER,
+                        VertexLabel.LOCAL
                 ),
                 EdgeLabel.CFG to listOf(
                         VertexLabel.CALL,

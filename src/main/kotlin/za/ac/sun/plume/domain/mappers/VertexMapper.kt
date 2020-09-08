@@ -129,7 +129,6 @@ class VertexMapper {
                         order = map["order"] as Int,
                         argumentIndex = map["argumentIndex"] as Int,
                         methodFullName = map["methodFullName"] as String,
-                        methodInstFullName = map["methodInstFullName"] as String,
                         lineNumber = map["lineNumber"] as Int,
                         columnNumber = map["columnNumber"] as Int,
                         signature = map["signature"] as String,

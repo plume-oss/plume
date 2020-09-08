@@ -48,7 +48,7 @@ class ModelTest {
         @Test
         fun callVertexToString() {
             val vertex = TestDomainResources.vertices.first { it is CallVertex }
-            assertEquals("CallVertex(methodInstFullName='$STRING_1', methodFullName='$STRING_1', argumentIndex=$INT_1, dispatchType=$DISPATCH_1, typeFullName='$STRING_1', dynamicTypeHintFullName='$STRING_1')", vertex.toString())
+            assertEquals("CallVertex(methodFullName='$STRING_1', argumentIndex=$INT_1, dispatchType=$DISPATCH_1, typeFullName='$STRING_1', dynamicTypeHintFullName='$STRING_1')", vertex.toString())
         }
 
         @Test
@@ -225,18 +225,18 @@ class ModelTest {
 
         @Test
         fun callVertexEquality() {
-            val vertex1 = CallVertex(STRING_1, STRING_1, INT_1, DISPATCH_1, STRING_1, STRING_1, STRING_1, STRING_1, STRING_1, INT_1, INT_1, INT_1)
-            val vertex2 = CallVertex(STRING_1, STRING_1, INT_1, DISPATCH_1, STRING_1, STRING_1, STRING_1, STRING_1, STRING_1, INT_1, INT_1, INT_1)
-            val vertex3 = CallVertex(STRING_1, STRING_2, INT_1, DISPATCH_1, STRING_1, STRING_1, STRING_1, STRING_1, STRING_1, INT_1, INT_1, INT_1)
-            val vertex4 = CallVertex(STRING_1, STRING_1, INT_2, DISPATCH_1, STRING_1, STRING_1, STRING_1, STRING_1, STRING_1, INT_1, INT_1, INT_1)
-            val vertex5 = CallVertex(STRING_1, STRING_1, INT_1, DISPATCH_2, STRING_1, STRING_1, STRING_1, STRING_1, STRING_1, INT_1, INT_1, INT_1)
-            val vertex6 = CallVertex(STRING_1, STRING_1, INT_1, DISPATCH_1, STRING_2, STRING_1, STRING_1, STRING_1, STRING_1, INT_1, INT_1, INT_1)
-            val vertex7 = CallVertex(STRING_1, STRING_1, INT_1, DISPATCH_1, STRING_1, STRING_1, STRING_2, STRING_1, STRING_1, INT_1, INT_1, INT_1)
-            val vertex8 = CallVertex(STRING_1, STRING_1, INT_1, DISPATCH_1, STRING_1, STRING_1, STRING_1, STRING_2, STRING_1, INT_1, INT_1, INT_1)
-            val vertex9 = CallVertex(STRING_1, STRING_1, INT_1, DISPATCH_1, STRING_1, STRING_1, STRING_1, STRING_1, STRING_2, INT_1, INT_1, INT_1)
-            val vertex10 = CallVertex(STRING_1, STRING_1, INT_1, DISPATCH_1, STRING_1, STRING_1, STRING_1, STRING_1, STRING_1, INT_2, INT_1, INT_1)
-            val vertex11 = CallVertex(STRING_1, STRING_1, INT_1, DISPATCH_1, STRING_1, STRING_1, STRING_1, STRING_1, STRING_1, INT_1, INT_2, INT_1)
-            val vertex12 = CallVertex(STRING_1, STRING_1, INT_1, DISPATCH_1, STRING_1, STRING_1, STRING_1, STRING_1, STRING_1, INT_1, INT_1, INT_2)
+            val vertex1 = CallVertex(STRING_1, INT_1, DISPATCH_1, STRING_1, STRING_1, STRING_1, STRING_1, STRING_1, INT_1, INT_1, INT_1)
+            val vertex2 = CallVertex(STRING_1, INT_1, DISPATCH_1, STRING_1, STRING_1, STRING_1, STRING_1, STRING_1, INT_1, INT_1, INT_1)
+            val vertex3 = CallVertex(STRING_2, INT_1, DISPATCH_1, STRING_1, STRING_1, STRING_1, STRING_1, STRING_1, INT_1, INT_1, INT_1)
+            val vertex4 = CallVertex(STRING_1, INT_2, DISPATCH_1, STRING_1, STRING_1, STRING_1, STRING_1, STRING_1, INT_1, INT_1, INT_1)
+            val vertex5 = CallVertex(STRING_1, INT_1, DISPATCH_2, STRING_1, STRING_1, STRING_1, STRING_1, STRING_1, INT_1, INT_1, INT_1)
+            val vertex6 = CallVertex(STRING_1, INT_1, DISPATCH_1, STRING_2, STRING_1, STRING_1, STRING_1, STRING_1, INT_1, INT_1, INT_1)
+            val vertex7 = CallVertex(STRING_1, INT_1, DISPATCH_1, STRING_1, STRING_1, STRING_2, STRING_1, STRING_1, INT_1, INT_1, INT_1)
+            val vertex8 = CallVertex(STRING_1, INT_1, DISPATCH_1, STRING_1, STRING_1, STRING_1, STRING_2, STRING_1, INT_1, INT_1, INT_1)
+            val vertex9 = CallVertex(STRING_1, INT_1, DISPATCH_1, STRING_1, STRING_1, STRING_1, STRING_1, STRING_2, INT_1, INT_1, INT_1)
+            val vertex10 = CallVertex(STRING_1, INT_1, DISPATCH_1, STRING_1, STRING_1, STRING_1, STRING_1, STRING_1, INT_2, INT_1, INT_1)
+            val vertex11 = CallVertex(STRING_1, INT_1, DISPATCH_1, STRING_1, STRING_1, STRING_1, STRING_1, STRING_1, INT_1, INT_2, INT_1)
+            val vertex12 = CallVertex(STRING_1, INT_1, DISPATCH_1, STRING_1, STRING_1, STRING_1, STRING_1, STRING_1, INT_1, INT_1, INT_2)
             assertVertexEquality(vertex1, vertex2)
             assertVertexInequality(vertex1, vertex3)
             assertVertexInequality(vertex1, vertex4)
@@ -637,7 +637,7 @@ class ModelTest {
 
         @Test
         fun callVertexEquality() {
-            val vertex1 = CallVertex(STRING_1, STRING_1, INT_1, DISPATCH_1, STRING_1, STRING_1, STRING_1, STRING_1, STRING_1, INT_1, INT_1, INT_1)
+            val vertex1 = CallVertex(STRING_1, INT_1, DISPATCH_1, STRING_1, STRING_1, STRING_1, STRING_1, STRING_1, INT_1, INT_1, INT_1)
             assertEquals(VertexLabel.CALL, CallVertex.LABEL)
             assertEquals(EnumSet.of(VertexBaseTrait.EXPRESSION, VertexBaseTrait.CALL_REPR), CallVertex.TRAITS)
             assertEquals(vertex1.name, STRING_1)
@@ -649,7 +649,6 @@ class ModelTest {
             assertEquals(vertex1.argumentIndex, INT_1)
             assertEquals(vertex1.dispatchType, DISPATCH_1)
             assertEquals(vertex1.methodFullName, STRING_1)
-            assertEquals(vertex1.methodInstFullName, STRING_1)
             assertEquals(vertex1.signature, STRING_1)
             assertEquals(vertex1.code, STRING_1)
         }

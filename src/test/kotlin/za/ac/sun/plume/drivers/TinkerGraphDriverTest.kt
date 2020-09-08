@@ -119,7 +119,7 @@ class TinkerGraphDriverTest {
         private val v5 = BindingVertex(STRING_1, STRING_2)
         private val v6 = MethodVertex(STRING_1, STRING_2, STRING_1, STRING_1, INT_1, INT_1, INT_1)
         private val v7 = LocalVertex(STRING_1, STRING_1, INT_1, INT_1, STRING_1, INT_1)
-        private val v8 = CallVertex(STRING_1, STRING_2, INT_1, DISPATCH_1, STRING_1, STRING_1, STRING_1, STRING_1, STRING_1, INT_1, INT_1, INT_1)
+        private val v8 = CallVertex(STRING_1, INT_1, DISPATCH_1, STRING_1, STRING_1, STRING_1, STRING_1, STRING_1, INT_1, INT_1, INT_1)
         private val v9 = TypeArgumentVertex(INT_1)
         private val v10 = TypeParameterVertex(STRING_1, INT_1)
         private val v11 = TypeDeclVertex(STRING_1, STRING_1, STRING_1, INT_1)

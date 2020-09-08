@@ -22,7 +22,7 @@ class TestDomainResources {
                 ArrayInitializerVertex(INT_1),
                 BindingVertex(STRING_1, STRING_2),
                 BlockVertex(STRING_1, STRING_1, STRING_1, INT_1, INT_1, INT_1, INT_1),
-                CallVertex(STRING_1, STRING_1, INT_1, DISPATCH_1, STRING_1, STRING_1, STRING_1, STRING_1, STRING_1, INT_1, INT_1, INT_1),
+                CallVertex(STRING_1, INT_1, DISPATCH_1, STRING_1, STRING_1, STRING_1, STRING_1, STRING_1, INT_1, INT_1, INT_1),
                 ControlStructureVertex(STRING_1, STRING_1, INT_1, INT_1, INT_1, INT_1),
                 FieldIdentifierVertex(STRING_1, STRING_1, INT_1, INT_1, INT_1, INT_1),
                 FileVertex(STRING_1, INT_1),
