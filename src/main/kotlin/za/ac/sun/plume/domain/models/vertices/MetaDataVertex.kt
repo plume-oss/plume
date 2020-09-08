@@ -1,5 +1,6 @@
 package za.ac.sun.plume.domain.models.vertices
 
+import za.ac.sun.plume.domain.enums.EdgeLabel
 import za.ac.sun.plume.domain.enums.VertexBaseTrait
 import za.ac.sun.plume.domain.enums.VertexLabel
 import za.ac.sun.plume.domain.models.PlumeVertex
@@ -10,10 +11,14 @@ import java.util.*
  */
 class MetaDataVertex(val language: String, val version: String) : PlumeVertex {
     companion object {
-        @kotlin.jvm.JvmField
+        @JvmField
         val LABEL = VertexLabel.META_DATA
-        @kotlin.jvm.JvmField
+
+        @JvmField
         val TRAITS: EnumSet<VertexBaseTrait> = EnumSet.noneOf(VertexBaseTrait::class.java)
+
+        @JvmField
+        val VALID_OUT_EDGES = emptyMap<EdgeLabel, List<VertexLabel>>()
     }
 
     override fun toString(): String {

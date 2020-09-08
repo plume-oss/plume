@@ -1,5 +1,6 @@
 package za.ac.sun.plume.domain.models.vertices
 
+import za.ac.sun.plume.domain.enums.EdgeLabel
 import za.ac.sun.plume.domain.enums.VertexBaseTrait
 import za.ac.sun.plume.domain.enums.VertexLabel
 import za.ac.sun.plume.domain.models.CFGVertex
@@ -12,14 +13,33 @@ class JumpTargetVertex(
         val name: String,
         val argumentIndex: Int,
         lineNumber: Int,
+        columnNumber: Int,
         code: String,
         order: Int
-) : CFGVertex(lineNumber, code, order) {
+) : CFGVertex(lineNumber, columnNumber, code, order) {
     companion object {
-        @kotlin.jvm.JvmField
+        @JvmField
         val LABEL = VertexLabel.JUMP_TARGET
-        @kotlin.jvm.JvmField
+
+        @JvmField
         val TRAITS: EnumSet<VertexBaseTrait> = EnumSet.of(VertexBaseTrait.AST_NODE)
+
+        @JvmField
+        val VALID_OUT_EDGES = mapOf(
+                EdgeLabel.CFG to listOf(
+                        VertexLabel.CALL,
+                        VertexLabel.IDENTIFIER,
+                        VertexLabel.FIELD_IDENTIFIER,
+                        VertexLabel.LITERAL,
+                        VertexLabel.RETURN,
+                        VertexLabel.METHOD_REF,
+                        VertexLabel.TYPE_REF,
+                        VertexLabel.BLOCK,
+                        VertexLabel.JUMP_TARGET,
+                        VertexLabel.CONTROL_STRUCTURE,
+                        VertexLabel.UNKNOWN
+                )
+        )
     }
 
     override fun equals(other: Any?): Boolean {

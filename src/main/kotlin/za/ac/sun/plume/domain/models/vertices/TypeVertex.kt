@@ -1,5 +1,6 @@
 package za.ac.sun.plume.domain.models.vertices
 
+import za.ac.sun.plume.domain.enums.EdgeLabel
 import za.ac.sun.plume.domain.enums.VertexBaseTrait
 import za.ac.sun.plume.domain.enums.VertexLabel
 import za.ac.sun.plume.domain.models.PlumeVertex
@@ -11,10 +12,14 @@ import java.util.*
  */
 class TypeVertex(val name: String, val fullName: String, val typeDeclFullName: String) : PlumeVertex {
     companion object {
-        @kotlin.jvm.JvmField
+        @JvmField
         val LABEL = VertexLabel.TYPE
-        @kotlin.jvm.JvmField
+
+        @JvmField
         val TRAITS: EnumSet<VertexBaseTrait> = EnumSet.noneOf(VertexBaseTrait::class.java)
+
+        @JvmField
+        val VALID_OUT_EDGES = mapOf(EdgeLabel.AST to listOf(VertexLabel.TYPE_ARGUMENT))
     }
 
     override fun equals(other: Any?): Boolean {

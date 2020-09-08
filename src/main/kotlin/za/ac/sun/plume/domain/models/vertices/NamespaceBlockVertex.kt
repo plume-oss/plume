@@ -1,19 +1,26 @@
 package za.ac.sun.plume.domain.models.vertices
 
+import za.ac.sun.plume.domain.enums.EdgeLabel
 import za.ac.sun.plume.domain.enums.VertexBaseTrait
 import za.ac.sun.plume.domain.enums.VertexLabel
 import za.ac.sun.plume.domain.models.ASTVertex
 import java.util.*
 
 /**
- * A reference to a namespace
+ * A reference to a namespace.
  */
 class NamespaceBlockVertex(val name: String, val fullName: String, order: Int) : ASTVertex(order) {
     companion object {
-        @kotlin.jvm.JvmField
+        @JvmField
         val LABEL = VertexLabel.NAMESPACE_BLOCK
-        @kotlin.jvm.JvmField
+
+        @JvmField
         val TRAITS: EnumSet<VertexBaseTrait> = EnumSet.of(VertexBaseTrait.AST_NODE)
+
+        @JvmField
+        val VALID_OUT_EDGES = mapOf(
+                EdgeLabel.AST to listOf(VertexLabel.FILE, VertexLabel.METHOD, VertexLabel.NAMESPACE_BLOCK)
+        )
     }
 
     override fun equals(other: Any?): Boolean {

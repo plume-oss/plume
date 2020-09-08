@@ -1,12 +1,13 @@
 package za.ac.sun.plume.domain.models.vertices
 
+import za.ac.sun.plume.domain.enums.EdgeLabel
 import za.ac.sun.plume.domain.enums.VertexBaseTrait
 import za.ac.sun.plume.domain.enums.VertexLabel
 import za.ac.sun.plume.domain.models.ExpressionVertex
 import java.util.*
 
 /**
- * Literal/Constant
+ * Literal/Constant.
  */
 class LiteralVertex(
         val name: String,
@@ -14,13 +15,32 @@ class LiteralVertex(
         code: String,
         order: Int,
         argumentIndex: Int,
-        lineNumber: Int
-) : ExpressionVertex(code, argumentIndex, lineNumber, order) {
+        lineNumber: Int,
+        columnNumber: Int
+) : ExpressionVertex(code, argumentIndex, lineNumber, columnNumber, order) {
     companion object {
-        @kotlin.jvm.JvmField
+        @JvmField
         val LABEL = VertexLabel.LITERAL
-        @kotlin.jvm.JvmField
+
+        @JvmField
         val TRAITS: EnumSet<VertexBaseTrait> = EnumSet.of(VertexBaseTrait.EXPRESSION)
+
+        @JvmField
+        val VALID_OUT_EDGES = mapOf(
+                EdgeLabel.CFG to listOf(
+                        VertexLabel.CALL,
+                        VertexLabel.IDENTIFIER,
+                        VertexLabel.FIELD_IDENTIFIER,
+                        VertexLabel.LITERAL,
+                        VertexLabel.METHOD_REF,
+                        VertexLabel.TYPE_REF,
+                        VertexLabel.RETURN,
+                        VertexLabel.BLOCK,
+                        VertexLabel.JUMP_TARGET,
+                        VertexLabel.CONTROL_STRUCTURE,
+                        VertexLabel.UNKNOWN
+                )
+        )
     }
 
     override fun equals(other: Any?): Boolean {

@@ -1,5 +1,6 @@
 package za.ac.sun.plume.domain.models.vertices
 
+import za.ac.sun.plume.domain.enums.EdgeLabel
 import za.ac.sun.plume.domain.enums.VertexBaseTrait
 import za.ac.sun.plume.domain.enums.VertexLabel
 import za.ac.sun.plume.domain.models.ASTVertex
@@ -10,10 +11,12 @@ import java.util.*
  */
 class FileVertex(val name: String, order: Int) : ASTVertex(order) {
     companion object {
-        @kotlin.jvm.JvmField
+        @JvmField
         val LABEL = VertexLabel.FILE
-        @kotlin.jvm.JvmField
+        @JvmField
         val TRAITS: EnumSet<VertexBaseTrait> = EnumSet.of(VertexBaseTrait.AST_NODE)
+        @JvmField
+        val VALID_OUT_EDGES = emptyMap<EdgeLabel, List<VertexLabel>>()
     }
 
     override fun equals(other: Any?): Boolean {

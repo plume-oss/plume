@@ -1,25 +1,60 @@
 package za.ac.sun.plume.domain.models.vertices
 
+import za.ac.sun.plume.domain.enums.EdgeLabel
 import za.ac.sun.plume.domain.enums.VertexBaseTrait
 import za.ac.sun.plume.domain.enums.VertexLabel
 import za.ac.sun.plume.domain.models.ExpressionVertex
 import java.util.*
 
 /**
- * A language-specific node
+ * A language-specific node.
  */
 class UnknownVertex(
         val typeFullName: String,
         code: String,
         order: Int,
         argumentIndex: Int,
-        lineNumber: Int
-) : ExpressionVertex(code, argumentIndex, lineNumber, order) {
+        lineNumber: Int,
+        columnNumber: Int
+) : ExpressionVertex(code, argumentIndex, lineNumber, columnNumber, order) {
     companion object {
-        @kotlin.jvm.JvmField
+        @JvmField
         val LABEL = VertexLabel.UNKNOWN
-        @kotlin.jvm.JvmField
+
+        @JvmField
         val TRAITS: EnumSet<VertexBaseTrait> = EnumSet.of(VertexBaseTrait.EXPRESSION)
+
+        @JvmField
+        val VALID_OUT_EDGES = mapOf(
+                EdgeLabel.CFG to listOf(
+                        VertexLabel.CALL,
+                        VertexLabel.IDENTIFIER,
+                        VertexLabel.FIELD_IDENTIFIER,
+                        VertexLabel.LITERAL,
+                        VertexLabel.RETURN,
+                        VertexLabel.METHOD_REF,
+                        VertexLabel.TYPE_REF,
+                        VertexLabel.BLOCK,
+                        VertexLabel.JUMP_TARGET,
+                        VertexLabel.CONTROL_STRUCTURE,
+                        VertexLabel.UNKNOWN
+                ),
+                EdgeLabel.AST to listOf(
+                        VertexLabel.LITERAL,
+                        VertexLabel.MEMBER,
+                        VertexLabel.MODIFIER,
+                        VertexLabel.ARRAY_INITIALIZER,
+                        VertexLabel.CALL,
+                        VertexLabel.LOCAL,
+                        VertexLabel.IDENTIFIER,
+                        VertexLabel.FIELD_IDENTIFIER,
+                        VertexLabel.RETURN,
+                        VertexLabel.BLOCK,
+                        VertexLabel.JUMP_TARGET,
+                        VertexLabel.UNKNOWN,
+                        VertexLabel.CONTROL_STRUCTURE
+                )
+        )
     }
 
     override fun equals(other: Any?): Boolean {

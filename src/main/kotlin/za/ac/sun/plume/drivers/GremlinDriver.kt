@@ -5,19 +5,18 @@ import org.apache.logging.log4j.LogManager
 import org.apache.tinkerpop.gremlin.process.traversal.Order
 import org.apache.tinkerpop.gremlin.process.traversal.dsl.graph.GraphTraversal
 import org.apache.tinkerpop.gremlin.process.traversal.dsl.graph.GraphTraversalSource
-import org.apache.tinkerpop.gremlin.process.traversal.dsl.graph.`__` as underscore
 import org.apache.tinkerpop.gremlin.structure.Edge
 import org.apache.tinkerpop.gremlin.structure.Graph
 import org.apache.tinkerpop.gremlin.structure.T
 import org.apache.tinkerpop.gremlin.structure.Vertex
 import org.apache.tinkerpop.gremlin.tinkergraph.structure.TinkerGraph
 import za.ac.sun.plume.domain.enums.EdgeLabel
+import za.ac.sun.plume.domain.exceptions.PlumeSchemaViolationException
+import za.ac.sun.plume.domain.mappers.VertexMapper.Companion.checkSchemaConstraints
 import za.ac.sun.plume.domain.mappers.VertexMapper.Companion.vertexToMap
-import za.ac.sun.plume.domain.models.ASTVertex
 import za.ac.sun.plume.domain.models.PlumeVertex
-import za.ac.sun.plume.domain.models.vertices.*
-import java.lang.IllegalArgumentException
 import java.util.*
+import org.apache.tinkerpop.gremlin.process.traversal.dsl.graph.`__` as underscore
 
 /**
  * The driver used by remote Gremlin connections.
@@ -129,6 +128,7 @@ abstract class GremlinDriver : IDriver {
     }
 
     override fun addEdge(fromV: PlumeVertex, toV: PlumeVertex, edge: EdgeLabel) {
+        if (!checkSchemaConstraints(fromV, toV, edge)) throw PlumeSchemaViolationException(fromV, toV, edge)
         if (exists(fromV, toV, edge)) return
         if (!transactionOpen) openTx()
         val source = if (findVertexTraversal(fromV).hasNext()) findVertexTraversal(fromV).next()

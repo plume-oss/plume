@@ -1,5 +1,6 @@
 package za.ac.sun.plume.domain.models.vertices
 
+import za.ac.sun.plume.domain.enums.EdgeLabel
 import za.ac.sun.plume.domain.enums.EvaluationStrategy
 import za.ac.sun.plume.domain.enums.VertexBaseTrait
 import za.ac.sun.plume.domain.enums.VertexLabel
@@ -18,12 +19,18 @@ class MethodParameterInVertex(
         order: Int
 ) : DeclarationVertex(name, order) {
     companion object {
-        @kotlin.jvm.JvmField
+        @JvmField
         val LABEL = VertexLabel.METHOD_PARAMETER_IN
-        @kotlin.jvm.JvmField
-        val TRAITS: EnumSet<VertexBaseTrait> = EnumSet.of(VertexBaseTrait.AST_NODE,
+
+        @JvmField
+        val TRAITS: EnumSet<VertexBaseTrait> = EnumSet.of(
+                VertexBaseTrait.AST_NODE,
                 VertexBaseTrait.DECLARATION,
-                VertexBaseTrait.CFG_NODE)
+                VertexBaseTrait.CFG_NODE
+        )
+
+        @JvmField
+        val VALID_OUT_EDGES = emptyMap<EdgeLabel, List<VertexLabel>>()
     }
 
     override fun equals(other: Any?): Boolean {

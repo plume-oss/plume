@@ -1,5 +1,6 @@
 package za.ac.sun.plume.domain.models.vertices
 
+import za.ac.sun.plume.domain.enums.EdgeLabel
 import za.ac.sun.plume.domain.enums.VertexBaseTrait
 import za.ac.sun.plume.domain.enums.VertexLabel
 import za.ac.sun.plume.domain.models.CFGVertex
@@ -14,16 +15,45 @@ class MethodVertex(
         val signature: String,
         code: String,
         lineNumber: Int,
+        columnNumber: Int,
         order: Int
-) : CFGVertex(lineNumber, code, order) {
+) : CFGVertex(lineNumber, columnNumber, code, order) {
     companion object {
-        @kotlin.jvm.JvmField
+        @JvmField
         val LABEL = VertexLabel.METHOD
-        @kotlin.jvm.JvmField
+
+        @JvmField
         val TRAITS: EnumSet<VertexBaseTrait> = EnumSet.of(
                 VertexBaseTrait.AST_NODE,
                 VertexBaseTrait.DECLARATION,
                 VertexBaseTrait.CFG_NODE
+        )
+
+        @JvmField
+        val VALID_OUT_EDGES = mapOf(
+                EdgeLabel.AST to listOf(
+                        VertexLabel.METHOD_RETURN,
+                        VertexLabel.METHOD_PARAMETER_IN,
+                        VertexLabel.MODIFIER,
+                        VertexLabel.BLOCK,
+                        VertexLabel.TYPE_PARAMETER,
+                        VertexLabel.LOCAL
+                ),
+                EdgeLabel.CFG to listOf(
+                        VertexLabel.CALL,
+                        VertexLabel.IDENTIFIER,
+                        VertexLabel.FIELD_IDENTIFIER,
+                        VertexLabel.LITERAL,
+                        VertexLabel.METHOD_REF,
+                        VertexLabel.TYPE_REF,
+                        VertexLabel.METHOD_RETURN,
+                        VertexLabel.RETURN,
+                        VertexLabel.BLOCK,
+                        VertexLabel.JUMP_TARGET,
+                        VertexLabel.CONTROL_STRUCTURE,
+                        VertexLabel.UNKNOWN
+                ),
+                EdgeLabel.SOURCE_FILE to listOf(VertexLabel.FILE)
         )
     }
 

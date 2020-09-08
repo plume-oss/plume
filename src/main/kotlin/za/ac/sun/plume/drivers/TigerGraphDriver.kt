@@ -6,8 +6,10 @@ import org.json.JSONArray
 import org.json.JSONObject
 import za.ac.sun.plume.domain.enums.EdgeLabel
 import za.ac.sun.plume.domain.enums.VertexLabel
+import za.ac.sun.plume.domain.exceptions.PlumeSchemaViolationException
 import za.ac.sun.plume.domain.exceptions.PlumeTransactionException
 import za.ac.sun.plume.domain.mappers.VertexMapper
+import za.ac.sun.plume.domain.mappers.VertexMapper.Companion.checkSchemaConstraints
 import za.ac.sun.plume.domain.models.PlumeVertex
 import java.io.IOException
 import java.lang.Thread.sleep
@@ -119,6 +121,7 @@ class TigerGraphDriver : IDriver {
     }
 
     override fun addEdge(fromV: PlumeVertex, toV: PlumeVertex, edge: EdgeLabel) {
+        if (!checkSchemaConstraints(fromV, toV, edge)) throw PlumeSchemaViolationException(fromV, toV, edge)
         if (exists(fromV, toV, edge)) return
         val fromPayload = createVertexPayload(fromV)
         val toPayload = createVertexPayload(toV)

@@ -1,5 +1,6 @@
 package za.ac.sun.plume.domain.models
 
+import za.ac.sun.plume.domain.enums.EdgeLabel
 import za.ac.sun.plume.domain.enums.VertexBaseTrait
 import za.ac.sun.plume.domain.enums.VertexLabel
 import java.util.*
@@ -11,7 +12,11 @@ interface PlumeVertex {
     companion object {
         @JvmField
         val LABEL = VertexLabel.UNKNOWN
+
         @JvmField
         val TRAITS: EnumSet<VertexBaseTrait> = EnumSet.noneOf(VertexBaseTrait::class.java)
+
+        @JvmField
+        val VALID_OUT_EDGES = emptyMap<EdgeLabel, List<VertexLabel>>()
     }
 }

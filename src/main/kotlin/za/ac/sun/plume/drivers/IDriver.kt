@@ -1,6 +1,7 @@
 package za.ac.sun.plume.drivers
 
 import za.ac.sun.plume.domain.enums.EdgeLabel
+import za.ac.sun.plume.domain.exceptions.PlumeSchemaViolationException
 import za.ac.sun.plume.domain.models.PlumeVertex
 
 /**
@@ -37,11 +38,13 @@ interface IDriver : AutoCloseable {
 
     /**
      * Creates an edge with the label from enum [EdgeLabel] between two [PlumeVertex] vertices in the graph database.
-     * If the given vertices are not already present in the database, they are created.
+     * If the given vertices are not already present in the database, they are created. If the edge already exists
+     * it wil not be recreated.
      *
      * @param fromV the source [PlumeVertex].
      * @param toV the target [PlumeVertex].
      * @param edge the [EdgeLabel] to label the edge with.
+     * @throws PlumeSchemaViolationException if the edge is illegal according to the CPG schema
      */
     fun addEdge(fromV: PlumeVertex, toV: PlumeVertex, edge: EdgeLabel)
 
