@@ -233,6 +233,19 @@ class VertexMapper {
         fun checkSchemaConstraints(fromV: PlumeVertex, toV: PlumeVertex, edge: EdgeLabel): Boolean {
             val fromLabel: VertexLabel = valueOf(vertexToMap(fromV).remove("label")!! as String)
             val toLabel: VertexLabel = valueOf(vertexToMap(toV).remove("label")!! as String)
+            return checkSchemaConstraints(fromLabel, edge, toLabel)
+        }
+
+        /**
+         * Checks if the given edge complies with the CPG schema given the from and two vertices.
+         *
+         * @param fromLabel The vertex label from which the edge connects from.
+         * @param toLabel The vertex label to which the edge connects to.
+         * @param edge the edge label between the two vertices.
+         * @return true if the edge complies with the CPG schema, false if otherwise.
+         */
+        @JvmStatic
+        fun checkSchemaConstraints(fromLabel: VertexLabel, edge: EdgeLabel, toLabel: VertexLabel): Boolean {
             return when (fromLabel) {
                 ARRAY_INITIALIZER -> ArrayInitializerVertex.VALID_OUT_EDGES[edge]?.contains(toLabel) ?: false
                 BINDING -> BindingVertex.VALID_OUT_EDGES[edge]?.contains(toLabel) ?: false
