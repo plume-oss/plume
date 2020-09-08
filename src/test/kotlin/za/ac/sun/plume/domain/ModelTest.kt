@@ -242,12 +242,12 @@ class ModelTest {
             assertVertexInequality(vertex1, vertex4)
             assertVertexInequality(vertex1, vertex5)
             assertVertexInequality(vertex1, vertex6)
-            assertVertexEquality(vertex1, vertex7)
-            assertVertexEquality(vertex1, vertex8)
-            assertVertexEquality(vertex1, vertex9)
-            assertVertexEquality(vertex1, vertex10)
-            assertVertexEquality(vertex1, vertex11)
-            assertVertexEquality(vertex1, vertex12)
+            assertVertexInequality(vertex1, vertex7)
+            assertVertexInequality(vertex1, vertex8)
+            assertVertexInequality(vertex1, vertex9)
+            assertVertexInequality(vertex1, vertex10)
+            assertVertexInequality(vertex1, vertex11)
+            assertVertexInequality(vertex1, vertex12)
         }
 
         @Test
