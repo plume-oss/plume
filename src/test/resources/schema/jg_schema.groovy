@@ -1,3 +1,4 @@
+// Last updated 8/9/2020
 graph = JanusGraphFactory.open('/etc/opt/janusgraph/janusgraph.properties')
 
 mgmt = graph.openManagement()
@@ -24,6 +25,8 @@ mgmt.containsVertexLabel('RETURN') ?: mgmt.makeVertexLabel('RETURN').make()
 mgmt.containsVertexLabel('BLOCK') ?: mgmt.makeVertexLabel('BLOCK').make()
 mgmt.containsVertexLabel('ARRAY_INITIALIZER') ?: mgmt.makeVertexLabel('ARRAY_INITIALIZER').make()
 mgmt.containsVertexLabel('METHOD_REF') ?: mgmt.makeVertexLabel('METHOD_REF').make()
+mgmt.containsVertexLabel('JUMP_TARGET') ?: mgmt.makeVertexLabel('JUMP_TARGET').make()
+mgmt.containsVertexLabel('TYPE_REF') ?: mgmt.makeVertexLabel('TYPE_REF').make()
 mgmt.containsVertexLabel('CONTROL_STRUCTURE') ?: mgmt.makeVertexLabel('CONTROL_STRUCTURE').make()
 mgmt.containsVertexLabel('UNKNOWN') ?: mgmt.makeVertexLabel('UNKNOWN').make()
 // Edge labels
@@ -42,12 +45,14 @@ mgmt.containsPropertyKey('language') ?: mgmt.makePropertyKey('language').dataTyp
 mgmt.containsPropertyKey('methodInstFullName') ?: mgmt.makePropertyKey('methodInstFullName').dataType(String.class).cardinality(Cardinality.SINGLE).make()
 mgmt.containsPropertyKey('argumentIndex') ?: mgmt.makePropertyKey('argumentIndex').dataType(String.class).cardinality(Cardinality.SINGLE).make()
 mgmt.containsPropertyKey('lineNumber') ?: mgmt.makePropertyKey('lineNumber').dataType(String.class).cardinality(Cardinality.SINGLE).make()
+mgmt.containsPropertyKey('columnNumber') ?: mgmt.makePropertyKey('columnNumber').dataType(String.class).cardinality(Cardinality.SINGLE).make()
 mgmt.containsPropertyKey('fullName') ?: mgmt.makePropertyKey('fullName').dataType(String.class).cardinality(Cardinality.SINGLE).make()
 mgmt.containsPropertyKey('order') ?: mgmt.makePropertyKey('order').dataType(String.class).cardinality(Cardinality.SINGLE).make()
 mgmt.containsPropertyKey('canonicalName') ?: mgmt.makePropertyKey('canonicalName').dataType(String.class).cardinality(Cardinality.SINGLE).make()
 mgmt.containsPropertyKey('dispatchType') ?: mgmt.makePropertyKey('dispatchType').dataType(String.class).cardinality(Cardinality.SINGLE).make()
 mgmt.containsPropertyKey('code') ?: mgmt.makePropertyKey('code').dataType(String.class).cardinality(Cardinality.SINGLE).make()
 mgmt.containsPropertyKey('typeFullName') ?: mgmt.makePropertyKey('typeFullName').dataType(String.class).cardinality(Cardinality.SINGLE).make()
+mgmt.containsPropertyKey('dynamicTypeHintFullName') ?: mgmt.makePropertyKey('dynamicTypeHintFullName').dataType(String.class).cardinality(Cardinality.SINGLE).make()
 mgmt.containsPropertyKey('methodFullName') ?: mgmt.makePropertyKey('methodFullName').dataType(String.class).cardinality(Cardinality.SINGLE).make()
 mgmt.containsPropertyKey('typeDeclFullName') ?: mgmt.makePropertyKey('typeDeclFullName').dataType(String.class).cardinality(Cardinality.SINGLE).make()
 // Indexes
