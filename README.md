@@ -7,19 +7,6 @@ Converts a Java program, JAR or class file into a code-property graph and insert
 analysed with various program analysis algorithms. The driver used to communicate with each graph database is 
 [plume-driver](https://github.com/plume-oss/plume-driver).
 
-## Features
-
-Plume is currently under development. It has the following capabilities:
-* Project an intraprocedural AST of a JVM program using JVM bytecode:
-    - Package/Class/Method hierarchy
-    - Variable assignments
-    - Arithmetic
-    - If-else
-    - While and do-while
-    - Ternary operator assignments with primitives
-* Can project to all graph databases currently supported by [plume-driver](https://github.com/plume-oss/plume-driver).
-* Currently, accepts source code, class files (or directories containing either), and JAR files.
-
 ## Building from Source
 
 In order to use plume-extractor, one needs to also make use of plume-driver to interface with a given graph database.
@@ -109,19 +96,16 @@ import java.io.IOException;
 public class PlumeDemo {
 
     public static void main(String[] args) {
-        TinkerGraphDriver driver = new TinkerGraphDriver.Builder("./plume_demo.xml")
-                                            .createNewGraph(true)
-                                            .build();
-        // Attach the hook to the driver
-        Extractor extractor = new Extractor(driver);
-        File f = new File("./Example.java"); // or new File("./Example.class")
-        // Load the driver with source files, class files, or a directory containing either
-        extractor.load(f);
-        // Project the CPG to the graph database
-        extractor.project();
-        // For the TinkerGraph driver, we can export this graph using the format and 
-        // directory specified in the constructor
-        driver.exportCurrentGraph();
+        try (TinkerGraphDriver driver = (TinkerGraphDriver) DriverFactory.invoke(GraphDatabase.TINKER_GRAPH)) {
+            Extractor extractor = new Extractor(driver, new File("."));
+            File exampleFile = new File("./Example.java");
+            extractor.load(exampleFile);
+            extractor.project();
+            driver.exportGraph("./plume_demo.xml");
+        } catch (IOException e) {
+            System.out.println("Something went wrong! Details: " + e.getMessage());
+            System.exit(1);
+        }
     }
 
 }
