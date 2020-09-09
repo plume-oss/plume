@@ -19,7 +19,6 @@ import java.io.File
 import java.io.IOException
 
 class ArithmeticTest {
-    private lateinit var g: GraphTraversalSource
     private lateinit var methodRoot: Vertex
 
     companion object {
@@ -51,7 +50,7 @@ class ArithmeticTest {
     @BeforeEach
     @Throws(IOException::class)
     fun setUp(testInfo: TestInfo) {
-        val hook =  (DriverFactory(GraphDatabase.TINKER_GRAPH) as TinkerGraphDriver).apply { connect() }
+        val hook = DriverFactory(GraphDatabase.TINKER_GRAPH) as TinkerGraphDriver
         val fileCannon = Extractor(hook, CLS_PATH)
         // Select test resource based on integer in method name
         val currentTestNumber = testInfo
@@ -63,12 +62,6 @@ class ArithmeticTest {
         fileCannon.load(f)
         fileCannon.project()
         hook.exportGraph(TEST_GRAPH)
-        g = TinkerGraph.open().traversal()
-        g.io<Any>(TEST_GRAPH).read().iterate()
-        val methodTraversal = g.V()
-                .has("METHOD", "fullName", "intraprocedural.arithmetic.Arithmetic$currentTestNumber.main")
-        assertTrue(methodTraversal.hasNext())
-        methodRoot = methodTraversal.next()
     }
 
     @Test

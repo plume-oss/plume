@@ -37,7 +37,7 @@ object ResourceCompilationUtil {
     /**
      * Validates the given file as a directory that exists.
      *
-     * @param f the file to validate
+     * @param f the file to validate.
      * @throws IOException if the file is not a valid directory or does not exist.
      */
     @Throws(IOException::class)
@@ -50,7 +50,8 @@ object ResourceCompilationUtil {
     /**
      * Given a path to a Java source file, programmatically compiles the source (.java) file.
      *
-     * @param file the source file to compile
+     * @param file the source file to compile.
+     * @throws PlumeCompileException if there is no suitable Java compiler found.
      */
     @JvmStatic
     fun compileJavaFile(file: File) {
@@ -64,8 +65,8 @@ object ResourceCompilationUtil {
     /**
      * Given a path to a directory, programmatically compile any .java files found in the directory.
      *
-     * @param path the path to the directory
-     * @throws IOException if the path is not a directory or does not exist
+     * @param path the path to the directory.
+     * @throws IOException if the path is not a directory or does not exist.
      */
     @JvmStatic
     @Throws(IOException::class)
@@ -88,8 +89,8 @@ object ResourceCompilationUtil {
     /**
      * Given a path to a directory, programmatically delete any .class files found in the directory.
      *
-     * @param path the path to the directory
-     * @throws IOException if the path is not a directory or does not exist
+     * @param path the path to the directory.
+     * @throws IOException if the path is not a directory or does not exist.
      */
     @JvmStatic
     @Throws(IOException::class)
@@ -106,9 +107,9 @@ object ResourceCompilationUtil {
     /**
      * Returns a list of all the class files under a given directory recursively.
      *
-     * @param path the path to the directory
-     * @return a list of all .class files under the given directory
-     * @throws IOException if the path is not a directory or does not exist
+     * @param path the path to the directory.
+     * @return a list of all .class files under the given directory.
+     * @throws IOException if the path is not a directory or does not exist.
      */
     @Throws(IOException::class)
     @JvmStatic
@@ -125,7 +126,7 @@ object ResourceCompilationUtil {
     /**
      * Returns a list of all the class files inside of a JAR file.
      *
-     * @param jar the JarFile
+     * @param jar the JarFile.
      * @return a list of all `.class` files under the given JAR file.
      */
     @JvmStatic
@@ -143,8 +144,8 @@ object ResourceCompilationUtil {
      * Extracts the [JarFile] from a given [JarEntry] and writes it to a temporary file, which is returned
      * as a [File].
      *
-     * @param jarFile the JAR to extract from
-     * @param entry   the entry to extract
+     * @param jarFile the JAR to extract from.
+     * @param entry   the entry to extract.
      * @return the temporary file if the extraction process was successful, `null` if otherwise.
      */
     private fun extractJarEntry(jarFile: JarFile, entry: JarEntry): File? {

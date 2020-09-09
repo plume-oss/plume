@@ -14,7 +14,6 @@ import za.ac.sun.plume.drivers.GraphDatabase
 import za.ac.sun.plume.drivers.TinkerGraphDriver
 import za.ac.sun.plume.util.TestQueryBuilderUtil
 import java.io.File
-import java.io.IOException
 
 class ExtractorTest {
     @AfterEach
@@ -23,7 +22,6 @@ class ExtractorTest {
     }
 
     @Test
-    @Throws(IOException::class)
     fun validSourceFileTest() {
         extractor.load(validSourceFile)
         extractor.project()
@@ -31,7 +29,6 @@ class ExtractorTest {
     }
 
     @Test
-    @Throws(IOException::class)
     fun validClassFileTest() {
         extractor.load(validClassFile)
         extractor.project()
@@ -39,7 +36,6 @@ class ExtractorTest {
     }
 
     @Test
-    @Throws(IOException::class)
     fun validDirectoryTest() {
         extractor.load(validDirectory)
         extractor.project()
@@ -48,7 +44,6 @@ class ExtractorTest {
 
     @Disabled
     @Test
-    @Throws(IOException::class)
     fun validJarTest() {
         val g = TinkerGraph.open().traversal()
         extractor.load(validJarFile)

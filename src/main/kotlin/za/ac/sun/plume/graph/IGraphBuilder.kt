@@ -28,7 +28,6 @@ interface IGraphBuilder {
      *
      * @param mtd The [SootMethod] in order to obtain method head information from.
      * @param graph The [BriefUnitGraph] of a method body to build the graph off of.
-     * @param sootToPlume A pointer to the map that keeps track of the Soot object to its respective [PlumeVertex].
      */
-    fun build(mtd: SootMethod, graph: BriefUnitGraph, sootToPlume: MutableMap<Any, MutableList<PlumeVertex>>)
+    fun build(mtd: SootMethod, graph: BriefUnitGraph)
 }

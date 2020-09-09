@@ -43,7 +43,7 @@ class SwitchIntraproceduralTest {
     @BeforeEach
     @Throws(IOException::class)
     fun setUp(testInfo: TestInfo) {
-        val hook = (DriverFactory(GraphDatabase.TINKER_GRAPH) as TinkerGraphDriver).apply { connect() }
+        val hook = DriverFactory(GraphDatabase.TINKER_GRAPH) as TinkerGraphDriver
         val fileCannon = Extractor(hook, CLS_PATH)
         // Select test resource based on integer in method name
         val currentTestNumber = testInfo

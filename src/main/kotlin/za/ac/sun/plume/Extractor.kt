@@ -20,8 +20,12 @@ import org.apache.logging.log4j.Logger
 import soot.*
 import soot.options.Options
 import soot.toolkits.graph.BriefUnitGraph
+import za.ac.sun.plume.domain.exceptions.PlumeCompileException
 import za.ac.sun.plume.domain.models.PlumeVertex
+import za.ac.sun.plume.domain.models.vertices.MetaDataVertex
 import za.ac.sun.plume.drivers.IDriver
+import za.ac.sun.plume.drivers.JanusGraphDriver
+import za.ac.sun.plume.drivers.TinkerGraphDriver
 import za.ac.sun.plume.graph.ASTBuilder
 import za.ac.sun.plume.graph.CFGBuilder
 import za.ac.sun.plume.graph.PDGBuilder
@@ -31,38 +35,52 @@ import za.ac.sun.plume.util.ResourceCompilationUtil.fetchClassFiles
 import java.io.File
 import java.io.IOException
 import java.util.*
-import java.util.function.Consumer
 import java.util.jar.JarFile
 
 /**
  * The main entrypoint of the extractor from which the CPG will be created.
  *
- * @param hook the [IDriver] with which the graph will be constructed with.
+ * @param driver the [IDriver] with which the graph will be constructed with.
  * @param classPath the root of the source and class files to be analyzed.
  */
-class Extractor(hook: IDriver, private val classPath: File) {
+class Extractor(private val driver: IDriver, private val classPath: File) {
     private val logger: Logger = LogManager.getLogger(Extractor::javaClass)
 
-    private val loadedFiles: LinkedList<File> = LinkedList()
+    private val loadedFiles: HashSet<File> = HashSet()
+    private val sootToPlume = mutableMapOf<Any, MutableList<PlumeVertex>>()
     private val astBuilder: ASTBuilder
     private val cfgBuilder: CFGBuilder
     private val pdgBuilder: PDGBuilder
 
     init {
+        checkDriverConnection(driver)
         configureSoot()
-        astBuilder = ASTBuilder(hook)
-        cfgBuilder = CFGBuilder(hook)
-        pdgBuilder = PDGBuilder(hook)
+        astBuilder = ASTBuilder(driver, sootToPlume)
+        cfgBuilder = CFGBuilder(driver, sootToPlume)
+        pdgBuilder = PDGBuilder(driver, sootToPlume)
+    }
+
+    /**
+     * Make sure that all drivers that require a connection are connected.
+     *
+     * @param driver The driver to check the connection of.
+     */
+    private fun checkDriverConnection(driver: IDriver) {
+        when (driver) {
+            is TinkerGraphDriver -> if (!driver.connected) driver.connect()
+            is JanusGraphDriver -> if (!driver.connected) driver.connect()
+        }
     }
 
     /**
      * Loads a single Java class file or directory of class files into the cannon.
      *
-     * @param file the Java source/class file, directory of source/class files, or a JAR file.
-     * @throws NullPointerException if the file is null
-     * @throws IOException          In the case of a directory given, this would throw if .java files fail to compile
+     * @param file The Java source/class file, or a directory of source/class files.
+     * @throws PlumeCompileException If no suitable Java compiler is found given .java files.
+     * @throws NullPointerException If the file does not exist.
+     * @throws IOException This would throw if given .java files which fail to compile.
      */
-    @Throws(NullPointerException::class, IOException::class)
+    @Throws(PlumeCompileException::class, NullPointerException::class, IOException::class)
     fun load(file: File) {
         if (file.isDirectory) {
             // Any .java files will automatically be compiled
@@ -92,32 +110,32 @@ class Extractor(hook: IDriver, private val classPath: File) {
      */
     fun project() {
         loadClassesIntoSoot(loadedFiles)
-        loadedFiles.forEach(Consumer { project(it) })
+        // Add metadata if not present
+        // TODO: This is currently erroneous and can be improved
+        driver.addVertex(MetaDataVertex("Java", System.getProperty("java.runtime.version")))
+        loadedFiles.forEach { project(it) }
         loadedFiles.clear()
     }
 
     /**
      * Attempts to project a file from the cannon.
      *
-     * @param f the file to project.
+     * @param f The file to project.
      */
     private fun project(f: File) {
         val classPath = getQualifiedClassPath(f)
-        try {
-            val cls = Scene.v().loadClassAndSupport(classPath)
-            cls.setApplicationClass()
-            logger.debug("Projecting $classPath")
-            astBuilder.buildFileAndNamespace(cls)
-            cls.methods.filter { it.isConcrete }.forEach {
-                val unitGraph = BriefUnitGraph(it.retrieveActiveBody())
-                val sootToPlume = mutableMapOf<Any, MutableList<PlumeVertex>>()
-                astBuilder.build(it, unitGraph, sootToPlume)
-                cfgBuilder.build(it, unitGraph, sootToPlume)
-                pdgBuilder.build(it, unitGraph, sootToPlume)
-            }
-        } catch (e: Exception) {
-            logger.error("IOException encountered while projecting $classPath", e)
+        val cls = Scene.v().loadClassAndSupport(classPath)
+        cls.setApplicationClass()
+        logger.debug("Projecting $classPath")
+        astBuilder.buildProgramStructure(cls)
+        cls.methods.filter { it.isConcrete }.forEach {
+            val unitGraph = BriefUnitGraph(it.retrieveActiveBody())
+            astBuilder.build(it, unitGraph)
+            cfgBuilder.build(it, unitGraph)
+            pdgBuilder.build(it, unitGraph)
         }
+        // Clear this class' references and allow for GC removal
+        sootToPlume.clear()
     }
 
     /**
@@ -135,6 +153,8 @@ class Extractor(hook: IDriver, private val classPath: File) {
         // ignore library code
         Options.v().set_no_bodies_for_excluded(true)
         Options.v().set_allow_phantom_refs(true)
+        // set whole program mode
+        Options.v().set_whole_program(true)
         // exclude java.lang packages
         val excluded: MutableList<String> = ArrayList()
         excluded.add("java.lang")
@@ -148,9 +168,9 @@ class Extractor(hook: IDriver, private val classPath: File) {
     /**
      * Given a list of class names, load them into the Scene.
      *
-     * @param classNames a list of class names
+     * @param classNames A set of class files.
      */
-    private fun loadClassesIntoSoot(classNames: LinkedList<File>) {
+    private fun loadClassesIntoSoot(classNames: HashSet<File>) {
         classNames.forEach { Scene.v().addBasicClass(getQualifiedClassPath(it)) }
         Scene.v().loadBasicClasses()
     }

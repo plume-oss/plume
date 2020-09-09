@@ -3,7 +3,7 @@ site:
     siteName: Plume Extractor
     siteDescription: Projects a Java program into a code-property graph which is inserted it into a graph database.
 Editorial:
-  primaryColor: '#02a6f2'
+  primaryColor: '#00bdd6'
   legacySearch: false
   metaComponents:
     - type: 'orchidSearch'

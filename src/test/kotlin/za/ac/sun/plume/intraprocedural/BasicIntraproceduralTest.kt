@@ -17,7 +17,6 @@ import java.io.File
 import java.io.IOException
 
 class BasicIntraproceduralTest {
-    private lateinit var g: GraphTraversalSource
     private lateinit var currentTestNumber: String
 
     companion object {
@@ -49,7 +48,7 @@ class BasicIntraproceduralTest {
     @BeforeEach
     @Throws(IOException::class)
     fun setUp(testInfo: TestInfo) {
-        val driver = (DriverFactory(GraphDatabase.TINKER_GRAPH) as TinkerGraphDriver).apply { connect() }
+        val driver = DriverFactory(GraphDatabase.TINKER_GRAPH) as TinkerGraphDriver
         val extractor = Extractor(driver, CLS_PATH)
         // Select test resource based on integer in method name
         currentTestNumber = testInfo
@@ -61,8 +60,6 @@ class BasicIntraproceduralTest {
         extractor.load(f)
         extractor.project()
         driver.exportGraph(TEST_GRAPH)
-        g = TinkerGraph.open().traversal()
-        g.io<Any>(TEST_GRAPH).read().iterate()
     }
 
     @Test
@@ -83,5 +80,14 @@ class BasicIntraproceduralTest {
 
     @Test
     fun basic5Test() {
+        val driver = (DriverFactory(GraphDatabase.TINKER_GRAPH) as TinkerGraphDriver).apply { connect() }
+        driver.importGraph(TEST_GRAPH)
+        val extractor = Extractor(driver, CLS_PATH)
+        val resourceDir = "${PATH.absolutePath}${File.separator}basic5${File.separator}Basic$currentTestNumber.java"
+        // Load test resource and project + export graph
+        val f = File(resourceDir)
+        extractor.load(f)
+        extractor.project()
+        driver.exportGraph(TEST_GRAPH)
     }
 }
