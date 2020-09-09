@@ -3,7 +3,7 @@ site:
     siteName: Plume Driver
     siteDescription: Provides a type-safe interface for connecting and writing to various graph databases based on the code-property graph schema.
 Editorial:
-  primaryColor: '#02a6f2'
+  primaryColor: '#00bdd6'
   legacySearch: false
   metaComponents:
     - type: 'orchidSearch'
