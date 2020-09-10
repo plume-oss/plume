@@ -289,8 +289,8 @@ class TinkerGraphDriverTest {
     @Nested
     @DisplayName("Graph import/export from file tests")
     inner class ValidateGraphImportExportFromFiles {
-        private val v1 = NamespaceBlockVertex(STRING_1, STRING_2, INT_1)
-        private val v2 = FileVertex(STRING_1, INT_1)
+        private val v1 = FileVertex(STRING_1, INT_1)
+        private val v2 = NamespaceBlockVertex(STRING_1, STRING_2, INT_1)
 
         @BeforeEach
         fun setUp() {

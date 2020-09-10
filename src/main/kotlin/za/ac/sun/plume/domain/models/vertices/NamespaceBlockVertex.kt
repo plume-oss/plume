@@ -18,9 +18,7 @@ class NamespaceBlockVertex(val name: String, val fullName: String, order: Int) :
         val TRAITS: EnumSet<VertexBaseTrait> = EnumSet.of(VertexBaseTrait.AST_NODE)
 
         @JvmField
-        val VALID_OUT_EDGES = mapOf(
-                EdgeLabel.AST to listOf(VertexLabel.FILE, VertexLabel.METHOD, VertexLabel.NAMESPACE_BLOCK)
-        )
+        val VALID_OUT_EDGES = mapOf(EdgeLabel.AST to listOf(VertexLabel.NAMESPACE_BLOCK))
     }
 
     override fun equals(other: Any?): Boolean {

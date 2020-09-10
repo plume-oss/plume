@@ -16,7 +16,7 @@ class FileVertex(val name: String, order: Int) : ASTVertex(order) {
         @JvmField
         val TRAITS: EnumSet<VertexBaseTrait> = EnumSet.of(VertexBaseTrait.AST_NODE)
         @JvmField
-        val VALID_OUT_EDGES = emptyMap<EdgeLabel, List<VertexLabel>>()
+        val VALID_OUT_EDGES = mapOf(EdgeLabel.AST to listOf(VertexLabel.NAMESPACE_BLOCK))
     }
 
     override fun equals(other: Any?): Boolean {
