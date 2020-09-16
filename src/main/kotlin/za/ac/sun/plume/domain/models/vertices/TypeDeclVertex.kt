@@ -27,10 +27,14 @@ class TypeDeclVertex(
                 EdgeLabel.AST to listOf(
                         VertexLabel.TYPE_PARAMETER,
                         VertexLabel.MEMBER,
-                        VertexLabel.MODIFIER
+                        VertexLabel.MODIFIER,
+                        VertexLabel.METHOD
                 ),
                 EdgeLabel.BINDS to listOf(
                         VertexLabel.BINDING
+                ),
+                EdgeLabel.SOURCE_FILE to listOf(
+                        VertexLabel.FILE
                 )
         )
     }
