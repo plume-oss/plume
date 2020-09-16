@@ -69,6 +69,20 @@ class ExtractorTest {
     }
 
     @Test
+    fun validPy2Test() {
+        extractor.load(validPy2File)
+        extractor.project()
+        driver.exportGraph(TEST_GRAPH)
+    }
+
+    @Test
+    fun validJsTest() {
+        extractor.load(validJsFile)
+        extractor.project()
+        driver.exportGraph(TEST_GRAPH)
+    }
+
+    @Test
     fun loadFileThatDoesNotExistTest() {
         Assertions.assertThrows(NullPointerException::class.java) { extractor.load(File("dne.class")) }
     }
@@ -83,6 +97,8 @@ class ExtractorTest {
         private lateinit var validClassFile: File
         private lateinit var validDirectory: File
         private lateinit var validJarFile: File
+        private lateinit var validPy2File: File
+        private lateinit var validJsFile: File
         private lateinit var driver: TinkerGraphDriver
 
         private fun getTestResource(dir: String): File {
@@ -97,6 +113,8 @@ class ExtractorTest {
             validSourceFile = getTestResource("${TEST_PATH}Test1.java")
             validClassFile = getTestResource("${TEST_PATH}Test2.class")
             validJarFile = getTestResource("${TEST_PATH}Test3.jar")
+            validPy2File = getTestResource("${TEST_PATH}Test4.py")
+            validJsFile = getTestResource("${TEST_PATH}Test5.js")
             validDirectory = getTestResource("${TEST_PATH}dir_test")
             CLS_PATH = File(getTestResource(TEST_PATH).absolutePath.replace(System.getProperty("user.dir") + File.separator, "").removeSuffix(TEST_PATH.replace(File.separator, "")))
             driver = (DriverFactory(GraphDatabase.TINKER_GRAPH) as TinkerGraphDriver).apply { connect() }

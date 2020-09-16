@@ -17,6 +17,7 @@ package za.ac.sun.plume.util
 
 import org.apache.logging.log4j.LogManager
 import org.apache.logging.log4j.Logger
+import org.python.util.JycompileAntTask
 import za.ac.sun.plume.domain.exceptions.PlumeCompileException
 import java.io.BufferedOutputStream
 import java.io.File
@@ -29,7 +30,9 @@ import java.util.*
 import java.util.jar.JarEntry
 import java.util.jar.JarFile
 import java.util.stream.Collectors
+import javax.tools.JavaCompiler
 import javax.tools.ToolProvider
+import org.mozilla.javascript.tools.jsc.Main as JSC
 
 object ResourceCompilationUtil {
     private val logger: Logger = LogManager.getLogger(ResourceCompilationUtil::javaClass)
@@ -55,8 +58,7 @@ object ResourceCompilationUtil {
      */
     @JvmStatic
     fun compileJavaFile(file: File) {
-        val javac = ToolProvider.getSystemJavaCompiler() ?: throw PlumeCompileException("Unable to find a Java compiler on the system!")
-        if (javac.sourceVersions.none { it.ordinal >= 8 }) throw PlumeCompileException("Plume requires JDK version >= 8. Please install a suitable JDK and re-run the process.")
+        val javac = getJavaCompiler()
         val fileManager = javac.getStandardFileManager(null, null, null)
         javac.getTask(null, fileManager, null, listOf("-g"), null,
                 fileManager.getJavaFileObjects(file)).call()
@@ -80,10 +82,52 @@ object ResourceCompilationUtil {
             walk.map { obj: Path -> obj.toString() }
                     .filter { f: String -> f.endsWith(".java") }
                     .collect(Collectors.toList())
-                    .forEach{ f: String -> fileList.add(File(f)) }
+                    .forEach { f: String -> fileList.add(File(f)) }
         }
         javac.getTask(null, fileManager, null, listOf("-g"), null,
                 fileManager.getJavaFileObjectsFromFiles(fileList)).call()
+    }
+
+    /**
+     * Given a path to a Python source file, programmatically compiles the source (.py) file.
+     *
+     * @param file the source file to compile.
+     * @throws PlumeCompileException if there is no suitable Java compiler found.
+     */
+    @JvmStatic
+    fun compilePythonFile(file: File) {
+        val jythonc = JycompileAntTask()
+        getJavaCompiler()
+        val dirs = File(file.absolutePath.removeSuffix("/${file.name}"))
+        jythonc.destdir = dirs
+        jythonc.process(mutableSetOf(file))
+    }
+
+    /**
+     * Given a path to a JavaScript source file, programmatically compiles the source (.js) file.
+     *
+     * @param file the source file to compile.
+     * @throws PlumeCompileException if there is no suitable Java compiler found.
+     */
+    @JvmStatic
+    fun compileJavaScriptFile(file: File) {
+        val jsc = JSC()
+        getJavaCompiler()
+        jsc.processOptions(arrayOf("-version", "170", "-g"))
+        jsc.processSource(arrayOf(file.absolutePath))
+    }
+
+    /**
+     * Obtains an appropriate JDK to compile source to class files.
+     *
+     * @throws PlumeCompileException if no suitable JDK is found.
+     * @return a [JavaCompiler] with a suitable version.
+     */
+    private fun getJavaCompiler(): JavaCompiler {
+        val javac = ToolProvider.getSystemJavaCompiler()
+                ?: throw PlumeCompileException("Unable to find a Java compiler on the system!")
+        if (javac.sourceVersions.none { it.ordinal >= 8 }) throw PlumeCompileException("Plume requires JDK version >= 8. Please install a suitable JDK and re-run the process.")
+        return javac
     }
 
     /**
@@ -100,7 +144,7 @@ object ResourceCompilationUtil {
             walk.map { obj: Path -> obj.toString() }
                     .filter { f: String -> f.endsWith(".class") }
                     .collect(Collectors.toList())
-                    .forEach{ f: String -> if (!File(f).delete()) logger.error("Unable to delete: $f") }
+                    .forEach { f: String -> if (!File(f).delete()) logger.error("Unable to delete: $f") }
         }
     }
 

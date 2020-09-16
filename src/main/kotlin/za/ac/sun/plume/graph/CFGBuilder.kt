@@ -47,12 +47,17 @@ class CFGBuilder(private val driver: IDriver, private val sootToPlume: MutableMa
         this.currentMethod = mtd
         // Connect entrypoint to the first CFG vertex
         this.graph.heads.forEach { head ->
-            graph.getSuccsOf(head).firstOrNull()?.let {
-                driver.addEdge(
-                        fromV = sootToPlume[mtd]?.first { mtdVertices -> mtdVertices is BlockVertex }!!,
-                        toV = sootToPlume[it]?.first()!!,
-                        edge = EdgeLabel.CFG
-                )
+            // Select appropriate successor to start CFG chain at
+            var startingUnit = graph.getSuccsOf(head).firstOrNull()
+            while (startingUnit != null && startingUnit is IdentityStmt) startingUnit = graph.getSuccsOf(startingUnit).firstOrNull()
+            startingUnit?.let {
+                sootToPlume[it]?.firstOrNull()?.let { succVert ->
+                    driver.addEdge(
+                            fromV = sootToPlume[mtd]?.first { mtdVertices -> mtdVertices is BlockVertex }!!,
+                            toV = succVert,
+                            edge = EdgeLabel.CFG
+                    )
+                }
             }
         }
         // Connect all units to their successors
@@ -67,6 +72,8 @@ class CFGBuilder(private val driver: IDriver, private val sootToPlume: MutableMa
             is TableSwitchStmt -> projectTableSwitch(unit)
             is ReturnStmt -> projectReturnEdge(unit)
             is ReturnVoidStmt -> projectReturnEdge(unit)
+            is ThisRef -> Unit
+            is IdentityRef -> Unit
             else -> {
                 val sourceUnit = if (unit is GotoStmt) unit.target else unit
                 val sourceVertex = sootToPlume[sourceUnit]?.firstOrNull()

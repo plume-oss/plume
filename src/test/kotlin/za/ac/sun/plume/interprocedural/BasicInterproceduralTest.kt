@@ -9,14 +9,11 @@ import za.ac.sun.plume.TestConstants.testGraph
 import za.ac.sun.plume.drivers.DriverFactory
 import za.ac.sun.plume.drivers.GraphDatabase
 import za.ac.sun.plume.drivers.TinkerGraphDriver
-import za.ac.sun.plume.intraprocedural.ArithmeticTest
-import za.ac.sun.plume.intraprocedural.BasicIntraproceduralTest
 import za.ac.sun.plume.util.ResourceCompilationUtil.deleteClassFiles
 import java.io.File
 import java.io.IOException
 import java.lang.NullPointerException
 
-@Disabled
 class BasicInterproceduralTest {
     private lateinit var g: GraphTraversalSource
     private lateinit var currentTestNumber: String
@@ -35,7 +32,7 @@ class BasicInterproceduralTest {
             deleteClassFiles(PATH)
             val f = File(TEST_GRAPH)
             if (f.exists() && !f.delete()) {
-                logger.warn("Could not clear " + ArithmeticTest::class.java.name + "'s test resources.")
+                logger.warn("Could not clear " + BasicInterproceduralTest::class.java.name + "'s test resources.")
             }
         }
 

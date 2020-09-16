@@ -19,8 +19,16 @@ repositories {
 dependencies {
     implementation 'org.apache.logging.log4j:log4j-core:2.8.2'
     implementation 'org.apache.logging.log4j:log4j-slf4j-impl:2.8.2'
+    // Soot
     implementation 'org.soot-oss:soot:4.2.1'
+    // Jython dependencies
+    implementation 'org.python:jython-standalone:2.7.2'
+    implementation 'org.apache.ant:ant:1.10.8'
+    // Rhino JavaScript dependencies
+    implementation 'org.mozilla:rhino:1.7.13'
+    // Plume driver
     implementation name: 'plume-driver-X.X.X'
+    // Kotlin
     implementation 'org.jetbrains.kotlin:kotlin-stdlib-jdk8'
     implementation 'org.jetbrains.kotlin:kotlin-reflect:1.3.72'
     testImplementation 'org.junit.jupiter:junit-jupiter-engine:5.4.2'

@@ -54,6 +54,7 @@ class ASTBuilder(private val driver: IDriver, private val sootToPlume: MutableMa
     private lateinit var currentClass: FileVertex
     private lateinit var currentMethod: MethodVertex
     private lateinit var methodEntryPoint: BlockVertex
+    private lateinit var currentType: TypeDeclVertex
     private lateinit var graph: BriefUnitGraph
     private val classMembers = mutableListOf<PlumeVertex>()
 
@@ -85,21 +86,26 @@ class ASTBuilder(private val driver: IDriver, private val sootToPlume: MutableMa
         currentClass = FileVertex(cls.shortName, order++)
         // Join FILE and NAMESPACE_BLOCK if namespace is present
         if (nbv != null) {
-            driver.addEdge(nbv, currentClass, EdgeLabel.AST); classChildrenVertices.add(nbv)
-        }
-        cls.fields.forEach {
-            projectMember(it).let { memberVertex ->
-                driver.addEdge(currentClass, memberVertex, EdgeLabel.AST)
-                classMembers.add(memberVertex)
-            }
+            driver.addEdge(currentClass, nbv, EdgeLabel.AST); classChildrenVertices.add(nbv)
         }
         // Create TYPE_DECL
-        TypeDeclVertex(
+        currentType = TypeDeclVertex(
                 name = cls.shortName,
                 fullName = cls.name,
                 typeDeclFullName = cls.javaStyleName,
                 order = order++
-        ).apply { driver.addVertex(this); classChildrenVertices.add(this) }
+        ).apply {
+            driver.addEdge(this, currentClass, EdgeLabel.SOURCE_FILE)
+            // Attach fields to the TypeDecl
+            cls.fields.forEach { field ->
+                projectMember(field).let { memberVertex ->
+                    driver.addEdge(this, memberVertex, EdgeLabel.AST)
+                    classMembers.add(memberVertex)
+                    sootToPlume[field] = mutableListOf<PlumeVertex>(memberVertex)
+                }
+            }
+            classChildrenVertices.add(this)
+        }
         sootToPlume[currentClass] = classChildrenVertices
     }
 
@@ -118,8 +124,7 @@ class ASTBuilder(private val driver: IDriver, private val sootToPlume: MutableMa
         for (i in 1 until namespaceList.size) {
             namespaceBuilder.append("." + namespaceList[i])
             currNamespaceBlock = NamespaceBlockVertex(namespaceList[i], namespaceBuilder.toString(), order++)
-            if (!driver.exists(prevNamespaceBlock, currNamespaceBlock, EdgeLabel.AST))
-                driver.addEdge(prevNamespaceBlock, currNamespaceBlock, EdgeLabel.AST)
+            driver.addEdge(currNamespaceBlock, prevNamespaceBlock, EdgeLabel.AST)
             prevNamespaceBlock = currNamespaceBlock
         }
         return currNamespaceBlock ?: prevNamespaceBlock
@@ -140,9 +145,7 @@ class ASTBuilder(private val driver: IDriver, private val sootToPlume: MutableMa
         currentMethod = MethodVertex(mtd.name, "${mtd.declaringClass}.${mtd.name}", mtd.subSignature, mtd.declaration, currentLine, currentCol, order++)
         methodHeadChildren.add(currentMethod)
         // Add to package
-        sootToPlume[currentClass]
-                ?.firstOrNull { it is NamespaceBlockVertex }
-                ?.let { driver.addEdge(it, currentMethod, EdgeLabel.AST); methodHeadChildren.add(it) }
+        driver.addEdge(currentType, currentMethod, EdgeLabel.AST)
         // Add to source file
         driver.addEdge(currentMethod, currentClass, EdgeLabel.SOURCE_FILE)
         // Store return type
@@ -185,7 +188,7 @@ class ASTBuilder(private val driver: IDriver, private val sootToPlume: MutableMa
      * @param graph The [UnitGraph] from which the vertices and AST edges are created from.
      */
     private fun projectMethodBody(graph: UnitGraph) =
-            graph.body.units.forEach { u -> projectUnit(u)?.let { if (it !is MethodReturnVertex) driver.addEdge(methodEntryPoint, it, EdgeLabel.AST) } }
+            graph.body.units.forEach { u -> projectUnit(u)?.let { driver.addEdge(methodEntryPoint, it, EdgeLabel.AST) } }
 
     /**
      * Given a unit, will construct AST information in the graph.
@@ -207,7 +210,7 @@ class ASTBuilder(private val driver: IDriver, private val sootToPlume: MutableMa
             is ReturnStmt -> projectReturnVertex(unit)
             is ReturnVoidStmt -> projectReturnVertex(unit)
             else -> {
-                logger.debug("Unhandled class in projectUnit ${unit.javaClass}"); null
+                logger.debug("Unhandled class in projectUnit ${unit.javaClass} $unit"); null
             }
         }
         return unitVertex?.apply { if (this !is InvokeStmt) sootToPlume[unit]!!.add(0, this) }
@@ -234,7 +237,7 @@ class ASTBuilder(private val driver: IDriver, private val sootToPlume: MutableMa
                 dynamicTypeHintFullName = unit.type.toQuotedString()
         )
         val callVertices = mutableListOf<PlumeVertex>(callVertex)
-        unit.useBoxes.map { it.value }.forEach {
+        unit.args.map { it }.forEach {
             when (it) {
                 is Local -> createIdentifierVertex(it).apply { sootToPlume[it]!!.add(this) }
                 is Constant -> createLiteralVertex(it)
@@ -413,7 +416,7 @@ class ASTBuilder(private val driver: IDriver, private val sootToPlume: MutableMa
      * @param unit The [AssignStmt] from which a [CallVertex] and its children vertices will be constructed.
      * @return the [CallVertex] constructed.
      */
-    private fun projectVariableAssignment(unit: AssignStmt): CallVertex {
+    private fun projectVariableAssignment(unit: DefinitionStmt): CallVertex {
         val assignVariables = mutableListOf<PlumeVertex>()
         val leftOp = unit.leftOp
         val rightOp = unit.rightOp
@@ -432,8 +435,11 @@ class ASTBuilder(private val driver: IDriver, private val sootToPlume: MutableMa
         )
         when (leftOp) {
             is Local -> createIdentifierVertex(leftOp)
-            is StaticFieldRef -> createFieldIdentifierVertex(leftOp)
-            else -> null
+            is FieldRef -> createFieldIdentifierVertex(leftOp)
+            else -> {
+                logger.debug("Unhandled class for leftOp under projectVariableAssignment: ${leftOp.javaClass} containing value ${leftOp}")
+                null
+            }
         }?.let { driver.addEdge(assignBlock, it, EdgeLabel.AST); assignVariables.add(it) }
         projectOp(rightOp)?.let { driver.addEdge(assignBlock, it, EdgeLabel.AST); assignVariables.add(it) }
         // Save PDG arguments
@@ -547,7 +553,7 @@ class ASTBuilder(private val driver: IDriver, private val sootToPlume: MutableMa
     }
 
     private fun createIdentifierVertex(local: Value): IdentifierVertex {
-        val identifierVertex = IdentifierVertex(
+        return IdentifierVertex(
                 code = "$local",
                 name = local.toString(),
                 order = order++,
@@ -555,13 +561,13 @@ class ASTBuilder(private val driver: IDriver, private val sootToPlume: MutableMa
                 typeFullName = local.type.toQuotedString(),
                 lineNumber = currentLine,
                 columnNumber = currentCol
-        )
-        sootToPlume[local]!!.add(identifierVertex)
-        return identifierVertex
+        ).apply {
+            if (sootToPlume[local] == null) sootToPlume[local] = mutableListOf<PlumeVertex>(this)
+            else sootToPlume[local]?.add(this)
+        }
     }
 
-    private fun createFieldIdentifierVertex(field: StaticFieldRef): PlumeVertex {
-        // TODO: Handle PDG data
+    private fun createFieldIdentifierVertex(field: FieldRef): PlumeVertex {
         return FieldIdentifierVertex(
                 canonicalName = field.field.signature,
                 code = field.field.declaration,
@@ -569,7 +575,7 @@ class ASTBuilder(private val driver: IDriver, private val sootToPlume: MutableMa
                 lineNumber = currentLine,
                 columnNumber = currentCol,
                 order = order++
-        )
+        ).apply { sootToPlume[field.field]?.add(this) }
     }
 
     private fun projectReturnVertex(ret: ReturnStmt): ReturnVertex {

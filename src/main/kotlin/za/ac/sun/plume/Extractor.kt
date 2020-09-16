@@ -31,6 +31,8 @@ import za.ac.sun.plume.graph.CFGBuilder
 import za.ac.sun.plume.graph.PDGBuilder
 import za.ac.sun.plume.util.ResourceCompilationUtil.compileJavaFile
 import za.ac.sun.plume.util.ResourceCompilationUtil.compileJavaFiles
+import za.ac.sun.plume.util.ResourceCompilationUtil.compileJavaScriptFile
+import za.ac.sun.plume.util.ResourceCompilationUtil.compilePythonFile
 import za.ac.sun.plume.util.ResourceCompilationUtil.fetchClassFiles
 import java.io.File
 import java.io.IOException
@@ -91,13 +93,26 @@ class Extractor(private val driver: IDriver, private val classPath: File) {
                 file.name.endsWith(".java") -> {
                     compileJavaFile(file)
                     loadedFiles.add(File(file.absolutePath.replace(".java", ".class")))
+                    driver.addVertex(MetaDataVertex("Java", System.getProperty("java.runtime.version")))
+                }
+                file.name.endsWith(".py") -> {
+                    compilePythonFile(file)
+                    loadedFiles.add(File(file.absolutePath.replace(".py", "\$py.class")))
+                    driver.addVertex(MetaDataVertex("Python", "2.7.2"))
+                }
+                file.name.endsWith(".js") -> {
+                    compileJavaScriptFile(file)
+                    loadedFiles.add(File(file.absolutePath.replace(".js", ".class")))
+                    driver.addVertex(MetaDataVertex("JavaScript", "170"))
                 }
                 file.name.endsWith(".jar") -> {
                     val jar = JarFile(file)
                     loadedFiles.addAll(fetchClassFiles(jar))
+                    driver.addVertex(MetaDataVertex("Java", System.getProperty("java.runtime.version")))
                 }
                 file.name.endsWith(".class") -> {
                     loadedFiles.add(file)
+                    driver.addVertex(MetaDataVertex("Java", System.getProperty("java.runtime.version")))
                 }
             }
         } else if (!file.exists()) {
@@ -111,8 +126,6 @@ class Extractor(private val driver: IDriver, private val classPath: File) {
     fun project() {
         loadClassesIntoSoot(loadedFiles)
         // Add metadata if not present
-        // TODO: This is currently erroneous and can be improved
-        driver.addVertex(MetaDataVertex("Java", System.getProperty("java.runtime.version")))
         loadedFiles.forEach { project(it) }
         loadedFiles.clear()
     }
