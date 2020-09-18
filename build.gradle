@@ -22,6 +22,7 @@ dependencies {
     implementation 'org.apache.logging.log4j:log4j-slf4j-impl:2.13.3'
     implementation 'org.apache.tinkerpop:gremlin-core:3.4.8'
     implementation 'org.apache.tinkerpop:tinkergraph-gremlin:3.4.8'
+    implementation 'org.apache.tinkerpop:gremlin-driver:3.4.8'
     implementation 'org.janusgraph:janusgraph-driver:0.5.2'
     implementation 'khttp:khttp:1.0.0'
     implementation 'com.fasterxml.jackson.core:jackson-databind:2.11.2'
@@ -77,6 +78,20 @@ task tigerGraphIntTest(type: Test) {
     doFirst {
         dockerCompose.exposeAsEnvironment(tigerGraphIntTest)
     }
+}
+
+task neptuneIntTest(type: Test) {
+    useJUnitPlatform()
+    description = "Execute Neptune integration tests."
+    group = "verification"
+    include "**/*Neptune*"
+
+    testLogging {
+        events 'FAILED', 'SKIPPED'
+    }
+//    doFirst {
+//        dockerCompose.exposeAsEnvironment(tigerGraphIntTest)
+//    }
 }
 
 dockerCompose {
