@@ -109,9 +109,7 @@ class NeptuneDriverIntTest {
 
         @BeforeEach
         fun setUp() {
-            logger.debug("exists test")
             assertFalse(driver.exists(v1))
-            logger.debug("exists after")
             assertFalse(driver.exists(v2))
         }
 

@@ -89,9 +89,6 @@ task neptuneIntTest(type: Test) {
     testLogging {
         events 'FAILED', 'SKIPPED'
     }
-//    doFirst {
-//        dockerCompose.exposeAsEnvironment(tigerGraphIntTest)
-//    }
 }
 
 dockerCompose {

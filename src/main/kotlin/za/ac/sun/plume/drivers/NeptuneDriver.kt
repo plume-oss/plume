@@ -6,11 +6,9 @@ import org.apache.tinkerpop.gremlin.driver.remote.DriverRemoteConnection
 import org.apache.tinkerpop.gremlin.process.traversal.AnonymousTraversalSource.traversal
 import org.apache.tinkerpop.gremlin.process.traversal.dsl.graph.GraphTraversal
 import org.apache.tinkerpop.gremlin.structure.Graph
-import org.apache.tinkerpop.gremlin.structure.Transaction
 import org.apache.tinkerpop.gremlin.structure.Vertex
-import za.ac.sun.plume.domain.exceptions.PlumeTransactionException
-import za.ac.sun.plume.domain.mappers.VertexMapper.Companion.vertexToMap
 import za.ac.sun.plume.domain.models.PlumeVertex
+
 
 /**
  * The driver used to connect to a remote Amazon Neptune instance.
@@ -18,11 +16,8 @@ import za.ac.sun.plume.domain.models.PlumeVertex
 class NeptuneDriver : GremlinDriver() {
     private val logger = LogManager.getLogger(NeptuneDriver::class.java)
 
-    private lateinit var tx: Transaction
     private val builder: Cluster.Builder = Cluster.build()
     private lateinit var cluster: Cluster
-    var transactionRetryTime = 5000
-    var maxRetries = 3
 
     init {
         builder.port(DEFAULT_PORT).enableSsl(true)
@@ -83,15 +78,15 @@ class NeptuneDriver : GremlinDriver() {
      * @param v the [PlumeVertex] to translate into a [Vertex].
      * @return the newly created [Vertex].
      */
-    override fun createVertex(v: PlumeVertex): Vertex {
-        val propertyMap = vertexToMap(v)
-        // Get the implementing class label parameter
-        val label = propertyMap.remove("label") as String?
-        // Get the implementing classes fields and values
-        var traversalPointer = g.addV(label).property("id", v.hashCode().toString())
-        for ((key, value) in propertyMap) traversalPointer = traversalPointer.property(key, value)
-        return traversalPointer.next()
-    }
+//    override fun createVertex(v: PlumeVertex): Vertex {
+//        val propertyMap = vertexToMap(v)
+//        // Get the implementing class label parameter
+//        val label = propertyMap.remove("label") as String?
+//        // Get the implementing classes fields and values
+//        var traversalPointer = g.addV(label).property("id", v.hashCode().toString())
+//        for ((key, value) in propertyMap) traversalPointer = traversalPointer.property(key, value)
+//        return traversalPointer.next()
+//    }
 
     companion object {
         /**
