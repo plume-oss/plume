@@ -17,7 +17,7 @@ import java.lang.IllegalArgumentException
 class JanusGraphDriver : GremlinDriver() {
     private val logger = LogManager.getLogger(JanusGraphDriver::class.java)
 
-    private var supportsTransactions: Boolean = false
+    
     private lateinit var tx: Transaction
     var transactionRetryTime = 5000
     var maxRetries = 3
@@ -45,7 +45,6 @@ class JanusGraphDriver : GremlinDriver() {
         require(config.containsKey(REMOTE_CONFIG)) { "Remote config path not set! See the config field in JanusGraphDriver with key REMOTE_CONFIG." }
         graph = AnonymousTraversalSource.traversal().withRemote(config.getString(REMOTE_CONFIG)).graph
         connected = true
-        supportsTransactions = graph.features().graph().supportsTransactions()
     }
 
     /**

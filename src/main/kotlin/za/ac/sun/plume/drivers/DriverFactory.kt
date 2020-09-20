@@ -16,6 +16,7 @@ object DriverFactory {
             GraphDatabase.TINKER_GRAPH -> TinkerGraphDriver()
             GraphDatabase.JANUS_GRAPH -> JanusGraphDriver()
             GraphDatabase.TIGER_GRAPH -> TigerGraphDriver()
+            GraphDatabase.NEPTUNE -> NeptuneDriver()
         }
     }
 }
@@ -38,5 +39,11 @@ enum class GraphDatabase {
     /**
      * An enterprise graph database communicated over via REST and queried using GSQL.
      */
-    TIGER_GRAPH
+    TIGER_GRAPH,
+
+    /**
+     * Amazon Neptune is a fast, reliable graph database service that makes it easy to build and run applications that
+     * work with highly connected datasets. This is queried using Gremlin.
+     */
+    NEPTUNE
 }

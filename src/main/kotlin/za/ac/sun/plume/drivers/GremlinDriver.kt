@@ -26,6 +26,7 @@ abstract class GremlinDriver : IDriver {
 
     protected lateinit var graph: Graph
     protected lateinit var g: GraphTraversalSource
+    protected var supportsTransactions: Boolean = false
 
     /**
      * The key-value configuration object used in creating the connection to the Gremlin server.
@@ -42,7 +43,7 @@ abstract class GremlinDriver : IDriver {
      * Indicates if there is currently a transaction open or not.
      */
     var transactionOpen = false
-        private set
+        protected set
 
     init {
         config.setProperty("gremlin.graph", "org.apache.tinkerpop.gremlin.tinkergraph.structure.TinkerGraph")
@@ -56,6 +57,8 @@ abstract class GremlinDriver : IDriver {
     open fun connect() {
         require(!connected) { "Please close the graph before trying to make another connection." }
         graph = TinkerGraph.open(config)
+        supportsTransactions = graph.features().graph().supportsTransactions()
+        if (!supportsTransactions) g = graph.traversal()
         connected = true
     }
 
@@ -67,7 +70,6 @@ abstract class GremlinDriver : IDriver {
     protected open fun openTx() {
         require(!transactionOpen) { "Please close the current transaction before creating a new one." }
         transactionOpen = true
-        g = graph.traversal()
     }
 
     /**
@@ -78,7 +80,7 @@ abstract class GremlinDriver : IDriver {
     protected open fun closeTx() {
         require(transactionOpen) { "There is no transaction currently open!" }
         try {
-            g.close()
+            if (supportsTransactions) g.close()
         } catch (e: Exception) {
             logger.warn("Unable to close existing transaction! Object will be orphaned and a new traversal will continue.")
         } finally {
