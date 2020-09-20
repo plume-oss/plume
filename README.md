@@ -3,23 +3,10 @@
 [![Build Status](https://travis-ci.org/plume-oss/plume-driver.svg?branch=develop)](https://travis-ci.org/plume-oss/plume-driver)
 [![codecov](https://codecov.io/gh/plume-oss/plume-driver/branch/develop/graph/badge.svg)](https://codecov.io/gh/plume-oss/plume-driver)
 
-A Java driver for the Plume library to provide an interface for connecting and writing to various graph databases based
+A Kotlin driver for the Plume library to provide an interface for connecting and writing to various graph databases based
 on the [code-property graph schema](https://github.com/ShiftLeftSecurity/codepropertygraph/blob/master/codepropertygraph/src/main/resources/schemas/base.json).
 
-This CPG schema has been slightly adjusted to work with a graph database agnostic project. The models and enums can be
-found under `za.ac.sun.plume.domain`. The extensive documentation will be released with the first major release of the
-Plume project.
-
-## Features
-
-Plume is currently under development. It has the following capabilities:
-* Writes domain models to the graph database.
-* Project an intraprocedural AST of a JVM program using JVM bytecode:
-  - Package/Class/Method hierarchy
-  - Variable assignments
-  - Arithmetic
-  - If-else bodies
-* Can export an in-memory graph database to GraphML, GraphSON, and Gryo.
+For more documentation check out the [Plume docs](https://plume-oss.github.io/plume-docs/).
 
 ## Building from Source
 
@@ -63,12 +50,27 @@ The following packages used by the Plume driver are:
 
 * `org.apache.logging.log4j:log4j-core:2.8.2`
 * `org.apache.logging.log4j:log4j-slf4j-impl:2.8.2`
-* `org.apache.tinkerpop:gremlin-core:3.4.5`
 
 Dependencies per graph database technology connected to:
 
-* _TinkerGraph_ `org.apache.tinkerpop:tinkergraph-gremlin:3.4.5`
-* _JanusGraph_ `org.janusgraph:janusgraph-driver:0.5.1`
+* _TinkerGraph_ 
+
+    `org.apache.tinkerpop:gremlin-core:3.4.8`
+    
+    `org.apache.tinkerpop:tinkergraph-gremlin:3.4.8`
+* _JanusGraph_ 
+
+    `org.apache.tinkerpop:gremlin-core:3.4.8`
+    
+    `org.janusgraph:janusgraph-driver:0.5.2`
+* _TigerGraph_
+
+    `khttp:khttp:1.0.0`
+* _Amazon Neptune_
+
+    `org.apache.tinkerpop:gremlin-core:3.4.8`
+    
+    `org.apache.tinkerpop:gremlin-driver:3.4.8`
 
 It is not recommended using the fat jar in your project if using a build tool such as Ant, Maven, Gradle, etc. Rather,
 use the main artifact and add the dependencies manually (in your `pom.xml`, `build.gradle`, etc.). Note that if you are
@@ -86,12 +88,12 @@ The officially supported versions of Java are the following:
 
 Databases supported:
 * TinkerGraph
-* JanusGraph (`exportGraph` currently not supported due to how JanusGraph Driver works)
+* JanusGraph
+* TigerGraph
+* Amazon Neptune
 
 Planned to support in the near future:
-* TigerGraph
 * Neo4j
-* Amazon Neptune
 
 ## Basic Process
 
@@ -100,32 +102,34 @@ code-property graph. The notation used is from the [Java ASM5](https://asm.ow2.i
 and types all follow this representation. An example of using the driver API is:
 ```java
 import za.ac.sun.plume.domain.enums.EvaluationStrategies;
-import za.ac.sun.plume.domain.models.vertices.BlockVertex;
 import za.ac.sun.plume.domain.models.vertices.FileVertex;
 import za.ac.sun.plume.domain.models.vertices.MethodVertex;
 import za.ac.sun.plume.domain.models.vertices.MethodReturnVertex;
+import za.ac.sun.plume.domain.enums.EdgeLabel;
 import za.ac.sun.plume.drivers.TinkerGraphHook;
+import za.ac.sun.plume.drivers.DriverFactory;
+import za.ac.sun.plume.drivers.DriverFactory.GraphDatabase;
 
 public class PlumeDemo {
 
     public static void main(String[] args) {
         int order = 0;
         int lineNumber = 1;
-        TinkerGraphHook hook = new TinkerGraphHook.TinkerGraphHookBuilder("./Plume_demo.xml")
-                .createNewGraph(true)
-                .build();
+        TinkerGraphDriver driver = (TinkerGraphDriver) DriverFactory.invoke(GraphDatabase.TINKER_GRAPH);
+        driver.connect();
         FileVertex fileVertex = new FileVertex("PlumeTest", ++order);
         MethodVertex methodVertex = new MethodVertex("add", "PlumeTest.add", "II", lineNumber, ++order);
         // Since the associated file and method vertices aren't already in the database, they will automatically
         // be created in the following method:
-        hook.joinFileVertexTo(fileVertex, methodVertex);
-        hook.createAndAddToMethod(
+        driver.addEdge(methodVertex, fileVertex, EdgeLabel.SOURCE_FILE);
+        driver.addEdge(
                 methodVertex,
-                new MethodReturnVertex("VOID", "V", EvaluationStrategies.BY_VALUE, lineNumber, ++order)
+                new MethodReturnVertex("VOID", "V", EvaluationStrategies.BY_VALUE, lineNumber, ++order),
+                EdgeLabel.AST
         );
         // ...
         // etc.
-        hook.exportCurrentGraph();
+        driver.exportGraph("Plume_demo.xml");
     }
 
 }
