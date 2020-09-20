@@ -7,6 +7,7 @@ import org.apache.tinkerpop.gremlin.process.traversal.AnonymousTraversalSource.t
 import org.apache.tinkerpop.gremlin.process.traversal.dsl.graph.GraphTraversal
 import org.apache.tinkerpop.gremlin.structure.Graph
 import org.apache.tinkerpop.gremlin.structure.Vertex
+import za.ac.sun.plume.domain.mappers.VertexMapper.Companion.vertexToMap
 import za.ac.sun.plume.domain.models.PlumeVertex
 
 
@@ -78,15 +79,15 @@ class NeptuneDriver : GremlinDriver() {
      * @param v the [PlumeVertex] to translate into a [Vertex].
      * @return the newly created [Vertex].
      */
-//    override fun createVertex(v: PlumeVertex): Vertex {
-//        val propertyMap = vertexToMap(v)
-//        // Get the implementing class label parameter
-//        val label = propertyMap.remove("label") as String?
-//        // Get the implementing classes fields and values
-//        var traversalPointer = g.addV(label).property("id", v.hashCode().toString())
-//        for ((key, value) in propertyMap) traversalPointer = traversalPointer.property(key, value)
-//        return traversalPointer.next()
-//    }
+    override fun createVertex(v: PlumeVertex): Vertex {
+        val propertyMap = vertexToMap(v)
+        // Get the implementing class label parameter
+        val label = propertyMap.remove("label") as String?
+        // Get the implementing classes fields and values
+        var traversalPointer = g.addV(label).property("id", v.hashCode().toString())
+        for ((key, value) in propertyMap) traversalPointer = traversalPointer.property(key, value)
+        return traversalPointer.next()
+    }
 
     companion object {
         /**

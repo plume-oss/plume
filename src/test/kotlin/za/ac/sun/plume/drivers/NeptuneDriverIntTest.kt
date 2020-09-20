@@ -2,7 +2,6 @@ package za.ac.sun.plume.drivers
 
 import org.junit.jupiter.api.*
 import org.junit.jupiter.api.Assertions.*
-import org.apache.logging.log4j.LogManager
 import za.ac.sun.plume.TestDomainResources.Companion.DISPATCH_1
 import za.ac.sun.plume.TestDomainResources.Companion.INT_1
 import za.ac.sun.plume.TestDomainResources.Companion.INT_2
@@ -13,7 +12,6 @@ import za.ac.sun.plume.domain.exceptions.PlumeSchemaViolationException
 import za.ac.sun.plume.domain.models.vertices.*
 
 class NeptuneDriverIntTest {
-    private val logger = LogManager.getLogger(NeptuneDriverIntTest::class.java)
 
     companion object {
         lateinit var driver: NeptuneDriver
@@ -22,8 +20,9 @@ class NeptuneDriverIntTest {
     @BeforeEach
     fun setUp() {
         driver = (DriverFactory(GraphDatabase.NEPTUNE) as NeptuneDriver).apply {
-            this.addHostnames("neptunedbcluster-d3eujqrh7oqs.cluster-crkb9rixd1vx.eu-west-2.neptune.amazonaws.com")
+            this.addHostnames(System.getenv("NEPTUNE_HOSTNAME") ?: "localhost")
                     .port(8182)
+                    .keyCertChainFile("src/test/resources/conf/SFSRootCAG2.pem")
                     .connect()
         }
     }
