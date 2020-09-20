@@ -18,7 +18,6 @@ import za.ac.sun.plume.domain.models.PlumeVertex
 class NeptuneDriver : GremlinDriver() {
     private val logger = LogManager.getLogger(NeptuneDriver::class.java)
 
-    private var supportsTransactions: Boolean = false
     private lateinit var tx: Transaction
     private val builder: Cluster.Builder = Cluster.build()
     private lateinit var cluster: Cluster
@@ -26,7 +25,7 @@ class NeptuneDriver : GremlinDriver() {
     var maxRetries = 3
 
     init {
-        builder.port(DEFAULT_PORT)
+        builder.port(DEFAULT_PORT).enableSsl(true)
     }
 
     fun addHostnames(vararg addresses: String): NeptuneDriver = apply { builder.addContactPoints(*addresses) }
@@ -39,19 +38,11 @@ class NeptuneDriver : GremlinDriver() {
     fun port(port: Int): NeptuneDriver = apply { builder.port(port) }
 
     /**
-     * Enables connectivity over SSL - note that the server should be configured with SSL turned on for this setting to
-     * work properly.
-     *
-     * @param value set to true if using HTTPS and false if using HTTP.
-     */
-    fun enableSsl(value: Boolean): NeptuneDriver = apply { builder.enableSsl(value) }
-
-    /**
      * Sets the certificate to use by the [Cluster].
      *
-     * @param keyChainFile The file location of the private key in JKS or PKCS#12 format.
+     * @param keyChainFile The X.509 certificate chain file in PEM format.
      */
-    fun keyCertChainFile(keyChainFile: String): NeptuneDriver = apply { builder.keyStore(keyChainFile) }
+    fun keyCertChainFile(keyChainFile: String): NeptuneDriver = apply { builder.keyCertChainFile(keyChainFile) }
 
     /**
      * Connects to the graph database with the given configuration.
@@ -62,9 +53,9 @@ class NeptuneDriver : GremlinDriver() {
     override fun connect() {
         require(!connected) { "Please close the graph before trying to make another connection." }
         cluster = builder.create()
-        graph = traversal().withRemote(DriverRemoteConnection.using(cluster)).graph
+        super.setTraversalSource(traversal().withRemote(DriverRemoteConnection.using(cluster)))
+        graph = g.graph
         connected = true
-        supportsTransactions = graph.features().graph().supportsTransactions()
     }
 
     /**
@@ -79,63 +70,6 @@ class NeptuneDriver : GremlinDriver() {
             connected = false
         } catch (e: Exception) {
             logger.warn("Exception thrown while attempting to close graph.", e)
-        }
-    }
-
-    /**
-     * Starts a new traversal and opens a transaction if the database supports transactions.
-     *
-     * @throws IllegalArgumentException if there is an already open transaction.
-     * @throws PlumeTransactionException if unable to create a remote traversal.
-     */
-    override fun openTx() {
-        require(!transactionOpen) { "Please close the current transaction before creating a new one." }
-        if (supportsTransactions && !tx.isOpen) {
-            logger.debug("Created new tx")
-            try {
-                tx = traversal().withRemote(DriverRemoteConnection.using(cluster)).tx()
-            } catch (e: Exception) {
-                throw PlumeTransactionException("Unable to create Neptune transaction!")
-            }
-        }
-        try {
-            super.setTraversalSource(traversal().withRemote(DriverRemoteConnection.using(cluster)))
-        } catch (e: Exception) {
-            throw PlumeTransactionException("Unable to create Neptune transaction!")
-        }
-    }
-
-    /**
-     * Closes the current traversal and ends the current transaction if the database supports transactions. If the
-     * transaction fails, it will retry [maxRetries] times after [transactionRetryTime] milliseconds between attempts.
-     *
-     * @throws IllegalArgumentException if the transaction is already closed.
-     * @throws PlumeTransactionException if the transaction has failed over [maxRetries] amount of times.
-     */
-    override fun closeTx() {
-        require(transactionOpen) { "There is no transaction currently open!" }
-        if (supportsTransactions) {
-            var success = false
-            var failures = 0
-            do {
-                if (!tx.isOpen) return
-                try {
-                    tx.commit()
-                    success = true
-                } catch (e: IllegalStateException) {
-                    if (++failures > maxRetries) {
-                        throw PlumeTransactionException("Failed to commit transaction $failures time(s). Aborting...")
-                    } else {
-                        logger.warn("Failed to commit transaction $failures time(s). Backing off and retrying...")
-                        try {
-                            Thread.sleep(transactionRetryTime.toLong())
-                        } catch (ignored: Exception) {
-                        }
-                    }
-                }
-            } while (!success)
-        } else {
-            super.closeTx()
         }
     }
 
