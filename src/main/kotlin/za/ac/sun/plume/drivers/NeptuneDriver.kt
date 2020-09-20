@@ -24,6 +24,13 @@ class NeptuneDriver : GremlinDriver() {
         builder.port(DEFAULT_PORT).enableSsl(true)
     }
 
+    /**
+     * Add one or more the addresses of a Gremlin Servers to the list of servers a Client will try to contact to send
+     * requests to. The address should be parseable by InetAddress.getByName(String). That's the only validation
+     * performed at this point. No connection to the host is attempted.
+     *
+     * @param addresses the address(es) of Gremlin Servers to contact.
+     */
     fun addHostnames(vararg addresses: String): NeptuneDriver = apply { builder.addContactPoints(*addresses) }
 
     /**
