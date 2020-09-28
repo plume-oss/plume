@@ -23,6 +23,7 @@ import soot.toolkits.graph.BriefUnitGraph
 import za.ac.sun.plume.domain.exceptions.PlumeCompileException
 import za.ac.sun.plume.domain.models.PlumeVertex
 import za.ac.sun.plume.domain.models.vertices.MetaDataVertex
+import za.ac.sun.plume.drivers.GremlinDriver
 import za.ac.sun.plume.drivers.IDriver
 import za.ac.sun.plume.drivers.JanusGraphDriver
 import za.ac.sun.plume.drivers.TinkerGraphDriver
@@ -69,8 +70,7 @@ class Extractor(private val driver: IDriver, private val classPath: File) {
      */
     private fun checkDriverConnection(driver: IDriver) {
         when (driver) {
-            is TinkerGraphDriver -> if (!driver.connected) driver.connect()
-            is JanusGraphDriver -> if (!driver.connected) driver.connect()
+            is GremlinDriver -> if (!driver.connected) driver.connect()
         }
     }
 
