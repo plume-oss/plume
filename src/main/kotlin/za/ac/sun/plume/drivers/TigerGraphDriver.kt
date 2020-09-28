@@ -5,15 +5,14 @@ import org.apache.tinkerpop.shaded.jackson.databind.ObjectMapper
 import org.json.JSONArray
 import org.json.JSONObject
 import za.ac.sun.plume.domain.enums.EdgeLabel
-import za.ac.sun.plume.domain.enums.VertexLabel
 import za.ac.sun.plume.domain.exceptions.PlumeSchemaViolationException
 import za.ac.sun.plume.domain.exceptions.PlumeTransactionException
 import za.ac.sun.plume.domain.mappers.VertexMapper
 import za.ac.sun.plume.domain.mappers.VertexMapper.Companion.checkSchemaConstraints
 import za.ac.sun.plume.domain.models.PlumeVertex
+import za.ac.sun.plume.domain.models.vertices.MetaDataVertex
 import java.io.IOException
 import java.lang.Thread.sleep
-import java.util.*
 
 /**
  * The driver used to connect to a remote TigerGraph instance.
@@ -97,9 +96,12 @@ class TigerGraphDriver : IDriver {
     }
 
     override fun exists(v: PlumeVertex): Boolean {
-        val vLabel = v.javaClass.getDeclaredField("LABEL").get(v).toString()
+        val route = when (v) {
+            is MetaDataVertex -> "graph/$GRAPH_NAME/vertices/META_DATA_VERT"
+            else -> "graph/$GRAPH_NAME/vertices/CPG_VERT"
+        }
         return try {
-            get("graph/$GRAPH_NAME/vertices/${vLabel}_VERT/${v.hashCode()}")
+            get("$route/${v.hashCode()}")
             true
         } catch (e: PlumeTransactionException) {
             false
@@ -107,12 +109,12 @@ class TigerGraphDriver : IDriver {
     }
 
     override fun exists(fromV: PlumeVertex, toV: PlumeVertex, edge: EdgeLabel): Boolean {
-        val vLabelFrom = fromV.javaClass.getDeclaredField("LABEL").get(fromV).toString()
-        val vLabelTo = toV.javaClass.getDeclaredField("LABEL").get(toV).toString()
+        // No edge can be connected to a MetaDataVertex
+        if (fromV is MetaDataVertex || toV is MetaDataVertex) return false
         return try {
             val response = get("query/$GRAPH_NAME/areVerticesJoinedByEdge?" +
-                    "vFrom=${fromV.hashCode()}&vFrom.type=${vLabelFrom}_VERT&" +
-                    "vTo=${toV.hashCode()}&vTo.type=${vLabelTo}_VERT&" +
+                    "vFrom=${fromV.hashCode()}&vFrom.type=CPG_VERT&" +
+                    "vTo=${toV.hashCode()}&vTo.type=CPG_VERT&" +
                     "edgeLabel=${edge.name}").firstOrNull() as JSONObject
             return response["result"] as Boolean
         } catch (e: PlumeTransactionException) {
@@ -145,8 +147,8 @@ class TigerGraphDriver : IDriver {
 
     private fun createVertexPayload(plumeVertex: PlumeVertex): Map<String, Any> {
         val propertyMap = VertexMapper.vertexToMap(plumeVertex)
-        val vertexLabel = propertyMap.remove("label")
-        return mapOf("${vertexLabel}_VERT" to mapOf<String, Any>(
+        val vertexType = if (plumeVertex is MetaDataVertex) "META_DATA_VERT" else "CPG_VERT"
+        return mapOf(vertexType to mapOf<String, Any>(
                 plumeVertex.hashCode().toString() to extractAttributesFromMap(propertyMap)
         ))
     }
@@ -168,11 +170,9 @@ class TigerGraphDriver : IDriver {
         return mapOf(
                 fromLabel to mapOf(
                         from.hashCode().toString() to mapOf<String, Any>(
-                                "${fromLabel.removeSuffix("_VERT")}_${toLabel.removeSuffix("_VERT")}" to mapOf<String, Any>(
+                                edge.name to mapOf<String, Any>(
                                         toLabel to mapOf<String, Any>(
-                                                to.hashCode().toString() to mapOf<String, Any>(
-                                                        "name" to mapOf("value" to edge.name)
-                                                )
+                                                to.hashCode().toString() to emptyMap<String, Any>()
                                         )
                                 )
 
@@ -181,27 +181,13 @@ class TigerGraphDriver : IDriver {
         )
     }
 
-    private fun flattenVertexResult(o: JSONObject): MutableMap<String, Any> {
-        val map = mutableMapOf<String, Any>()
-        val attributes = o["attributes"] as JSONObject
-        map["label"] = (o["v_type"] as String).removeSuffix("_VERT")
-        attributes.keys().forEach { k ->
-            when (k.toString()) {
-                "astOrder" -> map["order"] = attributes[k] as Int
-                else -> map[k] = attributes[k]
-            }
-        }
-        return map
-    }
-
     override fun close() {
         /* No need to close anything - this hook uses REST */
     }
 
     override fun clearGraph() = apply {
-        EnumSet.allOf(VertexLabel::class.java).forEach {
-            delete("graph/$GRAPH_NAME/delete_by_type/vertices/${it.name}_VERT")
-        }
+        delete("graph/$GRAPH_NAME/delete_by_type/vertices/META_DATA_VERT")
+        delete("graph/$GRAPH_NAME/delete_by_type/vertices/CPG_VERT")
     }
 
     private fun headers(): Map<String, String> = if (authKey == null) {
