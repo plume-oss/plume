@@ -10,11 +10,21 @@ import za.ac.sun.plume.TestDomainResources.Companion.STRING_2
 import za.ac.sun.plume.domain.enums.EdgeLabel
 import za.ac.sun.plume.domain.exceptions.PlumeSchemaViolationException
 import za.ac.sun.plume.domain.models.vertices.*
+import kotlin.properties.Delegates
 
 class JanusGraphDriverIntTest {
 
     companion object {
         lateinit var driver: JanusGraphDriver
+        private var testStartTime by Delegates.notNull<Long>()
+
+        @JvmStatic
+        @BeforeAll
+        fun setUpAll() = run { testStartTime = System.nanoTime() }
+
+        @JvmStatic
+        @AfterAll
+        fun tearDownAll() = println("${JanusGraphDriverIntTest::class.java.simpleName} completed in ${(System.nanoTime() - testStartTime) / 1e6} ms")
     }
 
     @BeforeEach
