@@ -17,7 +17,6 @@ import java.lang.IllegalArgumentException
 class JanusGraphDriver : GremlinDriver() {
     private val logger = LogManager.getLogger(JanusGraphDriver::class.java)
 
-    
     private lateinit var tx: Transaction
     var transactionRetryTime = 5000
     var maxRetries = 3

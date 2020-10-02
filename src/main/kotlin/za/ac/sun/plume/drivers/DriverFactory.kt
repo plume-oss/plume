@@ -17,6 +17,7 @@ object DriverFactory {
             GraphDatabase.JANUS_GRAPH -> JanusGraphDriver()
             GraphDatabase.TIGER_GRAPH -> TigerGraphDriver()
             GraphDatabase.NEPTUNE -> NeptuneDriver()
+            GraphDatabase.NEO4J -> Neo4jDriver()
         }
     }
 }
@@ -45,5 +46,11 @@ enum class GraphDatabase {
      * Amazon Neptune is a fast, reliable graph database service that makes it easy to build and run applications that
      * work with highly connected datasets. This is queried using Gremlin.
      */
-    NEPTUNE
+    NEPTUNE,
+
+    /**
+     * Neo4j is the graph database platform powering mission-critical enterprise applications like artificial
+     * intelligence, fraud detection and recommendations.
+     */
+    NEO4J
 }
