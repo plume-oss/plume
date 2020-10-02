@@ -24,6 +24,7 @@ dependencies {
     implementation 'org.apache.tinkerpop:tinkergraph-gremlin:3.4.8'
     implementation 'org.apache.tinkerpop:gremlin-driver:3.4.8'
     implementation 'org.janusgraph:janusgraph-driver:0.5.2'
+    implementation 'com.steelbridgelabs.oss:neo4j-gremlin-bolt:0.4.4'
     implementation 'khttp:khttp:1.0.0'
     implementation 'com.fasterxml.jackson.core:jackson-databind:2.11.2'
     implementation 'org.jetbrains.kotlin:kotlin-stdlib-jdk8'
@@ -91,6 +92,20 @@ task neptuneIntTest(type: Test) {
     }
 }
 
+task neo4jIntTest(type: Test) {
+    useJUnitPlatform()
+    description = "Execute Neo4j integration tests."
+    group = "verification"
+    include "**/*Neo4j*"
+
+    testLogging {
+        events 'FAILED', 'SKIPPED'
+    }
+    doFirst {
+        dockerCompose.exposeAsEnvironment(neo4jIntTest)
+    }
+}
+
 dockerCompose {
     janusGraphSetup {
         useComposeFiles = ['src/test/resources/docker/janus-berkeleyje-lucene.yml']
@@ -99,6 +114,10 @@ dockerCompose {
     tigerGraphSetup {
         useComposeFiles = ['src/test/resources/docker/tigergraph.yml']
         isRequiredBy(project.tasks.tigerGraphIntTest)
+    }
+    neo4jGraphSetup {
+        useComposeFiles = ['src/test/resources/docker/neo4j.yml']
+        isRequiredBy(project.tasks.neo4jIntTest)
     }
 }
 
@@ -114,7 +133,7 @@ jacocoTestReport {
         html.destination file("${buildDir}/reports/jacoco")
         csv.enabled false
     }
-    executionData test, janusGraphIntTest, tigerGraphIntTest
+    executionData test, janusGraphIntTest, tigerGraphIntTest, neo4jIntTest
 }
 
 orchid {

@@ -8,28 +8,33 @@ import za.ac.sun.plume.TestDomainResources.Companion.INT_1
 import za.ac.sun.plume.TestDomainResources.Companion.INT_2
 import za.ac.sun.plume.TestDomainResources.Companion.STRING_1
 import za.ac.sun.plume.TestDomainResources.Companion.STRING_2
-import za.ac.sun.plume.TestDomainResources.Companion.vertices
 import za.ac.sun.plume.domain.enums.EdgeLabel
-import za.ac.sun.plume.domain.enums.VertexLabel
 import za.ac.sun.plume.domain.exceptions.PlumeSchemaViolationException
-import za.ac.sun.plume.domain.mappers.VertexMapper
 import za.ac.sun.plume.domain.models.vertices.*
 import java.io.File
 import java.util.*
+import kotlin.properties.Delegates
 
 class TinkerGraphDriverTest {
 
     companion object {
         private val tempDir = System.getProperty("java.io.tmpdir")
         private val logger = LogManager.getLogger(TinkerGraphDriverTest::class.java)
+        private var testStartTime by Delegates.notNull<Long>()
         lateinit var driver: TinkerGraphDriver
         val testGraphML = "$tempDir/plume/plume_driver_test.xml"
         val testGraphSON = "$tempDir/plume/plume_driver_test.json"
         val testGryo = "$tempDir/plume/plume_driver_test.kryo"
 
+        @JvmStatic
+        @BeforeAll
+        fun setUpAll() = run { testStartTime = System.nanoTime() }
+
         @AfterAll
         @JvmStatic
         fun tearDownAll() {
+            println("${TinkerGraphDriverTest::class.java.simpleName} completed in ${(System.nanoTime() - testStartTime) / 1e6} ms")
+
             val testFiles = arrayOf(File(testGraphML), File(testGraphSON), File(testGryo))
             Arrays.stream(testFiles).forEach { file: File ->
                 try {

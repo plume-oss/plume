@@ -23,6 +23,7 @@ script:
   - ./gradlew test
   - ./gradlew janusGraphIntTest
   - ./gradlew tigerGraphIntTest
+  - ./gradlew neo4jIntTest
   - ./gradlew jacocoTestReport
 
 deploy:

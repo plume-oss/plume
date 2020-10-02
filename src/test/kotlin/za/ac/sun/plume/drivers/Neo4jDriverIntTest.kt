@@ -12,10 +12,10 @@ import za.ac.sun.plume.domain.exceptions.PlumeSchemaViolationException
 import za.ac.sun.plume.domain.models.vertices.*
 import kotlin.properties.Delegates
 
-class TigerGraphDriverIntTest {
+class Neo4jDriverIntTest {
 
     companion object {
-        lateinit var driver: TigerGraphDriver
+        lateinit var driver: Neo4jDriver
         private var testStartTime by Delegates.notNull<Long>()
 
         @JvmStatic
@@ -24,15 +24,19 @@ class TigerGraphDriverIntTest {
 
         @JvmStatic
         @AfterAll
-        fun tearDownAll() = println("${TigerGraphDriverIntTest::class.java.simpleName} completed in ${(System.nanoTime() - testStartTime) / 1e6} ms")
+        fun tearDownAll() = println("${Neo4jDriverIntTest::class.java.simpleName} completed in ${(System.nanoTime() - testStartTime) / 1e6} ms")
     }
 
     @BeforeEach
     fun setUp() {
-        driver = (DriverFactory(GraphDatabase.TIGER_GRAPH) as TigerGraphDriver)
-                .hostname("127.0.0.1")
-                .port(9000)
-                .secure(false)
+        driver = (DriverFactory(GraphDatabase.NEO4J) as Neo4jDriver).apply {
+            this.hostname("localhost")
+                    .port(7687)
+                    .username("neo4j")
+                    .password("neo4j123")
+                    .database("neo4j")
+                    .connect()
+        }
     }
 
     @AfterEach
