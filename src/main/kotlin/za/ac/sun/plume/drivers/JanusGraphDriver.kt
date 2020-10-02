@@ -64,17 +64,21 @@ class JanusGraphDriver : GremlinDriver() {
     override fun openTx() {
         require(!transactionOpen) { "Please close the current transaction before creating a new one." }
         if (supportsTransactions && !tx.isOpen) {
-            logger.debug("Created new tx")
+            logger.debug("Creating new tx")
             try {
-                tx = AnonymousTraversalSource.traversal().withRemote(config.getString(REMOTE_CONFIG)).tx()
+                super.setTraversalSource(AnonymousTraversalSource.traversal().withRemote(config.getString(REMOTE_CONFIG)))
+                tx = super.g.tx()
+                transactionOpen = true
             } catch (e: Exception) {
                 throw PlumeTransactionException("Unable to create JanusGraph transaction!")
             }
-        }
-        try {
-            super.setTraversalSource(AnonymousTraversalSource.traversal().withRemote(config.getString(REMOTE_CONFIG)))
-        } catch (e: Exception) {
-            throw PlumeTransactionException("Unable to create JanusGraph transaction!")
+        } else {
+            try {
+                super.setTraversalSource(AnonymousTraversalSource.traversal().withRemote(config.getString(REMOTE_CONFIG)))
+                transactionOpen = true
+            } catch (e: Exception) {
+                throw PlumeTransactionException("Unable to create JanusGraph transaction!")
+            }
         }
     }
 
@@ -94,6 +98,7 @@ class JanusGraphDriver : GremlinDriver() {
                 if (!tx.isOpen) return
                 try {
                     tx.commit()
+                    tx.close()
                     success = true
                 } catch (e: IllegalStateException) {
                     if (++failures > maxRetries) {
