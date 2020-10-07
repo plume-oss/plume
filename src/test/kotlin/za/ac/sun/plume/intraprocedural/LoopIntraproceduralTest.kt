@@ -30,7 +30,7 @@ class LoopIntraproceduralTest {
             deleteClassFiles(PATH)
             val f = File(TEST_GRAPH)
             if (f.exists() && !f.delete()) {
-                logger.warn("Could not clear " + ConditionalIntraproceduralTest::class.java.name + "'s test resources.")
+                logger.warn("Could not clear ${LoopIntraproceduralTest::javaClass.name}'s test resources.")
             }
         }
 

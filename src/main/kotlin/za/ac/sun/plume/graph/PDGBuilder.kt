@@ -18,7 +18,6 @@ package za.ac.sun.plume.graph
 import org.apache.logging.log4j.LogManager
 import soot.Local
 import soot.SootMethod
-import soot.Value
 import soot.jimple.*
 import soot.toolkits.graph.BriefUnitGraph
 import za.ac.sun.plume.domain.enums.EdgeLabel

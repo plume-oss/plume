@@ -19,6 +19,7 @@ import org.apache.logging.log4j.LogManager
 import soot.*
 import soot.Unit
 import soot.jimple.*
+import soot.jimple.internal.JimpleLocalBox
 import soot.toolkits.graph.BriefUnitGraph
 import soot.toolkits.graph.UnitGraph
 import za.ac.sun.plume.domain.enums.DispatchType
@@ -54,7 +55,7 @@ class ASTBuilder(private val driver: IDriver, private val sootToPlume: MutableMa
     private lateinit var currentClass: FileVertex
     private lateinit var currentMethod: MethodVertex
     private lateinit var methodEntryPoint: BlockVertex
-    private lateinit var currentType: TypeDeclVertex
+    private lateinit var currentTypeDecl: TypeDeclVertex
     private lateinit var graph: BriefUnitGraph
     private val classMembers = mutableListOf<PlumeVertex>()
 
@@ -89,7 +90,7 @@ class ASTBuilder(private val driver: IDriver, private val sootToPlume: MutableMa
             driver.addEdge(currentClass, nbv, EdgeLabel.AST); classChildrenVertices.add(nbv)
         }
         // Create TYPE_DECL
-        currentType = TypeDeclVertex(
+        currentTypeDecl = TypeDeclVertex(
                 name = cls.shortName,
                 fullName = cls.name,
                 typeDeclFullName = cls.javaStyleName,
@@ -145,7 +146,7 @@ class ASTBuilder(private val driver: IDriver, private val sootToPlume: MutableMa
         currentMethod = MethodVertex(mtd.name, "${mtd.declaringClass}.${mtd.name}", mtd.subSignature, mtd.declaration, currentLine, currentCol, order++)
         methodHeadChildren.add(currentMethod)
         // Add to package
-        driver.addEdge(currentType, currentMethod, EdgeLabel.AST)
+        driver.addEdge(currentTypeDecl, currentMethod, EdgeLabel.AST)
         // Add to source file
         driver.addEdge(currentMethod, currentClass, EdgeLabel.SOURCE_FILE)
         // Store return type
@@ -237,19 +238,27 @@ class ASTBuilder(private val driver: IDriver, private val sootToPlume: MutableMa
                 dynamicTypeHintFullName = unit.type.toQuotedString()
         )
         val callVertices = mutableListOf<PlumeVertex>(callVertex)
+        // Create vertices for arguments
         unit.args.map { it }.forEach {
             when (it) {
                 is Local -> createIdentifierVertex(it).apply { sootToPlume[it]!!.add(this) }
                 is Constant -> createLiteralVertex(it)
                 else -> null
             }?.let { expressionVertex ->
-                driver.addEdge(callVertex, expressionVertex, EdgeLabel.AST);
+                driver.addEdge(callVertex, expressionVertex, EdgeLabel.AST)
                 callVertices.add(expressionVertex)
             }
         }
         // Save PDG arguments
         if (sootToPlume[unit] == null) sootToPlume[unit] = callVertices
         else sootToPlume[unit]?.addAll(callVertices)
+        // Create the receiver for the call
+        unit.useBoxes.filterIsInstance<JimpleLocalBox>().firstOrNull()?.let {
+            createIdentifierVertex(it.value).apply {
+                sootToPlume[it.value]?.add(this)
+                driver.addEdge(callVertex, this, EdgeLabel.RECEIVER)
+            }
+        }
         return callVertex
     }
 
@@ -436,8 +445,9 @@ class ASTBuilder(private val driver: IDriver, private val sootToPlume: MutableMa
         when (leftOp) {
             is Local -> createIdentifierVertex(leftOp)
             is FieldRef -> createFieldIdentifierVertex(leftOp)
+            is ArrayRef -> createArrayRefIdentifier(leftOp)
             else -> {
-                logger.debug("Unhandled class for leftOp under projectVariableAssignment: ${leftOp.javaClass} containing value ${leftOp}")
+                logger.debug("Unhandled class for leftOp under projectVariableAssignment: ${leftOp.javaClass} containing value $leftOp")
                 null
             }
         }?.let { driver.addEdge(assignBlock, it, EdgeLabel.AST); assignVariables.add(it) }
@@ -446,6 +456,21 @@ class ASTBuilder(private val driver: IDriver, private val sootToPlume: MutableMa
         if (sootToPlume[unit] == null) sootToPlume[unit] = assignVariables
         else sootToPlume[unit]?.addAll(assignVariables)
         return assignBlock
+    }
+
+    private fun createArrayRefIdentifier(leftOp: ArrayRef): PlumeVertex {
+        return IdentifierVertex(
+                code = "$leftOp",
+                name = leftOp.toString(),
+                order = order++,
+                argumentIndex = leftOp.index.toString().toInt(),
+                typeFullName = leftOp.type.toQuotedString(),
+                lineNumber = currentLine,
+                columnNumber = currentCol
+        ).apply {
+            if (sootToPlume[leftOp.base] == null) sootToPlume[leftOp.base] = mutableListOf<PlumeVertex>(this)
+            else sootToPlume[leftOp.base]?.add(this)
+        }
     }
 
     /**
@@ -534,9 +559,49 @@ class ASTBuilder(private val driver: IDriver, private val sootToPlume: MutableMa
             is BinopExpr -> projectBinopExpr(expr)
             is InvokeExpr -> projectCallVertex(expr)
             is StaticFieldRef -> createFieldIdentifierVertex(expr)
+            is NewExpr -> createNewExpr(expr)
+            is NewArrayExpr -> createNewArrayExpr(expr)
             else -> {
-                logger.debug("projectOp unhandled class" + expr.javaClass); null
+                logger.debug("projectOp unhandled class ${expr.javaClass}"); null
             }
+        }
+    }
+
+    private fun createNewArrayExpr(expr: NewArrayExpr): TypeRefVertex {
+        val newArrayExprVertices = mutableListOf<PlumeVertex>()
+        val typeRef = TypeRefVertex(
+                typeFullName = expr.baseType.toQuotedString(),
+                dynamicTypeFullName = expr.type.toQuotedString(),
+                code = expr.toString(),
+                argumentIndex = 0,
+                lineNumber = currentLine,
+                columnNumber = currentCol,
+                order = order++
+        ).apply {
+            if (sootToPlume[expr] == null) sootToPlume[expr] = mutableListOf<PlumeVertex>(this)
+            else sootToPlume[expr]?.add(this)
+        }
+        ArrayInitializerVertex(order++).let {
+            driver.addEdge(typeRef, it, EdgeLabel.AST)
+            newArrayExprVertices.add(it)
+        }
+        if (sootToPlume[expr] == null) sootToPlume[expr] = newArrayExprVertices
+        else sootToPlume[expr]?.addAll(newArrayExprVertices)
+        return typeRef
+    }
+
+    private fun createNewExpr(expr: NewExpr): TypeRefVertex {
+        return TypeRefVertex(
+                typeFullName = expr.baseType.toQuotedString(),
+                dynamicTypeFullName = expr.type.toQuotedString(),
+                code = expr.toString(),
+                argumentIndex = 0,
+                lineNumber = currentLine,
+                columnNumber = currentCol,
+                order = order++
+        ).apply {
+            if (sootToPlume[expr] == null) sootToPlume[expr] = mutableListOf<PlumeVertex>(this)
+            else sootToPlume[expr]?.add(this)
         }
     }
 

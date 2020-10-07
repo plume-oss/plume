@@ -28,7 +28,7 @@ class SwitchIntraproceduralTest {
             deleteClassFiles(PATH)
             val f = File(TEST_GRAPH)
             if (f.exists() && !f.delete()) {
-                logger.warn("Could not clear ${SwitchIntraproceduralTest::class.java.name}'s test resources.")
+                logger.warn("Could not clear ${SwitchIntraproceduralTest::javaClass.name}'s test resources.")
             }
         }
 

@@ -48,8 +48,10 @@ class CFGBuilder(private val driver: IDriver, private val sootToPlume: MutableMa
         // Connect entrypoint to the first CFG vertex
         this.graph.heads.forEach { head ->
             // Select appropriate successor to start CFG chain at
-            var startingUnit = graph.getSuccsOf(head).firstOrNull()
-            while (startingUnit != null && startingUnit is IdentityStmt) startingUnit = graph.getSuccsOf(startingUnit).firstOrNull()
+            var startingUnit = if (head is AssignStmt) head else graph.getSuccsOf(head).firstOrNull()
+            while (startingUnit == null && (startingUnit is IdentityStmt)) {
+                startingUnit = graph.getSuccsOf(startingUnit).firstOrNull()
+            }
             startingUnit?.let {
                 sootToPlume[it]?.firstOrNull()?.let { succVert ->
                     driver.addEdge(

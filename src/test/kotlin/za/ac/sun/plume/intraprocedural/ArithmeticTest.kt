@@ -19,8 +19,6 @@ import java.io.File
 import java.io.IOException
 
 class ArithmeticTest {
-    private lateinit var methodRoot: Vertex
-
     companion object {
         private val logger = LogManager.getLogger(ArithmeticTest::javaClass)
         private var PATH: File

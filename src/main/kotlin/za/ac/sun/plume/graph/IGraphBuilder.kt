@@ -17,7 +17,6 @@ package za.ac.sun.plume.graph
 
 import soot.SootMethod
 import soot.toolkits.graph.BriefUnitGraph
-import za.ac.sun.plume.domain.models.PlumeVertex
 
 /**
  * The interface for classes which build the code property graph from Soot data should implement.

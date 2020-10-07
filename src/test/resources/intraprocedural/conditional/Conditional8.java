@@ -2,7 +2,7 @@ package intraprocedural.conditional;
 
 public class Conditional8 {
 
-    public static void main(String args[]) {
+    public static void main(String[] args) {
         int a = 1; // L?
         int b = 2; // L?
         if (a == 3) { // IF_ICMPNE L1 L1651667865

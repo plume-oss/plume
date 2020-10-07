@@ -25,8 +25,6 @@ import za.ac.sun.plume.domain.models.PlumeVertex
 import za.ac.sun.plume.domain.models.vertices.MetaDataVertex
 import za.ac.sun.plume.drivers.GremlinDriver
 import za.ac.sun.plume.drivers.IDriver
-import za.ac.sun.plume.drivers.JanusGraphDriver
-import za.ac.sun.plume.drivers.TinkerGraphDriver
 import za.ac.sun.plume.graph.ASTBuilder
 import za.ac.sun.plume.graph.CFGBuilder
 import za.ac.sun.plume.graph.PDGBuilder
@@ -116,7 +114,7 @@ class Extractor(private val driver: IDriver, private val classPath: File) {
                 }
             }
         } else if (!file.exists()) {
-            throw NullPointerException("File '$file.name' does not exist!")
+            throw NullPointerException("File '${file.name}' does not exist!")
         }
     }
 

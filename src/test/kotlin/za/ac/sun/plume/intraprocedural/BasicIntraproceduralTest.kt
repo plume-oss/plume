@@ -1,8 +1,6 @@
 package za.ac.sun.plume.intraprocedural
 
 import org.apache.logging.log4j.LogManager
-import org.apache.tinkerpop.gremlin.process.traversal.dsl.graph.GraphTraversalSource
-import org.apache.tinkerpop.gremlin.tinkergraph.structure.TinkerGraph
 import org.junit.jupiter.api.AfterAll
 import org.junit.jupiter.api.BeforeEach
 import org.junit.jupiter.api.Test
@@ -33,12 +31,12 @@ class BasicIntraproceduralTest {
             deleteClassFiles(PATH)
             val f = File(TEST_GRAPH)
             if (f.exists() && !f.delete()) {
-                logger.warn("Could not clear ${BasicIntraproceduralTest::javaClass.name}'s test resources.");
+                logger.warn("Could not clear ${BasicIntraproceduralTest::javaClass.name}'s test resources.")
             }
         }
 
         init {
-            val testFileUrl = ArithmeticTest::class.java.classLoader.getResource(TEST_PATH)
+            val testFileUrl = BasicIntraproceduralTest::class.java.classLoader.getResource(TEST_PATH)
                     ?: throw NullPointerException("Unable to obtain test resource")
             PATH = File(testFileUrl.file)
             CLS_PATH = File(PATH.absolutePath.replace(System.getProperty("user.dir") + File.separator, "").replace(TEST_PATH, ""))
