@@ -3,12 +3,14 @@ package intraprocedural.loop;
 public class Loop4 {
 
     public static void main(String[] args) {
-        int a = 1; // L?
-        int b = 2; // L?
-        do {
-            a++;
-        } while (a < b);
-        b = 3;
+        int a = 1;
+        int b = 2;
+        while (a < b) {
+            while (a < b) {
+                a++;
+            }
+        }
+        a = 3;
     }
 
 }

@@ -5,18 +5,12 @@ public class Loop10 {
     public static void main(String[] args) {
         int a = 1; // L?
         int b = 2; // L?
-        while (a < b) {
-            a = a - b;
-            do {
-                a++;
-                while (b < a) {
-                    b++;
-                }
-                a = a + b;
-            } while (a < b);
-            b = a / b;
+        for (int i = 0; i < 2; i++) {
+            a = a + b;
+            for (int j = 4; j >= 2; j--) {
+                b = a + b;
+            }
         }
-        a = 3;
     }
 
 }

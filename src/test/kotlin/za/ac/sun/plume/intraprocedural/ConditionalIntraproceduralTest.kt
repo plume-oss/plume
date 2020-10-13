@@ -104,28 +104,4 @@ class ConditionalIntraproceduralTest {
     @Test
     fun conditional11Test() {
     }
-
-    @Test
-    fun conditional12Test() {
-    }
-
-    @Test
-    fun conditional13Test() {
-    }
-
-    @Test
-    fun conditional14Test() {
-    }
-
-    @Test
-    fun conditional15Test() {
-    }
-
-    @Test
-    fun conditional16Test() {
-    }
-
-    @Test
-    fun conditional17Test() {
-    }
 }

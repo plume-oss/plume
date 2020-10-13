@@ -189,7 +189,7 @@ class ASTBuilder(private val driver: IDriver, private val sootToPlume: MutableMa
      * @param graph The [UnitGraph] from which the vertices and AST edges are created from.
      */
     private fun projectMethodBody(graph: UnitGraph) =
-            graph.body.units.forEach { u -> projectUnit(u)?.let { driver.addEdge(methodEntryPoint, it, EdgeLabel.AST) } }
+            graph.body.units.filterNot { it is IdentityStmt }.forEach { u -> projectUnit(u)?.let { driver.addEdge(methodEntryPoint, it, EdgeLabel.AST) } }
 
     /**
      * Given a unit, will construct AST information in the graph.
@@ -207,7 +207,6 @@ class ASTBuilder(private val driver: IDriver, private val sootToPlume: MutableMa
             is LookupSwitchStmt -> projectLookupSwitch(unit)
             is TableSwitchStmt -> projectTableSwitch(unit)
             is InvokeStmt -> projectCallVertex(unit.invokeExpr).apply { sootToPlume[unit.invokeExpr]!!.add(0, this) }
-            // TODO: Discern between method return and return statement
             is ReturnStmt -> projectReturnVertex(unit)
             is ReturnVoidStmt -> projectReturnVertex(unit)
             else -> {
@@ -561,6 +560,7 @@ class ASTBuilder(private val driver: IDriver, private val sootToPlume: MutableMa
             is StaticFieldRef -> createFieldIdentifierVertex(expr)
             is NewExpr -> createNewExpr(expr)
             is NewArrayExpr -> createNewArrayExpr(expr)
+            is CaughtExceptionRef -> createIdentifierVertex(expr)
             else -> {
                 logger.debug("projectOp unhandled class ${expr.javaClass}"); null
             }

@@ -7,6 +7,8 @@ public class Loop11 {
         int b = 2; // L?
         for (int i = 0; i < 2; i++) {
             a = a + b;
+            if (a == 5) break;
+            else continue;
         }
     }
 
