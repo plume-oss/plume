@@ -5,6 +5,7 @@ import za.ac.sun.plume.domain.enums.EvaluationStrategy
 import za.ac.sun.plume.domain.enums.VertexBaseTrait
 import za.ac.sun.plume.domain.enums.VertexLabel
 import za.ac.sun.plume.domain.models.CFGVertex
+import za.ac.sun.plume.domain.models.PlumeVertex
 import java.util.*
 
 /**
@@ -30,7 +31,7 @@ class MethodReturnVertex(
         )
 
         @JvmField
-        val VALID_OUT_EDGES = emptyMap<EdgeLabel, List<VertexLabel>>()
+        val VALID_OUT_EDGES =  emptyMap<EdgeLabel, List<VertexLabel>>()
     }
 
     override fun equals(other: Any?): Boolean {

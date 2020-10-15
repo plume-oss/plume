@@ -82,7 +82,8 @@ class CallVertex(
                         VertexLabel.JUMP_TARGET,
                         VertexLabel.CONTROL_STRUCTURE,
                         VertexLabel.UNKNOWN
-                )
+                ),
+                EdgeLabel.REF to listOf(VertexLabel.METHOD)
         )
     }
 
