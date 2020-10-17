@@ -27,8 +27,8 @@ class MemberVertex(val code: String, name: String, val typeFullName: String, ord
     override fun equals(other: Any?): Boolean {
         if (this === other) return true
         if (other !is MemberVertex) return false
-        if (!super.equals(other)) return false
 
+        if (name != other.name) return false
         if (code != other.code) return false
         if (typeFullName != other.typeFullName) return false
 
@@ -36,7 +36,8 @@ class MemberVertex(val code: String, name: String, val typeFullName: String, ord
     }
 
     override fun hashCode(): Int {
-        var result = super.hashCode()
+        var result = javaClass.hashCode()
+        result = 31 * result + name.hashCode()
         result = 31 * result + code.hashCode()
         result = 31 * result + typeFullName.hashCode()
         return result

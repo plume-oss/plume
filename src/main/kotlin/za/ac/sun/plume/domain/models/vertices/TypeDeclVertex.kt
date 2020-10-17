@@ -42,7 +42,6 @@ class TypeDeclVertex(
     override fun equals(other: Any?): Boolean {
         if (this === other) return true
         if (other !is TypeDeclVertex) return false
-        if (!super.equals(other)) return false
 
         if (name != other.name) return false
         if (fullName != other.fullName) return false
@@ -52,7 +51,7 @@ class TypeDeclVertex(
     }
 
     override fun hashCode(): Int {
-        var result = super.hashCode()
+        var result = javaClass.hashCode()
         result = 31 * result + name.hashCode()
         result = 31 * result + fullName.hashCode()
         result = 31 * result + typeDeclFullName.hashCode()

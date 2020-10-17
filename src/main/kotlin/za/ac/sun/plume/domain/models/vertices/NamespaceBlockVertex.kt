@@ -32,7 +32,8 @@ class NamespaceBlockVertex(val name: String, val fullName: String, order: Int) :
     }
 
     override fun hashCode(): Int {
-        var result = 31 * name.hashCode()
+        var result = javaClass.hashCode()
+        result = 31 * result + name.hashCode()
         result = 31 * result + fullName.hashCode()
         return result
     }
