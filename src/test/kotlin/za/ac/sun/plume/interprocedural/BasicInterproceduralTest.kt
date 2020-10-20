@@ -1,8 +1,6 @@
 package za.ac.sun.plume.interprocedural
 
 import org.apache.logging.log4j.LogManager
-import org.apache.tinkerpop.gremlin.process.traversal.dsl.graph.GraphTraversalSource
-import org.apache.tinkerpop.gremlin.tinkergraph.structure.TinkerGraph
 import org.junit.jupiter.api.*
 import za.ac.sun.plume.Extractor
 import za.ac.sun.plume.TestConstants.testGraph

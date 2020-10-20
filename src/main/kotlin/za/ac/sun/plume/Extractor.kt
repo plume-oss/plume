@@ -17,16 +17,26 @@ package za.ac.sun.plume
 
 import org.apache.logging.log4j.LogManager
 import org.apache.logging.log4j.Logger
-import soot.*
+import soot.PhaseOptions
+import soot.Scene
+import soot.SootClass
+import soot.SootMethod
+import soot.jimple.toolkits.callgraph.CHATransformer
+import soot.jimple.toolkits.callgraph.Edge
 import soot.options.Options
 import soot.toolkits.graph.BriefUnitGraph
+import za.ac.sun.plume.domain.enums.EdgeLabel
 import za.ac.sun.plume.domain.exceptions.PlumeCompileException
 import za.ac.sun.plume.domain.models.PlumeVertex
+import za.ac.sun.plume.domain.models.vertices.FileVertex
 import za.ac.sun.plume.domain.models.vertices.MetaDataVertex
+import za.ac.sun.plume.domain.models.vertices.MethodVertex
+import za.ac.sun.plume.domain.models.vertices.TypeDeclVertex
 import za.ac.sun.plume.drivers.GremlinDriver
 import za.ac.sun.plume.drivers.IDriver
 import za.ac.sun.plume.graph.ASTBuilder
 import za.ac.sun.plume.graph.CFGBuilder
+import za.ac.sun.plume.graph.CallGraphBuilder
 import za.ac.sun.plume.graph.PDGBuilder
 import za.ac.sun.plume.util.ResourceCompilationUtil.compileJavaFile
 import za.ac.sun.plume.util.ResourceCompilationUtil.compileJavaFiles
@@ -37,6 +47,9 @@ import java.io.File
 import java.io.IOException
 import java.util.*
 import java.util.jar.JarFile
+import kotlin.collections.HashSet
+import kotlin.streams.toList
+
 
 /**
  * The main entrypoint of the extractor from which the CPG will be created.
@@ -52,6 +65,7 @@ class Extractor(private val driver: IDriver, private val classPath: File) {
     private val astBuilder: ASTBuilder
     private val cfgBuilder: CFGBuilder
     private val pdgBuilder: PDGBuilder
+    private val callGraphBuilder: CallGraphBuilder
 
     init {
         checkDriverConnection(driver)
@@ -59,6 +73,7 @@ class Extractor(private val driver: IDriver, private val classPath: File) {
         astBuilder = ASTBuilder(driver, sootToPlume)
         cfgBuilder = CFGBuilder(driver, sootToPlume)
         pdgBuilder = PDGBuilder(driver, sootToPlume)
+        callGraphBuilder = CallGraphBuilder(driver, sootToPlume)
     }
 
     /**
@@ -119,34 +134,93 @@ class Extractor(private val driver: IDriver, private val classPath: File) {
     }
 
     /**
-     * Projects all loaded Java classes currently loaded.
+     * Projects all loaded classes currently loaded.
      */
     fun project() {
-        loadClassesIntoSoot(loadedFiles)
-        // Add metadata if not present
-        loadedFiles.forEach { project(it) }
-        loadedFiles.clear()
+        val classStream = loadClassesIntoSoot(loadedFiles)
+        CHATransformer.v().transform()
+        // Load all methods to construct the CPG from and convert them to UnitGraph objects
+        val graphs = classStream.asSequence()
+                .map { it.methods.parallelStream().filter { mtd -> mtd.isConcrete }.toList() }.flatten()
+                .map(this::addExternallyReferencedMethods).flatten()
+                .distinct().toList()
+                .parallelStream()
+                .map { BriefUnitGraph(it.retrieveActiveBody()) }.toList()
+        // Construct the CPGs for methods
+        graphs.map(this::constructCPG)
+                .toList().asSequence()
+                .map(this::constructCallGraphEdges)
+                .map { it.declaringClass }.distinct().toList()
+                .forEach(this::constructStructure)
+        // Connect methods to their type declarations and source files (if present)
+        graphs.forEach(this::connectMethodToTypeDecls)
+        clear()
     }
 
     /**
-     * Attempts to project a file from the cannon.
+     * Searches for methods called outside of the application perspective. If they belong to classes loaded in Soot then
+     * they are added to a list which is then returned including the given method.
      *
-     * @param f The file to project.
+     * @param mtd The [SootMethod] from which the calls to methods will be collected.
+     * @return The list of methods called including the given method.
      */
-    private fun project(f: File) {
-        val classPath = getQualifiedClassPath(f)
-        val cls = Scene.v().loadClassAndSupport(classPath)
-        cls.setApplicationClass()
-        logger.debug("Projecting $classPath")
-        astBuilder.buildProgramStructure(cls)
-        cls.methods.filter { it.isConcrete }.forEach {
-            val unitGraph = BriefUnitGraph(it.retrieveActiveBody())
-            astBuilder.build(it, unitGraph)
-            cfgBuilder.build(it, unitGraph)
-            pdgBuilder.build(it, unitGraph)
+    private fun addExternallyReferencedMethods(mtd: SootMethod): List<SootMethod> {
+        val cg = Scene.v().callGraph
+        val edges = cg.edgesOutOf(mtd) as Iterator<Edge>
+        return edges.asSequence().map { it.tgt.method() }.toMutableList().apply { this.add(mtd) }
+    }
+
+    /**
+     * Constructs type, package, and source file information from the given class.
+     *
+     * @param cls The [SootClass] containing the information to build program structure information from.
+     */
+    private fun constructStructure(cls: SootClass) {
+        astBuilder.buildClassStructure(cls)
+        astBuilder.buildTypeDeclaration(cls)
+    }
+
+    /**
+     * Connects the given method's [BriefUnitGraph] to its type declaration and source file (if present).
+     *
+     * @param graph The [BriefUnitGraph] to connect and extract type and source information from.
+     */
+    private fun connectMethodToTypeDecls(graph: BriefUnitGraph) {
+        sootToPlume[graph.body.method.declaringClass]?.let { classVertices ->
+            val typeDeclVertex = classVertices.first { it is TypeDeclVertex }
+            val clsVertex = classVertices.first { it is FileVertex }
+            val methodVertex = sootToPlume[graph.body.method]?.first { it is MethodVertex } as MethodVertex
+            // Connect method to type declaration
+            driver.addEdge(typeDeclVertex, methodVertex, EdgeLabel.AST)
+            // Connect method to source file
+            driver.addEdge(methodVertex, clsVertex, EdgeLabel.SOURCE_FILE)
         }
-        // Clear this class' references and allow for GC removal
-        sootToPlume.clear()
+    }
+
+    /**
+     * Constructs the code-property graph from a method's [BriefUnitGraph].
+     *
+     * @param graph The [BriefUnitGraph] to construct the method head and body CPG from.
+     * @return The given graph.
+     */
+    private fun constructCPG(graph: BriefUnitGraph): BriefUnitGraph {
+        logger.debug("Projecting $classPath")
+        astBuilder.buildMethodHead(graph)
+        astBuilder.buildMethodBody(graph)
+        cfgBuilder.buildMethodBody(graph)
+        pdgBuilder.buildMethodBody(graph)
+        return graph
+    }
+
+    /**
+     * Once the method bodies are constructed, this function then connects calls to the called methods if present.
+     *
+     * @param graph The [BriefUnitGraph] from which calls are checked and connected to their referred methods.
+     * @return The method from the given graph.
+     */
+    private fun constructCallGraphEdges(graph: BriefUnitGraph): SootMethod {
+        callGraphBuilder.buildMethodBody(graph)
+        return graph.body.method
     }
 
     /**
@@ -174,16 +248,35 @@ class Extractor(private val driver: IDriver, private val classPath: File) {
         PhaseOptions.v().setPhaseOption("jb", "use-original-names:true")
     }
 
-    private fun getQualifiedClassPath(classFile: File): String = classFile.absolutePath.removePrefix(classPath.absolutePath + "/").replace(File.separator, ".").removeSuffix(".class")
+    /**
+     * Obtains the class path the way Soot expects the input.
+     *
+     * @param classFile The class file pointer.
+     * @return The qualified class path with periods separating packages instead of slashes and no ".class" extension.
+     */
+    private fun getQualifiedClassPath(classFile: File): String = classFile.absolutePath
+            .removePrefix(classPath.absolutePath + "/")
+            .replace(File.separator, ".")
+            .removeSuffix(".class")
 
     /**
      * Given a list of class names, load them into the Scene.
      *
      * @param classNames A set of class files.
+     * @return the given class files as a list of [SootClass].
      */
-    private fun loadClassesIntoSoot(classNames: HashSet<File>) {
-        classNames.forEach { Scene.v().addBasicClass(getQualifiedClassPath(it)) }
+    private fun loadClassesIntoSoot(classNames: HashSet<File>): List<SootClass> {
+        classNames.map(this::getQualifiedClassPath).forEach(Scene.v()::addBasicClass)
         Scene.v().loadBasicClasses()
+        return classNames.map(this::getQualifiedClassPath).map(Scene.v()::loadClassAndSupport).map { it.setApplicationClass(); it }
+    }
+
+    /**
+     * Clears resources of file and graph pointers.
+     */
+    fun clear() {
+        loadedFiles.clear()
+        sootToPlume.clear()
     }
 
 }

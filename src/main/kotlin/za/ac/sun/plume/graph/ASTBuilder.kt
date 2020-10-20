@@ -52,10 +52,6 @@ class ASTBuilder(private val driver: IDriver, private val sootToPlume: MutableMa
     private var order = 0
     private var currentLine = -1
     private var currentCol = -1
-    private lateinit var currentClass: FileVertex
-    private lateinit var currentMethod: MethodVertex
-    private lateinit var methodEntryPoint: BlockVertex
-    private lateinit var currentTypeDecl: TypeDeclVertex
     private lateinit var graph: BriefUnitGraph
     private val classMembers = mutableListOf<PlumeVertex>()
 
@@ -63,11 +59,15 @@ class ASTBuilder(private val driver: IDriver, private val sootToPlume: MutableMa
         order = driver.maxOrder()
     }
 
-    override fun build(mtd: SootMethod, graph: BriefUnitGraph) {
-        logger.debug("Building AST for ${mtd.declaration}")
+    override fun buildMethodBody(graph: BriefUnitGraph): MethodVertex {
+        val mtd = graph.body.method
         this.graph = graph
-        projectMethodHead(mtd)
-        projectMethodBody(graph)
+        logger.debug("Building AST for ${mtd.declaration}")
+        graph.body.units.filterNot { it is IdentityStmt }
+                .forEach { u -> projectUnit(u)
+                        ?.let { driver.addEdge(sootToPlume[graph.body.method]
+                        !!.first { v -> v is BlockVertex}, it, EdgeLabel.AST) } }
+        return sootToPlume[graph.body.method]?.first { it is MethodVertex } as MethodVertex
     }
 
     /**
@@ -75,7 +75,7 @@ class ASTBuilder(private val driver: IDriver, private val sootToPlume: MutableMa
      *
      * @param cls The [SootClass] from which the file and package information is constructed from.
      */
-    fun buildProgramStructure(cls: SootClass) {
+    fun buildClassStructure(cls: SootClass): FileVertex {
         logger.debug("Building file and namespace for ${cls.name}")
         val classChildrenVertices = mutableListOf<PlumeVertex>()
         var nbv: NamespaceBlockVertex? = null
@@ -84,30 +84,31 @@ class ASTBuilder(private val driver: IDriver, private val sootToPlume: MutableMa
             val namespaceList = cls.packageName.split(".").toTypedArray()
             if (namespaceList.isNotEmpty()) nbv = populateNamespaceChain(namespaceList)
         }
-        currentClass = FileVertex(cls.shortName, order++)
-        // Join FILE and NAMESPACE_BLOCK if namespace is present
-        if (nbv != null) {
-            driver.addEdge(currentClass, nbv, EdgeLabel.AST); classChildrenVertices.add(nbv)
-        }
-        // Create TYPE_DECL
-        currentTypeDecl = TypeDeclVertex(
-                name = cls.shortName,
-                fullName = cls.name,
-                typeDeclFullName = cls.javaStyleName,
-                order = order++
-        ).apply {
-            driver.addEdge(this, currentClass, EdgeLabel.SOURCE_FILE)
-            // Attach fields to the TypeDecl
-            cls.fields.forEach { field ->
-                projectMember(field).let { memberVertex ->
-                    driver.addEdge(this, memberVertex, EdgeLabel.AST)
-                    classMembers.add(memberVertex)
-                    sootToPlume[field] = mutableListOf<PlumeVertex>(memberVertex)
-                }
+        return FileVertex(cls.shortName, order++).apply {
+            // Join FILE and NAMESPACE_BLOCK if namespace is present
+            if (nbv != null) {
+                driver.addEdge(this, nbv, EdgeLabel.AST); classChildrenVertices.add(nbv)
             }
-            classChildrenVertices.add(this)
+            classChildrenVertices.add(0, this)
+            sootToPlume[cls] = classChildrenVertices
         }
-        sootToPlume[currentClass] = classChildrenVertices
+    }
+
+    fun buildTypeDeclaration(cls: SootClass): TypeDeclVertex = TypeDeclVertex(
+            name = cls.shortName,
+            fullName = cls.name,
+            typeDeclFullName = cls.javaStyleName,
+            order = order++
+    ).apply {
+        // Attach fields to the TypeDecl
+        cls.fields.forEach { field ->
+            projectMember(field).let { memberVertex ->
+                driver.addEdge(this, memberVertex, EdgeLabel.AST)
+                classMembers.add(memberVertex)
+                sootToPlume[field] = mutableListOf<PlumeVertex>(memberVertex)
+            }
+        }
+        sootToPlume[cls]?.add(this)
     }
 
     /**
@@ -136,39 +137,38 @@ class ASTBuilder(private val driver: IDriver, private val sootToPlume: MutableMa
      * [MethodReturnVertex] for the formal return spec, [LocalVertex] for all local vertices, [BlockVertex] the method
      * entrypoint, and [ModifierVertex] for the modifiers.
      *
-     * @param mtd The [MethodVertex] from which the method and modifier information is constructed from.
+     * @param graph The [BriefUnitGraph] from which the method and modifier information is constructed from.
      */
-    private fun projectMethodHead(mtd: SootMethod) {
+    fun buildMethodHead(graph: BriefUnitGraph): MethodVertex {
+        this.graph = graph
+        val mtd = graph.body.method
         val methodHeadChildren = mutableListOf<PlumeVertex>()
         currentLine = mtd.javaSourceStartLineNumber
         currentCol = mtd.javaSourceStartColumnNumber
         // Method vertex
-        currentMethod = MethodVertex(mtd.name, "${mtd.declaringClass}.${mtd.name}", mtd.subSignature, mtd.declaration, currentLine, currentCol, order++)
-        methodHeadChildren.add(currentMethod)
-        // Add to package
-        driver.addEdge(currentTypeDecl, currentMethod, EdgeLabel.AST)
-        // Add to source file
-        driver.addEdge(currentMethod, currentClass, EdgeLabel.SOURCE_FILE)
+        val mtdVertex = MethodVertex(mtd.name, "${mtd.declaringClass}.${mtd.name}", mtd.subSignature, mtd.declaration, currentLine, currentCol, order++)
+        methodHeadChildren.add(mtdVertex)
         // Store return type
         projectMethodReturnVertex(mtd.returnType)
-                .apply { driver.addEdge(currentMethod, this, EdgeLabel.AST); methodHeadChildren.add(this) }
+                .apply { driver.addEdge(mtdVertex, this, EdgeLabel.AST); methodHeadChildren.add(this) }
         // Modifier vertices
         SootParserUtil.determineModifiers(mtd.modifiers, mtd.name)
                 .map { ModifierVertex(it, order++) }
-                .forEach { driver.addEdge(currentMethod, it, EdgeLabel.AST); methodHeadChildren.add(it) }
+                .forEach { driver.addEdge(mtdVertex, it, EdgeLabel.AST); methodHeadChildren.add(it) }
         // Store method vertex
-        methodEntryPoint = BlockVertex(ENTRYPOINT, VOID, ENTRYPOINT, order++, 0, currentLine, currentCol)
-                .apply { driver.addEdge(currentMethod, this, EdgeLabel.AST); methodHeadChildren.add(this) }
+        BlockVertex(ENTRYPOINT, VOID, ENTRYPOINT, order++, 0, currentLine, currentCol)
+                .apply { driver.addEdge(mtdVertex, this, EdgeLabel.AST); methodHeadChildren.add(this) }
         // Connect and create parameters and locals
         graph.body.parameterLocals
                 .map(this::projectMethodParameterIn)
-                .forEach { driver.addEdge(currentMethod, it, EdgeLabel.AST); methodHeadChildren.add(it) }
+                .forEach { driver.addEdge(mtdVertex, it, EdgeLabel.AST); methodHeadChildren.add(it) }
         graph.body.locals
                 .filter { !graph.body.parameterLocals.contains(it) }
                 .map(this::projectLocalVariable)
-                .forEach { driver.addEdge(currentMethod, it, EdgeLabel.AST); methodHeadChildren.add(it) }
+                .forEach { driver.addEdge(mtdVertex, it, EdgeLabel.AST); methodHeadChildren.add(it) }
         // Associate all head vertices to the SootMethod
         sootToPlume[mtd] = methodHeadChildren
+        return mtdVertex
     }
 
     /**
@@ -182,14 +182,6 @@ class ASTBuilder(private val driver: IDriver, private val sootToPlume: MutableMa
             typeFullName = field.type.toQuotedString(),
             order = order++
     )
-
-    /**
-     * Traverses the method body's [UnitGraph] to construct the the AST from.
-     *
-     * @param graph The [UnitGraph] from which the vertices and AST edges are created from.
-     */
-    private fun projectMethodBody(graph: UnitGraph) =
-            graph.body.units.filterNot { it is IdentityStmt }.forEach { u -> projectUnit(u)?.let { driver.addEdge(methodEntryPoint, it, EdgeLabel.AST) } }
 
     /**
      * Given a unit, will construct AST information in the graph.
@@ -206,7 +198,7 @@ class ASTBuilder(private val driver: IDriver, private val sootToPlume: MutableMa
             is AssignStmt -> projectVariableAssignment(unit)
             is LookupSwitchStmt -> projectLookupSwitch(unit)
             is TableSwitchStmt -> projectTableSwitch(unit)
-            is InvokeStmt -> projectCallVertex(unit.invokeExpr).apply { sootToPlume[unit.invokeExpr]!!.add(0, this) }
+            is InvokeStmt -> projectCallVertex(unit.invokeExpr)
             is ReturnStmt -> projectReturnVertex(unit)
             is ReturnVoidStmt -> projectReturnVertex(unit)
             else -> {
@@ -230,7 +222,7 @@ class ASTBuilder(private val driver: IDriver, private val sootToPlume: MutableMa
                 order = order++,
                 lineNumber = currentLine,
                 columnNumber = currentCol,
-                methodFullName = unit.method.declaration,
+                methodFullName = unit.methodRef.toString().removeSurrounding("<", ">"),
                 argumentIndex = 0,
                 dispatchType = if (unit.methodRef.isStatic) DispatchType.STATIC_DISPATCH else DispatchType.DYNAMIC_DISPATCH,
                 typeFullName = unit.type.toString(),
@@ -390,7 +382,7 @@ class ASTBuilder(private val driver: IDriver, private val sootToPlume: MutableMa
                 name = local.name,
                 evaluationStrategy = evalStrat,
                 typeFullName = local.type.toString(),
-                lineNumber = currentMethod.lineNumber,
+                lineNumber = graph.body.method.javaSourceStartLineNumber,
                 order = order++
         )
         if (sootToPlume[local] == null) sootToPlume[local] = mutableListOf<PlumeVertex>(methodParameterInVertex)
@@ -652,7 +644,7 @@ class ASTBuilder(private val driver: IDriver, private val sootToPlume: MutableMa
                 order = order++
         )
         projectOp(ret.op)?.let { driver.addEdge(retV, it, EdgeLabel.AST) }
-        driver.addEdge(methodEntryPoint, retV, EdgeLabel.AST)
+        driver.addEdge(sootToPlume[graph.body.method]?.first { it is BlockVertex }!!, retV, EdgeLabel.AST)
         return retV
     }
 
@@ -664,7 +656,7 @@ class ASTBuilder(private val driver: IDriver, private val sootToPlume: MutableMa
                 columnNumber = ret.javaSourceStartColumnNumber,
                 order = order++
         )
-        driver.addEdge(methodEntryPoint, retV, EdgeLabel.AST)
+        driver.addEdge(sootToPlume[graph.body.method]?.first { it is BlockVertex }!!, retV, EdgeLabel.AST)
         return retV
     }
 

@@ -16,16 +16,12 @@
 package za.ac.sun.plume.graph
 
 import org.apache.logging.log4j.LogManager
-import soot.SootMethod
 import soot.Unit
 import soot.jimple.*
 import soot.toolkits.graph.BriefUnitGraph
 import za.ac.sun.plume.domain.enums.EdgeLabel
 import za.ac.sun.plume.domain.models.PlumeVertex
-import za.ac.sun.plume.domain.models.vertices.BlockVertex
-import za.ac.sun.plume.domain.models.vertices.ControlStructureVertex
-import za.ac.sun.plume.domain.models.vertices.JumpTargetVertex
-import za.ac.sun.plume.domain.models.vertices.MethodReturnVertex
+import za.ac.sun.plume.domain.models.vertices.*
 import za.ac.sun.plume.drivers.IDriver
 import za.ac.sun.plume.util.ExtractorConst.FALSE_TARGET
 import za.ac.sun.plume.util.ExtractorConst.TRUE_TARGET
@@ -39,12 +35,11 @@ import za.ac.sun.plume.util.ExtractorConst.TRUE_TARGET
 class CFGBuilder(private val driver: IDriver, private val sootToPlume: MutableMap<Any, MutableList<PlumeVertex>>) : IGraphBuilder {
     private val logger = LogManager.getLogger(CFGBuilder::javaClass)
     private lateinit var graph: BriefUnitGraph
-    private lateinit var currentMethod: SootMethod
 
-    override fun build(mtd: SootMethod, graph: BriefUnitGraph) {
+    override fun buildMethodBody(graph: BriefUnitGraph): MethodVertex {
+        val mtd = graph.body.method
         logger.debug("Building CFG for ${mtd.declaration}")
         this.graph = graph
-        this.currentMethod = mtd
         // Connect entrypoint to the first CFG vertex
         this.graph.heads.forEach { head ->
             // Select appropriate successor to start CFG chain at
@@ -52,8 +47,10 @@ class CFGBuilder(private val driver: IDriver, private val sootToPlume: MutableMa
             while (startingUnit is IdentityStmt) startingUnit = graph.getSuccsOf(startingUnit).firstOrNull() ?: break
             startingUnit?.let {
                 sootToPlume[it]?.firstOrNull()?.let { succVert ->
+                    val bodyVertex = sootToPlume[mtd]?.first { mtdVertices -> mtdVertices is BlockVertex }!!
+                    sootToPlume[mtd]?.firstOrNull()?.let { mtdVertex -> driver.addEdge(mtdVertex, bodyVertex, EdgeLabel.CFG) }
                     driver.addEdge(
-                            fromV = sootToPlume[mtd]?.first { mtdVertices -> mtdVertices is BlockVertex }!!,
+                            fromV = bodyVertex,
                             toV = succVert,
                             edge = EdgeLabel.CFG
                     )
@@ -61,7 +58,8 @@ class CFGBuilder(private val driver: IDriver, private val sootToPlume: MutableMa
             }
         }
         // Connect all units to their successors
-        this.graph.body.units.filterNot { it is IdentityStmt }.forEach { projectUnit(it) }
+        this.graph.body.units.filterNot { it is IdentityStmt }.forEach(this::projectUnit)
+        return sootToPlume[mtd]?.first { it is MethodVertex } as MethodVertex
     }
 
     private fun projectUnit(unit: Unit) {
@@ -149,7 +147,7 @@ class CFGBuilder(private val driver: IDriver, private val sootToPlume: MutableMa
 
     private fun projectReturnEdge(unit: ReturnStmt) {
         sootToPlume[unit]?.firstOrNull()?.let { src ->
-            sootToPlume[currentMethod]?.filterIsInstance<MethodReturnVertex>()?.firstOrNull()?.let { tgt ->
+            sootToPlume[graph.body.method]?.filterIsInstance<MethodReturnVertex>()?.firstOrNull()?.let { tgt ->
                 driver.addEdge(src, tgt, EdgeLabel.CFG)
             }
         }
@@ -157,7 +155,7 @@ class CFGBuilder(private val driver: IDriver, private val sootToPlume: MutableMa
 
     private fun projectReturnEdge(unit: ReturnVoidStmt) {
         sootToPlume[unit]?.firstOrNull()?.let { src ->
-            sootToPlume[currentMethod]?.filterIsInstance<MethodReturnVertex>()?.firstOrNull()?.let { tgt ->
+            sootToPlume[graph.body.method]?.filterIsInstance<MethodReturnVertex>()?.firstOrNull()?.let { tgt ->
                 driver.addEdge(src, tgt, EdgeLabel.CFG)
             }
         }

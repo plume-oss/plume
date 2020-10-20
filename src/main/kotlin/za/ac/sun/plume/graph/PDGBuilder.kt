@@ -35,11 +35,12 @@ class PDGBuilder(private val driver: IDriver, private val sootToPlume: MutableMa
     private val logger = LogManager.getLogger(PDGBuilder::javaClass)
     private lateinit var graph: BriefUnitGraph
 
-    override fun build(mtd: SootMethod, graph: BriefUnitGraph) {
+    override fun buildMethodBody(graph: BriefUnitGraph): MethodVertex {
+        val mtd = graph.body.method
         logger.debug("Building PDG for ${mtd.declaration}")
         this.graph = graph
         // Identifier REF edges
-        (this.graph.body.parameterLocals + this.graph.body.locals).forEach { projectLocalVariable(it) }
+        (this.graph.body.parameterLocals + this.graph.body.locals).forEach(this::projectLocalVariable)
         // Operator and Cast ARGUMENT edges
         this.graph.body.units.filterIsInstance<AssignStmt>().map { projectCallArg(it); it.rightOp }.forEach {
             when (it) {
@@ -54,7 +55,8 @@ class PDGBuilder(private val driver: IDriver, private val sootToPlume: MutableMa
         this.graph.body.units
                 .filterIsInstance<InvokeStmt>()
                 .map { it.invokeExpr as InvokeExpr }
-                .forEach { projectCallArg(it) }
+                .forEach(this::projectCallArg)
+        return sootToPlume[mtd]?.first { it is MethodVertex} as MethodVertex
     }
 
     private fun projectCallArg(value: Any) {

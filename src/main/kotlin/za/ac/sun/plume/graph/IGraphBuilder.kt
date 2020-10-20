@@ -15,8 +15,8 @@
  */
 package za.ac.sun.plume.graph
 
-import soot.SootMethod
 import soot.toolkits.graph.BriefUnitGraph
+import za.ac.sun.plume.domain.models.vertices.MethodVertex
 
 /**
  * The interface for classes which build the code property graph from Soot data should implement.
@@ -25,8 +25,8 @@ interface IGraphBuilder {
     /**
      * Builds the graph implementing the interface.
      *
-     * @param mtd The [SootMethod] in order to obtain method head information from.
      * @param graph The [BriefUnitGraph] of a method body to build the graph off of.
+     * @return The [MethodVertex] at the root of the CPG generated from the given [BriefUnitGraph].
      */
-    fun build(mtd: SootMethod, graph: BriefUnitGraph)
+    fun buildMethodBody(graph: BriefUnitGraph): MethodVertex
 }
