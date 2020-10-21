@@ -27,6 +27,7 @@ import soot.options.Options
 import soot.toolkits.graph.BriefUnitGraph
 import za.ac.sun.plume.domain.enums.EdgeLabel
 import za.ac.sun.plume.domain.exceptions.PlumeCompileException
+import za.ac.sun.plume.domain.files.*
 import za.ac.sun.plume.domain.models.PlumeVertex
 import za.ac.sun.plume.domain.models.vertices.FileVertex
 import za.ac.sun.plume.domain.models.vertices.MetaDataVertex
@@ -38,16 +39,15 @@ import za.ac.sun.plume.graph.ASTBuilder
 import za.ac.sun.plume.graph.CFGBuilder
 import za.ac.sun.plume.graph.CallGraphBuilder
 import za.ac.sun.plume.graph.PDGBuilder
-import za.ac.sun.plume.util.ResourceCompilationUtil.compileJavaFile
 import za.ac.sun.plume.util.ResourceCompilationUtil.compileJavaFiles
-import za.ac.sun.plume.util.ResourceCompilationUtil.compileJavaScriptFile
-import za.ac.sun.plume.util.ResourceCompilationUtil.compilePythonFile
-import za.ac.sun.plume.util.ResourceCompilationUtil.fetchClassFiles
+import za.ac.sun.plume.util.ResourceCompilationUtil.compileJavaScriptFiles
+import za.ac.sun.plume.util.ResourceCompilationUtil.compilePythonFiles
 import java.io.File
 import java.io.IOException
-import java.util.*
-import java.util.jar.JarFile
-import kotlin.collections.HashSet
+import java.nio.file.Files
+import java.nio.file.Path
+import java.nio.file.Paths
+import java.util.stream.Collectors
 import kotlin.streams.toList
 
 
@@ -90,62 +90,83 @@ class Extractor(private val driver: IDriver, private val classPath: File) {
     /**
      * Loads a single Java class file or directory of class files into the cannon.
      *
-     * @param file The Java source/class file, or a directory of source/class files.
+     * @param f The Java source/class file, or a directory of source/class files.
      * @throws PlumeCompileException If no suitable Java compiler is found given .java files.
      * @throws NullPointerException If the file does not exist.
      * @throws IOException This would throw if given .java files which fail to compile.
      */
     @Throws(PlumeCompileException::class, NullPointerException::class, IOException::class)
-    fun load(file: File) {
-        if (file.isDirectory) {
-            // Any .java files will automatically be compiled
-            compileJavaFiles(file)
-            loadedFiles.addAll(fetchClassFiles(file))
-        } else if (file.isFile) {
-            when {
-                file.name.endsWith(".java") -> {
-                    compileJavaFile(file)
-                    loadedFiles.add(File(file.absolutePath.replace(".java", ".class")))
-                    driver.addVertex(MetaDataVertex("Java", System.getProperty("java.runtime.version")))
-                }
-                file.name.endsWith(".py") -> {
-                    compilePythonFile(file)
-                    loadedFiles.add(File(file.absolutePath.replace(".py", "\$py.class")))
-                    driver.addVertex(MetaDataVertex("Python", "2.7.2"))
-                }
-                file.name.endsWith(".js") -> {
-                    compileJavaScriptFile(file)
-                    loadedFiles.add(File(file.absolutePath.replace(".js", ".class")))
-                    driver.addVertex(MetaDataVertex("JavaScript", "170"))
-                }
-                file.name.endsWith(".jar") -> {
-                    val jar = JarFile(file)
-                    loadedFiles.addAll(fetchClassFiles(jar))
-                    driver.addVertex(MetaDataVertex("Java", System.getProperty("java.runtime.version")))
-                }
-                file.name.endsWith(".class") -> {
-                    loadedFiles.add(file)
-                    driver.addVertex(MetaDataVertex("Java", System.getProperty("java.runtime.version")))
-                }
+    fun load(f: File) {
+        if (!f.exists()) {
+            throw NullPointerException("File '${f.name}' does not exist!")
+        } else if (f.isDirectory) {
+            Files.walk(Paths.get(f.absolutePath)).use { walk ->
+                walk.map { obj: Path -> obj.toString() }
+                        .filter { f: String -> f.matches(Regex("^.*\\.(class|py|js|java)\$")) }
+                        .map { pathname: String -> FileFactory(pathname) }
+                        .collect(Collectors.toList())
+                        .let { loadedFiles.addAll(it) }
             }
-        } else if (!file.exists()) {
-            throw NullPointerException("File '${file.name}' does not exist!")
+        } else if (f.isFile) {
+            loadedFiles.add(FileFactory(f))
         }
+    }
+
+    /**
+     * Will compile all supported source files loaded in the given set.
+     *
+     * @param files [File] pointers to source files.
+     * @return A set of [File] pointers to the compiled class files.
+     */
+    private fun compileLoadedFiles(files: HashSet<File>): HashSet<File> {
+        val splitFiles = mapOf<SupportedFile, MutableList<File>>(
+                SupportedFile.JAVA to mutableListOf(),
+                SupportedFile.JAVASCRIPT to mutableListOf(),
+                SupportedFile.PYTHON to mutableListOf(),
+                SupportedFile.JVM_CLASS to mutableListOf()
+        )
+        // Organize file in the map. Perform this sequentially if there are less than 100,000 files.
+        files.stream().let { if (files.size >= 100000) it.parallel() else it.sequential() }
+                .toList().stream().forEach {
+                    when (it) {
+                        is JavaFile -> splitFiles[SupportedFile.JAVA]?.add(it)
+                        is PythonFile -> splitFiles[SupportedFile.PYTHON]?.add(it)
+                        is JavaScriptFile -> splitFiles[SupportedFile.JAVASCRIPT]?.add(it)
+                        is JVMClassFile -> splitFiles[SupportedFile.JVM_CLASS]?.add(it)
+                    }
+                }
+        return splitFiles.keys.map {
+            val filesToCompile = (splitFiles[it] ?: emptyList<File>()).toList()
+            return@map when (it) {
+                SupportedFile.JAVA ->
+                    compileJavaFiles(filesToCompile)
+                            .apply { if (this.isNotEmpty()) driver.addVertex(MetaDataVertex("Java", System.getProperty("java.runtime.version"))) }
+                SupportedFile.PYTHON ->
+                    compilePythonFiles(filesToCompile)
+                            .apply { if (this.isNotEmpty()) driver.addVertex(MetaDataVertex("Python", "2.7.2")) }
+                SupportedFile.JAVASCRIPT ->
+                    compileJavaScriptFiles(filesToCompile)
+                            .apply { if (this.isNotEmpty()) driver.addVertex(MetaDataVertex("JavaScript", "170")) }
+                SupportedFile.JVM_CLASS ->
+                    filesToCompile
+                            .apply { if (this.isNotEmpty()) driver.addVertex(MetaDataVertex("Java", System.getProperty("java.runtime.version"))) }
+            }
+        }.asSequence().flatten().toHashSet()
     }
 
     /**
      * Projects all loaded classes currently loaded.
      */
     fun project() {
-        val classStream = loadClassesIntoSoot(loadedFiles)
+        val compiledFiles = compileLoadedFiles(loadedFiles)
+        val classStream = loadClassesIntoSoot(compiledFiles)
         CHATransformer.v().transform()
         // Load all methods to construct the CPG from and convert them to UnitGraph objects
         val graphs = classStream.asSequence()
                 .map { it.methods.parallelStream().filter { mtd -> mtd.isConcrete }.toList() }.flatten()
                 .map(this::addExternallyReferencedMethods).flatten()
-                .distinct().toList()
-                .parallelStream()
-                .map { BriefUnitGraph(it.retrieveActiveBody()) }.toList()
+                .distinct().toList().let { if (it.size >= 100000) it.parallelStream() else it.stream() }
+                .filter { !it.isPhantom }.map { BriefUnitGraph(it.retrieveActiveBody()) }.toList()
         // Construct the CPGs for methods
         graphs.map(this::constructCPG)
                 .toList().asSequence()
@@ -240,10 +261,6 @@ class Extractor(private val driver: IDriver, private val classPath: File) {
         Options.v().set_allow_phantom_refs(true)
         // set whole program mode
         Options.v().set_whole_program(true)
-        // exclude java.lang packages
-        val excluded: MutableList<String> = ArrayList()
-        excluded.add("java.lang")
-        Options.v().set_exclude(excluded)
         // keep variable names
         PhaseOptions.v().setPhaseOption("jb", "use-original-names:true")
     }

@@ -19,19 +19,15 @@ import org.apache.logging.log4j.LogManager
 import org.apache.logging.log4j.Logger
 import org.python.util.JycompileAntTask
 import za.ac.sun.plume.domain.exceptions.PlumeCompileException
-import java.io.BufferedOutputStream
 import java.io.File
-import java.io.FileOutputStream
 import java.io.IOException
 import java.nio.file.Files
 import java.nio.file.Path
 import java.nio.file.Paths
-import java.util.*
-import java.util.jar.JarEntry
-import java.util.jar.JarFile
 import java.util.stream.Collectors
 import javax.tools.JavaCompiler
 import javax.tools.ToolProvider
+import kotlin.streams.toList
 import org.mozilla.javascript.tools.jsc.Main as JSC
 
 object ResourceCompilationUtil {
@@ -51,70 +47,60 @@ object ResourceCompilationUtil {
     }
 
     /**
-     * Given a path to a Java source file, programmatically compiles the source (.java) file.
+     * Given paths to a Java source files, programmatically compiles the source (.java) files.
      *
-     * @param file the source file to compile.
+     * @param files the source files to compile.
      * @throws PlumeCompileException if there is no suitable Java compiler found.
      */
     @JvmStatic
-    fun compileJavaFile(file: File) {
+    fun compileJavaFiles(files: List<File>): List<File> {
+        if (files.isEmpty()) return emptyList()
         val javac = getJavaCompiler()
         val fileManager = javac.getStandardFileManager(null, null, null)
         javac.getTask(null, fileManager, null, listOf("-g"), null,
-                fileManager.getJavaFileObjects(file)).call()
+                fileManager.getJavaFileObjectsFromFiles(files)).call()
+        return files.map { File(it.absolutePath.replace(".java", ".class")) }.toList()
     }
 
     /**
-     * Given a path to a directory, programmatically compile any .java files found in the directory.
+     * Given paths to a Python source files, programmatically compiles the source (.py) files.
      *
-     * @param path the path to the directory.
-     * @throws IOException if the path is not a directory or does not exist.
-     */
-    @JvmStatic
-    @Throws(IOException::class)
-    fun compileJavaFiles(path: File) {
-        validateFileAsDirectory(path)
-        // Dynamically compile Java test resources
-        val javac = ToolProvider.getSystemJavaCompiler()
-        val fileManager = javac.getStandardFileManager(null, null, null)
-        val fileList = LinkedList<File>()
-        Files.walk(Paths.get(path.absolutePath)).use { walk ->
-            walk.map { obj: Path -> obj.toString() }
-                    .filter { f: String -> f.endsWith(".java") }
-                    .collect(Collectors.toList())
-                    .forEach { f: String -> fileList.add(File(f)) }
-        }
-        javac.getTask(null, fileManager, null, listOf("-g"), null,
-                fileManager.getJavaFileObjectsFromFiles(fileList)).call()
-    }
-
-    /**
-     * Given a path to a Python source file, programmatically compiles the source (.py) file.
-     *
-     * @param file the source file to compile.
+     * @param files the source files to compile.
      * @throws PlumeCompileException if there is no suitable Java compiler found.
      */
     @JvmStatic
-    fun compilePythonFile(file: File) {
+    fun compilePythonFiles(files: List<File>): List<File> {
+        if (files.isEmpty()) return emptyList()
         val jythonc = JycompileAntTask()
         getJavaCompiler()
-        val dirs = File(file.absolutePath.removeSuffix("/${file.name}"))
-        jythonc.destdir = dirs
-        jythonc.process(mutableSetOf(file))
+        // These needs to be compiled per directory level
+        val dirMap = mutableMapOf<String, MutableList<File>>()
+        files.forEach {
+            val dir = it.absolutePath.removeSuffix("/${it.name}")
+            if (dirMap[dir].isNullOrEmpty()) dirMap[dir] = mutableListOf(it)
+            else dirMap[dir]?.add(it)
+        }
+        dirMap.forEach {
+            jythonc.destdir = File(it.key)
+            jythonc.process(it.value.toSet())
+        }
+        return files.map { File(it.absolutePath.replace(".py", "\$py.class")) }.toList()
     }
 
     /**
-     * Given a path to a JavaScript source file, programmatically compiles the source (.js) file.
+     * Given paths to a JavaScript source files, programmatically compiles the source (.js) files.
      *
-     * @param file the source file to compile.
+     * @param files the source files to compile.
      * @throws PlumeCompileException if there is no suitable Java compiler found.
      */
     @JvmStatic
-    fun compileJavaScriptFile(file: File) {
+    fun compileJavaScriptFiles(files: List<File>): List<File> {
+        if (files.isEmpty()) return emptyList()
         val jsc = JSC()
         getJavaCompiler()
         jsc.processOptions(arrayOf("-version", "170", "-g"))
-        jsc.processSource(arrayOf(file.absolutePath))
+        jsc.processSource(files.parallelStream().map { it.absolutePath }.toList().toTypedArray())
+        return files.map { File(it.absolutePath.replace(".js", ".class")) }.toList()
     }
 
     /**
@@ -145,70 +131,6 @@ object ResourceCompilationUtil {
                     .filter { f: String -> f.endsWith(".class") }
                     .collect(Collectors.toList())
                     .forEach { f: String -> if (!File(f).delete()) logger.error("Unable to delete: $f") }
-        }
-    }
-
-    /**
-     * Returns a list of all the class files under a given directory recursively.
-     *
-     * @param path the path to the directory.
-     * @return a list of all .class files under the given directory.
-     * @throws IOException if the path is not a directory or does not exist.
-     */
-    @Throws(IOException::class)
-    @JvmStatic
-    fun fetchClassFiles(path: File): List<File> {
-        validateFileAsDirectory(path)
-        Files.walk(Paths.get(path.absolutePath)).use { walk ->
-            return walk.map { obj: Path -> obj.toString() }
-                    .filter { f: String -> f.endsWith(".class") }
-                    .map { pathname: String -> File(pathname) }
-                    .collect(Collectors.toList())
-        }
-    }
-
-    /**
-     * Returns a list of all the class files inside of a JAR file.
-     *
-     * @param jar the JarFile.
-     * @return a list of all `.class` files under the given JAR file.
-     */
-    @JvmStatic
-    fun fetchClassFiles(jar: JarFile): MutableList<File> {
-        return jar.stream()
-                .map { obj: JarEntry -> obj.toString() }
-                .filter { f: String -> f.endsWith(".class") }
-                .map { name: String? -> JarEntry(name) }
-                .map { je: JarEntry -> extractJarEntry(jar, je) }
-                .filter { f: File? -> !Objects.isNull(f) }
-                .collect(Collectors.toList())
-    }
-
-    /**
-     * Extracts the [JarFile] from a given [JarEntry] and writes it to a temporary file, which is returned
-     * as a [File].
-     *
-     * @param jarFile the JAR to extract from.
-     * @param entry   the entry to extract.
-     * @return the temporary file if the extraction process was successful, `null` if otherwise.
-     */
-    private fun extractJarEntry(jarFile: JarFile, entry: JarEntry): File? {
-        try {
-            val tmp = File.createTempFile(entry.toString().substring(entry.toString().lastIndexOf('/') + 1), null)
-            jarFile.getInputStream(entry).use { `in` ->
-                BufferedOutputStream(FileOutputStream(tmp)).use { out ->
-                    val buffer = ByteArray(2048)
-                    var nBytes = `in`.read(buffer)
-                    while (nBytes > 0) {
-                        out.write(buffer, 0, nBytes)
-                        nBytes = `in`.read(buffer)
-                    }
-                }
-            }
-            return tmp
-        } catch (e: IOException) {
-            logger.warn("Error while extracting '" + entry.name + "' from JAR.", e)
-            return null
         }
     }
 }
