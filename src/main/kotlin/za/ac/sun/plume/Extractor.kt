@@ -163,7 +163,7 @@ class Extractor(private val driver: IDriver, private val classPath: File) {
         CHATransformer.v().transform()
         // Load all methods to construct the CPG from and convert them to UnitGraph objects
         val graphs = classStream.asSequence()
-                .map { it.methods.parallelStream().filter { mtd -> mtd.isConcrete }.toList() }.flatten()
+                .map { it.methods.filter { mtd -> mtd.isConcrete }.toList() }.flatten()
                 .map(this::addExternallyReferencedMethods).flatten()
                 .distinct().toList().let { if (it.size >= 100000) it.parallelStream() else it.stream() }
                 .filter { !it.isPhantom }.map { BriefUnitGraph(it.retrieveActiveBody()) }.toList()
