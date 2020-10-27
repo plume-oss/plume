@@ -4,7 +4,7 @@ DROP ALL
 
 ## Basic CPG vertex
 CREATE VERTEX CPG_VERT (
-    PRIMARY_ID id INT,
+    PRIMARY_ID id STRING,
     label STRING DEFAULT "UNKNOWN",
     argumentIndex INT DEFAULT -1,
     dispatchType STRING DEFAULT "STATIC_DISPATCH",
@@ -46,7 +46,7 @@ CREATE DIRECTED EDGE SOURCE_FILE (FROM CPG_VERT, TO CPG_VERT)
 
 CREATE GRAPH cpg (*)
 
-CREATE QUERY areVerticesJoinedByEdge(VERTEX vFrom, VERTEX vTo, STRING edgeLabel) FOR GRAPH cpg {
+CREATE QUERY areVerticesJoinedByEdge(VERTEX<CPG_VERT> vFrom, VERTEX<CPG_VERT> vTo, STRING edgeLabel) FOR GRAPH cpg {
   bool result;
   setFrom = {ANY};
   temp = SELECT tgt
@@ -67,6 +67,29 @@ CREATE QUERY showAll() FOR GRAPH cpg {
   PRINT @@edges;
   PRINT allVertices;
 }
+
+CREATE QUERY getMethod(VERTEX<CPG_VERT> methodHash) FOR GRAPH cpg {
+  SetAccum<EDGE> @@edges;
+  OrAccum @visited;
+  start = {methodHash};
+  allVert = {methodHash};
+
+  WHILE start.size() > 0 DO
+	  start = SELECT t
+	          FROM start:s -((AST|REF|CFG|ARGUMENT|CAPTURED_BY|BINDS_TO|RECEIVER|CONDITION|BINDS):e) ->:t
+	          WHERE NOT t.@visited
+	          ACCUM t.@visited = TRUE, @@edges += e;
+    allVert = allVert UNION start;
+	END;
+
+  finalEdges = SELECT t
+               FROM allVert -((AST|REF|CFG|ARGUMENT|CAPTURED_BY|BINDS_TO|RECEIVER|CONDITION|BINDS):e)->:t
+               ACCUM @@edges += e;
+
+  PRINT allVert;
+  PRINT @@edges;
+}
+// getMethod test ID -2108447326
 
 CREATE QUERY maxOrder() FOR GRAPH cpg {
   MaxAccum<INT> @@maxAstOrder;

@@ -18,6 +18,7 @@ services:
       retries: 10
     volumes:
       - "../schema/jg_schema.groovy:/docker-entrypoint-initdb.d/schema.groovy"
+      - "../conf/jg-server-conf:/etc/opt/janusgraph/:ro"
     networks:
       - jg-plume-network
     mem_limit: 500m

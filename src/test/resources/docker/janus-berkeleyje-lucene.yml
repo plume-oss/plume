@@ -4,7 +4,7 @@ services:
   janusgraph:
     image: janusgraph/janusgraph:latest
     container_name: janusgraph-plume
-    environment:
-      gremlinserver.threadPoolWorker: 2
+    volumes:
+      - "../conf/jg-server-conf:/etc/opt/janusgraph/:ro"
     ports:
       - "8182:8182"

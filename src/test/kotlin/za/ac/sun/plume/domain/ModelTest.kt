@@ -472,13 +472,11 @@ class ModelTest {
         fun methodVertexEquality() {
             val vertex1 = MethodVertex(STRING_1, STRING_1, STRING_1, STRING_1, INT_1, INT_1, INT_1)
             val vertex2 = MethodVertex(STRING_1, STRING_1, STRING_1, STRING_1, INT_1, INT_1, INT_1)
-            val vertex3 = MethodVertex(STRING_2, STRING_1, STRING_1, STRING_1, INT_1, INT_1, INT_1)
-            val vertex4 = MethodVertex(STRING_1, STRING_2, STRING_1, STRING_1, INT_1, INT_1, INT_1)
-            val vertex5 = MethodVertex(STRING_1, STRING_1, STRING_2, STRING_1, INT_1, INT_1, INT_1)
+            val vertex3 = MethodVertex(STRING_1, STRING_2, STRING_1, STRING_1, INT_1, INT_1, INT_1)
+            val vertex4 = MethodVertex(STRING_1, STRING_1, STRING_2, STRING_1, INT_1, INT_1, INT_1)
             assertVertexEquality(vertex1, vertex2)
             assertVertexInequality(vertex1, vertex3)
             assertVertexInequality(vertex1, vertex4)
-            assertVertexInequality(vertex1, vertex5)
         }
 
         @Test
