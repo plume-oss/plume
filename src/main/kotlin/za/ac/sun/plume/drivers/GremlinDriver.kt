@@ -5,6 +5,7 @@ import org.apache.logging.log4j.LogManager
 import org.apache.tinkerpop.gremlin.process.traversal.Order
 import org.apache.tinkerpop.gremlin.process.traversal.dsl.graph.GraphTraversal
 import org.apache.tinkerpop.gremlin.process.traversal.dsl.graph.GraphTraversalSource
+import org.apache.tinkerpop.gremlin.process.traversal.step.util.WithOptions
 import org.apache.tinkerpop.gremlin.structure.Edge
 import org.apache.tinkerpop.gremlin.structure.Graph
 import org.apache.tinkerpop.gremlin.structure.T
@@ -12,10 +13,14 @@ import org.apache.tinkerpop.gremlin.structure.Vertex
 import org.apache.tinkerpop.gremlin.tinkergraph.structure.TinkerGraph
 import za.ac.sun.plume.domain.enums.EdgeLabel
 import za.ac.sun.plume.domain.exceptions.PlumeSchemaViolationException
+import za.ac.sun.plume.domain.mappers.VertexMapper
 import za.ac.sun.plume.domain.mappers.VertexMapper.Companion.checkSchemaConstraints
 import za.ac.sun.plume.domain.mappers.VertexMapper.Companion.vertexToMap
+import za.ac.sun.plume.domain.models.PlumeGraph
 import za.ac.sun.plume.domain.models.PlumeVertex
+import za.ac.sun.plume.domain.models.vertices.MethodVertex
 import java.util.*
+import kotlin.collections.HashMap
 import org.apache.tinkerpop.gremlin.process.traversal.dsl.graph.`__` as underscore
 
 /**
@@ -202,5 +207,43 @@ abstract class GremlinDriver : IDriver {
         } else {
             g.V(v1.id()).addE(edgeLabel.name).to(g.V(v2.id())).next()
         }
+    }
+
+    override fun getMethod(fullName: String, signature: String): PlumeGraph {
+        if (!transactionOpen) openTx()
+        val methodSubgraph = g.V().hasLabel(MethodVertex.LABEL.toString())
+                .has("fullName", fullName).has("signature", signature)
+                .repeat(underscore.outE(EdgeLabel.AST.toString()).inV()).emit()
+                .inE()
+                .subgraph("sg")
+                .cap<Graph>("sg")
+                .next()
+        val result = gremlinToPlume(methodSubgraph)
+        if (transactionOpen) closeTx()
+        return result
+    }
+
+    private fun gremlinToPlume(graph: Graph): PlumeGraph {
+        val g = graph.traversal()
+        val plumeGraph = PlumeGraph()
+        g.V().forEachRemaining {
+            val plumeV = gremlinToPlume(it)
+            plumeGraph.addVertex(plumeV)
+        }
+        g.E().valueMap<String>().with(WithOptions.tokens).forEachRemaining {
+            val srcV = g.E(it[T.id]).inV().next()
+            val tgtV = g.E(it[T.id]).outV().next()
+            val plumeSrc = gremlinToPlume(srcV)
+            val plumeTgt = gremlinToPlume(tgtV)
+            plumeGraph.addEdge(plumeSrc, plumeTgt, EdgeLabel.valueOf(it[T.label].toString()))
+        }
+        return plumeGraph
+    }
+
+    private fun gremlinToPlume(v: Vertex): PlumeVertex {
+        val map = HashMap<String, Any>()
+        map["label"] = v.label()
+        v.properties<Any>().forEach { map[it.key()] = it.value() }
+        return VertexMapper.mapToVertex(map)
     }
 }

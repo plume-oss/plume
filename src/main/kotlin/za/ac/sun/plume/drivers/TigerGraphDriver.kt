@@ -9,6 +9,7 @@ import za.ac.sun.plume.domain.exceptions.PlumeSchemaViolationException
 import za.ac.sun.plume.domain.exceptions.PlumeTransactionException
 import za.ac.sun.plume.domain.mappers.VertexMapper
 import za.ac.sun.plume.domain.mappers.VertexMapper.Companion.checkSchemaConstraints
+import za.ac.sun.plume.domain.models.PlumeGraph
 import za.ac.sun.plume.domain.models.PlumeVertex
 import za.ac.sun.plume.domain.models.vertices.MetaDataVertex
 import java.io.IOException
@@ -188,6 +189,10 @@ class TigerGraphDriver : IDriver {
     override fun clearGraph() = apply {
         delete("graph/$GRAPH_NAME/delete_by_type/vertices/META_DATA_VERT")
         delete("graph/$GRAPH_NAME/delete_by_type/vertices/CPG_VERT")
+    }
+
+    override fun getMethod(fullName: String, signature: String): PlumeGraph {
+        TODO("Not yet implemented")
     }
 
     private fun headers(): Map<String, String> = if (authKey == null) {

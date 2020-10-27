@@ -2,6 +2,7 @@ package za.ac.sun.plume.drivers
 
 import za.ac.sun.plume.domain.enums.EdgeLabel
 import za.ac.sun.plume.domain.exceptions.PlumeSchemaViolationException
+import za.ac.sun.plume.domain.models.PlumeGraph
 import za.ac.sun.plume.domain.models.PlumeVertex
 
 /**
@@ -62,4 +63,12 @@ interface IDriver : AutoCloseable {
      */
     fun clearGraph(): IDriver
 
+    /**
+     * Given the full signature of a method, returns the subgraph of the method body.
+     *
+     * @param fullName The fully qualified name e.g. interprocedural.basic.Basic4.f
+     * @param signature The method signature e.g. int f(int, int)
+     * @return The [PlumeGraph] containing the method graph.
+     */
+    fun getMethod(fullName: String, signature: String): PlumeGraph
 }
