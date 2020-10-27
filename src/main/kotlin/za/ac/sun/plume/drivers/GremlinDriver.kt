@@ -175,8 +175,8 @@ abstract class GremlinDriver : IDriver {
      * Given a [PlumeVertex], creates a [Vertex] and translates the object's field properties to key-value
      * pairs on the [Vertex] object. This is then added to this driver's [Graph].
      *
-     * @param v the [PlumeVertex] to translate into a [Vertex].
-     * @return the newly created [Vertex].
+     * @param v The [PlumeVertex] to translate into a [Vertex].
+     * @return The newly created [Vertex].
      */
     protected open fun createVertex(v: PlumeVertex): Vertex =
             try {
@@ -196,10 +196,10 @@ abstract class GremlinDriver : IDriver {
      * Wrapper method for creating an edge between two vertices. This wrapper method assigns a random UUID as the ID
      * for the edge.
      *
-     * @param v1        the from [Vertex].
-     * @param edgeLabel the CPG edge label.
-     * @param v2        the to [Vertex].
-     * @return the newly created [Edge].
+     * @param v1        The from [Vertex].
+     * @param edgeLabel The CPG edge label.
+     * @param v2        The to [Vertex].
+     * @return The newly created [Edge].
      */
     private fun createEdge(v1: Vertex, edgeLabel: EdgeLabel, v2: Vertex): Edge {
         return if (this is TinkerGraphDriver) {
@@ -223,23 +223,31 @@ abstract class GremlinDriver : IDriver {
         return result
     }
 
+    /**
+     * Converts a [Graph] instance to a [PlumeGraph] instance.
+     *
+     * @param graph A Gremlin graph.
+     * @return The resulting [PlumeGraph].
+     */
     private fun gremlinToPlume(graph: Graph): PlumeGraph {
         val g = graph.traversal()
         val plumeGraph = PlumeGraph()
-        g.V().forEachRemaining {
-            val plumeV = gremlinToPlume(it)
-            plumeGraph.addVertex(plumeV)
-        }
+        g.V().toSet().map(this::gremlinToPlume).forEach { plumeGraph.addVertex(it) }
         g.E().valueMap<String>().with(WithOptions.tokens).forEachRemaining {
-            val srcV = g.E(it[T.id]).inV().next()
-            val tgtV = g.E(it[T.id]).outV().next()
-            val plumeSrc = gremlinToPlume(srcV)
-            val plumeTgt = gremlinToPlume(tgtV)
-            plumeGraph.addEdge(plumeSrc, plumeTgt, EdgeLabel.valueOf(it[T.label].toString()))
+            val edgeLabel = EdgeLabel.valueOf(it[T.label].toString())
+            val plumeSrc = gremlinToPlume(g.E(it[T.id]).inV().next())
+            val plumeTgt = gremlinToPlume(g.E(it[T.id]).outV().next())
+            plumeGraph.addEdge(plumeSrc, plumeTgt, edgeLabel)
         }
         return plumeGraph
     }
 
+    /**
+     * Converts a [Vertex] instance to a [PlumeVertex] instance.
+     *
+     * @param v A Gremlin vertex.
+     * @return The resulting [PlumeVertex].
+     */
     private fun gremlinToPlume(v: Vertex): PlumeVertex {
         val map = HashMap<String, Any>()
         map["label"] = v.label()
