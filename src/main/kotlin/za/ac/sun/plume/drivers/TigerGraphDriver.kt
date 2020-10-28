@@ -114,11 +114,16 @@ class TigerGraphDriver : IDriver {
         if (fromV is MetaDataVertex || toV is MetaDataVertex) return false
         return try {
             val response = get("query/$GRAPH_NAME/areVerticesJoinedByEdge?" +
-                    "vFrom=${fromV.hashCode()}&vFrom.type=CPG_VERT&" +
-                    "vTo=${toV.hashCode()}&vTo.type=CPG_VERT&" +
-                    "edgeLabel=${edge.name}").firstOrNull() as JSONObject
-            return response["result"] as Boolean
+                    "vFrom=${fromV.hashCode()}&" +
+                    "vTo=${toV.hashCode()}&" +
+                    "edgeLabel=${edge.name}").firstOrNull()
+            return if (response == null) {
+                throw PlumeTransactionException("Null response for exists query between $fromV and $toV with edge label $edge")
+            } else {
+                (response as JSONObject)["result"] as Boolean
+            }
         } catch (e: PlumeTransactionException) {
+            logger.error(e.message)
             false
         }
     }

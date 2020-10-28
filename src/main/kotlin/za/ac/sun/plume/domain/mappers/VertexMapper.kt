@@ -34,11 +34,18 @@ class VertexMapper {
         /**
          * Converts a [Map] containing vertex properties to its respective [PlumeVertex] object.
          *
-         * @param map The [Map] to deserialize.
+         * @param mapToConvert The [Map] to deserialize.
          * @return a [PlumeVertex] represented by the information in the given map.
          */
         @JvmStatic
-        fun mapToVertex(map: Map<String, Any>): PlumeVertex {
+        fun mapToVertex(mapToConvert: Map<String, Any>): PlumeVertex {
+            val map = HashMap<String, Any>()
+            mapToConvert.keys.forEach {
+                when (val value = mapToConvert[it]) {
+                    is Long -> map[it] = value.toInt()
+                    else -> map[it] = value as Any
+                }
+            }
             return when (valueOf(map["label"] as String)) {
                 ARRAY_INITIALIZER -> ArrayInitializerVertex(order = map["order"] as Int)
                 BINDING -> BindingVertex(

@@ -46,7 +46,7 @@ sourceSets {
 
 test {
     useJUnitPlatform()
-    exclude "**/*IntTest*"
+//    exclude "**/*IntTest*"
 
     testLogging {
         events 'FAILED', 'SKIPPED'

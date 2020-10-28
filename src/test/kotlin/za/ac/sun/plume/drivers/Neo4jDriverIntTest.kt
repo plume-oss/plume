@@ -2,6 +2,7 @@ package za.ac.sun.plume.drivers
 
 import org.junit.jupiter.api.*
 import org.junit.jupiter.api.Assertions.*
+import za.ac.sun.plume.TestDomainResources
 import za.ac.sun.plume.TestDomainResources.Companion.DISPATCH_1
 import za.ac.sun.plume.TestDomainResources.Companion.INT_1
 import za.ac.sun.plume.TestDomainResources.Companion.INT_2
@@ -277,5 +278,49 @@ class Neo4jDriverIntTest {
             driver.addVertex(v2)
             assertEquals(0, driver.maxOrder())
         }
+    }
+
+    @Test
+    fun testGetMethodBody() {
+        val v1 = MethodVertex(STRING_1, STRING_1, STRING_2, STRING_1, INT_1, INT_2, INT_1)
+        val v2 = MethodParameterInVertex(STRING_1, TestDomainResources.EVAL_1, STRING_1, INT_1, STRING_2, INT_2)
+        val v3 = BlockVertex(STRING_1, STRING_1, STRING_1, INT_1, INT_2, INT_2, INT_1)
+        val v4 = CallVertex(STRING_1, INT_1, DISPATCH_1, STRING_1, STRING_1, STRING_2, STRING_2, STRING_2, INT_1, INT_1, INT_1)
+        val v5 = LocalVertex(STRING_1, STRING_2, INT_1, INT_1, STRING_1, INT_1)
+        val v6 = IdentifierVertex(STRING_1, STRING_1, STRING_1, INT_1, INT_1, INT_1, INT_1)
+        val v7 = TypeDeclVertex(STRING_1, STRING_2, STRING_1, INT_1)
+        val v8 = LiteralVertex(STRING_1, STRING_2, STRING_2, INT_1, INT_1, INT_1, INT_1)
+        val v9 = ReturnVertex(INT_1, INT_1, INT_1, INT_1, STRING_1)
+        val v10 = MethodReturnVertex(STRING_1, STRING_1, TestDomainResources.EVAL_1, STRING_1, INT_1, INT_1, INT_1)
+        val v11 = FileVertex(STRING_1, INT_1)
+        val v12 = NamespaceBlockVertex(STRING_1, STRING_2, INT_1)
+        val v13 = MetaDataVertex(STRING_1, STRING_2)
+        // Create program data
+        driver.addVertex(v13)
+        driver.addEdge(v11, v12, EdgeLabel.AST)
+        // Create method head
+        driver.addEdge(v7, v1, EdgeLabel.AST)
+        driver.addEdge(v1, v11, EdgeLabel.SOURCE_FILE)
+        driver.addEdge(v1, v2, EdgeLabel.AST)
+        driver.addEdge(v1, v5, EdgeLabel.AST)
+        driver.addEdge(v1, v3, EdgeLabel.AST)
+        driver.addEdge(v1, v3, EdgeLabel.CFG)
+        // Create method body
+        driver.addEdge(v3, v4, EdgeLabel.AST)
+        driver.addEdge(v3, v4, EdgeLabel.CFG)
+        driver.addEdge(v4, v6, EdgeLabel.AST)
+        driver.addEdge(v4, v8, EdgeLabel.AST)
+        driver.addEdge(v4, v6, EdgeLabel.ARGUMENT)
+        driver.addEdge(v4, v8, EdgeLabel.ARGUMENT)
+        driver.addEdge(v3, v9, EdgeLabel.AST)
+        driver.addEdge(v4, v9, EdgeLabel.CFG)
+        driver.addEdge(v1, v10, EdgeLabel.AST)
+        driver.addEdge(v9, v10, EdgeLabel.CFG)
+        // Link dependencies
+        driver.addEdge(v6, v5, EdgeLabel.REF)
+
+        val plumeGraph = driver.getMethod(v1.fullName, v1.signature)
+        assertEquals("PlumeGraph(vertices:9, edges:15)", plumeGraph.toString())
+        // TODO: Check more thoroughly
     }
 }
