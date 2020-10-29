@@ -52,19 +52,10 @@ class PlumeGraph {
      * @return a [HashMap] of all edges categorized by [EdgeLabel]s where target [PlumeVertex]s are the values.
      */
     fun edgesOut(v: PlumeVertex): HashMap<EdgeLabel, HashSet<PlumeVertex>> {
-        edges.entries.forEach(::println)
         val outMap = HashMap<EdgeLabel, HashSet<PlumeVertex>>()
-        edges.keys.forEach { eLabel ->
-            if (edges.containsKey(eLabel)) {
-                val vertexMap = edges[eLabel]
-//                println(v)
-//                println("$eLabel -> $vertexMap")
-//                println(vertexMap?.get(v))
-                if (!vertexMap.isNullOrEmpty() && vertexMap.containsKey(v)) {
-                    outMap[eLabel] = vertexMap[v]!!.toHashSet()
-                }
-            }
-        }
+        edges.keys.filter { !edges[it].isNullOrEmpty() && edges[it]?.containsKey(v) ?: false }
+                .map { Pair(it, edges[it]) }
+                .forEach { outMap[it.first] = it.second?.get(v)!!.toHashSet() }
         return outMap
     }
 
