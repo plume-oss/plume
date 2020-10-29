@@ -219,6 +219,7 @@ abstract class GremlinDriver : IDriver {
                 .cap<Graph>("sg")
                 .next()
         val result = gremlinToPlume(methodSubgraph)
+        methodSubgraph.traversal().io<Any>("/tmp/plume/yay.xml").write().iterate()
         if (transactionOpen) closeTx()
         return result
     }
@@ -235,8 +236,8 @@ abstract class GremlinDriver : IDriver {
         g.V().toSet().map(this::gremlinToPlume).forEach { plumeGraph.addVertex(it) }
         g.E().valueMap<String>().with(WithOptions.tokens).forEachRemaining {
             val edgeLabel = EdgeLabel.valueOf(it[T.label].toString())
-            val plumeSrc = gremlinToPlume(g.E(it[T.id]).inV().next())
-            val plumeTgt = gremlinToPlume(g.E(it[T.id]).outV().next())
+            val plumeSrc = gremlinToPlume(g.E(it[T.id]).outV().next())
+            val plumeTgt = gremlinToPlume(g.E(it[T.id]).inV().next())
             plumeGraph.addEdge(plumeSrc, plumeTgt, edgeLabel)
         }
         return plumeGraph

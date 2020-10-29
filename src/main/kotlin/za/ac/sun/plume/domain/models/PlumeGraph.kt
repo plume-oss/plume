@@ -52,11 +52,17 @@ class PlumeGraph {
      * @return a [HashMap] of all edges categorized by [EdgeLabel]s where target [PlumeVertex]s are the values.
      */
     fun edgesOut(v: PlumeVertex): HashMap<EdgeLabel, HashSet<PlumeVertex>> {
+        edges.entries.forEach(::println)
         val outMap = HashMap<EdgeLabel, HashSet<PlumeVertex>>()
         edges.keys.forEach { eLabel ->
-            val vertexMap = edges[eLabel]
-            if (!vertexMap.isNullOrEmpty()) {
-                outMap[eLabel] = vertexMap[v]!!.toHashSet()
+            if (edges.containsKey(eLabel)) {
+                val vertexMap = edges[eLabel]
+//                println(v)
+//                println("$eLabel -> $vertexMap")
+//                println(vertexMap?.get(v))
+                if (!vertexMap.isNullOrEmpty() && vertexMap.containsKey(v)) {
+                    outMap[eLabel] = vertexMap[v]!!.toHashSet()
+                }
             }
         }
         return outMap
@@ -82,6 +88,6 @@ class PlumeGraph {
     }
 
     override fun toString(): String {
-        return "PlumeGraph(vertices:${vertices.size}, edges:${edges.values.map { it.entries }.flatten().count()})"
+        return "PlumeGraph(vertices:${vertices.size}, edges:${edges.values.map { it.values }.flatten().flatten().count()})"
     }
 }
