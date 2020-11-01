@@ -68,6 +68,29 @@ CREATE QUERY showAll() FOR GRAPH cpg {
   PRINT allVertices;
 }
 
+CREATE QUERY getMethod(VERTEX<CPG_VERT> methodHash) FOR GRAPH cpg {
+  SetAccum<EDGE> @@edges;
+  OrAccum @visited;
+  start = {methodHash};
+  allVert = {methodHash};
+
+  WHILE start.size() > 0 DO
+	  start = SELECT t
+	          FROM start:s -((AST|REF|CFG|ARGUMENT|CAPTURED_BY|BINDS_TO|RECEIVER|CONDITION|BINDS):e) ->:t
+	          WHERE NOT t.@visited
+	          ACCUM t.@visited = TRUE, @@edges += e;
+    allVert = allVert UNION start;
+	END;
+
+  finalEdges = SELECT t
+               FROM allVert -((AST|REF|CFG|ARGUMENT|CAPTURED_BY|BINDS_TO|RECEIVER|CONDITION|BINDS):e)->:t
+               ACCUM @@edges += e;
+
+  PRINT allVert;
+  PRINT @@edges;
+}
+// getMethod test ID -2108447326
+
 CREATE QUERY maxOrder() FOR GRAPH cpg {
   MaxAccum<INT> @@maxAstOrder;
   @@maxAstOrder += 0;

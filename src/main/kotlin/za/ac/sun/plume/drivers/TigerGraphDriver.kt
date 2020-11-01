@@ -12,6 +12,7 @@ import za.ac.sun.plume.domain.mappers.VertexMapper.Companion.checkSchemaConstrai
 import za.ac.sun.plume.domain.models.PlumeGraph
 import za.ac.sun.plume.domain.models.PlumeVertex
 import za.ac.sun.plume.domain.models.vertices.MetaDataVertex
+import za.ac.sun.plume.domain.models.vertices.MethodVertex
 import java.io.IOException
 import java.lang.Thread.sleep
 
@@ -113,10 +114,10 @@ class TigerGraphDriver : IDriver {
         // No edge can be connected to a MetaDataVertex
         if (fromV is MetaDataVertex || toV is MetaDataVertex) return false
         return try {
-            val response = get("query/$GRAPH_NAME/areVerticesJoinedByEdge?" +
-                    "vFrom=${fromV.hashCode()}&" +
-                    "vTo=${toV.hashCode()}&" +
-                    "edgeLabel=${edge.name}").firstOrNull()
+            val response = get("query/$GRAPH_NAME/areVerticesJoinedByEdge",
+                    mapOf("vFrom" to fromV.hashCode().toString(),
+                            "vTo" to toV.hashCode().toString(),
+                            "edgeLabel" to edge.name)).firstOrNull()
             return if (response == null) {
                 throw PlumeTransactionException("Null response for exists query between $fromV and $toV with edge label $edge")
             } else {
@@ -187,6 +188,43 @@ class TigerGraphDriver : IDriver {
         )
     }
 
+    override fun getMethod(fullName: String, signature: String): PlumeGraph {
+        var methodHash = MethodVertex::class.java.hashCode()
+        methodHash = 31 * methodHash + fullName.hashCode()
+        methodHash = 31 * methodHash + signature.hashCode()
+        val result = get("query/$GRAPH_NAME/getMethod", mapOf("methodHash" to methodHash.toString()))
+        val plumeGraph = PlumeGraph()
+        result[0]?.let { res ->
+            val o = res as JSONObject
+            val vertices = o["allVert"] as JSONArray
+            vertices.map { gsqlToPlume(it as JSONObject) }.forEach { plumeGraph.addVertex(it) }
+        }
+        result[1]?.let { res ->
+            val o = res as JSONObject
+            val edges = o["@@edges"] as JSONArray
+            edges.forEach { connectEdgeResult(plumeGraph, it as JSONObject) }
+        }
+        return plumeGraph
+    }
+
+    private fun connectEdgeResult(plumeGraph: PlumeGraph, edgePayload: JSONObject) {
+        val fromV = plumeGraph.vertices().find { it.hashCode() == edgePayload["from_id"].toString().toInt() }
+        val toV = plumeGraph.vertices().find { it.hashCode() == edgePayload["to_id"].toString().toInt() }
+        val edge = EdgeLabel.valueOf(edgePayload["e_type"].toString())
+        if (fromV != null && toV != null) {
+            plumeGraph.addEdge(fromV, toV, edge)
+        }
+    }
+
+    private fun gsqlToPlume(o: JSONObject): PlumeVertex {
+        val attributes = o["attributes"] as JSONObject
+        val vertexMap = HashMap<String, Any>()
+        attributes.keySet().filter { attributes[it] != "" }
+                .map { Pair(if (it == "astOrder") "order" else it, attributes[it]) }
+                .forEach { vertexMap[it.first] = it.second }
+        return VertexMapper.mapToVertex(vertexMap)
+    }
+
     override fun close() {
         /* No need to close anything - this hook uses REST */
     }
@@ -194,10 +232,6 @@ class TigerGraphDriver : IDriver {
     override fun clearGraph() = apply {
         delete("graph/$GRAPH_NAME/delete_by_type/vertices/META_DATA_VERT")
         delete("graph/$GRAPH_NAME/delete_by_type/vertices/CPG_VERT")
-    }
-
-    override fun getMethod(fullName: String, signature: String): PlumeGraph {
-        TODO("Not yet implemented")
     }
 
     private fun headers(): Map<String, String> = if (authKey == null) {
@@ -216,12 +250,30 @@ class TigerGraphDriver : IDriver {
      */
     @Throws(PlumeTransactionException::class)
     private fun get(endpoint: String): JSONArray {
+        return get(endpoint, emptyMap())
+    }
+
+    /**
+     * Sends a GET request to the configured REST++ server.
+     *
+     * @param endpoint The endpoint to send the request to. This is appended after [api].
+     * @param params Optional GET parameters.
+     * @return the value for the "results" key of the REST++ response as a [JSONArray]
+     * @throws PlumeTransactionException if the REST++ response returned a query related error.
+     * @throws IOException if the request could not be sent based on an I/O communication failure.
+     */
+    @Throws(PlumeTransactionException::class)
+    private fun get(endpoint: String, params: Map<String, String>): JSONArray {
         var tryCount = 0
+        val response = if (params.isEmpty()) khttp.get(
+                url = "${api}/$endpoint",
+                headers = headers()
+        ) else khttp.get(
+                url = "${api}/$endpoint",
+                headers = headers(),
+                params = params
+        )
         while (++tryCount < MAX_RETRY) {
-            val response = khttp.get(
-                    url = "${api}/$endpoint",
-                    headers = headers()
-            )
             logger.debug("Get ${response.url}")
             logger.debug("Response ${response.text}")
             when {
