@@ -61,7 +61,6 @@ class MethodVertex(
         if (this === other) return true
         if (other !is MethodVertex) return false
 
-        if (name != other.name) return false
         if (fullName != other.fullName) return false
         if (signature != other.signature) return false
 
@@ -69,7 +68,7 @@ class MethodVertex(
     }
 
     override fun hashCode(): Int {
-        var result = 31 * name.hashCode()
+        var result = this.javaClass.hashCode()
         result = 31 * result + fullName.hashCode()
         result = 31 * result + signature.hashCode()
         return result
