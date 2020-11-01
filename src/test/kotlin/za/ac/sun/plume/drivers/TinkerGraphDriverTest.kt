@@ -423,5 +423,12 @@ class TinkerGraphDriverTest {
         assertTrue(plumeGraph.edgesIn(v9)[EdgeLabel.CFG]?.contains(v4) ?: false)
         assertTrue(plumeGraph.edgesIn(v10)[EdgeLabel.CFG]?.contains(v9) ?: false)
         // Check method body misc. edges
+        assertTrue(plumeGraph.edgesOut(v4)[EdgeLabel.ARGUMENT]?.contains(v6) ?: false)
+        assertTrue(plumeGraph.edgesOut(v4)[EdgeLabel.ARGUMENT]?.contains(v8) ?: false)
+        assertTrue(plumeGraph.edgesOut(v6)[EdgeLabel.REF]?.contains(v5) ?: false)
+
+        assertTrue(plumeGraph.edgesIn(v6)[EdgeLabel.ARGUMENT]?.contains(v4) ?: false)
+        assertTrue(plumeGraph.edgesIn(v8)[EdgeLabel.ARGUMENT]?.contains(v4) ?: false)
+        assertTrue(plumeGraph.edgesIn(v5)[EdgeLabel.REF]?.contains(v6) ?: false)
     }
 }

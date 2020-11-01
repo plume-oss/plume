@@ -319,6 +319,51 @@ class NeptuneDriverIntTest {
 
         val plumeGraph = driver.getMethod(v1.fullName, v1.signature)
         assertEquals("PlumeGraph(vertices:9, edges:15)", plumeGraph.toString())
-        // TODO: Check more thoroughly
+        val graphVertices = plumeGraph.vertices()
+        assertEquals(9, graphVertices.size)
+        // Assert no program structure vertices part of the method body
+        assertFalse(graphVertices.contains(v13))
+        assertFalse(graphVertices.contains(v12))
+        assertFalse(graphVertices.contains(v11))
+        // Check method head
+        assertTrue(plumeGraph.edgesOut(v1)[EdgeLabel.AST]?.contains(v2) ?: false)
+        assertTrue(plumeGraph.edgesOut(v1)[EdgeLabel.AST]?.contains(v5) ?: false)
+        assertTrue(plumeGraph.edgesOut(v1)[EdgeLabel.AST]?.contains(v3) ?: false)
+        assertTrue(plumeGraph.edgesOut(v1)[EdgeLabel.AST]?.contains(v10) ?: false)
+        assertTrue(plumeGraph.edgesOut(v1)[EdgeLabel.CFG]?.contains(v3) ?: false)
+
+        assertTrue(plumeGraph.edgesIn(v2)[EdgeLabel.AST]?.contains(v1) ?: false)
+        assertTrue(plumeGraph.edgesIn(v5)[EdgeLabel.AST]?.contains(v1) ?: false)
+        assertTrue(plumeGraph.edgesIn(v3)[EdgeLabel.AST]?.contains(v1) ?: false)
+        assertTrue(plumeGraph.edgesIn(v10)[EdgeLabel.AST]?.contains(v1) ?: false)
+        assertTrue(plumeGraph.edgesIn(v3)[EdgeLabel.CFG]?.contains(v1) ?: false)
+        // Check method body AST
+        assertTrue(plumeGraph.edgesOut(v3)[EdgeLabel.AST]?.contains(v4) ?: false)
+        assertTrue(plumeGraph.edgesOut(v4)[EdgeLabel.AST]?.contains(v6) ?: false)
+        assertTrue(plumeGraph.edgesOut(v4)[EdgeLabel.AST]?.contains(v8) ?: false)
+        assertTrue(plumeGraph.edgesOut(v3)[EdgeLabel.AST]?.contains(v9) ?: false)
+        assertTrue(plumeGraph.edgesOut(v1)[EdgeLabel.AST]?.contains(v10) ?: false)
+
+        assertTrue(plumeGraph.edgesIn(v4)[EdgeLabel.AST]?.contains(v3) ?: false)
+        assertTrue(plumeGraph.edgesIn(v6)[EdgeLabel.AST]?.contains(v4) ?: false)
+        assertTrue(plumeGraph.edgesIn(v8)[EdgeLabel.AST]?.contains(v4) ?: false)
+        assertTrue(plumeGraph.edgesIn(v9)[EdgeLabel.AST]?.contains(v3) ?: false)
+        assertTrue(plumeGraph.edgesIn(v10)[EdgeLabel.AST]?.contains(v1) ?: false)
+        // Check method body CFG
+        assertTrue(plumeGraph.edgesOut(v3)[EdgeLabel.CFG]?.contains(v4) ?: false)
+        assertTrue(plumeGraph.edgesOut(v4)[EdgeLabel.CFG]?.contains(v9) ?: false)
+        assertTrue(plumeGraph.edgesOut(v9)[EdgeLabel.CFG]?.contains(v10) ?: false)
+
+        assertTrue(plumeGraph.edgesIn(v4)[EdgeLabel.CFG]?.contains(v3) ?: false)
+        assertTrue(plumeGraph.edgesIn(v9)[EdgeLabel.CFG]?.contains(v4) ?: false)
+        assertTrue(plumeGraph.edgesIn(v10)[EdgeLabel.CFG]?.contains(v9) ?: false)
+        // Check method body misc. edges
+        assertTrue(plumeGraph.edgesOut(v4)[EdgeLabel.ARGUMENT]?.contains(v6) ?: false)
+        assertTrue(plumeGraph.edgesOut(v4)[EdgeLabel.ARGUMENT]?.contains(v8) ?: false)
+        assertTrue(plumeGraph.edgesOut(v6)[EdgeLabel.REF]?.contains(v5) ?: false)
+
+        assertTrue(plumeGraph.edgesIn(v6)[EdgeLabel.ARGUMENT]?.contains(v4) ?: false)
+        assertTrue(plumeGraph.edgesIn(v8)[EdgeLabel.ARGUMENT]?.contains(v4) ?: false)
+        assertTrue(plumeGraph.edgesIn(v5)[EdgeLabel.REF]?.contains(v6) ?: false)
     }
 }
