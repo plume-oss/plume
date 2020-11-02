@@ -1,7 +1,7 @@
 version: '3'
 services:
   tigergraph:
-    image: dbakereffendi/tigergraph:3.0.0
+    image: dbakereffendi/tigergraph:3.0.5
     container_name: plume-tigergraph
     ports:
       - "14022:22"
