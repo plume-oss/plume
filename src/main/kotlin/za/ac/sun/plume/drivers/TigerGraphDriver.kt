@@ -207,6 +207,14 @@ class TigerGraphDriver : IDriver {
         return plumeGraph
     }
 
+    override fun getProgramStructure(): PlumeGraph {
+        TODO("Not yet implemented")
+    }
+
+    override fun getNeighbours(v: PlumeVertex): PlumeGraph {
+        TODO("Not yet implemented")
+    }
+
     private fun connectEdgeResult(plumeGraph: PlumeGraph, edgePayload: JSONObject) {
         val fromV = plumeGraph.vertices().find { it.hashCode() == edgePayload["from_id"].toString().toInt() }
         val toV = plumeGraph.vertices().find { it.hashCode() == edgePayload["to_id"].toString().toInt() }

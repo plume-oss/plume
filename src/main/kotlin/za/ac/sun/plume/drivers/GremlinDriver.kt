@@ -18,6 +18,7 @@ import za.ac.sun.plume.domain.mappers.VertexMapper.Companion.checkSchemaConstrai
 import za.ac.sun.plume.domain.mappers.VertexMapper.Companion.vertexToMap
 import za.ac.sun.plume.domain.models.PlumeGraph
 import za.ac.sun.plume.domain.models.PlumeVertex
+import za.ac.sun.plume.domain.models.vertices.FileVertex
 import za.ac.sun.plume.domain.models.vertices.MethodVertex
 import java.util.*
 import kotlin.collections.HashMap
@@ -219,7 +220,33 @@ abstract class GremlinDriver : IDriver {
                 .cap<Graph>("sg")
                 .next()
         val result = gremlinToPlume(methodSubgraph)
-        methodSubgraph.traversal().io<Any>("/tmp/plume/yay.xml").write().iterate()
+        if (transactionOpen) closeTx()
+        return result
+    }
+
+    override fun getProgramStructure(): PlumeGraph {
+        if (!transactionOpen) openTx()
+        val methodSubgraph = g.V().hasLabel(FileVertex.LABEL.toString())
+                .repeat(underscore.outE(EdgeLabel.AST.toString()).inV()).emit()
+                .inE()
+                .subgraph("sg")
+                .cap<Graph>("sg")
+                .next()
+        val result = gremlinToPlume(methodSubgraph)
+        if (transactionOpen) closeTx()
+        return result
+    }
+
+    override fun getNeighbours(v: PlumeVertex): PlumeGraph {
+        if (!transactionOpen) openTx()
+        val methodSubgraph = findVertexTraversal(v)
+                .repeat(underscore.outE(EdgeLabel.AST.toString()).bothV())
+                .times(1)
+                .inE()
+                .subgraph("sg")
+                .cap<Graph>("sg")
+                .next()
+        val result = gremlinToPlume(methodSubgraph)
         if (transactionOpen) closeTx()
         return result
     }
