@@ -64,6 +64,14 @@ interface IDriver : AutoCloseable {
     fun clearGraph(): IDriver
 
     /**
+     * Returns the whole CPG as a [PlumeGraph] object. Depending on the size of the CPG, this may be very memory
+     * intensive.
+     *
+     * @return The whole CPG in the graph database.
+     */
+    fun getWholeGraph(): PlumeGraph
+
+    /**
      * Given the full signature of a method, returns the subgraph of the method body.
      *
      * @param fullName The fully qualified name e.g. interprocedural.basic.Basic4.f

@@ -188,6 +188,10 @@ class TigerGraphDriver : IDriver {
         )
     }
 
+    override fun getWholeGraph(): PlumeGraph {
+        TODO("Not yet implemented")
+    }
+
     override fun getMethod(fullName: String, signature: String): PlumeGraph {
         var methodHash = MethodVertex::class.java.hashCode()
         methodHash = 31 * methodHash + fullName.hashCode()

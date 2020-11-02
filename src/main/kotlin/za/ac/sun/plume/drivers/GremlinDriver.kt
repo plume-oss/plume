@@ -21,8 +21,7 @@ import za.ac.sun.plume.domain.models.PlumeVertex
 import za.ac.sun.plume.domain.models.vertices.FileVertex
 import za.ac.sun.plume.domain.models.vertices.MethodVertex
 import java.util.*
-import kotlin.collections.HashMap
-import org.apache.tinkerpop.gremlin.process.traversal.dsl.graph.`__` as underscore
+import org.apache.tinkerpop.gremlin.process.traversal.dsl.graph.`__` as un
 
 /**
  * The driver used by remote Gremlin connections.
@@ -129,7 +128,7 @@ abstract class GremlinDriver : IDriver {
             if (!findVertexTraversal(fromV).hasNext() || !findVertexTraversal(toV).hasNext()) return false
             val a = findVertexTraversal(fromV).next()
             val b = findVertexTraversal(toV).next()
-            return g.V(a).outE(edge.name).filter(underscore.inV().`is`(b)).hasLabel(edge.name).hasNext()
+            return g.V(a).outE(edge.name).filter(un.inV().`is`(b)).hasLabel(edge.name).hasNext()
         } finally {
             if (transactionOpen) closeTx()
         }
@@ -210,76 +209,83 @@ abstract class GremlinDriver : IDriver {
         }
     }
 
+    override fun getWholeGraph(): PlumeGraph {
+        if (!transactionOpen) openTx()
+        val plumeGraph = gremlinToPlume(g)
+        if (transactionOpen) closeTx()
+        return plumeGraph
+    }
+
     override fun getMethod(fullName: String, signature: String): PlumeGraph {
         if (!transactionOpen) openTx()
         val methodSubgraph = g.V().hasLabel(MethodVertex.LABEL.toString())
                 .has("fullName", fullName).has("signature", signature)
-                .repeat(underscore.outE(EdgeLabel.AST.toString()).inV()).emit()
+                .repeat(un.outE(EdgeLabel.AST.toString()).inV()).emit()
                 .inE()
                 .subgraph("sg")
                 .cap<Graph>("sg")
                 .next()
-        val result = gremlinToPlume(methodSubgraph)
+        val result = gremlinToPlume(methodSubgraph.traversal())
         if (transactionOpen) closeTx()
         return result
     }
 
     override fun getProgramStructure(): PlumeGraph {
         if (!transactionOpen) openTx()
-        val methodSubgraph = g.V().hasLabel(FileVertex.LABEL.toString())
-                .repeat(underscore.outE(EdgeLabel.AST.toString()).inV()).emit()
+        val programStructureSubGraph = g.V().hasLabel(FileVertex.LABEL.toString())
+                .repeat(un.outE(EdgeLabel.AST.toString()).inV()).emit()
                 .inE()
                 .subgraph("sg")
                 .cap<Graph>("sg")
                 .next()
-        val result = gremlinToPlume(methodSubgraph)
+        val result = gremlinToPlume(programStructureSubGraph.traversal())
         if (transactionOpen) closeTx()
         return result
     }
 
     override fun getNeighbours(v: PlumeVertex): PlumeGraph {
         if (!transactionOpen) openTx()
-        val methodSubgraph = findVertexTraversal(v)
-                .repeat(underscore.outE(EdgeLabel.AST.toString()).bothV())
+        val neighbourSubgraph = findVertexTraversal(v)
+                .repeat(un.outE(EdgeLabel.AST.toString()).bothV())
                 .times(1)
                 .inE()
                 .subgraph("sg")
                 .cap<Graph>("sg")
                 .next()
-        val result = gremlinToPlume(methodSubgraph)
+        val result = gremlinToPlume(neighbourSubgraph.traversal())
         if (transactionOpen) closeTx()
         return result
     }
 
     /**
-     * Converts a [Graph] instance to a [PlumeGraph] instance.
+     * Converts a [GraphTraversalSource] instance to a [PlumeGraph] instance.
      *
-     * @param graph A Gremlin graph.
+     * @param g A [GraphTraversalSource] from the subgraph to convert.
      * @return The resulting [PlumeGraph].
      */
-    private fun gremlinToPlume(graph: Graph): PlumeGraph {
-        val g = graph.traversal()
+    private fun gremlinToPlume(g: GraphTraversalSource): PlumeGraph {
         val plumeGraph = PlumeGraph()
-        g.V().toSet().map(this::gremlinToPlume).forEach { plumeGraph.addVertex(it) }
-        g.E().valueMap<String>().with(WithOptions.tokens).forEachRemaining {
-            val edgeLabel = EdgeLabel.valueOf(it[T.label].toString())
-            val plumeSrc = gremlinToPlume(g.E(it[T.id]).outV().next())
-            val plumeTgt = gremlinToPlume(g.E(it[T.id]).inV().next())
-            plumeGraph.addEdge(plumeSrc, plumeTgt, edgeLabel)
+        val f = { gt: GraphTraversal<Edge, Vertex> ->
+            gt.valueMap<String>()
+                    .by(un.unfold<Any>())
+                    .with(WithOptions.tokens)
+                    .next()
+                    .mapKeys { k -> k.key.toString() }
         }
+        g.V().valueMap<Any>()
+                .with(WithOptions.tokens)
+                .by(un.unfold<Any>()).toStream()
+                .map { props -> VertexMapper.mapToVertex(props.mapKeys { it.key.toString() }) }
+                .forEach { plumeGraph.addVertex(it) }
+        g.E().barrier().valueMap<String>()
+                .with(WithOptions.tokens)
+                .by(un.unfold<Any>())
+                .forEach {
+                    val edgeLabel = EdgeLabel.valueOf(it[T.label].toString())
+                    val plumeSrc = VertexMapper.mapToVertex(f(g.E(it[T.id]).outV()))
+                    val plumeTgt = VertexMapper.mapToVertex(f(g.E(it[T.id]).inV()))
+                    plumeGraph.addEdge(plumeSrc, plumeTgt, edgeLabel)
+                }
         return plumeGraph
-    }
-
-    /**
-     * Converts a [Vertex] instance to a [PlumeVertex] instance.
-     *
-     * @param v A Gremlin vertex.
-     * @return The resulting [PlumeVertex].
-     */
-    private fun gremlinToPlume(v: Vertex): PlumeVertex {
-        val map = HashMap<String, Any>()
-        map["label"] = v.label()
-        v.properties<Any>().forEach { map[it.key()] = it.value() }
-        return VertexMapper.mapToVertex(map)
     }
 }
