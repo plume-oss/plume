@@ -34,6 +34,9 @@ class TigerGraphDriverIntTest {
                 .hostname("127.0.0.1")
                 .port(9000)
                 .secure(false)
+        assertEquals("127.0.0.1", driver.hostname)
+        assertEquals(9000, driver.port)
+        assertEquals(false, driver.secure)
     }
 
     @AfterEach

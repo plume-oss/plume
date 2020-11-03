@@ -38,6 +38,11 @@ class Neo4jDriverIntTest {
                     .database("neo4j")
                     .connect()
         }
+        assertEquals("localhost", driver.hostname)
+        assertEquals(7687, driver.port)
+        assertEquals("neo4j", driver.username)
+        assertEquals("neo4j123", driver.password)
+        assertEquals("neo4j", driver.database)
     }
 
     @AfterEach
