@@ -19,6 +19,7 @@ import za.ac.sun.plume.domain.mappers.VertexMapper.Companion.vertexToMap
 import za.ac.sun.plume.domain.models.PlumeGraph
 import za.ac.sun.plume.domain.models.PlumeVertex
 import za.ac.sun.plume.domain.models.vertices.FileVertex
+import za.ac.sun.plume.domain.models.vertices.MetaDataVertex
 import za.ac.sun.plume.domain.models.vertices.MethodVertex
 import java.util.*
 import org.apache.tinkerpop.gremlin.process.traversal.dsl.graph.`__` as un
@@ -244,6 +245,7 @@ abstract class GremlinDriver : IDriver {
     }
 
     override fun getNeighbours(v: PlumeVertex): PlumeGraph {
+        if (v is MetaDataVertex) return PlumeGraph().apply { addVertex(v) }
         if (!transactionOpen) openTx()
         val neighbourSubgraph = findVertexTraversal(v)
                 .repeat(un.outE(EdgeLabel.AST.toString()).bothV())

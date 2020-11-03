@@ -189,7 +189,8 @@ class TigerGraphDriver : IDriver {
     }
 
     override fun getWholeGraph(): PlumeGraph {
-        TODO("Not yet implemented")
+        val result = get("query/$GRAPH_NAME/showAll")
+        return graphPayloadToPlumeGraph(result)
     }
 
     override fun getMethod(fullName: String, signature: String): PlumeGraph {
@@ -197,26 +198,33 @@ class TigerGraphDriver : IDriver {
         methodHash = 31 * methodHash + fullName.hashCode()
         methodHash = 31 * methodHash + signature.hashCode()
         val result = get("query/$GRAPH_NAME/getMethod", mapOf("methodHash" to methodHash.toString()))
+        return graphPayloadToPlumeGraph(result)
+    }
+
+    override fun getProgramStructure(): PlumeGraph {
+        val result = get("query/$GRAPH_NAME/getProgramStructure")
+        return graphPayloadToPlumeGraph(result)
+    }
+
+    override fun getNeighbours(v: PlumeVertex): PlumeGraph {
+        if (v is MetaDataVertex) return PlumeGraph().apply { addVertex(v) }
+        val result = get("query/$GRAPH_NAME/getNeighbours", mapOf("source" to v.hashCode().toString()))
+        return graphPayloadToPlumeGraph(result)
+    }
+
+    private fun graphPayloadToPlumeGraph(a: JSONArray): PlumeGraph {
         val plumeGraph = PlumeGraph()
-        result[0]?.let { res ->
+        a[0]?.let { res ->
             val o = res as JSONObject
             val vertices = o["allVert"] as JSONArray
-            vertices.map { gsqlToPlume(it as JSONObject) }.forEach { plumeGraph.addVertex(it) }
+            vertices.map { vertexPayloadToPlumeGraph(it as JSONObject) }.forEach { plumeGraph.addVertex(it) }
         }
-        result[1]?.let { res ->
+        a[1]?.let { res ->
             val o = res as JSONObject
             val edges = o["@@edges"] as JSONArray
             edges.forEach { connectEdgeResult(plumeGraph, it as JSONObject) }
         }
         return plumeGraph
-    }
-
-    override fun getProgramStructure(): PlumeGraph {
-        TODO("Not yet implemented")
-    }
-
-    override fun getNeighbours(v: PlumeVertex): PlumeGraph {
-        TODO("Not yet implemented")
     }
 
     private fun connectEdgeResult(plumeGraph: PlumeGraph, edgePayload: JSONObject) {
@@ -228,7 +236,7 @@ class TigerGraphDriver : IDriver {
         }
     }
 
-    private fun gsqlToPlume(o: JSONObject): PlumeVertex {
+    private fun vertexPayloadToPlumeGraph(o: JSONObject): PlumeVertex {
         val attributes = o["attributes"] as JSONObject
         val vertexMap = HashMap<String, Any>()
         attributes.keySet().filter { attributes[it] != "" }
