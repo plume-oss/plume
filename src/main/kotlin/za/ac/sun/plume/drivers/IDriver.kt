@@ -64,6 +64,14 @@ interface IDriver : AutoCloseable {
     fun clearGraph(): IDriver
 
     /**
+     * Returns the whole CPG as a [PlumeGraph] object. Depending on the size of the CPG, this may be very memory
+     * intensive.
+     *
+     * @return The whole CPG in the graph database.
+     */
+    fun getWholeGraph(): PlumeGraph
+
+    /**
      * Given the full signature of a method, returns the subgraph of the method body.
      *
      * @param fullName The fully qualified name e.g. interprocedural.basic.Basic4.f
@@ -71,4 +79,19 @@ interface IDriver : AutoCloseable {
      * @return The [PlumeGraph] containing the method graph.
      */
     fun getMethod(fullName: String, signature: String): PlumeGraph
+
+    /**
+     * Obtains all program structure related vertices.
+     *
+     * @return The [PlumeGraph] containing the program structure related sub-graphs.
+     */
+    fun getProgramStructure(): PlumeGraph
+
+    /**
+     * Given a vertex, returns a [PlumeGraph] representation of neighbouring vertices.
+     *
+     * @param v The source vertex.
+     * @return The [PlumeGraph] representation of the source vertex and its neighbouring vertices.
+     */
+    fun getNeighbours(v: PlumeVertex): PlumeGraph
 }

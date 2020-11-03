@@ -1,5 +1,7 @@
 language: java
 os: linux
+arch: arm64-graviton2
+virt: lxd
 
 services:
   - docker

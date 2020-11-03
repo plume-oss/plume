@@ -60,12 +60,12 @@ CREATE QUERY areVerticesJoinedByEdge(VERTEX<CPG_VERT> vFrom, VERTEX<CPG_VERT> vT
 
 CREATE QUERY showAll() FOR GRAPH cpg {
   SetAccum<EDGE> @@edges;
-  allVertices = {ANY};
+  allVert = {ANY};
   result = SELECT s
-           FROM allVertices:s -(:e)-> :t
+           FROM allVert:s -(:e)-> :t
            ACCUM @@edges += e;
+  PRINT allVert;
   PRINT @@edges;
-  PRINT allVertices;
 }
 
 CREATE QUERY getMethod(VERTEX<CPG_VERT> methodHash) FOR GRAPH cpg {
@@ -89,7 +89,50 @@ CREATE QUERY getMethod(VERTEX<CPG_VERT> methodHash) FOR GRAPH cpg {
   PRINT allVert;
   PRINT @@edges;
 }
-// getMethod test ID -2108447326
+
+CREATE QUERY getProgramStructure() FOR GRAPH cpg {
+  SetAccum<EDGE> @@edges;
+  OrAccum @visited;
+  start = {CPG_VERT.*};
+  start = SELECT s
+          FROM start:s -(:e)-> :t
+          WHERE s.label == "FILE";
+  allVert = start;
+
+  WHILE start.size() > 0 DO
+	  start = SELECT t
+	          FROM start:s -(AST:e) ->:t
+	          WHERE NOT t.@visited
+	          ACCUM t.@visited = TRUE, @@edges += e;
+    allVert = allVert UNION start;
+	END;
+
+  finalEdges = SELECT t
+               FROM allVert -(AST:e)->:t
+               ACCUM @@edges += e;
+
+  PRINT allVert;
+  PRINT @@edges;
+}
+
+CREATE QUERY getNeighbours(VERTEX<CPG_VERT> source) FOR GRAPH cpg {
+  SetAccum<EDGE> @@edges;
+  seed = {CPG_VERT.*};
+  sourceSet = {source};
+  outVert = SELECT tgt
+            FROM seed:src -(:e)- CPG_VERT:tgt
+            WHERE src == source
+            ACCUM @@edges += e;
+  inVert = SELECT src
+            FROM seed:src -(:e)- CPG_VERT:tgt
+            WHERE tgt == source
+            ACCUM @@edges += e;
+  allVert = inVert UNION outVert;
+  allVert = allVert UNION sourceSet;
+
+  PRINT allVert;
+  PRINT @@edges;
+}
 
 CREATE QUERY maxOrder() FOR GRAPH cpg {
   MaxAccum<INT> @@maxAstOrder;
