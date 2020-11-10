@@ -580,7 +580,7 @@ class ModelTest {
             assertVertexEquality(vertex1, vertex6)
             assertVertexEquality(vertex1, vertex7)
             assertVertexEquality(vertex1, vertex8)
-            assertVertexEquality(vertex1, vertex9)
+            assertVertexInequality(vertex1, vertex9)
         }
 
         @Test

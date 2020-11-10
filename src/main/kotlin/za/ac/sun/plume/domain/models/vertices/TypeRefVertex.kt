@@ -75,6 +75,7 @@ class TypeRefVertex(
         if (this === other) return true
         if (other !is TypeRefVertex) return false
 
+        if (order != other.order) return false
         if (typeFullName != other.typeFullName) return false
         if (dynamicTypeFullName != other.dynamicTypeFullName) return false
 
@@ -82,7 +83,8 @@ class TypeRefVertex(
     }
 
     override fun hashCode(): Int {
-        var result = 31 * typeFullName.hashCode()
+        var result = order.hashCode()
+        result = 31 * result + typeFullName.hashCode()
         result = 31 * result + dynamicTypeFullName.hashCode()
         return result
     }
