@@ -40,7 +40,7 @@ object ExtractorConst {
                 "&" to "AND",
                 "|" to "OR",
                 "^" to "XOR",
-                "~" to "COMPLIMENT",
+                "~" to "COMP",
                 "<<" to "SHL",
                 ">>" to "SHR",
                 ">>>" to "USHR",

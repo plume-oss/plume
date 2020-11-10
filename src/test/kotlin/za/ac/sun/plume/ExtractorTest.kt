@@ -1,70 +1,20 @@
 package za.ac.sun.plume
 
-import org.apache.logging.log4j.LogManager
-import org.apache.logging.log4j.Logger
-import org.junit.jupiter.api.*
-import za.ac.sun.plume.TestConstants.testGraph
+import org.junit.jupiter.api.AfterEach
+import org.junit.jupiter.api.Assertions
+import org.junit.jupiter.api.Assertions.assertEquals
+import org.junit.jupiter.api.Assertions.assertNotNull
+import org.junit.jupiter.api.BeforeAll
+import org.junit.jupiter.api.Test
+import za.ac.sun.plume.domain.models.vertices.*
 import za.ac.sun.plume.drivers.DriverFactory
 import za.ac.sun.plume.drivers.GraphDatabase
 import za.ac.sun.plume.drivers.TinkerGraphDriver
 import java.io.File
 
 class ExtractorTest {
-    @AfterEach
-    fun tearDown() {
-        driver.clearGraph()
-    }
-
-    @Test
-    fun validSourceFileTest() {
-        extractor.load(validSourceFile)
-        extractor.project()
-        driver.exportGraph(TEST_GRAPH)
-    }
-
-    @Test
-    fun validClassFileTest() {
-        extractor.load(validClassFile)
-        extractor.project()
-        driver.exportGraph(TEST_GRAPH)
-    }
-
-    @Test
-    fun validDirectoryTest() {
-        extractor.load(validDirectory)
-        extractor.project()
-        driver.exportGraph(TEST_GRAPH)
-    }
-
-    @Test
-    fun validPy2Test() {
-        extractor.load(validPy2File)
-        extractor.project()
-        driver.exportGraph(TEST_GRAPH)
-    }
-
-    @Test
-    fun validJsTest() {
-        extractor.load(validJsFile)
-        extractor.project()
-        driver.exportGraph(TEST_GRAPH)
-    }
-
-    @Test
-    fun compileMultipleLanguagesTest() {
-        extractor.load(polyglotDir)
-        extractor.project()
-        driver.exportGraph(TEST_GRAPH)
-    }
-
-    @Test
-    fun loadFileThatDoesNotExistTest() {
-        Assertions.assertThrows(NullPointerException::class.java) { extractor.load(File("dne.class")) }
-    }
-
     companion object {
-        private val logger: Logger = LogManager.getLogger(ExtractorTest::class.java)
-        private val TEST_GRAPH = testGraph
+        private val driver = DriverFactory(GraphDatabase.TINKER_GRAPH) as TinkerGraphDriver
         private val TEST_PATH = "extractor_tests${File.separator}"
         private lateinit var CLS_PATH: File
         private lateinit var extractor: Extractor
@@ -75,7 +25,6 @@ class ExtractorTest {
         private lateinit var validPy2File: File
         private lateinit var validJsFile: File
         private lateinit var polyglotDir: File
-        private lateinit var driver: TinkerGraphDriver
 
         private fun getTestResource(dir: String): File {
             val resourceURL = ExtractorTest::class.java.classLoader.getResource(dir)
@@ -94,17 +43,82 @@ class ExtractorTest {
             validDirectory = getTestResource("${TEST_PATH}dir_test")
             polyglotDir = getTestResource("${TEST_PATH}polyglot")
             CLS_PATH = File(getTestResource(TEST_PATH).absolutePath.replace(System.getProperty("user.dir") + File.separator, "").removeSuffix(TEST_PATH.replace(File.separator, "")))
-            driver = (DriverFactory(GraphDatabase.TINKER_GRAPH) as TinkerGraphDriver).apply { connect() }
             extractor = Extractor(driver, CLS_PATH)
         }
+    }
 
-        @AfterAll
-        @JvmStatic
-        fun tearDownAll() {
-            val f = File(TEST_GRAPH)
-            if (f.exists() && !f.delete()) {
-                logger.warn("Could not clear ${ExtractorTest::javaClass.name}'s test resources.")
-            }
+    @AfterEach
+    fun tearDown() {
+        driver.clearGraph()
+    }
+
+    @Test
+    fun validSourceFileTest() {
+        extractor.load(validSourceFile)
+        extractor.project()
+        val graph = driver.getWholeGraph()
+        val vertices = graph.vertices()
+        assertNotNull(vertices.filterIsInstance<NamespaceBlockVertex>().find { it.name == "extractor_tests" })
+        vertices.filterIsInstance<FileVertex>().find { it.name == "Test1" }.let { assertNotNull(it) }
+        vertices.filterIsInstance<MethodVertex>().find { it.name == "main" }.let { assertNotNull(it) }
+        vertices.filterIsInstance<LocalVertex>().find { it.name == "a" }.let { assertNotNull(it); assertEquals("byte", it!!.typeFullName) }
+        vertices.filterIsInstance<LocalVertex>().find { it.name == "b" }.let { assertNotNull(it); assertEquals("byte", it!!.typeFullName) }
+        vertices.filterIsInstance<LocalVertex>().find { it.name == "c" }.let { assertNotNull(it); assertEquals("int", it!!.typeFullName) }
+        vertices.filterIsInstance<CallVertex>().find { it.name == "ADD" }.let { assertNotNull(it) }
+    }
+
+    @Test
+    fun validClassFileTest() {
+        extractor.load(validClassFile)
+        extractor.project()
+        val graph = driver.getWholeGraph()
+        val vertices = graph.vertices()
+        assertNotNull(vertices.filterIsInstance<NamespaceBlockVertex>().find { it.name == "extractor_tests" })
+        vertices.filterIsInstance<FileVertex>().find { it.name == "Test2" }.let { assertNotNull(it) }
+        vertices.filterIsInstance<MethodVertex>().find { it.name == "main" }.let { assertNotNull(it) }
+        vertices.filterIsInstance<LocalVertex>().find { it.name == "l1" }.let { assertNotNull(it); assertEquals("byte", it!!.typeFullName) }
+        vertices.filterIsInstance<LocalVertex>().find { it.name == "l2" }.let { assertNotNull(it); assertEquals("byte", it!!.typeFullName) }
+        vertices.filterIsInstance<LocalVertex>().find { it.name == "l3" }.let { assertNotNull(it); assertEquals("int", it!!.typeFullName) }
+        vertices.filterIsInstance<CallVertex>().find { it.name == "SUB" }.let { assertNotNull(it) }
+    }
+
+    @Test
+    fun validDirectoryTest() {
+        extractor.load(validDirectory)
+        extractor.project()
+        val graph = driver.getProgramStructure()
+        val vertices = graph.vertices()
+        vertices.filterIsInstance<FileVertex>().let { fileList ->
+            assertNotNull(fileList.firstOrNull { it.name == "Dir1" })
+            assertNotNull(fileList.firstOrNull { it.name == "Dir2" })
         }
+        vertices.filterIsInstance<NamespaceBlockVertex>().let { fileList ->
+            assertNotNull(fileList.firstOrNull { it.name == "dir_test" })
+            assertNotNull(fileList.firstOrNull { it.name == "extractor_tests" })
+            assertNotNull(fileList.firstOrNull { it.name == "pack" })
+        }
+    }
+
+    @Test
+    fun validPy2Test() {
+        extractor.load(validPy2File)
+        extractor.project()
+    }
+
+    @Test
+    fun validJsTest() {
+        extractor.load(validJsFile)
+        extractor.project()
+    }
+
+    @Test
+    fun compileMultipleLanguagesTest() {
+        extractor.load(polyglotDir)
+        extractor.project()
+    }
+
+    @Test
+    fun loadFileThatDoesNotExistTest() {
+        Assertions.assertThrows(NullPointerException::class.java) { extractor.load(File("dne.class")) }
     }
 }

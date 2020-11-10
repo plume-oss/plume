@@ -21,7 +21,6 @@ import soot.Unit
 import soot.jimple.*
 import soot.jimple.internal.JimpleLocalBox
 import soot.toolkits.graph.BriefUnitGraph
-import soot.toolkits.graph.UnitGraph
 import za.ac.sun.plume.domain.enums.DispatchType
 import za.ac.sun.plume.domain.enums.EdgeLabel
 import za.ac.sun.plume.domain.models.PlumeVertex
@@ -64,9 +63,13 @@ class ASTBuilder(private val driver: IDriver, private val sootToPlume: MutableMa
         this.graph = graph
         logger.debug("Building AST for ${mtd.declaration}")
         graph.body.units.filterNot { it is IdentityStmt }
-                .forEach { u -> projectUnit(u)
-                        ?.let { driver.addEdge(sootToPlume[graph.body.method]
-                        !!.first { v -> v is BlockVertex}, it, EdgeLabel.AST) } }
+                .forEach { u ->
+                    projectUnit(u)
+                            ?.let {
+                                driver.addEdge(sootToPlume[graph.body.method]
+                                !!.first { v -> v is BlockVertex }, it, EdgeLabel.AST)
+                            }
+                }
         return sootToPlume[graph.body.method]?.first { it is MethodVertex } as MethodVertex
     }
 
@@ -270,9 +273,8 @@ class ASTBuilder(private val driver: IDriver, private val sootToPlume: MutableMa
         )
         projectSwitchDefault(unit, switchVertex)
         // Handle case jumps
-        unit.targets.forEach { tgt ->
+        unit.targets.forEachIndexed { i, tgt ->
             if (unit.defaultTarget != tgt) {
-                val i = unit.targets.indexOf(tgt)
                 val tgtV = JumpTargetVertex("CASE $i", i, tgt.javaSourceStartLineNumber, tgt.javaSourceStartColumnNumber, tgt.toString(), order++)
                 driver.addEdge(switchVertex, tgtV, EdgeLabel.AST)
                 sootToPlume[unit]!!.add(tgtV)
@@ -562,7 +564,7 @@ class ASTBuilder(private val driver: IDriver, private val sootToPlume: MutableMa
     private fun createNewArrayExpr(expr: NewArrayExpr): TypeRefVertex {
         val newArrayExprVertices = mutableListOf<PlumeVertex>()
         val typeRef = TypeRefVertex(
-                typeFullName = expr.baseType.toQuotedString(),
+                typeFullName = expr.type.toQuotedString(),
                 dynamicTypeFullName = expr.type.toQuotedString(),
                 code = expr.toString(),
                 argumentIndex = 0,

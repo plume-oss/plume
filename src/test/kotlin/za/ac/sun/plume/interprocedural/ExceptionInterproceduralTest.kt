@@ -1,12 +1,15 @@
 package za.ac.sun.plume.interprocedural
 
-import org.apache.logging.log4j.LogManager
-import org.junit.jupiter.api.AfterAll
-import org.junit.jupiter.api.BeforeEach
-import org.junit.jupiter.api.Test
-import org.junit.jupiter.api.TestInfo
+import org.junit.jupiter.api.*
+import org.junit.jupiter.api.Assertions.assertEquals
+import org.junit.jupiter.api.Assertions.assertNotNull
 import za.ac.sun.plume.Extractor
-import za.ac.sun.plume.TestConstants.testGraph
+import za.ac.sun.plume.domain.enums.EdgeLabel
+import za.ac.sun.plume.domain.models.PlumeGraph
+import za.ac.sun.plume.domain.models.vertices.BlockVertex
+import za.ac.sun.plume.domain.models.vertices.CallVertex
+import za.ac.sun.plume.domain.models.vertices.LiteralVertex
+import za.ac.sun.plume.domain.models.vertices.LocalVertex
 import za.ac.sun.plume.drivers.DriverFactory
 import za.ac.sun.plume.drivers.GraphDatabase
 import za.ac.sun.plume.drivers.TinkerGraphDriver
@@ -15,24 +18,12 @@ import java.io.File
 import java.io.IOException
 
 class ExceptionInterproceduralTest {
-
     companion object {
-        private val logger = LogManager.getLogger(ExceptionInterproceduralTest::class.java)
+        private val driver = DriverFactory(GraphDatabase.TINKER_GRAPH) as TinkerGraphDriver
+        private lateinit var graph: PlumeGraph
         private var PATH: File
         private var CLS_PATH: File
         private val TEST_PATH = "interprocedural${File.separator}exception"
-        private val TEST_GRAPH = testGraph
-
-        @AfterAll
-        @JvmStatic
-        @Throws(IOException::class)
-        fun tearDownAll() {
-            deleteClassFiles(PATH)
-            val f = File(TEST_GRAPH)
-            if (f.exists() && !f.delete()) {
-                logger.warn("Could not clear ${ExceptionInterproceduralTest::javaClass.name}'s test resources.")
-            }
-        }
 
         init {
             val testFileUrl = ExceptionInterproceduralTest::class.java.classLoader.getResource(TEST_PATH)
@@ -45,7 +36,6 @@ class ExceptionInterproceduralTest {
     @BeforeEach
     @Throws(IOException::class)
     fun setUp(testInfo: TestInfo) {
-        val driver: TinkerGraphDriver = (DriverFactory(GraphDatabase.TINKER_GRAPH) as TinkerGraphDriver).apply { connect() }
         val extractor = Extractor(driver, CLS_PATH)
         // Select test resource based on integer in method name
         val currentTestNumber = testInfo.displayName.replace("[^0-9]".toRegex(), "")
@@ -54,15 +44,49 @@ class ExceptionInterproceduralTest {
         val f = File(resourceDir)
         extractor.load(f)
         extractor.project()
-        driver.exportGraph(TEST_GRAPH)
+        graph = driver.getMethod("interprocedural.exception.Exception$currentTestNumber.main", "void main(java.lang.String[])")
+    }
+
+    @AfterEach
+    fun tearDown() {
+        driver.close()
     }
 
     @Test
     fun exception1Test() {
+        val vertices = graph.vertices()
+        val localV = vertices.filterIsInstance<LocalVertex>()
+
+        val mtdV = vertices.filterIsInstance<BlockVertex>().firstOrNull()?.apply { assertNotNull(this) }
+        assertNotNull(localV.firstOrNull { it.name == "e" && it.typeFullName == "java.lang.Exception" })
+        assertNotNull(localV.firstOrNull { it.name == "a" && it.typeFullName == "int" })
+        assertNotNull(localV.firstOrNull { it.name == "\$stack4" && it.typeFullName == "java.lang.Exception" })
+        assertNotNull(localV.firstOrNull { it.name == "e#3" && it.typeFullName == "int" })
+        assertEquals(2, graph.edgesOut(mtdV!!)[EdgeLabel.CFG]?.size)
+
+        val parseIntCall = vertices.filterIsInstance<CallVertex>().filter { it.name == "parseInt" }
+                .apply { assertEquals(1, this.size) }.firstOrNull().apply { assertNotNull(this) }
+        parseIntCall!!
+        graph.edgesOut(parseIntCall)[EdgeLabel.AST]?.filterIsInstance<LiteralVertex>()?.firstOrNull()?.let { assertEquals("\"2\"", it.name) }
     }
 
     @Test
     fun exception2Test() {
+        val vertices = graph.vertices()
+        val localV = vertices.filterIsInstance<LocalVertex>()
+
+        val mtdV = vertices.filterIsInstance<BlockVertex>().firstOrNull()?.apply { assertNotNull(this) }
+        assertNotNull(localV.firstOrNull { it.name == "e" && it.typeFullName == "java.lang.Exception" })
+        assertNotNull(localV.firstOrNull { it.name == "a" && it.typeFullName == "int" })
+        assertNotNull(localV.firstOrNull { it.name == "\$stack5" && it.typeFullName == "java.lang.Exception" })
+        assertNotNull(localV.firstOrNull { it.name == "e#3" && it.typeFullName == "int" })
+        assertNotNull(localV.firstOrNull { it.name == "b" && it.typeFullName == "byte" })
+        assertEquals(2, graph.edgesOut(mtdV!!)[EdgeLabel.CFG]?.size)
+
+        val parseIntCall = vertices.filterIsInstance<CallVertex>().filter { it.name == "parseInt" }
+                .apply { assertEquals(1, this.size) }.firstOrNull().apply { assertNotNull(this) }
+        parseIntCall!!
+        graph.edgesOut(parseIntCall)[EdgeLabel.AST]?.filterIsInstance<LiteralVertex>()?.firstOrNull()?.let { assertEquals("\"2\"", it.name) }
     }
 
 }

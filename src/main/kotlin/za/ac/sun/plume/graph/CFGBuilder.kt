@@ -91,8 +91,7 @@ class CFGBuilder(private val driver: IDriver, private val sootToPlume: MutableMa
         // Handle default target jump
         projectSwitchDefault(unit, switchVertices, switchVertex)
         // Handle case jumps
-        unit.targets.forEach { tgt ->
-            val i = unit.targets.indexOf(tgt)
+        unit.targets.forEachIndexed { i, tgt ->
             if (unit.defaultTarget != tgt) projectSwitchTarget(switchVertices, i, switchVertex, tgt)
         }
     }

@@ -17,10 +17,7 @@ package za.ac.sun.plume
 
 import org.apache.logging.log4j.LogManager
 import org.apache.logging.log4j.Logger
-import soot.PhaseOptions
-import soot.Scene
-import soot.SootClass
-import soot.SootMethod
+import soot.*
 import soot.jimple.toolkits.callgraph.CHATransformer
 import soot.jimple.toolkits.callgraph.Edge
 import soot.options.Options
@@ -69,7 +66,7 @@ class Extractor(private val driver: IDriver, private val classPath: File) {
 
     init {
         checkDriverConnection(driver)
-        configureSoot()
+
         astBuilder = ASTBuilder(driver, sootToPlume)
         cfgBuilder = CFGBuilder(driver, sootToPlume)
         pdgBuilder = PDGBuilder(driver, sootToPlume)
@@ -158,6 +155,7 @@ class Extractor(private val driver: IDriver, private val classPath: File) {
      * Projects all loaded classes currently loaded.
      */
     fun project() {
+        configureSoot()
         val compiledFiles = compileLoadedFiles(loadedFiles)
         val classStream = loadClassesIntoSoot(compiledFiles)
         CHATransformer.v().transform()
@@ -294,6 +292,7 @@ class Extractor(private val driver: IDriver, private val classPath: File) {
     fun clear() {
         loadedFiles.clear()
         sootToPlume.clear()
+        G.reset()
     }
 
 }

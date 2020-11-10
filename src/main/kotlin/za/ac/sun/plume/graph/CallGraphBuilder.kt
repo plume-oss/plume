@@ -2,7 +2,6 @@ package za.ac.sun.plume.graph
 
 import org.apache.logging.log4j.LogManager
 import soot.Scene
-import soot.SootMethod
 import soot.Unit
 import soot.jimple.IdentityStmt
 import soot.jimple.toolkits.callgraph.Edge
@@ -40,6 +39,7 @@ class CallGraphBuilder(
         edges.forEach { e: Edge ->
             val srcPlumeVertex = sootToPlume[it]?.first()
             val tgtPlumeVertex = sootToPlume[e.tgt.method()]?.first()
+            // TODO: If body not found, construct empty header
             if (srcPlumeVertex != null && tgtPlumeVertex != null) driver.addEdge(srcPlumeVertex, tgtPlumeVertex, EdgeLabel.REF)
         }
     }
