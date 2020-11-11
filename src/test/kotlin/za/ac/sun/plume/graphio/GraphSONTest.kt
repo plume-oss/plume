@@ -89,7 +89,6 @@ class GraphSONTest {
         GraphSONWriter.write(graph, testGraphSON)
         driver.clearGraph()
         driver.importGraph(testGraphSON)
-        driver.exportGraph("/tmp/plume/bruh.xml")
         val otherGraph = driver.getWholeGraph()
         assertEquals(graph, otherGraph)
     }
