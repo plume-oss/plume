@@ -19,7 +19,7 @@ import za.ac.sun.plume.drivers.GraphDatabase
 import za.ac.sun.plume.drivers.TinkerGraphDriver
 import java.io.File
 
-class GraphMLTest {
+class GraphSONTest {
 
     companion object {
         val driver = (DriverFactory.invoke(GraphDatabase.TINKER_GRAPH) as TinkerGraphDriver).apply { connect() }
@@ -40,12 +40,12 @@ class GraphMLTest {
 
         private lateinit var graph: PlumeGraph
         private val tempDir = System.getProperty("java.io.tmpdir")
-        private val testGraphML = "${tempDir}/plume/plume_driver_test.xml"
+        private val testGraphSON = "${tempDir}/plume/plume_driver_test.json"
 
         @JvmStatic
         @AfterAll
         fun tearDownAll() {
-            File(testGraphML).delete()
+            File(testGraphSON).delete()
         }
     }
 
@@ -86,9 +86,10 @@ class GraphMLTest {
 
     @Test
     fun graphWriteTest() {
-        GraphMLWriter.write(graph, testGraphML)
+        GraphSONWriter.write(graph, testGraphSON)
         driver.clearGraph()
-        driver.importGraph(testGraphML)
+        driver.importGraph(testGraphSON)
+        driver.exportGraph("/tmp/plume/bruh.xml")
         val otherGraph = driver.getWholeGraph()
         assertEquals(graph, otherGraph)
     }
