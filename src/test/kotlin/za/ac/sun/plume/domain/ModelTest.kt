@@ -1,10 +1,8 @@
 package za.ac.sun.plume.domain
 
+import org.junit.jupiter.api.*
 import org.junit.jupiter.api.Assertions.assertEquals
 import org.junit.jupiter.api.Assertions.assertNotEquals
-import org.junit.jupiter.api.DisplayName
-import org.junit.jupiter.api.Nested
-import org.junit.jupiter.api.Test
 import za.ac.sun.plume.TestDomainResources
 import za.ac.sun.plume.TestDomainResources.Companion.DISPATCH_1
 import za.ac.sun.plume.TestDomainResources.Companion.DISPATCH_2
@@ -16,13 +14,26 @@ import za.ac.sun.plume.TestDomainResources.Companion.MOD_1
 import za.ac.sun.plume.TestDomainResources.Companion.MOD_2
 import za.ac.sun.plume.TestDomainResources.Companion.STRING_1
 import za.ac.sun.plume.TestDomainResources.Companion.STRING_2
+import za.ac.sun.plume.domain.enums.EdgeLabel
 import za.ac.sun.plume.domain.enums.VertexBaseTrait
 import za.ac.sun.plume.domain.enums.VertexLabel
 import za.ac.sun.plume.domain.models.PlumeVertex
 import za.ac.sun.plume.domain.models.vertices.*
+import za.ac.sun.plume.drivers.DriverFactory
+import za.ac.sun.plume.drivers.GraphDatabase
+import za.ac.sun.plume.drivers.TinkerGraphDriver
 import java.util.*
 
 class ModelTest {
+    companion object {
+        val driver = (DriverFactory.invoke(GraphDatabase.TINKER_GRAPH) as TinkerGraphDriver).apply { connect() }
+
+        @JvmStatic
+        @AfterAll
+        fun tearDownAll() {
+            driver.close()
+        }
+    }
 
     @Nested
     @DisplayName("Domain model to string tests")
@@ -919,4 +930,103 @@ class ModelTest {
         }
     }
 
+    @Nested
+    @DisplayName("Plume graph tests")
+    inner class PlumeGraphTests {
+
+
+        private val v1 = MethodVertex(STRING_1, STRING_1, STRING_2, STRING_1, INT_1, INT_2, INT_1)
+        private val v2 = MethodParameterInVertex(STRING_1, EVAL_1, STRING_1, INT_1, STRING_2, INT_2)
+        private val v3 = BlockVertex(STRING_1, STRING_1, STRING_1, INT_1, INT_2, INT_2, INT_1)
+        private val v4 = CallVertex(STRING_1, INT_1, DISPATCH_1, STRING_1, STRING_1, STRING_2, STRING_2, STRING_2, INT_1, INT_1, INT_1)
+        private val v5 = LocalVertex(STRING_1, STRING_2, INT_1, INT_1, STRING_1, INT_1)
+        private val v6 = IdentifierVertex(STRING_1, STRING_1, STRING_1, INT_1, INT_1, INT_1, INT_1)
+        private val v7 = TypeDeclVertex(STRING_1, STRING_2, STRING_1, INT_1)
+        private val v8 = LiteralVertex(STRING_1, STRING_2, STRING_2, INT_1, INT_1, INT_1, INT_1)
+        private val v9 = ReturnVertex(INT_1, INT_1, INT_1, INT_1, STRING_1)
+        private val v10 = MethodReturnVertex(STRING_1, STRING_1, EVAL_1, STRING_1, INT_1, INT_1, INT_1)
+        private val v11 = FileVertex(STRING_1, INT_1)
+        private val v12 = NamespaceBlockVertex(STRING_1, STRING_1, INT_1)
+        private val v13 = NamespaceBlockVertex(STRING_2, STRING_2, INT_1)
+        private val v14 = MetaDataVertex(STRING_1, STRING_2)
+
+        @BeforeEach
+        fun setUp() {
+            // Create program data
+            driver.addVertex(v14)
+            driver.addEdge(v11, v12, EdgeLabel.AST)
+            driver.addEdge(v12, v13, EdgeLabel.AST)
+            // Create method head
+            driver.addEdge(v7, v1, EdgeLabel.AST)
+            driver.addEdge(v1, v11, EdgeLabel.SOURCE_FILE)
+            driver.addEdge(v1, v2, EdgeLabel.AST)
+            driver.addEdge(v1, v5, EdgeLabel.AST)
+            driver.addEdge(v1, v3, EdgeLabel.AST)
+            driver.addEdge(v1, v3, EdgeLabel.CFG)
+            // Create method body
+            driver.addEdge(v3, v4, EdgeLabel.AST)
+            driver.addEdge(v3, v4, EdgeLabel.CFG)
+            driver.addEdge(v4, v6, EdgeLabel.AST)
+            driver.addEdge(v4, v8, EdgeLabel.AST)
+            driver.addEdge(v4, v6, EdgeLabel.ARGUMENT)
+            driver.addEdge(v4, v8, EdgeLabel.ARGUMENT)
+            driver.addEdge(v3, v9, EdgeLabel.AST)
+            driver.addEdge(v4, v9, EdgeLabel.CFG)
+            driver.addEdge(v1, v10, EdgeLabel.AST)
+            driver.addEdge(v9, v10, EdgeLabel.CFG)
+            // Link dependencies
+            driver.addEdge(v6, v5, EdgeLabel.REF)
+        }
+
+        @AfterEach
+        fun tearDown() {
+            driver.clearGraph()
+        }
+
+        @Test
+        fun testEquality() {
+            val otherDriver = (DriverFactory.invoke(GraphDatabase.TINKER_GRAPH) as TinkerGraphDriver).apply { connect() }
+            // Create identical graph
+            otherDriver.addVertex(v14)
+            otherDriver.addEdge(v11, v12, EdgeLabel.AST)
+            otherDriver.addEdge(v12, v13, EdgeLabel.AST)
+            otherDriver.addEdge(v7, v1, EdgeLabel.AST)
+            otherDriver.addEdge(v1, v11, EdgeLabel.SOURCE_FILE)
+            otherDriver.addEdge(v1, v2, EdgeLabel.AST)
+            otherDriver.addEdge(v1, v5, EdgeLabel.AST)
+            otherDriver.addEdge(v1, v3, EdgeLabel.AST)
+            otherDriver.addEdge(v1, v3, EdgeLabel.CFG)
+            otherDriver.addEdge(v3, v4, EdgeLabel.AST)
+            otherDriver.addEdge(v3, v4, EdgeLabel.CFG)
+            otherDriver.addEdge(v4, v6, EdgeLabel.AST)
+            otherDriver.addEdge(v4, v8, EdgeLabel.AST)
+            otherDriver.addEdge(v4, v6, EdgeLabel.ARGUMENT)
+            otherDriver.addEdge(v4, v8, EdgeLabel.ARGUMENT)
+            otherDriver.addEdge(v3, v9, EdgeLabel.AST)
+            otherDriver.addEdge(v4, v9, EdgeLabel.CFG)
+            otherDriver.addEdge(v1, v10, EdgeLabel.AST)
+            otherDriver.addEdge(v9, v10, EdgeLabel.CFG)
+            otherDriver.addEdge(v6, v5, EdgeLabel.REF)
+
+            val g1 = driver.getWholeGraph()
+            val g2 = otherDriver.getWholeGraph()
+            otherDriver.close()
+
+            assertEquals(g1, g2)
+            assertEquals(g1.hashCode(), g2.hashCode())
+            // Add an edge to make g2 different from g1
+            g2.addEdge(v11, v13, EdgeLabel.AST)
+            assertNotEquals(g1, g2)
+            assertNotEquals(g1.hashCode(), g2.hashCode())
+            // Add a vertex to make g3 different from g1
+            val g3 = driver.getWholeGraph()
+            g3.addVertex(ArrayInitializerVertex(10))
+            assertNotEquals(g1, g2)
+            assertNotEquals(g1.hashCode(), g2.hashCode())
+            // Compare a subgraph of g1
+            assertNotEquals(g1, driver.getProgramStructure())
+            assertNotEquals(g1.hashCode(), driver.getProgramStructure().hashCode())
+            assertNotEquals(g1, "Not g1")
+        }
+    }
 }

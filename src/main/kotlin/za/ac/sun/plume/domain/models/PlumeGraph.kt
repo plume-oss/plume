@@ -81,4 +81,21 @@ class PlumeGraph {
     override fun toString(): String {
         return "PlumeGraph(vertices:${vertices.size}, edges:${edges.values.map { it.values }.flatten().flatten().count()})"
     }
+
+    override fun equals(other: Any?): Boolean {
+        if (this === other) return true
+        if (other !is PlumeGraph) return false
+
+        if (vertices != other.vertices) return false
+        if (edges != other.edges) return false
+
+        return true
+    }
+
+    override fun hashCode(): Int {
+        var result = vertices.hashCode()
+        result = 31 * result + edges.hashCode()
+        return result
+    }
+
 }
