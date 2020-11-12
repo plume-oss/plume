@@ -6,10 +6,22 @@ import za.ac.sun.plume.domain.models.PlumeVertex
 import java.io.OutputStreamWriter
 import java.util.*
 
+/**
+ * Responsible for writing [PlumeGraph] objects to an [OutputStreamWriter] in GraphML format.
+ */
 object GraphMLWriter {
 
     private const val DECLARATION = "<?xml version=\"1.0\" ?>"
 
+    /**
+     * Given a [PlumeGraph] object, serializes it to [GraphML](http://graphml.graphdrawing.org/specification/dtd.html)
+     * format to the given [OutputStreamWriter]. This format is supported by
+     * [TinkerGraph](https://tinkerpop.apache.org/docs/current/reference/#graphml) and
+     * [Cytoscape](http://manual.cytoscape.org/en/stable/Supported_Network_File_Formats.html#graphml).
+     *
+     * @param graph The [PlumeGraph] to serialize.
+     * @param writer The stream to write the serialized graph to.
+     */
     fun write(graph: PlumeGraph, writer: OutputStreamWriter) {
         writer.use { w ->
             // Write header

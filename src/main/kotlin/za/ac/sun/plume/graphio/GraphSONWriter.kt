@@ -7,10 +7,23 @@ import za.ac.sun.plume.domain.models.PlumeVertex
 import java.io.OutputStreamWriter
 import java.util.*
 
+/**
+ * Responsible for writing [PlumeGraph] objects to an [OutputStreamWriter] in GraphSON format. Note that GraphSON format
+ * is a more space-expensive format.
+ */
 object GraphSONWriter {
 
     private var propertyId: Int = 0
 
+    /**
+     * Given a [PlumeGraph] object, serializes it to
+     * [GraphSON](https://github.com/tinkerpop/blueprints/wiki/GraphSON-Reader-and-Writer-Libraryl)
+     * format to the given [OutputStreamWriter]. This format is supported by
+     * [TinkerGraph](https://tinkerpop.apache.org/docs/current/reference/#graphson) and suited for web responses.
+     *
+     * @param graph The [PlumeGraph] to serialize.
+     * @param writer The stream to write the serialized graph to.
+     */
     fun write(graph: PlumeGraph, writer: OutputStreamWriter) {
         propertyId = 0
         writer.use { w ->
