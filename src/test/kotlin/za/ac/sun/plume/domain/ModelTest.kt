@@ -1013,7 +1013,20 @@ class ModelTest {
             otherDriver.close()
 
             assertEquals(g1, g2)
+            assertEquals(g1.hashCode(), g2.hashCode())
+            // Add an edge to make g2 different from g1
+            g2.addEdge(v11, v13, EdgeLabel.AST)
+            assertNotEquals(g1, g2)
+            assertNotEquals(g1.hashCode(), g2.hashCode())
+            // Add a vertex to make g3 different from g1
+            val g3 = driver.getWholeGraph()
+            g3.addVertex(ArrayInitializerVertex(10))
+            assertNotEquals(g1, g2)
+            assertNotEquals(g1.hashCode(), g2.hashCode())
+            // Compare a subgraph of g1
             assertNotEquals(g1, driver.getProgramStructure())
+            assertNotEquals(g1.hashCode(), driver.getProgramStructure().hashCode())
+            assertNotEquals(g1, "Not g1")
         }
     }
 }
