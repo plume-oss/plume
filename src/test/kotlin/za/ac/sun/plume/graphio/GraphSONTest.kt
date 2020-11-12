@@ -18,6 +18,7 @@ import za.ac.sun.plume.drivers.DriverFactory
 import za.ac.sun.plume.drivers.GraphDatabase
 import za.ac.sun.plume.drivers.TinkerGraphDriver
 import java.io.File
+import java.io.FileWriter
 
 class GraphSONTest {
 
@@ -86,7 +87,7 @@ class GraphSONTest {
 
     @Test
     fun graphWriteTest() {
-        GraphSONWriter.write(graph, testGraphSON)
+        GraphSONWriter.write(graph, FileWriter(testGraphSON))
         driver.clearGraph()
         driver.importGraph(testGraphSON)
         val otherGraph = driver.getWholeGraph()

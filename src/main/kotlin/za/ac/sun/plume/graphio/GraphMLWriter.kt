@@ -3,36 +3,36 @@ package za.ac.sun.plume.graphio
 import za.ac.sun.plume.domain.mappers.VertexMapper
 import za.ac.sun.plume.domain.models.PlumeGraph
 import za.ac.sun.plume.domain.models.PlumeVertex
-import java.io.FileWriter
+import java.io.OutputStreamWriter
 import java.util.*
 
 object GraphMLWriter {
 
     private const val DECLARATION = "<?xml version=\"1.0\" ?>"
 
-    fun write(graph: PlumeGraph, path: String) {
-        FileWriter(path).use { fw ->
+    fun write(graph: PlumeGraph, writer: OutputStreamWriter) {
+        writer.use { w ->
             // Write header
-            fw.write(DECLARATION)
-            fw.write("<graphml ")
-            fw.write("xmlns=\"http://graphml.graphdrawing.org/xmlns\" ")
-            fw.write("xmlns:xsi=\"http://www.w3.org/2001/XMLSchema-instance\" ")
-            fw.write("xsi:schemaLocation=\"http://graphml.graphdrawing.org/xmlns http://graphml.graphdrawing.org/xmlns/1.1/graphml.xsd\">")
+            w.write(DECLARATION)
+            w.write("<graphml ")
+            w.write("xmlns=\"http://graphml.graphdrawing.org/xmlns\" ")
+            w.write("xmlns:xsi=\"http://www.w3.org/2001/XMLSchema-instance\" ")
+            w.write("xsi:schemaLocation=\"http://graphml.graphdrawing.org/xmlns http://graphml.graphdrawing.org/xmlns/1.1/graphml.xsd\">")
             // Write keys
-            writeKeys(fw, graph.vertices())
+            writeKeys(w, graph.vertices())
             // Write graph
-            fw.write("<graph id=\"G\" edgedefault=\"directed\">")
+            w.write("<graph id=\"G\" edgedefault=\"directed\">")
             // Write vertices
-            writeVertices(fw, graph.vertices())
+            writeVertices(w, graph.vertices())
             // Write edges
-            writeEdges(fw, graph)
+            writeEdges(w, graph)
             // Close graph tags
-            fw.write("</graph>")
-            fw.write("</graphml>")
+            w.write("</graph>")
+            w.write("</graphml>")
         }
     }
 
-    private fun writeKeys(fw: FileWriter, vertices: Set<PlumeVertex>) {
+    private fun writeKeys(fw: OutputStreamWriter, vertices: Set<PlumeVertex>) {
         val keySet = HashMap<String, String>()
         vertices.forEach { v ->
             VertexMapper.vertexToMap(v)
@@ -56,7 +56,7 @@ object GraphMLWriter {
         }
     }
 
-    private fun writeVertices(fw: FileWriter, vertices: Set<PlumeVertex>) {
+    private fun writeVertices(fw: OutputStreamWriter, vertices: Set<PlumeVertex>) {
         vertices.forEach { v ->
             fw.write("<node id=\"${v.hashCode()}\">")
             VertexMapper.vertexToMap(v)
@@ -66,7 +66,7 @@ object GraphMLWriter {
         }
     }
 
-    private fun writeEdges(fw: FileWriter, graph: PlumeGraph) {
+    private fun writeEdges(fw: OutputStreamWriter, graph: PlumeGraph) {
         val vertices = graph.vertices()
         vertices.forEach { srcV ->
             graph.edgesOut(srcV).forEach { (edgeLabel, vOut) ->

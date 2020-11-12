@@ -18,6 +18,7 @@ import za.ac.sun.plume.drivers.DriverFactory
 import za.ac.sun.plume.drivers.GraphDatabase
 import za.ac.sun.plume.drivers.TinkerGraphDriver
 import java.io.File
+import java.io.FileWriter
 
 class GraphMLTest {
 
@@ -86,7 +87,7 @@ class GraphMLTest {
 
     @Test
     fun graphWriteTest() {
-        GraphMLWriter.write(graph, testGraphML)
+        GraphMLWriter.write(graph, FileWriter(testGraphML))
         driver.clearGraph()
         driver.importGraph(testGraphML)
         val otherGraph = driver.getWholeGraph()

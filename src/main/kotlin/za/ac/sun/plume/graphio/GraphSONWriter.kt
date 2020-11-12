@@ -4,17 +4,17 @@ import za.ac.sun.plume.domain.enums.EdgeLabel
 import za.ac.sun.plume.domain.mappers.VertexMapper
 import za.ac.sun.plume.domain.models.PlumeGraph
 import za.ac.sun.plume.domain.models.PlumeVertex
-import java.io.FileWriter
+import java.io.OutputStreamWriter
 import java.util.*
 
 object GraphSONWriter {
 
     private var propertyId: Int = 0
 
-    fun write(graph: PlumeGraph, path: String) {
+    fun write(graph: PlumeGraph, writer: OutputStreamWriter) {
         propertyId = 0
-        FileWriter(path).use { fw ->
-            graph.vertices().forEach { v -> fw.write(vertexToJSON(v, graph) + "\n") }
+        writer.use { w ->
+            graph.vertices().forEach { v -> w.write(vertexToJSON(v, graph) + "\n") }
         }
     }
 
