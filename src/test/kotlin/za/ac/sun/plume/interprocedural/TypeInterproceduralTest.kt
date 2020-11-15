@@ -69,9 +69,7 @@ class TypeInterproceduralTest {
     @Test
     fun type2Test() {
         val vertices = graph.vertices()
-        vertices.filterIsInstance<LocalVertex>().let { localList ->
-            assertNotNull(localList.firstOrNull { it.name == "intArray" && it.typeFullName == "int[]" })
-        }
+        assertNotNull(vertices.filterIsInstance<LocalVertex>().firstOrNull { it.name == "intArray" && it.typeFullName == "int[]" })
         vertices.filterIsInstance<IdentifierVertex>().filter { it.name.contains("intArray") }.let { callList ->
             assertNotNull(callList.firstOrNull { it.argumentIndex == 0 })
             assertNotNull(callList.firstOrNull { it.argumentIndex == 4 })

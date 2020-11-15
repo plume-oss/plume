@@ -17,9 +17,10 @@ package za.ac.sun.plume.graph
 
 import org.apache.logging.log4j.LogManager
 import soot.Local
-import soot.SootMethod
 import soot.jimple.*
 import soot.toolkits.graph.BriefUnitGraph
+import za.ac.sun.plume.Extractor
+import za.ac.sun.plume.Extractor.Companion.getSootAssociation
 import za.ac.sun.plume.domain.enums.EdgeLabel
 import za.ac.sun.plume.domain.models.PlumeVertex
 import za.ac.sun.plume.domain.models.vertices.*
@@ -29,9 +30,8 @@ import za.ac.sun.plume.drivers.IDriver
  * The [IGraphBuilder] that constructs the program dependence edges in the graph.
  *
  * @param driver The driver to build the PDG with.
- * @param sootToPlume A pointer to the map that keeps track of the Soot object to its respective [PlumeVertex].
  */
-class PDGBuilder(private val driver: IDriver, private val sootToPlume: MutableMap<Any, MutableList<PlumeVertex>>) : IGraphBuilder {
+class PDGBuilder(private val driver: IDriver) : IGraphBuilder {
     private val logger = LogManager.getLogger(PDGBuilder::javaClass)
     private lateinit var graph: BriefUnitGraph
 
@@ -56,12 +56,12 @@ class PDGBuilder(private val driver: IDriver, private val sootToPlume: MutableMa
                 .filterIsInstance<InvokeStmt>()
                 .map { it.invokeExpr as InvokeExpr }
                 .forEach(this::projectCallArg)
-        return sootToPlume[mtd]?.first { it is MethodVertex} as MethodVertex
+        return getSootAssociation(mtd)?.first { it is MethodVertex } as MethodVertex
     }
 
     private fun projectCallArg(value: Any) {
-        val src = sootToPlume[value]?.firstOrNull { it is CallVertex }
-        sootToPlume[value]?.filter { it != src }?.forEach {
+        val src = getSootAssociation(value)?.firstOrNull { it is CallVertex }
+        getSootAssociation(value)?.filter { it != src }?.forEach {
             if (src != null) {
                 driver.addEdge(src, it, EdgeLabel.ARGUMENT)
             }
@@ -69,11 +69,11 @@ class PDGBuilder(private val driver: IDriver, private val sootToPlume: MutableMa
     }
 
     private fun projectLocalVariable(local: Local) {
-        val src = sootToPlume[local]?.firstOrNull { it is LocalVertex || it is MethodParameterInVertex }
-        val identifierVertices = sootToPlume[local]?.filterIsInstance<IdentifierVertex>()
-        identifierVertices?.forEach {
-            if (src != null) {
-                driver.addEdge(it, src, EdgeLabel.REF)
+        getSootAssociation(local)?.let { assocVertices ->
+            assocVertices.filterIsInstance<IdentifierVertex>().forEach { identifierV ->
+                assocVertices.firstOrNull { it is LocalVertex || it is MethodParameterInVertex }?.let { src ->
+                    driver.addEdge(identifierV, src, EdgeLabel.REF)
+                }
             }
         }
     }

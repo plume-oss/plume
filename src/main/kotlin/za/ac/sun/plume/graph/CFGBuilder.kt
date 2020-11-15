@@ -19,6 +19,7 @@ import org.apache.logging.log4j.LogManager
 import soot.Unit
 import soot.jimple.*
 import soot.toolkits.graph.BriefUnitGraph
+import za.ac.sun.plume.Extractor.Companion.getSootAssociation
 import za.ac.sun.plume.domain.enums.EdgeLabel
 import za.ac.sun.plume.domain.models.PlumeVertex
 import za.ac.sun.plume.domain.models.vertices.*
@@ -30,9 +31,8 @@ import za.ac.sun.plume.util.ExtractorConst.TRUE_TARGET
  * The [IGraphBuilder] that constructs the dependence edges in the graph.
  *
  * @param driver The driver to build the CFG with.
- * @param sootToPlume A pointer to the map that keeps track of the Soot object to its respective [PlumeVertex].
  */
-class CFGBuilder(private val driver: IDriver, private val sootToPlume: MutableMap<Any, MutableList<PlumeVertex>>) : IGraphBuilder {
+class CFGBuilder(private val driver: IDriver) : IGraphBuilder {
     private val logger = LogManager.getLogger(CFGBuilder::javaClass)
     private lateinit var graph: BriefUnitGraph
 
@@ -46,9 +46,10 @@ class CFGBuilder(private val driver: IDriver, private val sootToPlume: MutableMa
             var startingUnit = head
             while (startingUnit is IdentityStmt) startingUnit = graph.getSuccsOf(startingUnit).firstOrNull() ?: break
             startingUnit?.let {
-                sootToPlume[it]?.firstOrNull()?.let { succVert ->
-                    val bodyVertex = sootToPlume[mtd]?.first { mtdVertices -> mtdVertices is BlockVertex }!!
-                    sootToPlume[mtd]?.firstOrNull()?.let { mtdVertex -> driver.addEdge(mtdVertex, bodyVertex, EdgeLabel.CFG) }
+                getSootAssociation(it)?.firstOrNull()?.let { succVert ->
+                    val mtdV = getSootAssociation(mtd)
+                    val bodyVertex = mtdV?.first { mtdVertices -> mtdVertices is BlockVertex }!!
+                    mtdV.firstOrNull()?.let { mtdVertex -> driver.addEdge(mtdVertex, bodyVertex, EdgeLabel.CFG) }
                     driver.addEdge(
                             fromV = bodyVertex,
                             toV = succVert,
@@ -59,7 +60,7 @@ class CFGBuilder(private val driver: IDriver, private val sootToPlume: MutableMa
         }
         // Connect all units to their successors
         this.graph.body.units.filterNot { it is IdentityStmt }.forEach(this::projectUnit)
-        return sootToPlume[mtd]?.first { it is MethodVertex } as MethodVertex
+        return getSootAssociation(mtd)?.first { it is MethodVertex } as MethodVertex
     }
 
     private fun projectUnit(unit: Unit) {
@@ -74,11 +75,11 @@ class CFGBuilder(private val driver: IDriver, private val sootToPlume: MutableMa
             is IdentityRef -> Unit
             else -> {
                 val sourceUnit = if (unit is GotoStmt) unit.target else unit
-                val sourceVertex = sootToPlume[sourceUnit]?.firstOrNull()
+                val sourceVertex = getSootAssociation(sourceUnit)?.firstOrNull()
                 graph.getSuccsOf(sourceUnit).forEach {
                     val targetUnit = if (it is GotoStmt) it.target else it
                     if (sourceVertex != null) {
-                        sootToPlume[targetUnit]?.let { vList -> driver.addEdge(sourceVertex, vList.first(), EdgeLabel.CFG) }
+                        getSootAssociation(targetUnit)?.let { vList -> driver.addEdge(sourceVertex, vList.first(), EdgeLabel.CFG) }
                     }
                 }
             }
@@ -86,7 +87,7 @@ class CFGBuilder(private val driver: IDriver, private val sootToPlume: MutableMa
     }
 
     private fun projectTableSwitch(unit: TableSwitchStmt) {
-        val switchVertices = sootToPlume[unit]!!
+        val switchVertices = getSootAssociation(unit)!!
         val switchVertex = switchVertices.first { it is ControlStructureVertex } as ControlStructureVertex
         // Handle default target jump
         projectSwitchDefault(unit, switchVertices, switchVertex)
@@ -97,7 +98,7 @@ class CFGBuilder(private val driver: IDriver, private val sootToPlume: MutableMa
     }
 
     private fun projectLookupSwitch(unit: LookupSwitchStmt) {
-        val lookupVertices = sootToPlume[unit]!!
+        val lookupVertices = getSootAssociation(unit)!!
         val lookupVertex = lookupVertices.first { it is ControlStructureVertex } as ControlStructureVertex
         // Handle default target jump
         projectSwitchDefault(unit, lookupVertices, lookupVertex)
@@ -109,34 +110,34 @@ class CFGBuilder(private val driver: IDriver, private val sootToPlume: MutableMa
         }
     }
 
-    private fun projectSwitchTarget(lookupVertices: MutableList<PlumeVertex>, lookupValue: Int, lookupVertex: ControlStructureVertex, tgt: Unit) {
+    private fun projectSwitchTarget(lookupVertices: List<PlumeVertex>, lookupValue: Int, lookupVertex: ControlStructureVertex, tgt: Unit) {
         val tgtV = lookupVertices.first { it is JumpTargetVertex && it.argumentIndex == lookupValue }
         driver.addEdge(lookupVertex, tgtV, EdgeLabel.CFG)
-        sootToPlume[tgt]?.let { vList ->
+        getSootAssociation(tgt)?.let { vList ->
             driver.addEdge(tgtV, vList.first(), EdgeLabel.CFG)
         }
     }
 
-    private fun projectSwitchDefault(unit: SwitchStmt, switchVertices: MutableList<PlumeVertex>, switchVertex: ControlStructureVertex) {
+    private fun projectSwitchDefault(unit: SwitchStmt, switchVertices: List<PlumeVertex>, switchVertex: ControlStructureVertex) {
         unit.defaultTarget.let { defaultUnit ->
             val tgtV = switchVertices.first { it is JumpTargetVertex && it.name == "DEFAULT" }
             driver.addEdge(switchVertex, tgtV, EdgeLabel.CFG)
-            sootToPlume[defaultUnit]?.let { vList ->
+            getSootAssociation(defaultUnit)?.let { vList ->
                 driver.addEdge(tgtV, vList.first(), EdgeLabel.CFG)
             }
         }
     }
 
     private fun projectIfStatement(unit: IfStmt) {
-        val ifVertices = sootToPlume[unit]!!
+        val ifVertices = getSootAssociation(unit)!!
         graph.getSuccsOf(unit).forEach {
             val srcVertex = if (it == unit.target) {
                 ifVertices.first { vert -> vert is JumpTargetVertex && vert.name == FALSE_TARGET }
             } else {
                 ifVertices.first { vert -> vert is JumpTargetVertex && vert.name == TRUE_TARGET }
             }
-            val tgtVertices = if (it is GotoStmt) sootToPlume[it.target]
-            else sootToPlume[it]
+            val tgtVertices = if (it is GotoStmt) getSootAssociation(it.target)
+            else getSootAssociation(it)
             tgtVertices?.let { vList ->
                 driver.addEdge(ifVertices.first(), srcVertex, EdgeLabel.CFG)
                 driver.addEdge(srcVertex, vList.first(), EdgeLabel.CFG)
@@ -145,16 +146,16 @@ class CFGBuilder(private val driver: IDriver, private val sootToPlume: MutableMa
     }
 
     private fun projectReturnEdge(unit: ReturnStmt) {
-        sootToPlume[unit]?.firstOrNull()?.let { src ->
-            sootToPlume[graph.body.method]?.filterIsInstance<MethodReturnVertex>()?.firstOrNull()?.let { tgt ->
+        getSootAssociation(unit)?.firstOrNull()?.let { src ->
+            getSootAssociation(graph.body.method)?.filterIsInstance<MethodReturnVertex>()?.firstOrNull()?.let { tgt ->
                 driver.addEdge(src, tgt, EdgeLabel.CFG)
             }
         }
     }
 
     private fun projectReturnEdge(unit: ReturnVoidStmt) {
-        sootToPlume[unit]?.firstOrNull()?.let { src ->
-            sootToPlume[graph.body.method]?.filterIsInstance<MethodReturnVertex>()?.firstOrNull()?.let { tgt ->
+        getSootAssociation(unit)?.firstOrNull()?.let { src ->
+            getSootAssociation(graph.body.method)?.filterIsInstance<MethodReturnVertex>()?.firstOrNull()?.let { tgt ->
                 driver.addEdge(src, tgt, EdgeLabel.CFG)
             }
         }

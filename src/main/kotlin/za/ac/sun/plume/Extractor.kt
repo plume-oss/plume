@@ -22,14 +22,10 @@ import soot.jimple.toolkits.callgraph.CHATransformer
 import soot.jimple.toolkits.callgraph.Edge
 import soot.options.Options
 import soot.toolkits.graph.BriefUnitGraph
-import za.ac.sun.plume.domain.enums.EdgeLabel
 import za.ac.sun.plume.domain.exceptions.PlumeCompileException
 import za.ac.sun.plume.domain.files.*
 import za.ac.sun.plume.domain.models.PlumeVertex
-import za.ac.sun.plume.domain.models.vertices.FileVertex
 import za.ac.sun.plume.domain.models.vertices.MetaDataVertex
-import za.ac.sun.plume.domain.models.vertices.MethodVertex
-import za.ac.sun.plume.domain.models.vertices.TypeDeclVertex
 import za.ac.sun.plume.drivers.GremlinDriver
 import za.ac.sun.plume.drivers.IDriver
 import za.ac.sun.plume.graph.ASTBuilder
@@ -39,6 +35,7 @@ import za.ac.sun.plume.graph.PDGBuilder
 import za.ac.sun.plume.util.ResourceCompilationUtil.compileJavaFiles
 import za.ac.sun.plume.util.ResourceCompilationUtil.compileJavaScriptFiles
 import za.ac.sun.plume.util.ResourceCompilationUtil.compilePythonFiles
+import za.ac.sun.plume.util.SootToPlumeUtil
 import java.io.File
 import java.io.IOException
 import java.nio.file.Files
@@ -58,7 +55,6 @@ class Extractor(private val driver: IDriver, private val classPath: File) {
     private val logger: Logger = LogManager.getLogger(Extractor::javaClass)
 
     private val loadedFiles: HashSet<File> = HashSet()
-    private val sootToPlume = mutableMapOf<Any, MutableList<PlumeVertex>>()
     private val astBuilder: ASTBuilder
     private val cfgBuilder: CFGBuilder
     private val pdgBuilder: PDGBuilder
@@ -66,11 +62,55 @@ class Extractor(private val driver: IDriver, private val classPath: File) {
 
     init {
         checkDriverConnection(driver)
+        astBuilder = ASTBuilder(driver)
+        cfgBuilder = CFGBuilder(driver)
+        pdgBuilder = PDGBuilder(driver)
+        callGraphBuilder = CallGraphBuilder(driver)
+    }
 
-        astBuilder = ASTBuilder(driver, sootToPlume)
-        cfgBuilder = CFGBuilder(driver, sootToPlume)
-        pdgBuilder = PDGBuilder(driver, sootToPlume)
-        callGraphBuilder = CallGraphBuilder(driver, sootToPlume)
+    companion object {
+        private val sootToPlume = mutableMapOf<Any, MutableList<PlumeVertex>>()
+
+        /**
+         * Associates the given Soot object to the given [PlumeVertex]
+         *
+         * @param sootObject The object from a Soot [BriefUnitGraph] to associate from.
+         * @param plumeVertex The [PlumeVertex] to associate to.
+         */
+        fun addSootToPlumeAssociation(sootObject: Any, plumeVertex: PlumeVertex) {
+            if (!sootToPlume.containsKey(sootObject)) sootToPlume[sootObject] = mutableListOf(plumeVertex)
+            else sootToPlume[sootObject]?.add(plumeVertex)
+        }
+
+        /**
+         * Associates the given Soot object to the given [PlumeVertex] at the given index.
+         *
+         * @param sootObject The object from a Soot [BriefUnitGraph] to associate from.
+         * @param plumeVertex The [PlumeVertex] to associate to.
+         * @param index The index to place the associated [PlumeVertex] at.
+         */
+        fun addSootToPlumeAssociation(sootObject: Any, plumeVertex: PlumeVertex, index: Int) {
+            if (!sootToPlume.containsKey(sootObject)) sootToPlume[sootObject] = mutableListOf(plumeVertex)
+            else sootToPlume[sootObject]?.add(index, plumeVertex)
+        }
+
+        /**
+         * Associates the given Soot object to the given list of [PlumeVertex]s.
+         *
+         * @param sootObject The object from a Soot [BriefUnitGraph] to associate from.
+         * @param plumeVertices The list of [PlumeVertex]s to associate to.
+         */
+        fun addSootToPlumeAssociation(sootObject: Any, plumeVertices: MutableList<PlumeVertex>) {
+            if (!sootToPlume.containsKey(sootObject)) sootToPlume[sootObject] = plumeVertices
+            else sootToPlume[sootObject]?.addAll(plumeVertices)
+        }
+
+        /**
+         * Retrieves the list of [PlumeVertex] associations to the given Soot object.
+         *
+         * @param sootObject The object from a Soot [BriefUnitGraph] to get associations from.
+         */
+        fun getSootAssociation(sootObject: Any): List<PlumeVertex>? = sootToPlume[sootObject]
     }
 
     /**
@@ -172,7 +212,7 @@ class Extractor(private val driver: IDriver, private val classPath: File) {
                 .map { it.declaringClass }.distinct().toList()
                 .forEach(this::constructStructure)
         // Connect methods to their type declarations and source files (if present)
-        graphs.forEach(this::connectMethodToTypeDecls)
+        graphs.forEach { SootToPlumeUtil.connectMethodToTypeDecls(it.body.method, driver) }
         clear()
     }
 
@@ -195,25 +235,9 @@ class Extractor(private val driver: IDriver, private val classPath: File) {
      * @param cls The [SootClass] containing the information to build program structure information from.
      */
     private fun constructStructure(cls: SootClass) {
-        astBuilder.buildClassStructure(cls)
-        astBuilder.buildTypeDeclaration(cls)
-    }
-
-    /**
-     * Connects the given method's [BriefUnitGraph] to its type declaration and source file (if present).
-     *
-     * @param graph The [BriefUnitGraph] to connect and extract type and source information from.
-     */
-    private fun connectMethodToTypeDecls(graph: BriefUnitGraph) {
-        sootToPlume[graph.body.method.declaringClass]?.let { classVertices ->
-            val typeDeclVertex = classVertices.first { it is TypeDeclVertex }
-            val clsVertex = classVertices.first { it is FileVertex }
-            val methodVertex = sootToPlume[graph.body.method]?.first { it is MethodVertex } as MethodVertex
-            // Connect method to type declaration
-            driver.addEdge(typeDeclVertex, methodVertex, EdgeLabel.AST)
-            // Connect method to source file
-            driver.addEdge(methodVertex, clsVertex, EdgeLabel.SOURCE_FILE)
-        }
+        logger.debug("Building file, namespace, and type declaration for ${cls.name}")
+        SootToPlumeUtil.buildClassStructure(cls, driver)
+        SootToPlumeUtil.buildTypeDeclaration(cls, driver)
     }
 
     /**
@@ -224,7 +248,9 @@ class Extractor(private val driver: IDriver, private val classPath: File) {
      */
     private fun constructCPG(graph: BriefUnitGraph): BriefUnitGraph {
         logger.debug("Projecting $classPath")
-        astBuilder.buildMethodHead(graph)
+        // Build head
+        SootToPlumeUtil.buildMethodHead(graph.body.method, driver)
+        // Build body
         astBuilder.buildMethodBody(graph)
         cfgBuilder.buildMethodBody(graph)
         pdgBuilder.buildMethodBody(graph)
