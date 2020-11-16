@@ -67,7 +67,6 @@ class CallVertex(
                         VertexLabel.METHOD_REF,
                         VertexLabel.TYPE_REF,
                         VertexLabel.BLOCK,
-                        VertexLabel.JUMP_TARGET,
                         VertexLabel.CONTROL_STRUCTURE,
                         VertexLabel.UNKNOWN
                 ),
