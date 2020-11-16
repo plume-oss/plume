@@ -18,6 +18,7 @@ package za.ac.sun.plume
 import org.apache.logging.log4j.LogManager
 import org.apache.logging.log4j.Logger
 import soot.*
+import soot.jimple.spark.SparkTransformer
 import soot.jimple.toolkits.callgraph.CHATransformer
 import soot.jimple.toolkits.callgraph.Edge
 import soot.options.Options
@@ -32,6 +33,7 @@ import za.ac.sun.plume.graph.ASTBuilder
 import za.ac.sun.plume.graph.CFGBuilder
 import za.ac.sun.plume.graph.CallGraphBuilder
 import za.ac.sun.plume.graph.PDGBuilder
+import za.ac.sun.plume.options.ExtractorOptions
 import za.ac.sun.plume.util.ResourceCompilationUtil.compileJavaFiles
 import za.ac.sun.plume.util.ResourceCompilationUtil.compileJavaScriptFiles
 import za.ac.sun.plume.util.ResourceCompilationUtil.compilePythonFiles
@@ -43,7 +45,6 @@ import java.nio.file.Path
 import java.nio.file.Paths
 import java.util.stream.Collectors
 import kotlin.streams.toList
-
 
 /**
  * The main entrypoint of the extractor from which the CPG will be created.
@@ -198,11 +199,18 @@ class Extractor(private val driver: IDriver, private val classPath: File) {
         configureSoot()
         val compiledFiles = compileLoadedFiles(loadedFiles)
         val classStream = loadClassesIntoSoot(compiledFiles)
-        CHATransformer.v().transform()
+        when (ExtractorOptions.callGraphAlg) {
+            ExtractorOptions.CallGraphAlg.CHA -> CHATransformer.v().transform()
+            ExtractorOptions.CallGraphAlg.SPARK -> SparkTransformer.v().transform("", ExtractorOptions.sparkOpts)
+            else -> Unit
+        }
         // Load all methods to construct the CPG from and convert them to UnitGraph objects
         val graphs = classStream.asSequence()
                 .map { it.methods.filter { mtd -> mtd.isConcrete }.toList() }.flatten()
-                .map(this::addExternallyReferencedMethods).flatten()
+                .let {
+                    if (ExtractorOptions.callGraphAlg == ExtractorOptions.CallGraphAlg.NONE)
+                        it else it.map(this::addExternallyReferencedMethods).flatten()
+                }
                 .distinct().toList().let { if (it.size >= 100000) it.parallelStream() else it.stream() }
                 .filter { !it.isPhantom }.map { BriefUnitGraph(it.retrieveActiveBody()) }.toList()
         // Construct the CPGs for methods
@@ -264,7 +272,7 @@ class Extractor(private val driver: IDriver, private val classPath: File) {
      * @return The method from the given graph.
      */
     private fun constructCallGraphEdges(graph: BriefUnitGraph): SootMethod {
-        callGraphBuilder.buildMethodBody(graph)
+        if (ExtractorOptions.callGraphAlg != ExtractorOptions.CallGraphAlg.NONE) callGraphBuilder.buildMethodBody(graph)
         return graph.body.method
     }
 
@@ -287,6 +295,10 @@ class Extractor(private val driver: IDriver, private val classPath: File) {
         Options.v().set_whole_program(true)
         // keep variable names
         PhaseOptions.v().setPhaseOption("jb", "use-original-names:true")
+        if (ExtractorOptions.callGraphAlg == ExtractorOptions.CallGraphAlg.SPARK) {
+            Options.v().setPhaseOption("cg", "enabled:true")
+            Options.v().setPhaseOption("cg.spark", "enabled:true")
+        }
     }
 
     /**
