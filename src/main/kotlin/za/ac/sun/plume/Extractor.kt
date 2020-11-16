@@ -291,10 +291,11 @@ class Extractor(private val driver: IDriver, private val classPath: File) {
         // ignore library code
         Options.v().set_no_bodies_for_excluded(true)
         Options.v().set_allow_phantom_refs(true)
-        // set whole program mode
-        Options.v().set_whole_program(true)
         // keep variable names
         PhaseOptions.v().setPhaseOption("jb", "use-original-names:true")
+        // call graph options
+        if (ExtractorOptions.callGraphAlg != ExtractorOptions.CallGraphAlg.NONE)
+            Options.v().set_whole_program(true)
         if (ExtractorOptions.callGraphAlg == ExtractorOptions.CallGraphAlg.SPARK) {
             Options.v().setPhaseOption("cg", "enabled:true")
             Options.v().setPhaseOption("cg.spark", "enabled:true")
