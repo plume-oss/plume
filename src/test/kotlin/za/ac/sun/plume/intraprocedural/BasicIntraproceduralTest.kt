@@ -60,7 +60,7 @@ class BasicIntraproceduralTest {
             assertNotNull(nbv.find { it.name == "basic" })
             assertNotNull(nbv.find { it.name == "intraprocedural" })
         }
-        vertices.filterIsInstance<FileVertex>().find { it.name == "Basic$currentTestNumber" }.let { assertNotNull(it) }
+        vertices.filterIsInstance<FileVertex>().find { it.name == "intraprocedural.basic.Basic$currentTestNumber" }.let { assertNotNull(it) }
         vertices.filterIsInstance<MethodVertex>().find { it.name == "main" }.let { assertNotNull(it) }
         vertices.filterIsInstance<LocalVertex>().find {  it.name == "a" }.let { assertNotNull(it); assertEquals("byte", it!!.typeFullName) }
         vertices.filterIsInstance<LocalVertex>().find {  it.name == "b" }.let { assertNotNull(it); assertEquals("byte", it!!.typeFullName) }
@@ -75,7 +75,7 @@ class BasicIntraproceduralTest {
             assertNotNull(nbv.find { it.name == "basic" })
             assertNotNull(nbv.find { it.name == "intraprocedural" })
         }
-        vertices.filterIsInstance<FileVertex>().find { it.name == "Basic$currentTestNumber" }.let { assertNotNull(it) }
+        vertices.filterIsInstance<FileVertex>().find { it.name == "intraprocedural.basic.Basic$currentTestNumber" }.let { assertNotNull(it) }
         vertices.filterIsInstance<MethodVertex>().find { it.name == "main" }.let { assertNotNull(it) }
         vertices.filterIsInstance<LocalVertex>().find {  it.name == "a" }.let { assertNotNull(it); assertEquals("byte", it!!.typeFullName) }
         vertices.filterIsInstance<LocalVertex>().find {  it.name == "b" }.let { assertNotNull(it); assertEquals("double", it!!.typeFullName) }
@@ -90,7 +90,7 @@ class BasicIntraproceduralTest {
             assertNotNull(nbv.find { it.name == "basic" })
             assertNotNull(nbv.find { it.name == "intraprocedural" })
         }
-        vertices.filterIsInstance<FileVertex>().find { it.name == "Basic$currentTestNumber" }.let { assertNotNull(it) }
+        vertices.filterIsInstance<FileVertex>().find { it.name == "intraprocedural.basic.Basic$currentTestNumber" }.let { assertNotNull(it) }
         vertices.filterIsInstance<MethodVertex>().find { it.name == "main" }.let { assertNotNull(it) }
         vertices.filterIsInstance<LocalVertex>().find {  it.name == "a" }.let { assertNotNull(it); assertEquals("long", it!!.typeFullName) }
         vertices.filterIsInstance<LocalVertex>().find {  it.name == "b" }.let { assertNotNull(it); assertEquals("short", it!!.typeFullName) }
@@ -105,7 +105,7 @@ class BasicIntraproceduralTest {
             assertNotNull(nbv.find { it.name == "basic" })
             assertNotNull(nbv.find { it.name == "intraprocedural" })
         }
-        vertices.filterIsInstance<FileVertex>().find { it.name == "Basic$currentTestNumber" }.let { assertNotNull(it) }
+        vertices.filterIsInstance<FileVertex>().find { it.name == "intraprocedural.basic.Basic$currentTestNumber" }.let { assertNotNull(it) }
         vertices.filterIsInstance<MethodVertex>().find { it.name == "main" }.let { assertNotNull(it) }
         vertices.filterIsInstance<MethodVertex>().find { it.name == "Sally" }.let { assertNotNull(it) }
         vertices.filterIsInstance<MethodVertex>().find { it.name == "John" }.let { assertNotNull(it) }

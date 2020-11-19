@@ -36,7 +36,7 @@ class CFGBuilder(private val driver: IDriver) : IGraphBuilder {
     private val logger = LogManager.getLogger(CFGBuilder::javaClass)
     private lateinit var graph: BriefUnitGraph
 
-    override fun buildMethodBody(graph: BriefUnitGraph): MethodVertex {
+    override fun buildMethodBody(graph: BriefUnitGraph) {
         val mtd = graph.body.method
         logger.debug("Building CFG for ${mtd.declaration}")
         this.graph = graph
@@ -60,7 +60,6 @@ class CFGBuilder(private val driver: IDriver) : IGraphBuilder {
         }
         // Connect all units to their successors
         this.graph.body.units.filterNot { it is IdentityStmt }.forEach(this::projectUnit)
-        return getSootAssociation(mtd)?.first { it is MethodVertex } as MethodVertex
     }
 
     private fun projectUnit(unit: Unit) {

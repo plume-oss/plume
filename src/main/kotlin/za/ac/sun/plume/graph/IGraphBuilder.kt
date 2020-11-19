@@ -28,5 +28,5 @@ interface IGraphBuilder {
      * @param graph The [BriefUnitGraph] of a method body to build the graph off of.
      * @return The [MethodVertex] at the root of the CPG generated from the given [BriefUnitGraph].
      */
-    fun buildMethodBody(graph: BriefUnitGraph): MethodVertex
+    fun buildMethodBody(graph: BriefUnitGraph)
 }

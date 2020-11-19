@@ -26,10 +26,12 @@ dependencies {
     implementation 'org.apache.ant:ant:1.10.8'
     // Rhino JavaScript dependencies
     implementation 'org.mozilla:rhino:1.7.13'
+    // Hashing libary
+    implementation 'org.lz4:lz4-java:1.7.1'
     // Plume driver
     implementation name: 'plume-driver-X.X.X'
     // Kotlin
-    implementation 'org.jetbrains.kotlin:kotlin-stdlib-jdk8'
+    implementation 'org.jetbrains.kotlin:kotlin-stdlib-jdk8:1.3.72'
     implementation 'org.jetbrains.kotlin:kotlin-reflect:1.3.72'
     testImplementation 'org.junit.jupiter:junit-jupiter-engine:5.4.2'
     testImplementation 'org.apache.tinkerpop:tinkergraph-gremlin:3.4.5'

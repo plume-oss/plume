@@ -12,7 +12,7 @@ import za.ac.sun.plume.drivers.GraphDatabase
 import za.ac.sun.plume.drivers.TinkerGraphDriver
 import java.io.File
 
-class ExtractorTest {
+class BasicExtractorTest {
     companion object {
         private val driver = DriverFactory(GraphDatabase.TINKER_GRAPH) as TinkerGraphDriver
         private val TEST_PATH = "extractor_tests${File.separator}"
@@ -22,12 +22,9 @@ class ExtractorTest {
         private lateinit var validClassFile: File
         private lateinit var validDirectory: File
         private lateinit var validJarFile: File
-        private lateinit var validPy2File: File
-        private lateinit var validJsFile: File
-        private lateinit var polyglotDir: File
 
         private fun getTestResource(dir: String): File {
-            val resourceURL = ExtractorTest::class.java.classLoader.getResource(dir)
+            val resourceURL = BasicExtractorTest::class.java.classLoader.getResource(dir)
                     ?: throw java.lang.NullPointerException("Unable to obtain test resource")
             return File(resourceURL.file)
         }
@@ -38,10 +35,7 @@ class ExtractorTest {
             validSourceFile = getTestResource("${TEST_PATH}Test1.java")
             validClassFile = getTestResource("${TEST_PATH}Test2.class")
             validJarFile = getTestResource("${TEST_PATH}Test3.jar")
-            validPy2File = getTestResource("${TEST_PATH}Test4.py")
-            validJsFile = getTestResource("${TEST_PATH}Test5.js")
             validDirectory = getTestResource("${TEST_PATH}dir_test")
-            polyglotDir = getTestResource("${TEST_PATH}polyglot")
             CLS_PATH = File(getTestResource(TEST_PATH).absolutePath.replace(System.getProperty("user.dir") + File.separator, "").removeSuffix(TEST_PATH.replace(File.separator, "")))
             extractor = Extractor(driver, CLS_PATH)
         }
@@ -59,7 +53,7 @@ class ExtractorTest {
         val graph = driver.getWholeGraph()
         val vertices = graph.vertices()
         assertNotNull(vertices.filterIsInstance<NamespaceBlockVertex>().find { it.name == "extractor_tests" })
-        vertices.filterIsInstance<FileVertex>().find { it.name == "Test1" }.let { assertNotNull(it) }
+        vertices.filterIsInstance<FileVertex>().find { it.name == "extractor_tests.Test1" }.let { assertNotNull(it) }
         vertices.filterIsInstance<MethodVertex>().find { it.name == "main" }.let { assertNotNull(it) }
         vertices.filterIsInstance<LocalVertex>().find { it.name == "a" }.let { assertNotNull(it); assertEquals("byte", it!!.typeFullName) }
         vertices.filterIsInstance<LocalVertex>().find { it.name == "b" }.let { assertNotNull(it); assertEquals("byte", it!!.typeFullName) }
@@ -74,7 +68,7 @@ class ExtractorTest {
         val graph = driver.getWholeGraph()
         val vertices = graph.vertices()
         assertNotNull(vertices.filterIsInstance<NamespaceBlockVertex>().find { it.name == "extractor_tests" })
-        vertices.filterIsInstance<FileVertex>().find { it.name == "Test2" }.let { assertNotNull(it) }
+        vertices.filterIsInstance<FileVertex>().find { it.name == "extractor_tests.Test2" }.let { assertNotNull(it) }
         vertices.filterIsInstance<MethodVertex>().find { it.name == "main" }.let { assertNotNull(it) }
         vertices.filterIsInstance<LocalVertex>().find { it.name == "l1" }.let { assertNotNull(it); assertEquals("byte", it!!.typeFullName) }
         vertices.filterIsInstance<LocalVertex>().find { it.name == "l2" }.let { assertNotNull(it); assertEquals("byte", it!!.typeFullName) }
@@ -89,32 +83,14 @@ class ExtractorTest {
         val graph = driver.getProgramStructure()
         val vertices = graph.vertices()
         vertices.filterIsInstance<FileVertex>().let { fileList ->
-            assertNotNull(fileList.firstOrNull { it.name == "Dir1" })
-            assertNotNull(fileList.firstOrNull { it.name == "Dir2" })
+            assertNotNull(fileList.firstOrNull { it.name == "extractor_tests.dir_test.Dir1" })
+            assertNotNull(fileList.firstOrNull { it.name == "extractor_tests.dir_test.pack.Dir2" })
         }
         vertices.filterIsInstance<NamespaceBlockVertex>().let { fileList ->
             assertNotNull(fileList.firstOrNull { it.name == "dir_test" })
             assertNotNull(fileList.firstOrNull { it.name == "extractor_tests" })
             assertNotNull(fileList.firstOrNull { it.name == "pack" })
         }
-    }
-
-    @Test
-    fun validPy2Test() {
-        extractor.load(validPy2File)
-        extractor.project()
-    }
-
-    @Test
-    fun validJsTest() {
-        extractor.load(validJsFile)
-        extractor.project()
-    }
-
-    @Test
-    fun compileMultipleLanguagesTest() {
-        extractor.load(polyglotDir)
-        extractor.project()
     }
 
     @Test

@@ -71,7 +71,7 @@ class ASTBuilder(private val driver: IDriver) : IGraphBuilder {
         fun incOrder() = order++
     }
 
-    override fun buildMethodBody(graph: BriefUnitGraph): MethodVertex {
+    override fun buildMethodBody(graph: BriefUnitGraph) {
         val mtd = graph.body.method
         this.graph = graph
         logger.debug("Building AST for ${mtd.declaration}")
@@ -90,8 +90,6 @@ class ASTBuilder(private val driver: IDriver) : IGraphBuilder {
                                 !!.first { v -> v is BlockVertex }, it, EdgeLabel.AST)
                             }
                 }
-        return getSootAssociation(mtd)?.first { it is MethodVertex } as MethodVertex
-
     }
 
     private fun buildLocals(graph: BriefUnitGraph, mtdVertex: MethodVertex): MutableList<PlumeVertex> {
@@ -177,6 +175,7 @@ class ASTBuilder(private val driver: IDriver) : IGraphBuilder {
             SootToPlumeUtil.createIdentifierVertex(it.value, currentLine, currentCol).apply {
                 addSootToPlumeAssociation(it.value, this)
                 driver.addEdge(callVertex, this, EdgeLabel.RECEIVER)
+                driver.addEdge(callVertex, this, EdgeLabel.AST)
             }
         }
         return callVertex

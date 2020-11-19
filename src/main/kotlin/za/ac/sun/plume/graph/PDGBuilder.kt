@@ -35,7 +35,7 @@ class PDGBuilder(private val driver: IDriver) : IGraphBuilder {
     private val logger = LogManager.getLogger(PDGBuilder::javaClass)
     private lateinit var graph: BriefUnitGraph
 
-    override fun buildMethodBody(graph: BriefUnitGraph): MethodVertex {
+    override fun buildMethodBody(graph: BriefUnitGraph) {
         val mtd = graph.body.method
         logger.debug("Building PDG for ${mtd.declaration}")
         this.graph = graph
@@ -56,7 +56,6 @@ class PDGBuilder(private val driver: IDriver) : IGraphBuilder {
                 .filterIsInstance<InvokeStmt>()
                 .map { it.invokeExpr as InvokeExpr }
                 .forEach(this::projectCallArg)
-        return getSootAssociation(mtd)?.first { it is MethodVertex } as MethodVertex
     }
 
     private fun projectCallArg(value: Any) {

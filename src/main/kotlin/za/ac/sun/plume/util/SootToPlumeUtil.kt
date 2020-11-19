@@ -162,13 +162,14 @@ object SootToPlumeUtil {
      */
     fun buildClassStructure(cls: SootClass, driver: IDriver): FileVertex {
         val classChildrenVertices = mutableListOf<PlumeVertex>()
+        val fileHash = Extractor.getFileHashPair(cls)
         var nbv: NamespaceBlockVertex? = null
         if (cls.packageName.isNotEmpty()) {
             // Populate namespace block chain
             val namespaceList = cls.packageName.split(".").toTypedArray()
             if (namespaceList.isNotEmpty()) nbv = populateNamespaceChain(namespaceList, driver)
         }
-        return FileVertex(cls.shortName, ASTBuilder.incOrder()).apply {
+        return FileVertex(cls.name, fileHash.toString(), ASTBuilder.incOrder()).apply {
             // Join FILE and NAMESPACE_BLOCK if namespace is present
             if (nbv != null) {
                 driver.addEdge(this, nbv, EdgeLabel.AST); classChildrenVertices.add(nbv)
