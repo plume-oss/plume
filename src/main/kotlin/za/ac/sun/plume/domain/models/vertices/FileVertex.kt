@@ -32,7 +32,8 @@ class FileVertex(val name: String, val hash: String, order: Int) : ASTVertex(ord
     }
 
     override fun hashCode(): Int {
-        var result = name.hashCode()
+        var result = javaClass.hashCode()
+        result = 31 * result + name.hashCode()
         result = 31 * result + hash.hashCode()
         return result
     }
