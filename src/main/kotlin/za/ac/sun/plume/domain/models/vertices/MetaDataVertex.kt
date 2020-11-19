@@ -38,7 +38,8 @@ class MetaDataVertex(val language: String, val version: String) : PlumeVertex {
     }
 
     override fun hashCode(): Int {
-        var result = language.hashCode()
+        var result = javaClass.hashCode()
+        result = 31 * result + language.hashCode()
         result = 31 * result + version.hashCode()
         return result
     }

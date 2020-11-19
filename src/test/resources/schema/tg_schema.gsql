@@ -21,7 +21,8 @@ CREATE VERTEX CPG_VERT (
     fullName STRING DEFAULT "null",
     canonicalName STRING DEFAULT "null",
     astOrder INT DEFAULT -1,
-    signature STRING DEFAULT "()"
+    signature STRING DEFAULT "()",
+    hash STRING DEFAULT "null"
 )
 ## Language Dependent
 CREATE VERTEX META_DATA_VERT (
