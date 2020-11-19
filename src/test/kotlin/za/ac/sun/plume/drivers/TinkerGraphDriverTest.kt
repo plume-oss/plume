@@ -129,7 +129,7 @@ class TinkerGraphDriverTest {
         private val v9 = TypeArgumentVertex(INT_1)
         private val v10 = TypeParameterVertex(STRING_1, INT_1)
         private val v11 = TypeDeclVertex(STRING_1, STRING_1, STRING_1, INT_1)
-        private val v12 = FileVertex(STRING_1, INT_1)
+        private val v12 = FileVertex(STRING_1, STRING_2, INT_1)
 
         @BeforeEach
         fun setUp() {
@@ -295,7 +295,7 @@ class TinkerGraphDriverTest {
     @Nested
     @DisplayName("Graph import/export from file tests")
     inner class ValidateGraphImportExportFromFiles {
-        private val v1 = FileVertex(STRING_1, INT_1)
+        private val v1 = FileVertex(STRING_1, STRING_2, INT_1)
         private val v2 = NamespaceBlockVertex(STRING_1, STRING_2, INT_1)
 
         @BeforeEach
@@ -356,7 +356,7 @@ class TinkerGraphDriverTest {
         private val v8 = LiteralVertex(STRING_1, STRING_2, STRING_2, INT_1, INT_1, INT_1, INT_1)
         private val v9 = ReturnVertex(INT_1, INT_1, INT_1, INT_1, STRING_1)
         private val v10 = MethodReturnVertex(STRING_1, STRING_1, TestDomainResources.EVAL_1, STRING_1, INT_1, INT_1, INT_1)
-        private val v11 = FileVertex(STRING_1, INT_1)
+        private val v11 = FileVertex(STRING_1, STRING_2, INT_1)
         private val v12 = NamespaceBlockVertex(STRING_1, STRING_1, INT_1)
         private val v13 = NamespaceBlockVertex(STRING_2, STRING_2, INT_1)
         private val v14 = MetaDataVertex(STRING_1, STRING_2)
