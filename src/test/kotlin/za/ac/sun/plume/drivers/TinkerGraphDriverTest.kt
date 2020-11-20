@@ -4,17 +4,35 @@ import org.apache.logging.log4j.LogManager
 import org.junit.jupiter.api.*
 import org.junit.jupiter.api.Assertions.*
 import za.ac.sun.plume.TestDomainResources
-import za.ac.sun.plume.TestDomainResources.Companion.DISPATCH_1
-import za.ac.sun.plume.TestDomainResources.Companion.INT_1
-import za.ac.sun.plume.TestDomainResources.Companion.INT_2
-import za.ac.sun.plume.TestDomainResources.Companion.STRING_1
-import za.ac.sun.plume.TestDomainResources.Companion.STRING_2
 import za.ac.sun.plume.domain.enums.EdgeLabel
 import za.ac.sun.plume.domain.exceptions.PlumeSchemaViolationException
 import za.ac.sun.plume.domain.models.vertices.*
 import java.io.File
 import java.util.*
 import kotlin.properties.Delegates
+import za.ac.sun.plume.TestDomainResources.Companion.INT_1
+import za.ac.sun.plume.TestDomainResources.Companion.INT_2
+import za.ac.sun.plume.TestDomainResources.Companion.STRING_1
+import za.ac.sun.plume.TestDomainResources.Companion.STRING_2
+import za.ac.sun.plume.TestDomainResources.Companion.v1
+import za.ac.sun.plume.TestDomainResources.Companion.v10
+import za.ac.sun.plume.TestDomainResources.Companion.v11
+import za.ac.sun.plume.TestDomainResources.Companion.v12
+import za.ac.sun.plume.TestDomainResources.Companion.v13
+import za.ac.sun.plume.TestDomainResources.Companion.v14
+import za.ac.sun.plume.TestDomainResources.Companion.v15
+import za.ac.sun.plume.TestDomainResources.Companion.v16
+import za.ac.sun.plume.TestDomainResources.Companion.v17
+import za.ac.sun.plume.TestDomainResources.Companion.v18
+import za.ac.sun.plume.TestDomainResources.Companion.v19
+import za.ac.sun.plume.TestDomainResources.Companion.v2
+import za.ac.sun.plume.TestDomainResources.Companion.v3
+import za.ac.sun.plume.TestDomainResources.Companion.v4
+import za.ac.sun.plume.TestDomainResources.Companion.v5
+import za.ac.sun.plume.TestDomainResources.Companion.v6
+import za.ac.sun.plume.TestDomainResources.Companion.v7
+import za.ac.sun.plume.TestDomainResources.Companion.v8
+import za.ac.sun.plume.TestDomainResources.Companion.v9
 
 class TinkerGraphDriverTest {
 
@@ -118,145 +136,132 @@ class TinkerGraphDriverTest {
     @Nested
     @DisplayName("Test driver edge find and exist methods")
     inner class EdgeAddAndExistsTests {
-        private val v1 = LiteralVertex(STRING_1, STRING_1, STRING_1, INT_1, INT_1, INT_1, INT_1)
-        private val v2 = IdentifierVertex(STRING_1, STRING_1, STRING_1, INT_1, INT_1, INT_1, INT_1)
-        private val v3 = ControlStructureVertex(STRING_1, STRING_1, INT_1, INT_1, INT_1, INT_1)
-        private val v4 = JumpTargetVertex(STRING_1, INT_1, INT_1, INT_1, STRING_1, INT_1)
-        private val v5 = BindingVertex(STRING_1, STRING_2)
-        private val v6 = MethodVertex(STRING_1, STRING_2, STRING_1, STRING_1, INT_1, INT_1, INT_1)
-        private val v7 = LocalVertex(STRING_1, STRING_1, INT_1, INT_1, STRING_1, INT_1)
-        private val v8 = CallVertex(STRING_1, INT_1, DISPATCH_1, STRING_1, STRING_1, STRING_1, STRING_1, STRING_1, INT_1, INT_1, INT_1)
-        private val v9 = TypeArgumentVertex(INT_1)
-        private val v10 = TypeParameterVertex(STRING_1, INT_1)
-        private val v11 = TypeDeclVertex(STRING_1, STRING_1, STRING_1, INT_1)
-        private val v12 = FileVertex(STRING_1, STRING_2, INT_1)
-
         @BeforeEach
         fun setUp() {
-            assertFalse(driver.exists(v1))
-            assertFalse(driver.exists(v2))
+            assertFalse(driver.exists(v8))
+            assertFalse(driver.exists(v6))
         }
 
         @Test
         fun testEdgeWhenVerticesAreAlreadyPresent() {
-            driver.addVertex(v11)
-            driver.addVertex(v10)
-            assertTrue(driver.exists(v11))
-            assertTrue(driver.exists(v10))
-            assertFalse(driver.exists(v11, v10, EdgeLabel.AST))
-            driver.addEdge(v11, v10, EdgeLabel.AST)
-            assertTrue(driver.exists(v11, v10, EdgeLabel.AST))
+            driver.addVertex(v7)
+            driver.addVertex(v19)
+            assertTrue(driver.exists(v7))
+            assertTrue(driver.exists(v19))
+            assertFalse(driver.exists(v7, v19, EdgeLabel.AST))
+            driver.addEdge(v7, v19, EdgeLabel.AST)
+            assertTrue(driver.exists(v7, v19, EdgeLabel.AST))
         }
 
         @Test
         fun testEdgeWhenItWillViolateSchema() {
-            driver.addVertex(v1)
-            driver.addVertex(v2)
-            assertTrue(driver.exists(v1))
-            assertTrue(driver.exists(v2))
-            assertFalse(driver.exists(v1, v2, EdgeLabel.AST))
-            assertThrows(PlumeSchemaViolationException::class.java) { driver.addEdge(v1, v2, EdgeLabel.AST) }
+            driver.addVertex(v8)
+            driver.addVertex(v6)
+            assertTrue(driver.exists(v8))
+            assertTrue(driver.exists(v6))
+            assertFalse(driver.exists(v8, v6, EdgeLabel.AST))
+            assertThrows(PlumeSchemaViolationException::class.java) { driver.addEdge(v8, v6, EdgeLabel.AST) }
         }
 
         @Test
         fun testEdgeWhenVerticesAreNotAlreadyPresent() {
-            assertFalse(driver.exists(v8, v2, EdgeLabel.AST))
-            driver.addEdge(v8, v2, EdgeLabel.AST)
-            assertTrue(driver.exists(v8))
-            assertTrue(driver.exists(v2))
-            assertTrue(driver.exists(v8, v2, EdgeLabel.AST))
+            assertFalse(driver.exists(v4, v6, EdgeLabel.AST))
+            driver.addEdge(v4, v6, EdgeLabel.AST)
+            assertTrue(driver.exists(v4))
+            assertTrue(driver.exists(v6))
+            assertTrue(driver.exists(v4, v6, EdgeLabel.AST))
         }
 
         @Test
         fun testEdgeDirection() {
-            assertFalse(driver.exists(v8, v2, EdgeLabel.AST))
-            assertFalse(driver.exists(v2, v8, EdgeLabel.AST))
-            driver.addEdge(v8, v2, EdgeLabel.AST)
-            assertTrue(driver.exists(v8))
-            assertTrue(driver.exists(v2))
-            assertTrue(driver.exists(v8, v2, EdgeLabel.AST))
-            assertFalse(driver.exists(v2, v8, EdgeLabel.AST))
+            assertFalse(driver.exists(v4, v6, EdgeLabel.AST))
+            assertFalse(driver.exists(v6, v4, EdgeLabel.AST))
+            driver.addEdge(v4, v6, EdgeLabel.AST)
+            assertTrue(driver.exists(v4))
+            assertTrue(driver.exists(v6))
+            assertTrue(driver.exists(v4, v6, EdgeLabel.AST))
+            assertFalse(driver.exists(v6, v4, EdgeLabel.AST))
         }
 
         @Test
         fun testCfgEdgeCreation() {
-            assertFalse(driver.exists(v1, v2, EdgeLabel.CFG))
-            driver.addEdge(v1, v2, EdgeLabel.CFG)
-            assertTrue(driver.exists(v1))
-            assertTrue(driver.exists(v2))
-            assertTrue(driver.exists(v1, v2, EdgeLabel.CFG))
+            assertFalse(driver.exists(v8, v6, EdgeLabel.CFG))
+            driver.addEdge(v8, v6, EdgeLabel.CFG)
+            assertTrue(driver.exists(v8))
+            assertTrue(driver.exists(v6))
+            assertTrue(driver.exists(v8, v6, EdgeLabel.CFG))
         }
 
         @Test
         fun testCapturedByEdgeCreation() {
-            assertFalse(driver.exists(v7, v5, EdgeLabel.CAPTURED_BY))
-            driver.addEdge(v7, v5, EdgeLabel.CAPTURED_BY)
+            assertFalse(driver.exists(v5, v17, EdgeLabel.CAPTURED_BY))
+            driver.addEdge(v5, v17, EdgeLabel.CAPTURED_BY)
+            assertTrue(driver.exists(v17))
             assertTrue(driver.exists(v5))
-            assertTrue(driver.exists(v7))
-            assertTrue(driver.exists(v7, v5, EdgeLabel.CAPTURED_BY))
+            assertTrue(driver.exists(v5, v17, EdgeLabel.CAPTURED_BY))
         }
 
         @Test
         fun testBindsToEdgeCreation() {
-            assertFalse(driver.exists(v9, v10, EdgeLabel.BINDS_TO))
-            driver.addEdge(v9, v10, EdgeLabel.BINDS_TO)
-            assertTrue(driver.exists(v9))
-            assertTrue(driver.exists(v10))
-            assertTrue(driver.exists(v9, v10, EdgeLabel.BINDS_TO))
+            assertFalse(driver.exists(v18, v19, EdgeLabel.BINDS_TO))
+            driver.addEdge(v18, v19, EdgeLabel.BINDS_TO)
+            assertTrue(driver.exists(v18))
+            assertTrue(driver.exists(v19))
+            assertTrue(driver.exists(v18, v19, EdgeLabel.BINDS_TO))
         }
 
         @Test
         fun testRefEdgeCreation() {
-            assertFalse(driver.exists(v5, v6, EdgeLabel.REF))
-            driver.addEdge(v5, v6, EdgeLabel.REF)
-            assertTrue(driver.exists(v5))
-            assertTrue(driver.exists(v6))
-            assertTrue(driver.exists(v5, v6, EdgeLabel.REF))
+            assertFalse(driver.exists(v17, v1, EdgeLabel.REF))
+            driver.addEdge(v17, v1, EdgeLabel.REF)
+            assertTrue(driver.exists(v17))
+            assertTrue(driver.exists(v1))
+            assertTrue(driver.exists(v17, v1, EdgeLabel.REF))
         }
 
         @Test
         fun testReceiverEdgeCreation() {
-            assertFalse(driver.exists(v8, v2, EdgeLabel.RECEIVER))
-            driver.addEdge(v8, v2, EdgeLabel.RECEIVER)
-            assertTrue(driver.exists(v8))
-            assertTrue(driver.exists(v2))
-            assertTrue(driver.exists(v8, v2, EdgeLabel.RECEIVER))
+            assertFalse(driver.exists(v4, v6, EdgeLabel.RECEIVER))
+            driver.addEdge(v4, v6, EdgeLabel.RECEIVER)
+            assertTrue(driver.exists(v4))
+            assertTrue(driver.exists(v6))
+            assertTrue(driver.exists(v4, v6, EdgeLabel.RECEIVER))
         }
 
         @Test
         fun testConditionEdgeCreation() {
-            assertFalse(driver.exists(v3, v4, EdgeLabel.CONDITION))
-            driver.addEdge(v3, v4, EdgeLabel.CONDITION)
-            assertTrue(driver.exists(v3))
-            assertTrue(driver.exists(v4))
-            assertTrue(driver.exists(v3, v4, EdgeLabel.CONDITION))
+            assertFalse(driver.exists(v15, v16, EdgeLabel.CONDITION))
+            driver.addEdge(v15, v16, EdgeLabel.CONDITION)
+            assertTrue(driver.exists(v15))
+            assertTrue(driver.exists(v16))
+            assertTrue(driver.exists(v15, v16, EdgeLabel.CONDITION))
         }
 
         @Test
         fun testBindsEdgeCreation() {
-            assertFalse(driver.exists(v11, v5, EdgeLabel.BINDS))
-            driver.addEdge(v11, v5, EdgeLabel.BINDS)
-            assertTrue(driver.exists(v11))
-            assertTrue(driver.exists(v5))
-            assertTrue(driver.exists(v11, v5, EdgeLabel.BINDS))
+            assertFalse(driver.exists(v7, v17, EdgeLabel.BINDS))
+            driver.addEdge(v7, v17, EdgeLabel.BINDS)
+            assertTrue(driver.exists(v7))
+            assertTrue(driver.exists(v17))
+            assertTrue(driver.exists(v7, v17, EdgeLabel.BINDS))
         }
 
         @Test
         fun testArgumentEdgeCreation() {
-            assertFalse(driver.exists(v8, v4, EdgeLabel.ARGUMENT))
-            driver.addEdge(v8, v4, EdgeLabel.ARGUMENT)
-            assertTrue(driver.exists(v8))
+            assertFalse(driver.exists(v4, v16, EdgeLabel.ARGUMENT))
+            driver.addEdge(v4, v16, EdgeLabel.ARGUMENT)
             assertTrue(driver.exists(v4))
-            assertTrue(driver.exists(v8, v4, EdgeLabel.ARGUMENT))
+            assertTrue(driver.exists(v4))
+            assertTrue(driver.exists(v4, v16, EdgeLabel.ARGUMENT))
         }
 
         @Test
         fun testSourceFileEdgeCreation() {
-            assertFalse(driver.exists(v6, v12, EdgeLabel.SOURCE_FILE))
-            driver.addEdge(v6, v12, EdgeLabel.SOURCE_FILE)
-            assertTrue(driver.exists(v6))
-            assertTrue(driver.exists(v12))
-            assertTrue(driver.exists(v6, v12, EdgeLabel.SOURCE_FILE))
+            assertFalse(driver.exists(v1, v11, EdgeLabel.SOURCE_FILE))
+            driver.addEdge(v1, v11, EdgeLabel.SOURCE_FILE)
+            assertTrue(driver.exists(v1))
+            assertTrue(driver.exists(v11))
+            assertTrue(driver.exists(v1, v11, EdgeLabel.SOURCE_FILE))
         }
     }
 
@@ -346,47 +351,10 @@ class TinkerGraphDriverTest {
     @Nested
     @DisplayName("Any PlumeGraph related tests based off of a test CPG")
     inner class PlumeGraphTests {
-        private val v1 = MethodVertex(STRING_1, STRING_1, STRING_2, STRING_1, INT_1, INT_2, INT_1)
-        private val v2 = MethodParameterInVertex(STRING_1, TestDomainResources.EVAL_1, STRING_1, INT_1, STRING_2, INT_2)
-        private val v3 = BlockVertex(STRING_1, STRING_1, STRING_1, INT_1, INT_2, INT_2, INT_1)
-        private val v4 = CallVertex(STRING_1, INT_1, DISPATCH_1, STRING_1, STRING_1, STRING_2, STRING_2, STRING_2, INT_1, INT_1, INT_1)
-        private val v5 = LocalVertex(STRING_1, STRING_2, INT_1, INT_1, STRING_1, INT_1)
-        private val v6 = IdentifierVertex(STRING_1, STRING_1, STRING_1, INT_1, INT_1, INT_1, INT_1)
-        private val v7 = TypeDeclVertex(STRING_1, STRING_2, STRING_1, INT_1)
-        private val v8 = LiteralVertex(STRING_1, STRING_2, STRING_2, INT_1, INT_1, INT_1, INT_1)
-        private val v9 = ReturnVertex(INT_1, INT_1, INT_1, INT_1, STRING_1)
-        private val v10 = MethodReturnVertex(STRING_1, STRING_1, TestDomainResources.EVAL_1, STRING_1, INT_1, INT_1, INT_1)
-        private val v11 = FileVertex(STRING_1, STRING_2, INT_1)
-        private val v12 = NamespaceBlockVertex(STRING_1, STRING_1, INT_1)
-        private val v13 = NamespaceBlockVertex(STRING_2, STRING_2, INT_1)
-        private val v14 = MetaDataVertex(STRING_1, STRING_2)
 
         @BeforeEach
         fun setUp() {
-            // Create program data
-            driver.addVertex(v14)
-            driver.addEdge(v11, v12, EdgeLabel.AST)
-            driver.addEdge(v12, v13, EdgeLabel.AST)
-            // Create method head
-            driver.addEdge(v7, v1, EdgeLabel.AST)
-            driver.addEdge(v1, v11, EdgeLabel.SOURCE_FILE)
-            driver.addEdge(v1, v2, EdgeLabel.AST)
-            driver.addEdge(v1, v5, EdgeLabel.AST)
-            driver.addEdge(v1, v3, EdgeLabel.AST)
-            driver.addEdge(v1, v3, EdgeLabel.CFG)
-            // Create method body
-            driver.addEdge(v3, v4, EdgeLabel.AST)
-            driver.addEdge(v3, v4, EdgeLabel.CFG)
-            driver.addEdge(v4, v6, EdgeLabel.AST)
-            driver.addEdge(v4, v8, EdgeLabel.AST)
-            driver.addEdge(v4, v6, EdgeLabel.ARGUMENT)
-            driver.addEdge(v4, v8, EdgeLabel.ARGUMENT)
-            driver.addEdge(v3, v9, EdgeLabel.AST)
-            driver.addEdge(v4, v9, EdgeLabel.CFG)
-            driver.addEdge(v1, v10, EdgeLabel.AST)
-            driver.addEdge(v9, v10, EdgeLabel.CFG)
-            // Link dependencies
-            driver.addEdge(v6, v5, EdgeLabel.REF)
+           TestDomainResources.generateSimpleCPG(driver)
         }
 
         @Test
