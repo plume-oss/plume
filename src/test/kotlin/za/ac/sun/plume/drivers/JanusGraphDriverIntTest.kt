@@ -345,6 +345,15 @@ class JanusGraphDriverIntTest {
         }
 
         @Test
+        fun testGetEmptyMethodBody() {
+            driver.clearGraph()
+            val plumeGraph = driver.getMethod(v1.fullName, v1.signature)
+            assertEquals("PlumeGraph(vertices:0, edges:0)", plumeGraph.toString())
+            val graphVertices = plumeGraph.vertices()
+            assertEquals(0, graphVertices.size)
+        }
+
+        @Test
         fun testGetMethodBody() {
             val plumeGraph = driver.getMethod(v1.fullName, v1.signature)
             assertEquals("PlumeGraph(vertices:9, edges:15)", plumeGraph.toString())
@@ -427,6 +436,45 @@ class JanusGraphDriverIntTest {
 
             assertTrue(plumeGraph.edgesIn(v12)[EdgeLabel.AST]?.contains(v11) ?: false)
             assertTrue(plumeGraph.edgesIn(v11)[EdgeLabel.SOURCE_FILE]?.contains(v1) ?: false)
+        }
+    }
+
+    @Nested
+    @DisplayName("Delete operation tests")
+    inner class DriverDeleteTests {
+
+        @BeforeEach
+        fun setUp() {
+            TestDomainResources.generateSimpleCPG(driver)
+        }
+
+        @Test
+        fun testVertexDelete() {
+            assertTrue(driver.exists(v1))
+            driver.deleteVertex(v1)
+            assertFalse(driver.exists(v1))
+            // Try delete vertex which doesn't exist, should not throw error
+            driver.deleteVertex(v1)
+            assertFalse(driver.exists(v1))
+            // Delete metadata
+            assertTrue(driver.exists(v14))
+            driver.deleteVertex(v14)
+            assertFalse(driver.exists(v14))
+        }
+
+        @Test
+        fun testMethodDelete() {
+            assertTrue(driver.exists(v1))
+            driver.deleteMethod(v1.fullName, v1.signature)
+            assertFalse(driver.exists(v1))
+            assertFalse(driver.exists(v8))
+            assertFalse(driver.exists(v9))
+            assertFalse(driver.exists(v10))
+            assertFalse(driver.exists(v5))
+            assertFalse(driver.exists(v3))
+            assertFalse(driver.exists(v4))
+            // Check that deleting a method doesn't throw any error
+            driver.deleteMethod(v1.fullName, v1.signature)
         }
     }
 }

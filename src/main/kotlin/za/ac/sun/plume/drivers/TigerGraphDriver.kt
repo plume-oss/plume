@@ -197,8 +197,13 @@ class TigerGraphDriver : IDriver {
         var methodHash = MethodVertex::class.java.hashCode()
         methodHash = 31 * methodHash + fullName.hashCode()
         methodHash = 31 * methodHash + signature.hashCode()
-        val result = get("query/$GRAPH_NAME/getMethod", mapOf("methodHash" to methodHash.toString()))
-        return graphPayloadToPlumeGraph(result)
+        try {
+            val result = get("query/$GRAPH_NAME/getMethod", mapOf("methodHash" to methodHash.toString()))
+            return graphPayloadToPlumeGraph(result)
+        } catch (e: PlumeTransactionException) {
+            logger.warn("${e.message}. This may be a result of the method not being present in the graph.")
+        }
+        return PlumeGraph()
     }
 
     override fun getProgramStructure(): PlumeGraph {
@@ -210,6 +215,22 @@ class TigerGraphDriver : IDriver {
         if (v is MetaDataVertex) return PlumeGraph().apply { addVertex(v) }
         val result = get("query/$GRAPH_NAME/getNeighbours", mapOf("source" to v.hashCode().toString()))
         return graphPayloadToPlumeGraph(result)
+    }
+
+    override fun deleteVertex(v: PlumeVertex) {
+        val label = if (v is MetaDataVertex) "META_DATA_VERT" else "CPG_VERT"
+        delete("graph/$GRAPH_NAME/vertices/$label/${v.hashCode()}")
+    }
+
+    override fun deleteMethod(fullName: String, signature: String) {
+        var methodHash = MethodVertex::class.java.hashCode()
+        methodHash = 31 * methodHash + fullName.hashCode()
+        methodHash = 31 * methodHash + signature.hashCode()
+        try {
+            get("query/$GRAPH_NAME/deleteMethod", mapOf("methodHash" to methodHash.toString()))
+        } catch (e: PlumeTransactionException) {
+            logger.warn("${e.message}. This may be a result of the method not being present in the graph.")
+        }
     }
 
     private fun graphPayloadToPlumeGraph(a: JSONArray): PlumeGraph {
