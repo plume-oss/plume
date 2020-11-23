@@ -506,11 +506,6 @@ class TinkerGraphDriverTest {
             TestDomainResources.generateSimpleCPG(driver)
         }
 
-        @AfterEach
-        fun tearDown() {
-            driver.clearGraph()
-        }
-
         @Test
         fun testVertexDelete() {
             assertTrue(driver.exists(v1))

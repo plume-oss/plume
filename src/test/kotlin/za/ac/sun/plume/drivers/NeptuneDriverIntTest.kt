@@ -432,4 +432,42 @@ class NeptuneDriverIntTest {
             assertTrue(plumeGraph.edgesIn(v11)[EdgeLabel.SOURCE_FILE]?.contains(v1) ?: false)
         }
     }
+
+    @Nested
+    @DisplayName("Delete operation tests")
+    inner class DriverDeleteTests {
+
+        @BeforeEach
+        fun setUp() {
+            TestDomainResources.generateSimpleCPG(driver)
+        }
+
+        @AfterEach
+        fun tearDown() {
+            driver.clearGraph()
+        }
+
+        @Test
+        fun testVertexDelete() {
+            assertTrue(driver.exists(v1))
+            driver.deleteVertex(v1)
+            assertFalse(driver.exists(v1))
+            // Try delete vertex which doesn't exist, should not throw error
+            driver.deleteVertex(v1)
+            assertFalse(driver.exists(v1))
+        }
+
+        @Test
+        fun testMethodDelete() {
+            assertTrue(driver.exists(v1))
+            driver.deleteMethod(v1.fullName, v1.signature)
+            assertFalse(driver.exists(v1))
+            assertFalse(driver.exists(v8))
+            assertFalse(driver.exists(v9))
+            assertFalse(driver.exists(v10))
+            assertFalse(driver.exists(v5))
+            assertFalse(driver.exists(v3))
+            assertFalse(driver.exists(v4))
+        }
+    }
 }

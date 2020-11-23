@@ -213,11 +213,15 @@ class TigerGraphDriver : IDriver {
     }
 
     override fun deleteVertex(v: PlumeVertex) {
-        TODO("Not yet implemented")
+        val label = if (v is MetaDataVertex) "META_DATA_VERT" else "CPG_VERT"
+        delete("graph/$GRAPH_NAME/vertices/$label/${v.hashCode()}")
     }
 
     override fun deleteMethod(fullName: String, signature: String) {
-        TODO("Not yet implemented")
+        var methodHash = MethodVertex::class.java.hashCode()
+        methodHash = 31 * methodHash + fullName.hashCode()
+        methodHash = 31 * methodHash + signature.hashCode()
+        get("query/$GRAPH_NAME/deleteMethod", mapOf("methodHash" to methodHash.toString()))
     }
 
     private fun graphPayloadToPlumeGraph(a: JSONArray): PlumeGraph {
