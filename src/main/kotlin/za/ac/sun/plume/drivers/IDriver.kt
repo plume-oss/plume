@@ -94,4 +94,19 @@ interface IDriver : AutoCloseable {
      * @return The [PlumeGraph] representation of the source vertex and its neighbouring vertices.
      */
     fun getNeighbours(v: PlumeVertex): PlumeGraph
+
+    /**
+     * Given a vertex, will remove it from the graph if present.
+     *
+     * @param v The vertex to remove.
+     */
+    fun deleteVertex(v: PlumeVertex)
+
+    /**
+     * Given the full signature of a method, removes the method and its body from the graph.
+     *
+     * @param fullName The fully qualified name e.g. interprocedural.basic.Basic4.f
+     * @param signature The method signature e.g. int f(int, int)
+     */
+    fun deleteMethod(fullName: String, signature: String)
 }

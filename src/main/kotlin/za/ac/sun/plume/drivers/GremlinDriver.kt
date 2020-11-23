@@ -219,9 +219,9 @@ abstract class GremlinDriver : IDriver {
 
     override fun getMethod(fullName: String, signature: String): PlumeGraph {
         if (!transactionOpen) openTx()
-        val methodSubgraph = g.V().hasLabel(MethodVertex.LABEL.toString())
+        val methodSubgraph = g.V().hasLabel(MethodVertex.LABEL.name)
                 .has("fullName", fullName).has("signature", signature)
-                .repeat(un.outE(EdgeLabel.AST.toString()).inV()).emit()
+                .repeat(un.outE(EdgeLabel.AST.name).inV()).emit()
                 .inE()
                 .subgraph("sg")
                 .cap<Graph>("sg")
@@ -233,8 +233,8 @@ abstract class GremlinDriver : IDriver {
 
     override fun getProgramStructure(): PlumeGraph {
         if (!transactionOpen) openTx()
-        val programStructureSubGraph = g.V().hasLabel(FileVertex.LABEL.toString())
-                .repeat(un.outE(EdgeLabel.AST.toString()).inV()).emit()
+        val programStructureSubGraph = g.V().hasLabel(FileVertex.LABEL.name)
+                .repeat(un.outE(EdgeLabel.AST.name).inV()).emit()
                 .inE()
                 .subgraph("sg")
                 .cap<Graph>("sg")
@@ -248,7 +248,7 @@ abstract class GremlinDriver : IDriver {
         if (v is MetaDataVertex) return PlumeGraph().apply { addVertex(v) }
         if (!transactionOpen) openTx()
         val neighbourSubgraph = findVertexTraversal(v)
-                .repeat(un.outE(EdgeLabel.AST.toString()).bothV())
+                .repeat(un.outE(EdgeLabel.AST.name).bothV())
                 .times(1)
                 .inE()
                 .subgraph("sg")
@@ -257,6 +257,29 @@ abstract class GremlinDriver : IDriver {
         val result = gremlinToPlume(neighbourSubgraph.traversal())
         if (transactionOpen) closeTx()
         return result
+    }
+
+    override fun deleteVertex(v: PlumeVertex) {
+        if (!exists(v)) return
+        if (!transactionOpen) openTx()
+        findVertexTraversal(v).drop().iterate()
+        if (transactionOpen) closeTx()
+    }
+
+    override fun deleteMethod(fullName: String, signature: String) {
+        if (!transactionOpen) openTx()
+        val methodV = g.V().hasLabel(MethodVertex.LABEL.name)
+                .has("fullName", fullName).has("signature", signature)
+                .tryNext()
+        if (methodV.isPresent) {
+            g.V(methodV.get()).aggregate("x")
+                    .repeat(un.out(EdgeLabel.AST.name)).emit().barrier()
+                    .aggregate("x")
+                    .select<Vertex>("x")
+                    .unfold<Vertex>()
+                    .drop().iterate()
+        }
+        if (transactionOpen) closeTx()
     }
 
     /**

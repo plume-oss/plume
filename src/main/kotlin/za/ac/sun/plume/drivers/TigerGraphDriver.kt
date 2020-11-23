@@ -212,6 +212,14 @@ class TigerGraphDriver : IDriver {
         return graphPayloadToPlumeGraph(result)
     }
 
+    override fun deleteVertex(v: PlumeVertex) {
+        TODO("Not yet implemented")
+    }
+
+    override fun deleteMethod(fullName: String, signature: String) {
+        TODO("Not yet implemented")
+    }
+
     private fun graphPayloadToPlumeGraph(a: JSONArray): PlumeGraph {
         val plumeGraph = PlumeGraph()
         a[0]?.let { res ->
