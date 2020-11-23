@@ -412,6 +412,15 @@ class TinkerGraphDriverTest {
         }
 
         @Test
+        fun testGetEmptyMethodBody() {
+            driver.clearGraph()
+            val plumeGraph = driver.getMethod(v1.fullName, v1.signature)
+            assertEquals("PlumeGraph(vertices:0, edges:0)", plumeGraph.toString())
+            val graphVertices = plumeGraph.vertices()
+            assertEquals(0, graphVertices.size)
+        }
+
+        @Test
         fun testGetMethodBody() {
             val plumeGraph = driver.getMethod(v1.fullName, v1.signature)
             assertEquals("PlumeGraph(vertices:9, edges:15)", plumeGraph.toString())
