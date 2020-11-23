@@ -455,6 +455,10 @@ class NeptuneDriverIntTest {
             // Try delete vertex which doesn't exist, should not throw error
             driver.deleteVertex(v1)
             assertFalse(driver.exists(v1))
+            // Delete metadata
+            assertTrue(driver.exists(v14))
+            driver.deleteVertex(v14)
+            assertFalse(driver.exists(v14))
         }
 
         @Test
@@ -468,6 +472,8 @@ class NeptuneDriverIntTest {
             assertFalse(driver.exists(v5))
             assertFalse(driver.exists(v3))
             assertFalse(driver.exists(v4))
+            // Check that deleting a method doesn't throw any error
+            driver.deleteMethod(v1.fullName, v1.signature)
         }
     }
 }
