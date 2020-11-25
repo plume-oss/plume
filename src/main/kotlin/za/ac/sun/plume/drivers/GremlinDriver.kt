@@ -217,6 +217,20 @@ abstract class GremlinDriver : IDriver {
         return plumeGraph
     }
 
+    override fun getMethod(fullName: String, signature: String, includeBody: Boolean): PlumeGraph {
+        if (includeBody) return getMethod(fullName, signature)
+        if (!transactionOpen) openTx()
+        val methodSubgraph = g.V().hasLabel(MethodVertex.LABEL.name)
+                .has("fullName", fullName).has("signature", signature)
+                .outE(EdgeLabel.AST.name)
+                .subgraph("sg")
+                .cap<Graph>("sg")
+                .next()
+        val result = gremlinToPlume(methodSubgraph.traversal())
+        if (transactionOpen) closeTx()
+        return result
+    }
+
     override fun getMethod(fullName: String, signature: String): PlumeGraph {
         if (!transactionOpen) openTx()
         val methodSubgraph = g.V().hasLabel(MethodVertex.LABEL.name)

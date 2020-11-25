@@ -354,8 +354,32 @@ class JanusGraphDriverIntTest {
         }
 
         @Test
+        fun testGetMethodHeadOnly() {
+            val plumeGraph = driver.getMethod(v1.fullName, v1.signature, false)
+            assertEquals("PlumeGraph(vertices:5, edges:4)", plumeGraph.toString())
+            val graphVertices = plumeGraph.vertices()
+            assertEquals(5, graphVertices.size)
+            // Assert no program structure vertices part of the method body
+            assertFalse(graphVertices.contains(v14))
+            assertFalse(graphVertices.contains(v13))
+            assertFalse(graphVertices.contains(v12))
+            assertFalse(graphVertices.contains(v11))
+            // Check method head
+            assertTrue(plumeGraph.edgesOut(v1)[EdgeLabel.AST]?.contains(v2) ?: false)
+            assertTrue(plumeGraph.edgesOut(v1)[EdgeLabel.AST]?.contains(v5) ?: false)
+            assertTrue(plumeGraph.edgesOut(v1)[EdgeLabel.AST]?.contains(v3) ?: false)
+            assertTrue(plumeGraph.edgesOut(v1)[EdgeLabel.AST]?.contains(v10) ?: false)
+            // Check that none of the other vertices exist
+            assertFalse(graphVertices.contains(v4))
+            assertFalse(graphVertices.contains(v6))
+            assertFalse(graphVertices.contains(v7))
+            assertFalse(graphVertices.contains(v8))
+            assertFalse(graphVertices.contains(v9))
+        }
+
+        @Test
         fun testGetMethodBody() {
-            val plumeGraph = driver.getMethod(v1.fullName, v1.signature)
+            val plumeGraph = driver.getMethod(v1.fullName, v1.signature, true)
             assertEquals("PlumeGraph(vertices:9, edges:15)", plumeGraph.toString())
             val graphVertices = plumeGraph.vertices()
             assertEquals(9, graphVertices.size)

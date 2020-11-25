@@ -81,6 +81,16 @@ interface IDriver : AutoCloseable {
     fun getMethod(fullName: String, signature: String): PlumeGraph
 
     /**
+     * Given the full signature of a method, returns the subgraph of the method body.
+     *
+     * @param fullName The fully qualified name e.g. interprocedural.basic.Basic4.f
+     * @param signature The method signature e.g. int f(int, int)
+     * @param includeBody True if the body should be included, false if only method head should be included.
+     * @return The [PlumeGraph] containing the method graph.
+     */
+    fun getMethod(fullName: String, signature: String, includeBody: Boolean): PlumeGraph
+
+    /**
      * Obtains all program structure related vertices.
      *
      * @return The [PlumeGraph] containing the program structure related sub-graphs.
