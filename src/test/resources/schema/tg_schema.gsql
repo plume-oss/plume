@@ -69,6 +69,20 @@ CREATE QUERY showAll() FOR GRAPH cpg {
   PRINT @@edges;
 }
 
+CREATE QUERY getMethodHead(VERTEX<CPG_VERT> methodHash) FOR GRAPH cpg {
+  SetAccum<EDGE> @@edges;
+  start = {methodHash};
+  allVert = {methodHash};
+
+  start = SELECT t
+          FROM start:s -(AST:e)-> :t
+          ACCUM @@edges += e;
+  allVert = allVert UNION start;
+
+  PRINT allVert;
+  PRINT @@edges;
+}
+
 CREATE QUERY getMethod(VERTEX<CPG_VERT> methodHash) FOR GRAPH cpg {
   SetAccum<EDGE> @@edges;
   OrAccum @visited;

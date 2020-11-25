@@ -193,12 +193,24 @@ class TigerGraphDriver : IDriver {
         return graphPayloadToPlumeGraph(result)
     }
 
+    override fun getMethod(fullName: String, signature: String, includeBody: Boolean): PlumeGraph {
+        if (includeBody) return getMethod(fullName, signature)
+        var methodHash = MethodVertex::class.java.hashCode()
+        methodHash = 31 * methodHash + fullName.hashCode()
+        methodHash = 31 * methodHash + signature.hashCode()
+        return getMethod(methodHash, "getMethodHead")
+    }
+
     override fun getMethod(fullName: String, signature: String): PlumeGraph {
         var methodHash = MethodVertex::class.java.hashCode()
         methodHash = 31 * methodHash + fullName.hashCode()
         methodHash = 31 * methodHash + signature.hashCode()
+        return getMethod(methodHash, "getMethod")
+    }
+
+    private fun getMethod(methodHash: Int, path: String): PlumeGraph {
         try {
-            val result = get("query/$GRAPH_NAME/getMethod", mapOf("methodHash" to methodHash.toString()))
+            val result = get("query/$GRAPH_NAME/$path", mapOf("methodHash" to methodHash.toString()))
             return graphPayloadToPlumeGraph(result)
         } catch (e: PlumeTransactionException) {
             logger.warn("${e.message}. This may be a result of the method not being present in the graph.")
