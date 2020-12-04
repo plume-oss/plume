@@ -3,6 +3,7 @@ package za.ac.sun.plume.drivers
 import io.shiftleft.codepropertygraph.generated.nodes.NewBinding
 import io.shiftleft.codepropertygraph.generated.nodes.NewMetaData
 import io.shiftleft.codepropertygraph.generated.nodes.NewNode
+import io.shiftleft.codepropertygraph.generated.nodes.NewType
 import overflowdb.Config
 import overflowdb.Graph
 import scala.Option
@@ -13,6 +14,7 @@ import za.ac.sun.plume.domain.models.PlumeVertex
 import za.ac.sun.plume.domain.models.vertices.BindingVertex
 import za.ac.sun.plume.domain.models.vertices.MetaDataVertex
 import scala.collection.immutable.`List$`
+import za.ac.sun.plume.domain.models.vertices.TypeVertex
 
 /**
  * Driver to create an overflowDB database file from Plume's domain classes.
@@ -71,6 +73,7 @@ class OverflowDbDriver : IDriver {
                    `List$`.`MODULE$`.empty(),
                    Some(""),
                    Option.empty())
+           is TypeVertex -> NewType(v.name, v.fullName, v.typeDeclFullName)
            else -> TODO("Not implemented")
        }
     }
