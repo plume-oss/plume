@@ -1,5 +1,8 @@
 package za.ac.sun.plume.drivers
 
+import io.shiftleft.codepropertygraph.generated.nodes.NewNode
+import overflowdb.Config
+import overflowdb.Graph
 import za.ac.sun.plume.domain.enums.EdgeLabel
 import za.ac.sun.plume.domain.models.PlumeGraph
 import za.ac.sun.plume.domain.models.PlumeVertex
@@ -16,8 +19,24 @@ import za.ac.sun.plume.domain.models.PlumeVertex
  * */
 class OverflowDbDriver : IDriver {
 
+    val graph : Graph = createEmptyGraph()
+
+    private fun createEmptyGraph() : Graph {
+        // TODO pass file name from the outside
+        val dbFileName = "/tmp/foo.odb"
+        val odbConfig = Config.withDefaults().withStorageLocation(dbFileName)
+        return Graph.open(odbConfig,
+                io.shiftleft.codepropertygraph.generated.nodes.Factories.allAsJava(),
+                io.shiftleft.codepropertygraph.generated.edges.Factories.allAsJava())
+    }
+
     override fun addVertex(v: PlumeVertex) {
-        TODO("Not yet implemented")
+        val id = v.hashCode()
+        val newNode = graph.addNode(id.toLong(), "label")
+    }
+
+    private fun convert(v : PlumeVertex) : NewNode {
+        TODO("foo")
     }
 
     override fun exists(v: PlumeVertex): Boolean {
@@ -69,7 +88,7 @@ class OverflowDbDriver : IDriver {
     }
 
     override fun close() {
-        TODO("Not yet implemented")
+        graph.close()
     }
 
 }
