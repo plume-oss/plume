@@ -1,9 +1,6 @@
 package za.ac.sun.plume.drivers
 
-import io.shiftleft.codepropertygraph.generated.nodes.NewBinding
-import io.shiftleft.codepropertygraph.generated.nodes.NewMetaData
-import io.shiftleft.codepropertygraph.generated.nodes.NewNode
-import io.shiftleft.codepropertygraph.generated.nodes.NewType
+import io.shiftleft.codepropertygraph.generated.nodes.*
 import overflowdb.Config
 import overflowdb.Graph
 import scala.Option
@@ -14,6 +11,7 @@ import za.ac.sun.plume.domain.models.PlumeVertex
 import za.ac.sun.plume.domain.models.vertices.BindingVertex
 import za.ac.sun.plume.domain.models.vertices.MetaDataVertex
 import scala.collection.immutable.`List$`
+import za.ac.sun.plume.domain.models.vertices.ArrayInitializerVertex
 import za.ac.sun.plume.domain.models.vertices.TypeVertex
 
 /**
@@ -74,6 +72,10 @@ class OverflowDbDriver : IDriver {
                    Some(""),
                    Option.empty())
            is TypeVertex -> NewType(v.name, v.fullName, v.typeDeclFullName)
+           is ArrayInitializerVertex -> NewArrayInitializer(Option.empty(), Option.empty(), "",
+                   v.order, -1 ,
+                   Option.empty(),
+                   Option.empty())
            else -> TODO("Not implemented")
        }
     }
