@@ -1,12 +1,13 @@
 package za.ac.sun.plume.drivers
 
-import io.shiftleft.codepropertygraph.Cpg
+import io.shiftleft.codepropertygraph.generated.nodes.NewBinding
 import io.shiftleft.codepropertygraph.generated.nodes.NewNode
 import overflowdb.Config
 import overflowdb.Graph
 import za.ac.sun.plume.domain.enums.EdgeLabel
 import za.ac.sun.plume.domain.models.PlumeGraph
 import za.ac.sun.plume.domain.models.PlumeVertex
+import za.ac.sun.plume.domain.models.vertices.BindingVertex
 
 /**
  * Driver to create an overflowDB database file from Plume's domain classes.
@@ -45,18 +46,21 @@ class OverflowDbDriver : IDriver {
     override fun addVertex(v: PlumeVertex) {
         val id = v.hashCode()
         val node = convert(v)
-        val newNode = graph.addNode(id.toLong(), "label")
+        val newNode = graph.addNode(id.toLong(), node.label())
         node.properties().foreachEntry { key, value ->
             newNode.setProperty(key, value)
         }
     }
 
     private fun convert(v : PlumeVertex) : NewNode {
-        TODO("foo")
+       return when(v) {
+           is BindingVertex -> NewBinding(v.name, v.signature, scala.Option.empty())
+           else -> TODO("Not implemented")
+       }
     }
 
     override fun exists(v: PlumeVertex): Boolean {
-        TODO("Not yet implemented")
+        return (graph.node(v.hashCode().toLong()) != null)
     }
 
     override fun exists(fromV: PlumeVertex, toV: PlumeVertex, edge: EdgeLabel): Boolean {
@@ -72,7 +76,7 @@ class OverflowDbDriver : IDriver {
     }
 
     override fun clearGraph(): IDriver {
-        TODO("Not yet implemented")
+        return this
     }
 
     override fun getWholeGraph(): PlumeGraph {
