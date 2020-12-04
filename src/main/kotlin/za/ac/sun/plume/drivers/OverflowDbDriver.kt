@@ -1,13 +1,18 @@
 package za.ac.sun.plume.drivers
 
 import io.shiftleft.codepropertygraph.generated.nodes.NewBinding
+import io.shiftleft.codepropertygraph.generated.nodes.NewMetaData
 import io.shiftleft.codepropertygraph.generated.nodes.NewNode
 import overflowdb.Config
 import overflowdb.Graph
+import scala.Option
+import scala.Some
 import za.ac.sun.plume.domain.enums.EdgeLabel
 import za.ac.sun.plume.domain.models.PlumeGraph
 import za.ac.sun.plume.domain.models.PlumeVertex
 import za.ac.sun.plume.domain.models.vertices.BindingVertex
+import za.ac.sun.plume.domain.models.vertices.MetaDataVertex
+import scala.collection.immutable.`List$`
 
 /**
  * Driver to create an overflowDB database file from Plume's domain classes.
@@ -54,7 +59,18 @@ class OverflowDbDriver : IDriver {
 
     private fun convert(v : PlumeVertex) : NewNode {
        return when(v) {
-           is BindingVertex -> NewBinding(v.name, v.signature, scala.Option.empty())
+           is BindingVertex -> NewBinding(v.name, v.signature, Option.empty())
+           // TODO this highlights a problem: since we can't make use of scala
+           // default parameters from kotlin, it becomes painfully obvious that
+           // we're dealing with cpg-internal here. We should make the necessary
+           // extensions of fields such as `MetaData` at the SL side later in
+           // the process to reduce the number of fields that need to be set in
+           // OSS components despite not being meaningful there.
+           is MetaDataVertex -> NewMetaData(v.language, v.version,
+                   `List$`.`MODULE$`.empty(),
+                   `List$`.`MODULE$`.empty(),
+                   Some(""),
+                   Option.empty())
            else -> TODO("Not implemented")
        }
     }
