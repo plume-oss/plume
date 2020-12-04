@@ -21,6 +21,10 @@ class OverflowDbDriver : IDriver {
 
     val graph : Graph = createEmptyGraph()
 
+    fun connect() {
+
+    }
+
     private fun createEmptyGraph() : Graph {
         // TODO pass file name from the outside
         val dbFileName = "/tmp/foo.odb"
@@ -32,7 +36,11 @@ class OverflowDbDriver : IDriver {
 
     override fun addVertex(v: PlumeVertex) {
         val id = v.hashCode()
+        val node = convert(v)
         val newNode = graph.addNode(id.toLong(), "label")
+        node.properties().foreachEntry { key, value ->
+            newNode.setProperty(key, value)
+        }
     }
 
     private fun convert(v : PlumeVertex) : NewNode {
