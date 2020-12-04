@@ -8,11 +8,8 @@ import scala.Some
 import za.ac.sun.plume.domain.enums.EdgeLabel
 import za.ac.sun.plume.domain.models.PlumeGraph
 import za.ac.sun.plume.domain.models.PlumeVertex
-import za.ac.sun.plume.domain.models.vertices.BindingVertex
-import za.ac.sun.plume.domain.models.vertices.MetaDataVertex
 import scala.collection.immutable.`List$`
-import za.ac.sun.plume.domain.models.vertices.ArrayInitializerVertex
-import za.ac.sun.plume.domain.models.vertices.TypeVertex
+import za.ac.sun.plume.domain.models.vertices.*
 
 /**
  * Driver to create an overflowDB database file from Plume's domain classes.
@@ -76,7 +73,15 @@ class OverflowDbDriver : IDriver {
                    v.order, -1 ,
                    Option.empty(),
                    Option.empty())
-           else -> TODO("Not implemented")
+           is ControlStructureVertex -> NewControlStructure(v.code, Some(v.columnNumber), Some(v.lineNumber), v.order, "", -1,
+                   Option.empty(),
+                   Option.empty())
+           is JumpTargetVertex -> NewJumpTarget(v.code, v.name, Some(v.columnNumber), Some(v.lineNumber), v.order, "", -1, Option.empty())
+           else -> {
+               println(v)
+               TODO("Not implemented")
+           }
+
        }
     }
 
@@ -85,11 +90,23 @@ class OverflowDbDriver : IDriver {
     }
 
     override fun exists(fromV: PlumeVertex, toV: PlumeVertex, edge: EdgeLabel): Boolean {
-        TODO("Not yet implemented")
+        val srcNode = graph.node(fromV.hashCode().toLong())
+        val dstNode = graph.node(toV.hashCode().toLong())
+        return srcNode != null && srcNode.out(edge.name).asSequence().toList().filter { node -> node.id().equals(dstNode.id()) }.isNotEmpty()
     }
 
     override fun addEdge(fromV: PlumeVertex, toV: PlumeVertex, edge: EdgeLabel) {
-        TODO("Not yet implemented")
+        var srcNode = graph.node(fromV.hashCode().toLong())
+        if (srcNode == null) {
+            addVertex(fromV)
+            srcNode = graph.node(fromV.hashCode().toLong())
+        }
+        var dstNode = graph.node(toV.hashCode().toLong())
+        if (dstNode == null) {
+            addVertex(toV)
+            dstNode = graph.node(toV.hashCode().toLong())
+        }
+        srcNode.addEdge(edge.name, dstNode)
     }
 
     override fun maxOrder(): Int {
