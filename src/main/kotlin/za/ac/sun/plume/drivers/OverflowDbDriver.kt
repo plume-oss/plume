@@ -1,5 +1,6 @@
 package za.ac.sun.plume.drivers
 
+import io.shiftleft.codepropertygraph.Cpg
 import io.shiftleft.codepropertygraph.generated.nodes.NewNode
 import overflowdb.Config
 import overflowdb.Graph
@@ -19,16 +20,23 @@ import za.ac.sun.plume.domain.models.PlumeVertex
  * */
 class OverflowDbDriver : IDriver {
 
-    val graph : Graph = createEmptyGraph()
+    private var graph : Graph = createEmptyGraph()
+
+    var dbfilename: String = ""
+        private set
+
+    fun dbfilename(value: String) = apply { dbfilename = value }
 
     fun connect() {
-
+        graph = createEmptyGraph()
     }
 
     private fun createEmptyGraph() : Graph {
-        // TODO pass file name from the outside
-        val dbFileName = "/tmp/foo.odb"
-        val odbConfig = Config.withDefaults().withStorageLocation(dbFileName)
+        val odbConfig = if (dbfilename != "") {
+            Config.withDefaults().withStorageLocation(dbfilename)
+        } else {
+            Config.withDefaults()
+        }
         return Graph.open(odbConfig,
                 io.shiftleft.codepropertygraph.generated.nodes.Factories.allAsJava(),
                 io.shiftleft.codepropertygraph.generated.edges.Factories.allAsJava())
