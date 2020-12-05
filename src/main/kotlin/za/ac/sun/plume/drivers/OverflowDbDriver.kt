@@ -55,24 +55,19 @@ class OverflowDbDriver : IDriver {
         }
     }
 
-    // TODO this highlights a problem: since we can't make use of scala
-    // default parameters from kotlin, it becomes painfully obvious that
-    // we're dealing with cpg-internal here. We should make the necessary
-    // extensions of fields such as `MetaData` at the SL side later in
-    // the process to reduce the number of fields that need to be set in
-    // OSS components despite not being meaningful there.
-
     private fun convert(v : PlumeVertex) : NewNode {
         return when(v) {
-           is BindingVertex -> binding(v.name, v.signature)
-           is MetaDataVertex -> metaData(v.language, v.version)
-           is TypeVertex -> NewType(v.name, v.fullName, v.typeDeclFullName)
-           is ArrayInitializerVertex -> arrayInitializer(v.order)
-           is ControlStructureVertex -> controlStructure(v.code, v.columnNumber, v.lineNumber, v.order)
-           is JumpTargetVertex -> jumpTarget(v.code, v.name, v.columnNumber, v.lineNumber, v.order)
-           is MethodVertex ->
-               method(v.code, v.name, v.fullName, v.signature, v.order)
-           else -> {
+            is ArrayInitializerVertex -> arrayInitializer(v.order)
+            is BindingVertex -> binding(v.name, v.signature)
+            is ControlStructureVertex -> controlStructure(v.code, v.columnNumber, v.lineNumber, v.order)
+            is FileVertex -> file(v.name, v.order)
+            is JumpTargetVertex -> jumpTarget(v.code, v.name, v.columnNumber, v.lineNumber, v.order)
+            is LocalVertex -> local(v.code, v.name, v.columnNumber, v.lineNumber, v.order, v.typeFullName)
+            is MetaDataVertex -> metaData(v.language, v.version)
+            is MethodVertex ->
+                method(v.code, v.name, v.fullName, v.signature, v.order)
+            is TypeVertex -> NewType(v.name, v.fullName, v.typeDeclFullName)
+            else -> {
                println(v)
                TODO("Not implemented")
            }
