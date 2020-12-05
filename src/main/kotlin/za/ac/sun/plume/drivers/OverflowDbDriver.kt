@@ -68,29 +68,8 @@ class OverflowDbDriver : IDriver {
            is MetaDataVertex -> metaData(v.language, v.version)
            is TypeVertex -> NewType(v.name, v.fullName, v.typeDeclFullName)
            is ArrayInitializerVertex -> arrayInitializer(v.order)
-
-           is ControlStructureVertex ->
-               NewControlStructure(v.code,
-                   Some(v.columnNumber),
-                   Some(v.lineNumber),
-                   v.order,
-                   "",
-                   -1,
-                   Option.empty(),
-                   Option.empty()
-               )
-
-           is JumpTargetVertex ->
-               NewJumpTarget(v.code,
-                   v.name,
-                   Some(v.columnNumber),
-                   Some(v.lineNumber),
-                   v.order,
-                   "",
-                   -1,
-                   Option.empty()
-               )
-
+           is ControlStructureVertex -> controlStructure(v.code, v.columnNumber, v.lineNumber, v.order)
+           is JumpTargetVertex -> jumpTarget(v.code, v.name, v.columnNumber, v.lineNumber, v.order)
            is MethodVertex ->
                method(v.code, v.name, v.fullName, v.signature, v.order)
            else -> {
