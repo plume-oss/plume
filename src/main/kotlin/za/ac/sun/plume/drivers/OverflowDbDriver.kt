@@ -64,28 +64,10 @@ class OverflowDbDriver : IDriver {
 
     private fun convert(v : PlumeVertex) : NewNode {
         return when(v) {
-           is BindingVertex ->
-               NewBinding(v.name, v.signature, Option.empty())
-
-           is MetaDataVertex ->
-               NewMetaData(v.language,
-                       v.version,
-                       `List$`.`MODULE$`.empty(),
-                       `List$`.`MODULE$`.empty(),
-                       Some(""),
-                       Option.empty()
-               )
-           is TypeVertex ->
-               NewType(v.name, v.fullName, v.typeDeclFullName)
-
-           is ArrayInitializerVertex ->
-               NewArrayInitializer(Option.empty(),
-                       Option.empty(),
-                       "",
-                       v.order, -1 ,
-                       Option.empty(),
-                       Option.empty()
-               )
+           is BindingVertex -> binding(v.name, v.signature)
+           is MetaDataVertex -> metaData(v.language, v.version)
+           is TypeVertex -> NewType(v.name, v.fullName, v.typeDeclFullName)
+           is ArrayInitializerVertex -> arrayInitializer(v.order)
 
            is ControlStructureVertex ->
                NewControlStructure(v.code,
@@ -110,24 +92,7 @@ class OverflowDbDriver : IDriver {
                )
 
            is MethodVertex ->
-               method(v.fullName)
-//               NewMethod(v.code,
-//                       v.name,
-//                       v.fullName,
-//                       false,
-//                       v.signature,
-//                       "",
-//                       "",
-//                       Some(v.lineNumber),
-//                       Some(v.columnNumber),
-//                       Option.empty(),
-//                       Option.empty(),
-//                       v.order,
-//                       "",
-//                       Option.empty(),
-//                       Option.empty(),
-//                       Option.empty(),
-//                       Option.empty())
+               method(v.code, v.name, v.fullName, v.signature, v.order)
            else -> {
                println(v)
                TODO("Not implemented")
