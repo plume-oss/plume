@@ -10,6 +10,7 @@ import za.ac.sun.plume.domain.models.PlumeGraph
 import za.ac.sun.plume.domain.models.PlumeVertex
 import scala.collection.immutable.`List$`
 import za.ac.sun.plume.domain.models.vertices.*
+import za.ac.sun.plume.CpgDomainObjCreator.*
 
 /**
  * Driver to create an overflowDB database file from Plume's domain classes.
@@ -54,29 +55,79 @@ class OverflowDbDriver : IDriver {
         }
     }
 
+    // TODO this highlights a problem: since we can't make use of scala
+    // default parameters from kotlin, it becomes painfully obvious that
+    // we're dealing with cpg-internal here. We should make the necessary
+    // extensions of fields such as `MetaData` at the SL side later in
+    // the process to reduce the number of fields that need to be set in
+    // OSS components despite not being meaningful there.
+
     private fun convert(v : PlumeVertex) : NewNode {
-       return when(v) {
-           is BindingVertex -> NewBinding(v.name, v.signature, Option.empty())
-           // TODO this highlights a problem: since we can't make use of scala
-           // default parameters from kotlin, it becomes painfully obvious that
-           // we're dealing with cpg-internal here. We should make the necessary
-           // extensions of fields such as `MetaData` at the SL side later in
-           // the process to reduce the number of fields that need to be set in
-           // OSS components despite not being meaningful there.
-           is MetaDataVertex -> NewMetaData(v.language, v.version,
-                   `List$`.`MODULE$`.empty(),
-                   `List$`.`MODULE$`.empty(),
-                   Some(""),
-                   Option.empty())
-           is TypeVertex -> NewType(v.name, v.fullName, v.typeDeclFullName)
-           is ArrayInitializerVertex -> NewArrayInitializer(Option.empty(), Option.empty(), "",
-                   v.order, -1 ,
+        return when(v) {
+           is BindingVertex ->
+               NewBinding(v.name, v.signature, Option.empty())
+
+           is MetaDataVertex ->
+               NewMetaData(v.language,
+                       v.version,
+                       `List$`.`MODULE$`.empty(),
+                       `List$`.`MODULE$`.empty(),
+                       Some(""),
+                       Option.empty()
+               )
+           is TypeVertex ->
+               NewType(v.name, v.fullName, v.typeDeclFullName)
+
+           is ArrayInitializerVertex ->
+               NewArrayInitializer(Option.empty(),
+                       Option.empty(),
+                       "",
+                       v.order, -1 ,
+                       Option.empty(),
+                       Option.empty()
+               )
+
+           is ControlStructureVertex ->
+               NewControlStructure(v.code,
+                   Some(v.columnNumber),
+                   Some(v.lineNumber),
+                   v.order,
+                   "",
+                   -1,
                    Option.empty(),
-                   Option.empty())
-           is ControlStructureVertex -> NewControlStructure(v.code, Some(v.columnNumber), Some(v.lineNumber), v.order, "", -1,
-                   Option.empty(),
-                   Option.empty())
-           is JumpTargetVertex -> NewJumpTarget(v.code, v.name, Some(v.columnNumber), Some(v.lineNumber), v.order, "", -1, Option.empty())
+                   Option.empty()
+               )
+
+           is JumpTargetVertex ->
+               NewJumpTarget(v.code,
+                   v.name,
+                   Some(v.columnNumber),
+                   Some(v.lineNumber),
+                   v.order,
+                   "",
+                   -1,
+                   Option.empty()
+               )
+
+           is MethodVertex ->
+               method(v.fullName)
+//               NewMethod(v.code,
+//                       v.name,
+//                       v.fullName,
+//                       false,
+//                       v.signature,
+//                       "",
+//                       "",
+//                       Some(v.lineNumber),
+//                       Some(v.columnNumber),
+//                       Option.empty(),
+//                       Option.empty(),
+//                       v.order,
+//                       "",
+//                       Option.empty(),
+//                       Option.empty(),
+//                       Option.empty(),
+//                       Option.empty())
            else -> {
                println(v)
                TODO("Not implemented")

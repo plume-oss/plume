@@ -3,3 +3,4 @@
  */
 
 rootProject.name = 'plume-driver'
+include 'cpgconv'

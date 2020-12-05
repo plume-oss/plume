@@ -1,0 +1,22 @@
+plugins {
+    id 'scala'
+}
+
+repositories {
+    mavenLocal()
+    maven {
+        url = uri('https://repo.maven.apache.org/maven2')
+    }
+    mavenCentral()
+    jcenter()
+    maven { url = "https://kotlin.bintray.com/kotlinx/" }
+}
+
+dependencies {
+    implementation 'io.shiftleft:codepropertygraph_2.13:1.2.26'
+}
+
+group = 'za.ac.sun.plume'
+version = 'X.X.X'
+description = 'Provides a type-safe interface for connecting and writing to various graph databases based on the code-property graph schema.'
+sourceCompatibility = '8'
