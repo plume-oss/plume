@@ -20,6 +20,13 @@ object CpgDomainObjCreator {
   def jumpTarget(code : String, name : String, columnNumber : Int, lineNumber : Int, order : Int) : nodes.NewJumpTarget =
     nodes.NewJumpTarget(code = code, name = name, columnNumber = Some(columnNumber), lineNumber = Some(lineNumber), order = order)
 
+  def identifier(code : String, name : String, columnNumber : Int, lineNumber : Int, order : Int, typeFullName : String, argumentIndex : Int) : nodes.NewIdentifier = nodes.NewIdentifier(
+    code = code, name = name, columnNumber = Some(columnNumber), lineNumber = Some(lineNumber), order = order, typeFullName = typeFullName, argumentIndex = argumentIndex
+  )
+
+  def literal(code : String, columnNumber : Int, lineNumber : Int, order : Int, typeFullName : String, argumentIndex : Int) : nodes.NewLiteral =
+    nodes.NewLiteral(code = code, columnNumber = Some(columnNumber), lineNumber = Some(lineNumber), order = order, typeFullName = typeFullName, argumentIndex = argumentIndex)
+
   def local(code : String, name : String, columnNumber : Int, lineNumber : Int, order : Int, typeFullName : String) : nodes.NewLocal =
     nodes.NewLocal(code = code, name = name, columnNumber = Some(columnNumber), lineNumber = Some(lineNumber), order = order, typeFullName = typeFullName)
 

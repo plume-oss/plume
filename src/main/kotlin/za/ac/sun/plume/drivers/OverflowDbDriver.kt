@@ -61,7 +61,9 @@ class OverflowDbDriver : IDriver {
             is BindingVertex -> binding(v.name, v.signature)
             is ControlStructureVertex -> controlStructure(v.code, v.columnNumber, v.lineNumber, v.order)
             is FileVertex -> file(v.name, v.order)
+            is IdentifierVertex -> identifier(v.code, v.name, v.columnNumber, v.lineNumber, v.order, v.typeFullName, v.argumentIndex)
             is JumpTargetVertex -> jumpTarget(v.code, v.name, v.columnNumber, v.lineNumber, v.order)
+            is LiteralVertex -> literal(v.code, v.columnNumber, v.lineNumber, v.order, v.typeFullName, v.argumentIndex)
             is LocalVertex -> local(v.code, v.name, v.columnNumber, v.lineNumber, v.order, v.typeFullName)
             is MetaDataVertex -> metaData(v.language, v.version)
             is MethodVertex ->
