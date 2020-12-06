@@ -1,17 +1,20 @@
 package za.ac.sun.plume.drivers
 
-import io.shiftleft.codepropertygraph.Cpg
 import io.shiftleft.codepropertygraph.generated.nodes.*
 import overflowdb.Config
 import overflowdb.Graph
+import overflowdb.Node
+import scala.runtime.AbstractFunction0
+import za.ac.sun.plume.CpgDomainObjCreator.*
+import za.ac.sun.plume.Traversals
+import za.ac.sun.plume.domain.enums.DispatchType
 import za.ac.sun.plume.domain.enums.EdgeLabel
+import za.ac.sun.plume.domain.enums.EvaluationStrategy
+import za.ac.sun.plume.domain.exceptions.PlumeSchemaViolationException
 import za.ac.sun.plume.domain.models.PlumeGraph
 import za.ac.sun.plume.domain.models.PlumeVertex
 import za.ac.sun.plume.domain.models.vertices.*
-import za.ac.sun.plume.CpgDomainObjCreator.*
-import za.ac.sun.plume.Traversals
-import za.ac.sun.plume.domain.exceptions.PlumeSchemaViolationException
-import java.lang.RuntimeException
+
 
 /**
  * Driver to create an overflowDB database file from Plume's domain classes.
@@ -60,7 +63,8 @@ class OverflowDbDriver : IDriver {
         return when(v) {
             is ArrayInitializerVertex -> arrayInitializer(v.order)
             is BindingVertex -> binding(v.name, v.signature)
-            is CallVertex -> call(v.code, v.name, v.columnNumber, v.lineNumber, v.order, v.methodFullName, v.argumentIndex, v.signature)
+            is BlockVertex -> block(v.code, v.name, v.columnNumber, v.lineNumber, v.order, v.typeFullName, v.argumentIndex)
+            is CallVertex -> call(v.code, v.name, v.columnNumber, v.lineNumber, v.order, v.methodFullName, v.argumentIndex, v.signature, v.dispatchType.name)
             is ControlStructureVertex -> controlStructure(v.code, v.columnNumber, v.lineNumber, v.order)
             is FileVertex -> file(v.name, v.order)
             is IdentifierVertex -> identifier(v.code, v.name, v.columnNumber, v.lineNumber, v.order, v.typeFullName, v.argumentIndex)
@@ -70,6 +74,10 @@ class OverflowDbDriver : IDriver {
             is MetaDataVertex -> metaData(v.language, v.version)
             is MethodVertex ->
                 method(v.code, v.name, v.fullName, v.signature, v.order)
+            is MethodParameterInVertex -> methodParameter(v.code, v.name, v.lineNumber, v.order, v.evaluationStrategy.name)
+            is MethodReturnVertex -> methodReturn(v.code, v.name, v.columnNumber, v.lineNumber, v.order, v.typeFullName, v.evaluationStrategy.name)
+            is NamespaceBlockVertex -> namespaceBlock(v.name, v.fullName, v.order)
+            is ReturnVertex -> returnNode(v.code, v.lineNumber, v.order, v.argumentIndex)
             is TypeVertex -> NewType(v.name, v.fullName, v.typeDeclFullName)
             is TypeArgumentVertex -> typeArgument(v.order)
             is TypeDeclVertex -> typeDecl(v.name, v.fullName, v.order)
@@ -80,6 +88,49 @@ class OverflowDbDriver : IDriver {
            }
 
        }
+    }
+
+    private fun convert(v : Node) : PlumeVertex {
+        return when(v) {
+            is ArrayInitializer -> ArrayInitializerVertex(v.order())
+            is Block -> BlockVertex("", v.typeFullName(), v.code(), v.order(), v.argumentIndex(), getOrElse(v.lineNumber(), 0), getOrElse(v.columnNumber(), 0))
+            is Call -> CallVertex(v.methodFullName(), v.argumentIndex(),
+                    convertDispatchType(v.dispatchType()), v.typeFullName(),
+                    "", v.name(), v.signature(), v.code(), v.order(),
+                    getOrElse(v.lineNumber(), 0), getOrElse(v.columnNumber(), 0)
+            )
+            is Identifier -> IdentifierVertex(v.name(), v.typeFullName(), v.code(), v.order(), v.argumentIndex(), getOrElse(v.lineNumber(), 0), getOrElse(v.columnNumber(), 0))
+            is Method -> MethodVertex(v.name(), v.fullName(), v.signature(), v.code(),
+                    getOrElse(v.lineNumber(), 0), getOrElse(v.columnNumber(), 0), v.order())
+            is MethodParameterIn -> MethodParameterInVertex(v.code(), convertEvalStrategy(v.evaluationStrategy()) , v.typeFullName(), getOrElse(v.lineNumber(), 0), v.name(), v.order())
+            is MethodReturn -> MethodReturnVertex("", v.typeFullName(),
+                    convertEvalStrategy(v.evaluationStrategy()), v.code(),
+                    getOrElse(v.lineNumber(), 0), getOrElse(v.columnNumber(),0), v.order())
+            is Literal -> LiteralVertex(v.code(), v.typeFullName(), v.code(), v.order(), v.argumentIndex(), getOrElse(v.lineNumber(), 0), getOrElse(v.columnNumber(), 0))
+            is Local -> LocalVertex(v.code(), v.typeFullName(), getOrElse(v.lineNumber(), 0), getOrElse(v.columnNumber(), 0), v.name(), v.order())
+            is Return -> ReturnVertex(getOrElse(v.lineNumber(), 0), getOrElse(v.columnNumber(), 0), v.order(), v.argumentIndex(), v.code())
+            else -> {
+                println(v)
+                TODO("Not implemented")
+            }
+        }
+    }
+
+    private fun convertEvalStrategy(str : String) : EvaluationStrategy {
+        return EvaluationStrategy.valueOf(str)
+    }
+
+    private fun convertDispatchType(str : String) : DispatchType {
+        return DispatchType.valueOf(str)
+    }
+
+    private fun <T>getOrElse(opt : scala.Option<T>, def : T) : T {
+        class F<T>(val x : T) : AbstractFunction0<T>() {
+            override fun apply(): T {
+                return x;
+            }
+        }
+        return opt.getOrElse(F(def))
     }
 
     override fun exists(v: PlumeVertex): Boolean {
@@ -117,6 +168,7 @@ class OverflowDbDriver : IDriver {
     }
 
     override fun clearGraph(): IDriver {
+        Traversals.clearGraph(graph)
         return this
     }
 
@@ -125,7 +177,12 @@ class OverflowDbDriver : IDriver {
     }
 
     override fun getMethod(fullName: String, signature: String): PlumeGraph {
-        TODO("Not yet implemented")
+        val astNodes = Traversals.getMethod(graph, fullName, signature)
+        val plumeGraph = PlumeGraph()
+        astNodes.forEach { node ->
+            plumeGraph.addVertex(convert(node))
+        }
+        return plumeGraph
     }
 
     override fun getMethod(fullName: String, signature: String, includeBody: Boolean): PlumeGraph {
@@ -141,11 +198,14 @@ class OverflowDbDriver : IDriver {
     }
 
     override fun deleteVertex(v: PlumeVertex) {
-        TODO("Not yet implemented")
+        val node = graph.node(v.hashCode().toLong())
+        if (node != null) {
+            graph.remove(node)
+        }
     }
 
     override fun deleteMethod(fullName: String, signature: String) {
-        TODO("Not yet implemented")
+        Traversals.deleteMethod(graph, fullName, signature)
     }
 
     override fun close() {

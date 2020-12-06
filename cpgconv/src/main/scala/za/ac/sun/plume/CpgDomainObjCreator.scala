@@ -11,9 +11,12 @@ object CpgDomainObjCreator {
   def binding(name : String, signature : String): nodes.NewBinding =
     nodes.NewBinding(name = name, signature = signature)
 
-  def call(code : String, name : String, columnNumber : Int, lineNumber : Int, order : Int, methodFullName : String, argumentIndex : Int, signature : String) : nodes.NewCall =
+  def block(code : String, name : String, columnNumber : Int, lineNumber : Int, order : Int, typeFullName : String, argumentIndex : Int) : nodes.NewBlock =
+    nodes.NewBlock(code = code, columnNumber = Some(columnNumber), lineNumber = Some(lineNumber), order = order, typeFullName = typeFullName, argumentIndex = argumentIndex)
+
+  def call(code : String, name : String, columnNumber : Int, lineNumber : Int, order : Int, methodFullName : String, argumentIndex : Int, signature : String, dispatchType : String) : nodes.NewCall =
     nodes.NewCall(code = code, name = name, columnNumber = Some(columnNumber), lineNumber = Some(lineNumber), order = order,
-      methodFullName = methodFullName, argumentIndex = argumentIndex, signature = signature)
+      methodFullName = methodFullName, argumentIndex = argumentIndex, signature = signature, dispatchType = dispatchType)
 
   def controlStructure(code : String, columnNumber : Int, lineNumber : Int, order : Int) : nodes.NewControlStructure =
     nodes.NewControlStructure(code = code, columnNumber = Some(columnNumber), lineNumber = Some(lineNumber), order = order)
@@ -45,6 +48,18 @@ object CpgDomainObjCreator {
       signature = signature,
       order = order
     )
+
+  def methodParameter(code : String, name : String, lineNumber : Int, order : Int, evaluationStrategy : String) : nodes.NewMethodParameterIn =
+    nodes.NewMethodParameterIn(code = code, name = name, lineNumber = Some(lineNumber), order = order, evaluationStrategy = evaluationStrategy)
+
+  def methodReturn(code : String, name : String, columnNumber : Int, lineNumber : Int, order : Int, typeFullName : String, evaluationStrategy : String): nodes.NewMethodReturn =
+    nodes.NewMethodReturn(code = code, columnNumber = Some(columnNumber), lineNumber = Some(lineNumber), order = order,
+      typeFullName = typeFullName, evaluationStrategy = evaluationStrategy)
+
+  def namespaceBlock(name : String, fullName : String, order : Int) : nodes.NewNamespaceBlock = nodes.NewNamespaceBlock(name = name, fullName = fullName, order = order)
+
+  def returnNode(code : String, lineNumber : Int, order : Int, argumentIndex : Int) : nodes.NewReturn =
+    nodes.NewReturn(code = code, lineNumber = Some(lineNumber), order = order, argumentIndex = argumentIndex)
 
   def typeArgument(order : Int) : nodes.NewTypeArgument =
     nodes.NewTypeArgument(order = order)
