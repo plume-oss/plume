@@ -24,7 +24,7 @@ class TestDomainResources {
         val vertices = listOf(
                 ArrayInitializerVertex(INT_1),
                 BindingVertex(STRING_1, STRING_2),
-                BlockVertex(STRING_1, STRING_1, STRING_1, INT_1, INT_1, INT_1, INT_1),
+                BlockVertex(STRING_1, STRING_1, INT_1, INT_1, INT_1, INT_1),
                 CallVertex(STRING_1, INT_1, DISPATCH_1, STRING_1, STRING_1, STRING_1, STRING_1, STRING_1, INT_1, INT_1, INT_1),
                 ControlStructureVertex(STRING_1, STRING_1, INT_1, INT_1, INT_1, INT_1),
                 FieldIdentifierVertex(STRING_1, STRING_1, INT_1, INT_1, INT_1, INT_1),
@@ -52,7 +52,7 @@ class TestDomainResources {
 
         val v1 = MethodVertex(STRING_1, STRING_1, STRING_2, STRING_1, INT_1, INT_2, INT_1)
         val v2 = MethodParameterInVertex(STRING_1, EVAL_1, STRING_1, INT_1, STRING_2, INT_2)
-        val v3 = BlockVertex(STRING_1, STRING_1, STRING_1, INT_1, INT_2, INT_2, INT_1)
+        val v3 = BlockVertex(STRING_1, STRING_1, INT_1, INT_2, INT_2, INT_1)
         val v4 = CallVertex(STRING_1, INT_1, DISPATCH_1, STRING_1, STRING_1, STRING_2, STRING_2, STRING_2, INT_1, INT_1, INT_1)
         val v5 = LocalVertex(STRING_1, STRING_2, INT_1, INT_1, STRING_1, INT_1)
         val v6 = IdentifierVertex(STRING_1, STRING_1, STRING_1, INT_1, INT_1, INT_1, INT_1)

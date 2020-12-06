@@ -541,7 +541,7 @@ class OverflowDbDriverTest {
         @Test
         fun testGetMethodBody() {
             val plumeGraph = driver.getMethod(TestDomainResources.v1.fullName, TestDomainResources.v1.signature, true)
-            // assertEquals("PlumeGraph(vertices:9, edges:15)", plumeGraph.toString())
+            assertEquals("PlumeGraph(vertices:9, edges:15)", plumeGraph.toString())
             val graphVertices = plumeGraph.vertices()
             assertEquals(9, graphVertices.size)
             // Assert no program structure vertices part of the method body
@@ -570,7 +570,6 @@ class OverflowDbDriverTest {
                             TestDomainResources.v10
                     ) ?: false
             )
-            // TODO this one fails because Block nodes don't have a name field
             assertTrue(
                     plumeGraph.edgesOut(TestDomainResources.v1)[EdgeLabel.CFG]?.contains(
                             TestDomainResources.v3

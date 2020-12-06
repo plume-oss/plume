@@ -2,9 +2,9 @@ package za.ac.sun.plume.drivers
 
 import io.shiftleft.codepropertygraph.generated.nodes.*
 import overflowdb.Config
+import overflowdb.Edge
 import overflowdb.Graph
 import overflowdb.Node
-import scala.Tuple2
 import scala.runtime.AbstractFunction0
 import za.ac.sun.plume.CpgDomainObjCreator.*
 import za.ac.sun.plume.Traversals
@@ -64,8 +64,8 @@ class OverflowDbDriver : IDriver {
         return when(v) {
             is ArrayInitializerVertex -> arrayInitializer(v.order)
             is BindingVertex -> binding(v.name, v.signature)
-            is BlockVertex -> block(v.code, v.name, v.columnNumber, v.lineNumber, v.order, v.typeFullName, v.argumentIndex)
-            is CallVertex -> call(v.code, v.name, v.columnNumber, v.lineNumber, v.order, v.methodFullName, v.argumentIndex, v.signature, v.dispatchType.name)
+            is BlockVertex -> block(v.code, v.columnNumber, v.lineNumber, v.order, v.typeFullName, v.argumentIndex)
+            is CallVertex -> call(v.code, v.name, v.columnNumber, v.lineNumber, v.order, v.methodFullName, v.argumentIndex, v.signature, v.dispatchType.name, v.dynamicTypeHintFullName)
             is ControlStructureVertex -> controlStructure(v.code, v.columnNumber, v.lineNumber, v.order)
             is FileVertex -> file(v.name, v.order)
             is IdentifierVertex -> identifier(v.code, v.name, v.columnNumber, v.lineNumber, v.order, v.typeFullName, v.argumentIndex)
@@ -94,12 +94,13 @@ class OverflowDbDriver : IDriver {
     private fun convert(v : Node) : PlumeVertex {
         return when(v) {
             is ArrayInitializer -> ArrayInitializerVertex(v.order())
-            is Block -> BlockVertex("", v.typeFullName(), v.code(), v.order(), v.argumentIndex(), getOrElse(v.lineNumber(), 0), getOrElse(v.columnNumber(), 0))
+            is Block -> BlockVertex(v.typeFullName(), v.code(), v.order(), v.argumentIndex(), getOrElse(v.lineNumber(), 0), getOrElse(v.columnNumber(), 0))
             is Call -> CallVertex(v.methodFullName(), v.argumentIndex(),
                     convertDispatchType(v.dispatchType()), v.typeFullName(),
-                    "", v.name(), v.signature(), v.code(), v.order(),
+                    getOrElse(v.dynamicTypeHintFullName().headOption(), ""), v.name(), v.signature(), v.code(), v.order(),
                     getOrElse(v.lineNumber(), 0), getOrElse(v.columnNumber(), 0)
             )
+            is File -> FileVertex(v.name(), "", v.order())
             is Identifier -> IdentifierVertex(v.name(), v.typeFullName(), v.code(), v.order(), v.argumentIndex(), getOrElse(v.lineNumber(), 0), getOrElse(v.columnNumber(), 0))
             is Method -> MethodVertex(v.name(), v.fullName(), v.signature(), v.code(),
                     getOrElse(v.lineNumber(), 0), getOrElse(v.columnNumber(), 0), v.order())
@@ -179,32 +180,28 @@ class OverflowDbDriver : IDriver {
 
     override fun getMethod(fullName: String, signature: String): PlumeGraph {
         val ast = Traversals.getMethod(graph, fullName, signature)
-        return astToPlumeGraph(ast)
+        return edgeListToPlumeGraph(ast)
     }
 
     override fun getMethod(fullName: String, signature: String, includeBody: Boolean): PlumeGraph {
         if (includeBody) return getMethod(fullName, signature)
-        return astToPlumeGraph(Traversals.getMethodStub(graph, fullName, signature))
+        return edgeListToPlumeGraph(Traversals.getMethodStub(graph, fullName, signature))
     }
 
-    private fun astToPlumeGraph(ast : List<Tuple2<AstNode, List<AstNode>>>) : PlumeGraph {
+    private fun edgeListToPlumeGraph(edges : List<Edge>) : PlumeGraph {
         val plumeGraph = PlumeGraph()
 
-        val plumeVertices = ast.map{ pair ->
-            val node = pair._1
-            Pair(node.id(), convert(node))
-        }.toMap()
+        val plumeVertices = edges.flatMap{ edge -> listOf(edge.inNode(), edge.outNode()) }
+                .distinct()
+                .map{node -> Pair(node.id(), convert(node)) }
+                .toMap()
 
         plumeVertices.values.forEach { v -> plumeGraph.addVertex(v) }
-        ast.forEach{ pair ->
-            val parent = pair._1
-            val children = pair._2
-            children.forEach{ child ->
-                val plumeParent = plumeVertices.get(parent.id())
-                val plumeChild = plumeVertices.get(child.id())
-                if (plumeParent != null && plumeChild != null) {
-                    plumeGraph.addEdge(plumeParent, plumeChild, EdgeLabel.AST)
-                }
+        edges.forEach { edge ->
+            val srcNode = plumeVertices.get(edge.outNode().id())
+            val dstNode = plumeVertices.get(edge.inNode().id())
+            if (srcNode != null && dstNode != null) {
+                plumeGraph.addEdge(srcNode, dstNode, EdgeLabel.valueOf(edge.label()))
             }
         }
         return plumeGraph

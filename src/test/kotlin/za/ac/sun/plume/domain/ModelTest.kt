@@ -53,7 +53,7 @@ class ModelTest {
         @Test
         fun blockVertexToString() {
             val vertex = TestDomainResources.vertices.first { it is BlockVertex }
-            assertEquals("BlockVertex(name='$STRING_1', typeFullName='$STRING_1')", vertex.toString())
+            assertEquals("BlockVertex(typeFullName='$STRING_1')", vertex.toString())
         }
 
         @Test
@@ -225,13 +225,13 @@ class ModelTest {
 
         @Test
         fun blockVertexEquality() {
-            val vertex1 = BlockVertex(STRING_1, STRING_1, STRING_1, INT_1, INT_1, INT_1, INT_1)
-            val vertex2 = BlockVertex(STRING_1, STRING_1, STRING_1, INT_1, INT_1, INT_1, INT_1)
-            val vertex3 = BlockVertex(STRING_1, STRING_2, STRING_1, INT_1, INT_1, INT_1, INT_1)
-            val vertex4 = BlockVertex(STRING_1, STRING_1, STRING_2, INT_1, INT_1, INT_1, INT_1)
-            val vertex5 = BlockVertex(STRING_1, STRING_1, STRING_1, INT_2, INT_1, INT_1, INT_1)
-            val vertex6 = BlockVertex(STRING_1, STRING_1, STRING_1, INT_1, INT_2, INT_1, INT_1)
-            val vertex7 = BlockVertex(STRING_1, STRING_1, STRING_1, INT_1, INT_1, INT_2, INT_1)
+            val vertex1 = BlockVertex(STRING_1, STRING_1, INT_1, INT_1, INT_1, INT_1)
+            val vertex2 = BlockVertex(STRING_1, STRING_1, INT_1, INT_1, INT_1, INT_1)
+            val vertex3 = BlockVertex(STRING_2, STRING_1, INT_1, INT_1, INT_1, INT_1)
+            val vertex4 = BlockVertex(STRING_1, STRING_2, INT_1, INT_1, INT_1, INT_1)
+            val vertex5 = BlockVertex(STRING_1, STRING_1, INT_2, INT_1, INT_1, INT_1)
+            val vertex6 = BlockVertex(STRING_1, STRING_1, INT_1, INT_2, INT_1, INT_1)
+            val vertex7 = BlockVertex(STRING_1, STRING_1, INT_1, INT_1, INT_2, INT_1)
             assertVertexEquality(vertex1, vertex2)
             assertVertexInequality(vertex1, vertex3)
             assertVertexInequality(vertex1, vertex4)
@@ -636,10 +636,9 @@ class ModelTest {
 
         @Test
         fun blockVertexEquality() {
-            val vertex1 = BlockVertex(STRING_1, STRING_1, STRING_1, INT_1, INT_1, INT_1, INT_1)
+            val vertex1 = BlockVertex(STRING_1, STRING_1, INT_1, INT_1, INT_1, INT_1)
             assertEquals(VertexLabel.BLOCK, BlockVertex.LABEL)
             assertEquals(EnumSet.of(VertexBaseTrait.EXPRESSION), BlockVertex.TRAITS)
-            assertEquals(vertex1.name, STRING_1)
             assertEquals(vertex1.code, STRING_1)
             assertEquals(vertex1.order, INT_1)
             assertEquals(vertex1.typeFullName, STRING_1)
@@ -936,7 +935,7 @@ class ModelTest {
 
         private val v1 = MethodVertex(STRING_1, STRING_1, STRING_2, STRING_1, INT_1, INT_2, INT_1)
         private val v2 = MethodParameterInVertex(STRING_1, EVAL_1, STRING_1, INT_1, STRING_2, INT_2)
-        private val v3 = BlockVertex(STRING_1, STRING_1, STRING_1, INT_1, INT_2, INT_2, INT_1)
+        private val v3 = BlockVertex(STRING_1, STRING_1, INT_1, INT_2, INT_2, INT_1)
         private val v4 = CallVertex(STRING_1, INT_1, DISPATCH_1, STRING_1, STRING_1, STRING_2, STRING_2, STRING_2, INT_1, INT_1, INT_1)
         private val v5 = LocalVertex(STRING_1, STRING_2, INT_1, INT_1, STRING_1, INT_1)
         private val v6 = IdentifierVertex(STRING_1, STRING_1, STRING_1, INT_1, INT_1, INT_1, INT_1)

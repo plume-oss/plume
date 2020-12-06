@@ -174,7 +174,6 @@ class VertexMapper {
                         columnNumber = map["columnNumber"] as Int
                 )
                 BLOCK -> BlockVertex(
-                        name = map["name"] as String,
                         code = map["code"] as String,
                         typeFullName = map["typeFullName"] as String,
                         order = map["order"] as Int,

@@ -3,9 +3,10 @@ package za.ac.sun.plume
 import java.util
 
 import io.shiftleft.codepropertygraph.Cpg
+import io.shiftleft.codepropertygraph.generated.EdgeTypes
 import io.shiftleft.codepropertygraph.generated.nodes.{AstNode, HasOrder}
 import io.shiftleft.semanticcpg.language._
-import overflowdb.Graph
+import overflowdb.{Edge, Graph}
 
 import scala.jdk.CollectionConverters._
 
@@ -20,17 +21,16 @@ object Traversals {
     nodesToDelete.foreach(v => graph.remove(v))
   }
 
-  def getMethod(graph : Graph, fullName : String, signature : String): util.List[(AstNode, util.List[AstNode])] = {
+  def getMethod(graph : Graph, fullName : String, signature : String): util.List[Edge] = {
     Cpg(graph).method.fullNameExact(fullName).signatureExact(signature)
       .ast
-      .map{ node => (node, node.astChildren.l.asJava) }
+      .outE(EdgeTypes.AST, EdgeTypes.CFG, EdgeTypes.ARGUMENT, EdgeTypes.REF)
       .l.asJava
   }
 
-  def getMethodStub(graph : Graph, fullName : String, signature : String) : util.List[(AstNode, util.List[AstNode])]  = {
-    Cpg(graph).method.fullNameExact(fullName).signatureExact(signature).map{ m =>
-      (m.asInstanceOf[AstNode], m.astChildren.l.asJava)
-    }.l.asJava
+  def getMethodStub(graph : Graph, fullName : String, signature : String) : util.List[Edge]  = {
+    Cpg(graph).method.fullNameExact(fullName).signatureExact(signature)
+      .outE(EdgeTypes.AST).l.asJava
   }
 
   def clearGraph(graph : Graph) : Unit = {

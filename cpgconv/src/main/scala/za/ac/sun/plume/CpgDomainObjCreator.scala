@@ -1,6 +1,7 @@
 package za.ac.sun.plume
 
 import io.shiftleft.codepropertygraph.generated.nodes
+import io.shiftleft.codepropertygraph.generated.nodes.HasDynamicTypeHintFullName
 
 object CpgDomainObjCreator {
 
@@ -11,12 +12,13 @@ object CpgDomainObjCreator {
   def binding(name : String, signature : String): nodes.NewBinding =
     nodes.NewBinding(name = name, signature = signature)
 
-  def block(code : String, name : String, columnNumber : Int, lineNumber : Int, order : Int, typeFullName : String, argumentIndex : Int) : nodes.NewBlock =
+  def block(code : String, columnNumber : Int, lineNumber : Int, order : Int, typeFullName : String, argumentIndex : Int) : nodes.NewBlock =
     nodes.NewBlock(code = code, columnNumber = Some(columnNumber), lineNumber = Some(lineNumber), order = order, typeFullName = typeFullName, argumentIndex = argumentIndex)
 
-  def call(code : String, name : String, columnNumber : Int, lineNumber : Int, order : Int, methodFullName : String, argumentIndex : Int, signature : String, dispatchType : String) : nodes.NewCall =
+  def call(code : String, name : String, columnNumber : Int, lineNumber : Int, order : Int, methodFullName : String, argumentIndex : Int, signature : String, dispatchType : String,
+           dynamicTypeHintFullName: String) : nodes.NewCall =
     nodes.NewCall(code = code, name = name, columnNumber = Some(columnNumber), lineNumber = Some(lineNumber), order = order,
-      methodFullName = methodFullName, argumentIndex = argumentIndex, signature = signature, dispatchType = dispatchType)
+      methodFullName = methodFullName, argumentIndex = argumentIndex, signature = signature, dispatchType = dispatchType, dynamicTypeHintFullName = List(dynamicTypeHintFullName))
 
   def controlStructure(code : String, columnNumber : Int, lineNumber : Int, order : Int) : nodes.NewControlStructure =
     nodes.NewControlStructure(code = code, columnNumber = Some(columnNumber), lineNumber = Some(lineNumber), order = order)
