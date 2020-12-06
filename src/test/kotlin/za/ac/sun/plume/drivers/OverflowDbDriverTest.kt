@@ -601,7 +601,7 @@ class OverflowDbDriverTest {
                             TestDomainResources.v1
                     ) ?: false
             )
-            // Check method body AST
+            println(plumeGraph.edgesOut(TestDomainResources.v3))
             assertTrue(
                     plumeGraph.edgesOut(TestDomainResources.v3)[EdgeLabel.AST]?.contains(
                             TestDomainResources.v4
@@ -612,6 +612,7 @@ class OverflowDbDriverTest {
                             TestDomainResources.v6
                     ) ?: false
             )
+
             assertTrue(
                     plumeGraph.edgesOut(TestDomainResources.v4)[EdgeLabel.AST]?.contains(
                             TestDomainResources.v8

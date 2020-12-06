@@ -65,7 +65,7 @@ class OverflowDbDriver : IDriver {
             is ArrayInitializerVertex -> arrayInitializer(v.order)
             is BindingVertex -> binding(v.name, v.signature)
             is BlockVertex -> block(v.code, v.columnNumber, v.lineNumber, v.order, v.typeFullName, v.argumentIndex)
-            is CallVertex -> call(v.code, v.name, v.columnNumber, v.lineNumber, v.order, v.methodFullName, v.argumentIndex, v.signature, v.dispatchType.name, v.dynamicTypeHintFullName)
+            is CallVertex -> call(v.code, v.name, v.columnNumber, v.lineNumber, v.order, v.methodFullName, v.argumentIndex, v.signature, v.dispatchType.name, v.dynamicTypeHintFullName, v.typeFullName)
             is ControlStructureVertex -> controlStructure(v.code, v.columnNumber, v.lineNumber, v.order)
             is FileVertex -> file(v.name, v.order)
             is IdentifierVertex -> identifier(v.code, v.name, v.columnNumber, v.lineNumber, v.order, v.typeFullName, v.argumentIndex)
@@ -108,7 +108,7 @@ class OverflowDbDriver : IDriver {
             is MethodReturn -> MethodReturnVertex(v.typeFullName(),
                     convertEvalStrategy(v.evaluationStrategy()), v.code(),
                     getOrElse(v.lineNumber(), 0), getOrElse(v.columnNumber(),0), v.order())
-            is Literal -> LiteralVertex(v.code(), v.typeFullName(), v.code(), v.order(), v.argumentIndex(), getOrElse(v.lineNumber(), 0), getOrElse(v.columnNumber(), 0))
+            is Literal -> LiteralVertex(v.typeFullName(), v.code(), v.order(), v.argumentIndex(), getOrElse(v.lineNumber(), 0), getOrElse(v.columnNumber(), 0))
             is Local -> LocalVertex(v.code(), v.typeFullName(), getOrElse(v.lineNumber(), 0), getOrElse(v.columnNumber(), 0), v.name(), v.order())
             is Return -> ReturnVertex(getOrElse(v.lineNumber(), 0), getOrElse(v.columnNumber(), 0), v.order(), v.argumentIndex(), v.code())
             else -> {

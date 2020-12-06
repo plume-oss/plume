@@ -16,9 +16,10 @@ object CpgDomainObjCreator {
     nodes.NewBlock(code = code, columnNumber = Some(columnNumber), lineNumber = Some(lineNumber), order = order, typeFullName = typeFullName, argumentIndex = argumentIndex)
 
   def call(code : String, name : String, columnNumber : Int, lineNumber : Int, order : Int, methodFullName : String, argumentIndex : Int, signature : String, dispatchType : String,
-           dynamicTypeHintFullName: String) : nodes.NewCall =
+           dynamicTypeHintFullName: String, typeFullName : String) : nodes.NewCall =
     nodes.NewCall(code = code, name = name, columnNumber = Some(columnNumber), lineNumber = Some(lineNumber), order = order,
-      methodFullName = methodFullName, argumentIndex = argumentIndex, signature = signature, dispatchType = dispatchType, dynamicTypeHintFullName = List(dynamicTypeHintFullName))
+      methodFullName = methodFullName, argumentIndex = argumentIndex, signature = signature, dispatchType = dispatchType, dynamicTypeHintFullName = List(dynamicTypeHintFullName),
+      typeFullName = typeFullName)
 
   def controlStructure(code : String, columnNumber : Int, lineNumber : Int, order : Int) : nodes.NewControlStructure =
     nodes.NewControlStructure(code = code, columnNumber = Some(columnNumber), lineNumber = Some(lineNumber), order = order)

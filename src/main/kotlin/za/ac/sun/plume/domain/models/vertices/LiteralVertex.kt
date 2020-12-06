@@ -10,7 +10,6 @@ import java.util.*
  * Literal/Constant.
  */
 class LiteralVertex(
-        val name: String,
         val typeFullName: String,
         code: String,
         order: Int,
@@ -48,7 +47,6 @@ class LiteralVertex(
         if (other !is LiteralVertex) return false
         if (!super.equals(other)) return false
 
-        if (name != other.name) return false
         if (typeFullName != other.typeFullName) return false
 
         return true
@@ -56,12 +54,11 @@ class LiteralVertex(
 
     override fun hashCode(): Int {
         var result = super.hashCode()
-        result = 31 * result + name.hashCode()
         result = 31 * result + typeFullName.hashCode()
         return result
     }
 
     override fun toString(): String {
-        return "LiteralVertex(name='$name', typeFullName='$typeFullName')"
+        return "LiteralVertex(code='$code', typeFullName='$typeFullName')"
     }
 }

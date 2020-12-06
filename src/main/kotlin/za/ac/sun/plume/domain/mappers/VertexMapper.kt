@@ -120,7 +120,6 @@ class VertexMapper {
                         order = map["order"] as Int
                 )
                 LITERAL -> LiteralVertex(
-                        name = map["name"] as String,
                         code = map["code"] as String,
                         typeFullName = map["typeFullName"] as String,
                         lineNumber = map["lineNumber"] as Int,
