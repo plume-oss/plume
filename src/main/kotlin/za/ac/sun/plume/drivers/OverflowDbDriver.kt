@@ -1,16 +1,15 @@
 package za.ac.sun.plume.drivers
 
+import io.shiftleft.codepropertygraph.Cpg
 import io.shiftleft.codepropertygraph.generated.nodes.*
 import overflowdb.Config
 import overflowdb.Graph
-import scala.Option
-import scala.Some
 import za.ac.sun.plume.domain.enums.EdgeLabel
 import za.ac.sun.plume.domain.models.PlumeGraph
 import za.ac.sun.plume.domain.models.PlumeVertex
-import scala.collection.immutable.`List$`
 import za.ac.sun.plume.domain.models.vertices.*
 import za.ac.sun.plume.CpgDomainObjCreator.*
+import za.ac.sun.plume.Traversals
 import za.ac.sun.plume.domain.exceptions.PlumeSchemaViolationException
 import java.lang.RuntimeException
 
@@ -114,7 +113,7 @@ class OverflowDbDriver : IDriver {
     }
 
     override fun maxOrder(): Int {
-        TODO("Not yet implemented")
+        return Traversals.maxOrder(graph)
     }
 
     override fun clearGraph(): IDriver {

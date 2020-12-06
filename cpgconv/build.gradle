@@ -14,6 +14,7 @@ repositories {
 
 dependencies {
     implementation 'io.shiftleft:codepropertygraph_2.13:1.2.26'
+    implementation 'io.shiftleft:semanticcpg_2.13:1.2.26'
 }
 
 group = 'za.ac.sun.plume'
