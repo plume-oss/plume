@@ -230,7 +230,7 @@ class OverflowDbDriver : IDriver {
     }
 
     override fun getProgramStructure(): PlumeGraph {
-        TODO("Not yet implemented")
+        return edgeListToPlumeGraph(Traversals.getProgramStructure(graph))
     }
 
     override fun getNeighbours(v: PlumeVertex): PlumeGraph {

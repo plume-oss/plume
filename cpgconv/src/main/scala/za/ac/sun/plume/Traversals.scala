@@ -37,6 +37,10 @@ object Traversals {
     Cpg(graph).all.map{node => (node, node.outE.asScala.toList.asJava) }.l.asJava
   }
 
+  def getProgramStructure(graph : Graph) : util.List[Edge] = {
+    Cpg(graph).file.ast.outE(EdgeTypes.AST).l.asJava
+  }
+
   def clearGraph(graph : Graph) : Unit = {
     val nodesToDelete = Cpg(graph).all.l
     nodesToDelete.foreach(v => graph.remove(v))
