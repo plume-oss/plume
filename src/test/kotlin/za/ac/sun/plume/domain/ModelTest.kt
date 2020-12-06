@@ -131,7 +131,7 @@ class ModelTest {
         @Test
         fun methodReturnVertexToString() {
             val vertex = TestDomainResources.vertices.first { it is MethodReturnVertex }
-            assertEquals("MethodReturnVertex(name='$STRING_1', typeFullName='$STRING_1', evaluationStrategy=$EVAL_1)", vertex.toString())
+            assertEquals("MethodReturnVertex(typeFullName='$STRING_1', evaluationStrategy=$EVAL_1)", vertex.toString())
         }
 
         @Test
@@ -464,16 +464,14 @@ class ModelTest {
 
         @Test
         fun methodReturnVertexEquality() {
-            val vertex1 = MethodReturnVertex(STRING_1, STRING_1, EVAL_1, STRING_1, INT_1, INT_1, INT_1)
-            val vertex2 = MethodReturnVertex(STRING_1, STRING_1, EVAL_1, STRING_1, INT_1, INT_1, INT_1)
-            val vertex3 = MethodReturnVertex(STRING_2, STRING_1, EVAL_1, STRING_1, INT_1, INT_1, INT_1)
-            val vertex4 = MethodReturnVertex(STRING_1, STRING_2, EVAL_1, STRING_1, INT_1, INT_1, INT_1)
-            val vertex5 = MethodReturnVertex(STRING_1, STRING_1, EVAL_2, STRING_1, INT_1, INT_1, INT_1)
-            val vertex6 = MethodReturnVertex(STRING_1, STRING_1, EVAL_1, STRING_2, INT_1, INT_1, INT_1)
-            val vertex7 = MethodReturnVertex(STRING_1, STRING_1, EVAL_1, STRING_1, INT_2, INT_1, INT_1)
-            val vertex8 = MethodReturnVertex(STRING_1, STRING_1, EVAL_1, STRING_1, INT_1, INT_2, INT_1)
+            val vertex1 = MethodReturnVertex(STRING_1, EVAL_1, STRING_1, INT_1, INT_1, INT_1)
+            val vertex2 = MethodReturnVertex(STRING_1, EVAL_1, STRING_1, INT_1, INT_1, INT_1)
+            val vertex4 = MethodReturnVertex(STRING_2, EVAL_1, STRING_1, INT_1, INT_1, INT_1)
+            val vertex5 = MethodReturnVertex(STRING_1, EVAL_2, STRING_1, INT_1, INT_1, INT_1)
+            val vertex6 = MethodReturnVertex(STRING_1, EVAL_1, STRING_2, INT_1, INT_1, INT_1)
+            val vertex7 = MethodReturnVertex(STRING_1, EVAL_1, STRING_1, INT_2, INT_1, INT_1)
+            val vertex8 = MethodReturnVertex(STRING_1, EVAL_1, STRING_1, INT_1, INT_2, INT_1)
             assertVertexEquality(vertex1, vertex2)
-            assertVertexInequality(vertex1, vertex3)
             assertVertexInequality(vertex1, vertex4)
             assertVertexInequality(vertex1, vertex5)
             assertVertexInequality(vertex1, vertex6)
@@ -805,10 +803,9 @@ class ModelTest {
 
         @Test
         fun methodReturnVertexEquality() {
-            val vertex1 = MethodReturnVertex(STRING_1, STRING_1, EVAL_1, STRING_1, INT_1, INT_1, INT_1)
+            val vertex1 = MethodReturnVertex(STRING_1, EVAL_1, STRING_1, INT_1, INT_1, INT_1)
             assertEquals(VertexLabel.METHOD_RETURN, MethodReturnVertex.LABEL)
             assertEquals(EnumSet.of(VertexBaseTrait.CFG_NODE, VertexBaseTrait.TRACKING_POINT), MethodReturnVertex.TRAITS)
-            assertEquals(vertex1.name, STRING_1)
             assertEquals(vertex1.code, STRING_1)
             assertEquals(vertex1.order, INT_1)
             assertEquals(vertex1.typeFullName, STRING_1)
@@ -946,7 +943,7 @@ class ModelTest {
         private val v7 = TypeDeclVertex(STRING_1, STRING_2, STRING_1, INT_1)
         private val v8 = LiteralVertex(STRING_1, STRING_2, STRING_2, INT_1, INT_1, INT_1, INT_1)
         private val v9 = ReturnVertex(INT_1, INT_1, INT_1, INT_1, STRING_1)
-        private val v10 = MethodReturnVertex(STRING_1, STRING_1, EVAL_1, STRING_1, INT_1, INT_1, INT_1)
+        private val v10 = MethodReturnVertex(STRING_1, EVAL_1, STRING_1, INT_1, INT_1, INT_1)
         private val v11 = FileVertex(STRING_1, STRING_2, INT_1)
         private val v12 = NamespaceBlockVertex(STRING_1, STRING_1, INT_1)
         private val v13 = NamespaceBlockVertex(STRING_2, STRING_2, INT_1)

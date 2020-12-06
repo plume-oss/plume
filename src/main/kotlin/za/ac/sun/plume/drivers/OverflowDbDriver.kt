@@ -74,9 +74,9 @@ class OverflowDbDriver : IDriver {
             is LocalVertex -> local(v.code, v.name, v.columnNumber, v.lineNumber, v.order, v.typeFullName)
             is MetaDataVertex -> metaData(v.language, v.version)
             is MethodVertex ->
-                method(v.code, v.name, v.fullName, v.signature, v.order)
-            is MethodParameterInVertex -> methodParameter(v.code, v.name, v.lineNumber, v.order, v.evaluationStrategy.name)
-            is MethodReturnVertex -> methodReturn(v.code, v.name, v.columnNumber, v.lineNumber, v.order, v.typeFullName, v.evaluationStrategy.name)
+                method(v.code, v.name, v.fullName, v.signature, v.order, v.columnNumber, v.lineNumber)
+            is MethodParameterInVertex -> methodParameter(v.code, v.name, v.lineNumber, v.order, v.evaluationStrategy.name, v.typeFullName)
+            is MethodReturnVertex -> methodReturn(v.code, v.columnNumber, v.lineNumber, v.order, v.typeFullName, v.evaluationStrategy.name)
             is NamespaceBlockVertex -> namespaceBlock(v.name, v.fullName, v.order)
             is ReturnVertex -> returnNode(v.code, v.lineNumber, v.order, v.argumentIndex)
             is TypeVertex -> NewType(v.name, v.fullName, v.typeDeclFullName)
@@ -104,7 +104,7 @@ class OverflowDbDriver : IDriver {
             is Method -> MethodVertex(v.name(), v.fullName(), v.signature(), v.code(),
                     getOrElse(v.lineNumber(), 0), getOrElse(v.columnNumber(), 0), v.order())
             is MethodParameterIn -> MethodParameterInVertex(v.code(), convertEvalStrategy(v.evaluationStrategy()) , v.typeFullName(), getOrElse(v.lineNumber(), 0), v.name(), v.order())
-            is MethodReturn -> MethodReturnVertex("", v.typeFullName(),
+            is MethodReturn -> MethodReturnVertex(v.typeFullName(),
                     convertEvalStrategy(v.evaluationStrategy()), v.code(),
                     getOrElse(v.lineNumber(), 0), getOrElse(v.columnNumber(),0), v.order())
             is Literal -> LiteralVertex(v.code(), v.typeFullName(), v.code(), v.order(), v.argumentIndex(), getOrElse(v.lineNumber(), 0), getOrElse(v.columnNumber(), 0))
@@ -178,7 +178,8 @@ class OverflowDbDriver : IDriver {
     }
 
     override fun getMethod(fullName: String, signature: String): PlumeGraph {
-        return astToPlumeGraph(Traversals.getMethod(graph, fullName, signature))
+        val ast = Traversals.getMethod(graph, fullName, signature)
+        return astToPlumeGraph(ast)
     }
 
     override fun getMethod(fullName: String, signature: String, includeBody: Boolean): PlumeGraph {

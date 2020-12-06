@@ -40,19 +40,21 @@ object CpgDomainObjCreator {
   def metaData(language : String, version : String): nodes.NewMetaData =
     nodes.NewMetaData(language = language, version = version)
 
-  def method(code : String, name: String, fullName : String, signature : String, order : Int): nodes.NewMethod =
+  def method(code : String, name: String, fullName : String, signature : String, order : Int, columnNumber : Int, lineNumber : Int): nodes.NewMethod =
     nodes.NewMethod(
       code = code,
       name = name,
       fullName = fullName,
       signature = signature,
-      order = order
+      order = order,
+      columnNumber = Some(columnNumber),
+      lineNumber = Some(lineNumber)
     )
 
-  def methodParameter(code : String, name : String, lineNumber : Int, order : Int, evaluationStrategy : String) : nodes.NewMethodParameterIn =
-    nodes.NewMethodParameterIn(code = code, name = name, lineNumber = Some(lineNumber), order = order, evaluationStrategy = evaluationStrategy)
+  def methodParameter(code : String, name : String, lineNumber : Int, order : Int, evaluationStrategy : String, typeFullName : String) : nodes.NewMethodParameterIn =
+    nodes.NewMethodParameterIn(code = code, name = name, lineNumber = Some(lineNumber), order = order, evaluationStrategy = evaluationStrategy, typeFullName = typeFullName)
 
-  def methodReturn(code : String, name : String, columnNumber : Int, lineNumber : Int, order : Int, typeFullName : String, evaluationStrategy : String): nodes.NewMethodReturn =
+  def methodReturn(code : String, columnNumber : Int, lineNumber : Int, order : Int, typeFullName : String, evaluationStrategy : String): nodes.NewMethodReturn =
     nodes.NewMethodReturn(code = code, columnNumber = Some(columnNumber), lineNumber = Some(lineNumber), order = order,
       typeFullName = typeFullName, evaluationStrategy = evaluationStrategy)
 

@@ -79,7 +79,6 @@ class VertexMapper {
                         order = map["order"] as Int
                 )
                 METHOD_RETURN -> MethodReturnVertex(
-                        name = map["name"] as String,
                         code = map["code"] as String,
                         evaluationStrategy = EvaluationStrategy.valueOf(map["evaluationStrategy"] as String),
                         typeFullName = map["typeFullName"] as String,

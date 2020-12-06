@@ -12,7 +12,6 @@ import java.util.*
  * A formal method return.
  */
 class MethodReturnVertex(
-        val name: String,
         val typeFullName: String,
         val evaluationStrategy: EvaluationStrategy,
         code: String,
@@ -39,7 +38,6 @@ class MethodReturnVertex(
         if (other !is MethodReturnVertex) return false
         if (!super.equals(other)) return false
 
-        if (name != other.name) return false
         if (typeFullName != other.typeFullName) return false
         if (evaluationStrategy != other.evaluationStrategy) return false
 
@@ -48,13 +46,12 @@ class MethodReturnVertex(
 
     override fun hashCode(): Int {
         var result = super.hashCode()
-        result = 31 * result + name.hashCode()
         result = 31 * result + typeFullName.hashCode()
         result = 31 * result + evaluationStrategy.hashCode()
         return result
     }
 
     override fun toString(): String {
-        return "MethodReturnVertex(name='$name', typeFullName='$typeFullName', evaluationStrategy=$evaluationStrategy)"
+        return "MethodReturnVertex(typeFullName='$typeFullName', evaluationStrategy=$evaluationStrategy)"
     }
 }
