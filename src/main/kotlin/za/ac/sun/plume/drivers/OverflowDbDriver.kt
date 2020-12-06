@@ -234,7 +234,7 @@ class OverflowDbDriver : IDriver {
     }
 
     override fun getNeighbours(v: PlumeVertex): PlumeGraph {
-        TODO("Not yet implemented")
+        return edgeListToPlumeGraph(Traversals.getNeighbours(graph, v.hashCode().toLong()))
     }
 
     override fun deleteVertex(v: PlumeVertex) {

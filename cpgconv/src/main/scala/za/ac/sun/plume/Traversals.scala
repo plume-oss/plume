@@ -41,6 +41,12 @@ object Traversals {
     Cpg(graph).file.ast.outE(EdgeTypes.AST).l.asJava
   }
 
+  def getNeighbours(graph : Graph, nodeId : Long) : util.List[Edge] = {
+    Cpg(graph).id[StoredNode](nodeId).collect{ case x : AstNode => x }
+      .flatMap{ f => List(f) ++ f.astChildren }
+      .inE().l.asJava
+  }
+
   def clearGraph(graph : Graph) : Unit = {
     val nodesToDelete = Cpg(graph).all.l
     nodesToDelete.foreach(v => graph.remove(v))
