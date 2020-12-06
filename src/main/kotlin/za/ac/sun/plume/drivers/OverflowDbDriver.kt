@@ -11,6 +11,8 @@ import za.ac.sun.plume.domain.models.PlumeVertex
 import scala.collection.immutable.`List$`
 import za.ac.sun.plume.domain.models.vertices.*
 import za.ac.sun.plume.CpgDomainObjCreator.*
+import za.ac.sun.plume.domain.exceptions.PlumeSchemaViolationException
+import java.lang.RuntimeException
 
 /**
  * Driver to create an overflowDB database file from Plume's domain classes.
@@ -59,6 +61,7 @@ class OverflowDbDriver : IDriver {
         return when(v) {
             is ArrayInitializerVertex -> arrayInitializer(v.order)
             is BindingVertex -> binding(v.name, v.signature)
+            is CallVertex -> call(v.code, v.name, v.columnNumber, v.lineNumber, v.order, v.methodFullName, v.argumentIndex, v.signature)
             is ControlStructureVertex -> controlStructure(v.code, v.columnNumber, v.lineNumber, v.order)
             is FileVertex -> file(v.name, v.order)
             is IdentifierVertex -> identifier(v.code, v.name, v.columnNumber, v.lineNumber, v.order, v.typeFullName, v.argumentIndex)
@@ -98,7 +101,13 @@ class OverflowDbDriver : IDriver {
             addVertex(toV)
             dstNode = graph.node(toV.hashCode().toLong())
         }
-        srcNode.addEdge(edge.name, dstNode)
+
+        try {
+            srcNode.addEdge(edge.name, dstNode)
+        } catch(exc : RuntimeException) {
+            throw PlumeSchemaViolationException(fromV, toV, edge)
+        }
+
     }
 
     override fun maxOrder(): Int {

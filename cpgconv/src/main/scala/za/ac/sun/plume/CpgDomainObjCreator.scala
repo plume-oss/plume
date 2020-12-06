@@ -11,6 +11,10 @@ object CpgDomainObjCreator {
   def binding(name : String, signature : String): nodes.NewBinding =
     nodes.NewBinding(name = name, signature = signature)
 
+  def call(code : String, name : String, columnNumber : Int, lineNumber : Int, order : Int, methodFullName : String, argumentIndex : Int, signature : String) : nodes.NewCall =
+    nodes.NewCall(code = code, name = name, columnNumber = Some(columnNumber), lineNumber = Some(lineNumber), order = order,
+      methodFullName = methodFullName, argumentIndex = argumentIndex, signature = signature)
+
   def controlStructure(code : String, columnNumber : Int, lineNumber : Int, order : Int) : nodes.NewControlStructure =
     nodes.NewControlStructure(code = code, columnNumber = Some(columnNumber), lineNumber = Some(lineNumber), order = order)
 
