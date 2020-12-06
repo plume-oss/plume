@@ -5,6 +5,7 @@ import overflowdb.Config
 import overflowdb.Edge
 import overflowdb.Graph
 import overflowdb.Node
+import scala.Tuple2
 import scala.runtime.AbstractFunction0
 import za.ac.sun.plume.CpgDomainObjCreator.*
 import za.ac.sun.plume.Traversals
@@ -81,7 +82,7 @@ class OverflowDbDriver : IDriver {
             is ReturnVertex -> returnNode(v.code, v.lineNumber, v.order, v.argumentIndex)
             is TypeVertex -> NewType(v.name, v.fullName, v.typeDeclFullName)
             is TypeArgumentVertex -> typeArgument(v.order)
-            is TypeDeclVertex -> typeDecl(v.name, v.fullName, v.order)
+            is TypeDeclVertex -> typeDecl(v.name, v.fullName, v.order, v.typeDeclFullName)
             is TypeParameterVertex -> typeParameter(v.name, v.order)
             else -> {
                println(v)
@@ -100,8 +101,9 @@ class OverflowDbDriver : IDriver {
                     getOrElse(v.dynamicTypeHintFullName().headOption(), ""), v.name(), v.signature(), v.code(), v.order(),
                     getOrElse(v.lineNumber(), 0), getOrElse(v.columnNumber(), 0)
             )
-            is File -> FileVertex(v.name(), "", v.order())
+            is File -> FileVertex(v.name(), v.order())
             is Identifier -> IdentifierVertex(v.name(), v.typeFullName(), v.code(), v.order(), v.argumentIndex(), getOrElse(v.lineNumber(), 0), getOrElse(v.columnNumber(), 0))
+            is MetaData -> MetaDataVertex(v.language(), v.version())
             is Method -> MethodVertex(v.name(), v.fullName(), v.signature(), v.code(),
                     getOrElse(v.lineNumber(), 0), getOrElse(v.columnNumber(), 0), v.order())
             is MethodParameterIn -> MethodParameterInVertex(v.code(), convertEvalStrategy(v.evaluationStrategy()) , v.typeFullName(), getOrElse(v.lineNumber(), 0), v.name(), v.order())
@@ -110,7 +112,9 @@ class OverflowDbDriver : IDriver {
                     getOrElse(v.lineNumber(), 0), getOrElse(v.columnNumber(),0), v.order())
             is Literal -> LiteralVertex(v.typeFullName(), v.code(), v.order(), v.argumentIndex(), getOrElse(v.lineNumber(), 0), getOrElse(v.columnNumber(), 0))
             is Local -> LocalVertex(v.code(), v.typeFullName(), getOrElse(v.lineNumber(), 0), getOrElse(v.columnNumber(), 0), v.name(), v.order())
+            is NamespaceBlock -> NamespaceBlockVertex(v.name(), v.fullName(), v.order())
             is Return -> ReturnVertex(getOrElse(v.lineNumber(), 0), getOrElse(v.columnNumber(), 0), v.order(), v.argumentIndex(), v.code())
+            is TypeDecl -> TypeDeclVertex(v.name(), v.fullName(), v.astParentFullName(), v.order())
             else -> {
                 println(v)
                 TODO("Not implemented")
@@ -175,17 +179,35 @@ class OverflowDbDriver : IDriver {
     }
 
     override fun getWholeGraph(): PlumeGraph {
-        TODO("Not yet implemented")
+        return nodesWithEdgesToPlumeGraph(Traversals.getWholeGraph(graph))
     }
 
     override fun getMethod(fullName: String, signature: String): PlumeGraph {
-        val ast = Traversals.getMethod(graph, fullName, signature)
-        return edgeListToPlumeGraph(ast)
+        return edgeListToPlumeGraph(Traversals.getMethod(graph, fullName, signature))
     }
 
     override fun getMethod(fullName: String, signature: String, includeBody: Boolean): PlumeGraph {
         if (includeBody) return getMethod(fullName, signature)
         return edgeListToPlumeGraph(Traversals.getMethodStub(graph, fullName, signature))
+    }
+
+    private fun nodesWithEdgesToPlumeGraph(nodesWithEdges : List<Tuple2<StoredNode, List<Edge>>>) : PlumeGraph {
+        val plumeGraph = PlumeGraph()
+        val plumeVertices = nodesWithEdges
+                .map{ x -> x._1 }
+                .distinct()
+                .map{node -> Pair(node.id(), convert(node)) }
+                .toMap()
+        plumeVertices.values.forEach { v -> plumeGraph.addVertex(v) }
+        val edges = nodesWithEdges.flatMap { x -> x._2 }
+        edges.forEach { edge ->
+            val srcNode = plumeVertices.get(edge.outNode().id())
+            val dstNode = plumeVertices.get(edge.inNode().id())
+            if (srcNode != null && dstNode != null) {
+                plumeGraph.addEdge(srcNode, dstNode, EdgeLabel.valueOf(edge.label()))
+            }
+        }
+        return plumeGraph
     }
 
     private fun edgeListToPlumeGraph(edges : List<Edge>) : PlumeGraph {

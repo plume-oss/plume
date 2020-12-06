@@ -1,7 +1,6 @@
 package za.ac.sun.plume
 
 import io.shiftleft.codepropertygraph.generated.nodes
-import io.shiftleft.codepropertygraph.generated.nodes.HasDynamicTypeHintFullName
 
 object CpgDomainObjCreator {
 
@@ -69,8 +68,8 @@ object CpgDomainObjCreator {
   def typeArgument(order : Int) : nodes.NewTypeArgument =
     nodes.NewTypeArgument(order = order)
 
-  def typeDecl(name : String, fullName : String, order : Int) : nodes.NewTypeDecl =
-    nodes.NewTypeDecl(name = name, fullName = fullName, order = order)
+  def typeDecl(name : String, fullName : String, order : Int, typeDeclFullName : String) : nodes.NewTypeDecl =
+    nodes.NewTypeDecl(name = name, fullName = fullName, order = order, astParentFullName = typeDeclFullName)
 
   def typeParameter(name : String, order : Int) : nodes.NewTypeParameter =
     nodes.NewTypeParameter(name = name, order = order)

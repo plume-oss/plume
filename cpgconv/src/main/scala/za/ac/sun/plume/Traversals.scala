@@ -4,7 +4,7 @@ import java.util
 
 import io.shiftleft.codepropertygraph.Cpg
 import io.shiftleft.codepropertygraph.generated.EdgeTypes
-import io.shiftleft.codepropertygraph.generated.nodes.{AstNode, HasOrder}
+import io.shiftleft.codepropertygraph.generated.nodes.{AstNode, HasOrder, StoredNode}
 import io.shiftleft.semanticcpg.language._
 import overflowdb.{Edge, Graph}
 
@@ -31,6 +31,10 @@ object Traversals {
   def getMethodStub(graph : Graph, fullName : String, signature : String) : util.List[Edge]  = {
     Cpg(graph).method.fullNameExact(fullName).signatureExact(signature)
       .outE(EdgeTypes.AST).l.asJava
+  }
+
+  def getWholeGraph(graph : Graph): util.List[(StoredNode, util.List[Edge])] = {
+    Cpg(graph).all.map{node => (node, node.outE.asScala.toList.asJava) }.l.asJava
   }
 
   def clearGraph(graph : Graph) : Unit = {

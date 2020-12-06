@@ -83,7 +83,7 @@ class ModelTest {
         @Test
         fun fileVertexToString() {
             val vertex = TestDomainResources.vertices.first { it is FileVertex }
-            assertEquals("FileVertex(name='$STRING_1', order=$INT_1, hash='$STRING_2')", vertex.toString())
+            assertEquals("FileVertex(name='$STRING_1', order=$INT_1)", vertex.toString())
         }
 
         @Test
@@ -307,14 +307,12 @@ class ModelTest {
 
         @Test
         fun fileVertexEquality() {
-            val vertex1 = FileVertex(STRING_1, STRING_1, INT_1)
-            val vertex2 = FileVertex(STRING_1, STRING_1, INT_1)
-            val vertex3 = FileVertex(STRING_2, STRING_1, INT_1)
-            val vertex4 = FileVertex(STRING_1, STRING_2, INT_1)
-            val vertex5 = FileVertex(STRING_1, STRING_1, INT_2)
+            val vertex1 = FileVertex(STRING_1, INT_1)
+            val vertex2 = FileVertex(STRING_1, INT_1)
+            val vertex3 = FileVertex(STRING_2, INT_1)
+            val vertex5 = FileVertex(STRING_1, INT_2)
             assertVertexEquality(vertex1, vertex2)
             assertVertexInequality(vertex1, vertex3)
-            assertVertexInequality(vertex1, vertex4)
             assertVertexEquality(vertex1, vertex5)
         }
 
@@ -690,11 +688,10 @@ class ModelTest {
 
         @Test
         fun fileVertexEquality() {
-            val vertex1 = FileVertex(STRING_1, STRING_2, INT_1)
+            val vertex1 = FileVertex(STRING_1, INT_1)
             assertEquals(VertexLabel.FILE, FileVertex.LABEL)
             assertEquals(EnumSet.of(VertexBaseTrait.AST_NODE), FileVertex.TRAITS)
             assertEquals(vertex1.name, STRING_1)
-            assertEquals(vertex1.hash, STRING_2)
             assertEquals(vertex1.order, INT_1)
         }
 
@@ -940,7 +937,7 @@ class ModelTest {
         private val v8 = LiteralVertex(STRING_2, STRING_2, INT_1, INT_1, INT_1, INT_1)
         private val v9 = ReturnVertex(INT_1, INT_1, INT_1, INT_1, STRING_1)
         private val v10 = MethodReturnVertex(STRING_1, EVAL_1, STRING_1, INT_1, INT_1, INT_1)
-        private val v11 = FileVertex(STRING_1, STRING_2, INT_1)
+        private val v11 = FileVertex(STRING_1, INT_1)
         private val v12 = NamespaceBlockVertex(STRING_1, STRING_1, INT_1)
         private val v13 = NamespaceBlockVertex(STRING_2, STRING_2, INT_1)
         private val v14 = MetaDataVertex(STRING_1, STRING_2)

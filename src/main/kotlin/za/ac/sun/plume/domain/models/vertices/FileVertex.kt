@@ -9,7 +9,7 @@ import java.util.*
 /**
  * Node representing a source file. Often also the AST root.
  */
-class FileVertex(val name: String, val hash: String, order: Int) : ASTVertex(order) {
+class FileVertex(val name: String, order: Int) : ASTVertex(order) {
     companion object {
         @JvmField
         val LABEL = VertexLabel.FILE
@@ -26,7 +26,6 @@ class FileVertex(val name: String, val hash: String, order: Int) : ASTVertex(ord
         other as FileVertex
 
         if (name != other.name) return false
-        if (hash != other.hash) return false
 
         return true
     }
@@ -34,11 +33,10 @@ class FileVertex(val name: String, val hash: String, order: Int) : ASTVertex(ord
     override fun hashCode(): Int {
         var result = javaClass.hashCode()
         result = 31 * result + name.hashCode()
-        result = 31 * result + hash.hashCode()
         return result
     }
 
     override fun toString(): String {
-        return "FileVertex(name='$name', order=$order, hash='$hash')"
+        return "FileVertex(name='$name', order=$order)"
     }
 }

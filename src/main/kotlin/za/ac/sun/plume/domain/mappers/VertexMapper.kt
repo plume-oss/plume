@@ -58,7 +58,6 @@ class VertexMapper {
                 )
                 FILE -> FileVertex(
                         name = map["name"] as String,
-                        hash = map["hash"] as String,
                         order = map["order"] as Int
                 )
                 METHOD -> MethodVertex(
