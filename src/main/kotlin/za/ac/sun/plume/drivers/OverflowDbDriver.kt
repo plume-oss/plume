@@ -72,6 +72,9 @@ class OverflowDbDriver : IDriver {
             is MethodVertex ->
                 method(v.code, v.name, v.fullName, v.signature, v.order)
             is TypeVertex -> NewType(v.name, v.fullName, v.typeDeclFullName)
+            is TypeArgumentVertex -> typeArgument(v.order)
+            is TypeDeclVertex -> typeDecl(v.name, v.fullName, v.order)
+            is TypeParameterVertex -> typeParameter(v.name, v.order)
             else -> {
                println(v)
                TODO("Not implemented")
