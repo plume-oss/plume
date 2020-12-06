@@ -16,12 +16,21 @@ object Traversals {
   }
 
   def deleteMethod(graph : Graph, fullName : String, signature : String) : Unit = {
-    val nodesToDelete = Cpg(graph).method(fullName).ast.l
+    val nodesToDelete = Cpg(graph).method.fullNameExact(fullName).ast.l
     nodesToDelete.foreach(v => graph.remove(v))
   }
 
-  def getMethod(graph : Graph, fullName : String, signature : String): util.List[AstNode] = {
-    Cpg(graph).method.fullNameExact(fullName).signatureExact(signature).ast.l.asJava
+  def getMethod(graph : Graph, fullName : String, signature : String): util.List[(AstNode, util.List[AstNode])] = {
+    Cpg(graph).method.fullNameExact(fullName).signatureExact(signature)
+      .ast
+      .map{ node => (node, node.astChildren.l.asJava) }
+      .l.asJava
+  }
+
+  def getMethodStub(graph : Graph, fullName : String, signature : String) : util.List[(AstNode, util.List[AstNode])]  = {
+    Cpg(graph).method.fullNameExact(fullName).signatureExact(signature).map{ m =>
+      (m.asInstanceOf[AstNode], m.astChildren.l.asJava)
+    }.l.asJava
   }
 
   def clearGraph(graph : Graph) : Unit = {

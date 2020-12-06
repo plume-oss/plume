@@ -4,6 +4,7 @@ import io.shiftleft.codepropertygraph.generated.nodes.*
 import overflowdb.Config
 import overflowdb.Graph
 import overflowdb.Node
+import scala.Tuple2
 import scala.runtime.AbstractFunction0
 import za.ac.sun.plume.CpgDomainObjCreator.*
 import za.ac.sun.plume.Traversals
@@ -177,16 +178,35 @@ class OverflowDbDriver : IDriver {
     }
 
     override fun getMethod(fullName: String, signature: String): PlumeGraph {
-        val astNodes = Traversals.getMethod(graph, fullName, signature)
-        val plumeGraph = PlumeGraph()
-        astNodes.forEach { node ->
-            plumeGraph.addVertex(convert(node))
-        }
-        return plumeGraph
+        return astToPlumeGraph(Traversals.getMethod(graph, fullName, signature))
     }
 
     override fun getMethod(fullName: String, signature: String, includeBody: Boolean): PlumeGraph {
-        TODO("Not yet implemented")
+        if (includeBody) return getMethod(fullName, signature)
+        return astToPlumeGraph(Traversals.getMethodStub(graph, fullName, signature))
+    }
+
+    private fun astToPlumeGraph(ast : List<Tuple2<AstNode, List<AstNode>>>) : PlumeGraph {
+        val plumeGraph = PlumeGraph()
+
+        val plumeVertices = ast.map{ pair ->
+            val node = pair._1
+            Pair(node.id(), convert(node))
+        }.toMap()
+
+        plumeVertices.values.forEach { v -> plumeGraph.addVertex(v) }
+        ast.forEach{ pair ->
+            val parent = pair._1
+            val children = pair._2
+            children.forEach{ child ->
+                val plumeParent = plumeVertices.get(parent.id())
+                val plumeChild = plumeVertices.get(child.id())
+                if (plumeParent != null && plumeChild != null) {
+                    plumeGraph.addEdge(plumeParent, plumeChild, EdgeLabel.AST)
+                }
+            }
+        }
+        return plumeGraph
     }
 
     override fun getProgramStructure(): PlumeGraph {
