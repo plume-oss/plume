@@ -147,9 +147,9 @@ class OverflowDbDriver : IDriver {
     }
 
     override fun exists(fromV: PlumeVertex, toV: PlumeVertex, edge: EdgeLabel): Boolean {
-        val srcNode = graph.node(fromV.hashCode().toLong())
-        val dstNode = graph.node(toV.hashCode().toLong())
-        return srcNode != null && srcNode.out(edge.name).asSequence().toList().filter { node -> node.id().equals(dstNode.id()) }.isNotEmpty()
+        val srcNode = graph.node(fromV.hashCode().toLong()) ?: return false
+        val dstNode = graph.node(toV.hashCode().toLong()) ?: return false
+        return srcNode.out(edge.name).asSequence().toList().any { node -> node.id().equals(dstNode.id()) }
     }
 
     override fun addEdge(fromV: PlumeVertex, toV: PlumeVertex, edge: EdgeLabel) {
