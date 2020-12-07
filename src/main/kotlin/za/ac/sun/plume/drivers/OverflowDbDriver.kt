@@ -96,7 +96,7 @@ class OverflowDbDriver : IDriver {
        }
     }
 
-    private fun convert(v : Node) : PlumeVertex {
+    private fun convert(v : Node) : PlumeVertex? {
         return when(v) {
             is ArrayInitializer -> ArrayInitializerVertex(v.order())
             is Block -> BlockVertex(v.typeFullName(), v.code(), v.order(), v.argumentIndex(), getOrElse(v.lineNumber(), 0), getOrElse(v.columnNumber(), 0))
@@ -120,8 +120,7 @@ class OverflowDbDriver : IDriver {
             is Return -> ReturnVertex(getOrElse(v.lineNumber(), 0), getOrElse(v.columnNumber(), 0), v.order(), v.argumentIndex(), v.code())
             is TypeDecl -> TypeDeclVertex(v.name(), v.fullName(), v.astParentFullName(), v.order())
             else -> {
-                println(v)
-                TODO("Not implemented")
+                logger.warn("Received unsupported vertex type."); null
             }
         }
     }
@@ -202,7 +201,7 @@ class OverflowDbDriver : IDriver {
                 .distinct()
                 .map{node -> Pair(node.id(), convert(node)) }
                 .toMap()
-        plumeVertices.values.forEach { v -> plumeGraph.addVertex(v) }
+        plumeVertices.values.forEach { v -> v?.let{ x -> plumeGraph.addVertex(x) } }
         val edges = nodesWithEdges.flatMap { x -> x._2 }
         edges.forEach { edge ->
             val srcNode = plumeVertices.get(edge.outNode().id())
@@ -222,7 +221,7 @@ class OverflowDbDriver : IDriver {
                 .map{node -> Pair(node.id(), convert(node)) }
                 .toMap()
 
-        plumeVertices.values.forEach { v -> plumeGraph.addVertex(v) }
+        plumeVertices.values.forEach { v ->  v?.let{ x -> plumeGraph.addVertex(x) } }
         edges.forEach { edge ->
             val srcNode = plumeVertices.get(edge.outNode().id())
             val dstNode = plumeVertices.get(edge.inNode().id())
