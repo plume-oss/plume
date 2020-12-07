@@ -48,13 +48,13 @@ object GraphMLWriter {
         val keySet = HashMap<String, String>()
         vertices.forEach { v ->
             VertexMapper.vertexToMap(v)
-                    .apply { this.remove("label") }
-                    .forEach { (t, u) ->
-                        when (u) {
-                            is String -> keySet[t] = "string"
-                            is Int -> keySet[t] = "int"
-                        }
+                .apply { this.remove("label") }
+                .forEach { (t, u) ->
+                    when (u) {
+                        is String -> keySet[t] = "string"
+                        is Int -> keySet[t] = "int"
                     }
+                }
         }
         fw.write("<key id=\"labelV\" for=\"node\" attr.name=\"labelV\" attr.type=\"string\"></key>")
         fw.write("<key id=\"labelE\" for=\"edge\" attr.name=\"labelE\" attr.type=\"string\"></key>")
@@ -72,11 +72,13 @@ object GraphMLWriter {
         vertices.forEach { v ->
             fw.write("<node id=\"${v.hashCode()}\">")
             VertexMapper.vertexToMap(v)
-                    .apply { fw.write("<data key=\"labelV\">${this.remove("label")}</data>") }
-                    .forEach { (t, u) -> fw.write("<data key=\"$t\">$u</data>") }
+                .apply { fw.write("<data key=\"labelV\">${this.remove("label")}</data>") }
+                .forEach { (t, u) -> fw.write("<data key=\"$t\">${escape(u)}</data>") }
             fw.write("</node>")
         }
     }
+
+    private fun escape(o: Any) = if (o is String) o.replace("<", "&lt;").replace(">", "&gt;") else o.toString()
 
     private fun writeEdges(fw: OutputStreamWriter, graph: PlumeGraph) {
         val vertices = graph.vertices()
