@@ -83,30 +83,30 @@ class ASTBuilder(private val driver: IDriver) : IGraphBuilder {
         }
         // Build body
         graph.body.units.filterNot { it is IdentityStmt }
-                .forEach { u ->
-                    projectUnit(u)
-                            ?.let {
-                                driver.addEdge(getSootAssociation(mtd)
-                                !!.first { v -> v is BlockVertex }, it, EdgeLabel.AST)
-                            }
-                }
+            .forEach { u ->
+                projectUnit(u)
+                    ?.let {
+                        driver.addEdge(getSootAssociation(mtd)
+                        !!.first { v -> v is BlockVertex }, it, EdgeLabel.AST)
+                    }
+            }
     }
 
     private fun buildLocals(graph: BriefUnitGraph, mtdVertex: MethodVertex): MutableList<PlumeVertex> {
         val localVertices = mutableListOf<PlumeVertex>()
         graph.body.parameterLocals
-                .map {
-                    SootToPlumeUtil.projectMethodParameterIn(it, currentLine)
-                            .apply { addSootToPlumeAssociation(it, this) }
-                }
-                .forEach { driver.addEdge(mtdVertex, it, EdgeLabel.AST); localVertices.add(it) }
+            .map {
+                SootToPlumeUtil.projectMethodParameterIn(it, currentLine)
+                    .apply { addSootToPlumeAssociation(it, this) }
+            }
+            .forEach { driver.addEdge(mtdVertex, it, EdgeLabel.AST); localVertices.add(it) }
         graph.body.locals
-                .filter { !graph.body.parameterLocals.contains(it) }
-                .map {
-                    SootToPlumeUtil.projectLocalVariable(it, currentLine, currentCol)
-                            .apply { addSootToPlumeAssociation(it, this) }
-                }
-                .forEach { driver.addEdge(mtdVertex, it, EdgeLabel.AST); localVertices.add(it) }
+            .filter { !graph.body.parameterLocals.contains(it) }
+            .map {
+                SootToPlumeUtil.projectLocalVariable(it, currentLine, currentCol)
+                    .apply { addSootToPlumeAssociation(it, this) }
+            }
+            .forEach { driver.addEdge(mtdVertex, it, EdgeLabel.AST); localVertices.add(it) }
         return localVertices
     }
 
@@ -120,14 +120,19 @@ class ASTBuilder(private val driver: IDriver) : IGraphBuilder {
         currentLine = unit.javaSourceStartLineNumber
         currentCol = unit.javaSourceStartColumnNumber
 
+        val allUnits = graph.body.units
+
         val unitVertex: PlumeVertex? = when (unit) {
-            is IfStmt -> projectIfStatement(unit)
-            is AssignStmt -> projectVariableAssignment(unit)
-            is LookupSwitchStmt -> projectLookupSwitch(unit)
-            is TableSwitchStmt -> projectTableSwitch(unit)
-            is InvokeStmt -> projectCallVertex(unit.invokeExpr)
-            is ReturnStmt -> projectReturnVertex(unit)
-            is ReturnVoidStmt -> projectReturnVertex(unit)
+            is IfStmt -> projectIfStatement(unit, allUnits.filterIsInstance<IfStmt>().indexOf(unit))
+            is AssignStmt -> projectVariableAssignment(unit, allUnits.filterIsInstance<AssignStmt>().indexOf(unit))
+            is LookupSwitchStmt -> projectLookupSwitch(unit,
+                allUnits.filterIsInstance<LookupSwitchStmt>().indexOf(unit))
+            is TableSwitchStmt -> projectTableSwitch(unit, allUnits.filterIsInstance<TableSwitchStmt>().indexOf(unit))
+            is InvokeStmt -> projectCallVertex(unit.invokeExpr, allUnits.filterIsInstance<InvokeStmt>().indexOf(unit))
+            is ReturnStmt -> projectReturnVertex(unit,
+                allUnits.filter { it is ReturnStmt || it is ReturnVoidStmt }.indexOf(unit))
+            is ReturnVoidStmt -> projectReturnVertex(unit,
+                allUnits.filter { it is ReturnStmt || it is ReturnVoidStmt }.indexOf(unit))
             else -> {
                 logger.debug("Unhandled class in projectUnit ${unit.javaClass} $unit"); null
             }
@@ -141,38 +146,38 @@ class ASTBuilder(private val driver: IDriver) : IGraphBuilder {
      * @param unit The [InvokeExpr] from which a [CallVertex] will be constructed.
      * @return the [CallVertex] constructed.
      */
-    private fun projectCallVertex(unit: InvokeExpr): PlumeVertex {
+    private fun projectCallVertex(unit: InvokeExpr, argumentIndex: Int = 0): PlumeVertex {
         val callVertex = CallVertex(
-                name = unit.methodRef.name,
-                signature = unit.methodRef.signature,
-                code = unit.methodRef.subSignature.toString(),
-                order = order++,
-                lineNumber = currentLine,
-                columnNumber = currentCol,
-                methodFullName = unit.methodRef.toString().removeSurrounding("<", ">"),
-                argumentIndex = 0,
-                dispatchType = if (unit.methodRef.isStatic) DispatchType.STATIC_DISPATCH else DispatchType.DYNAMIC_DISPATCH,
-                typeFullName = unit.type.toString(),
-                dynamicTypeHintFullName = unit.type.toQuotedString()
+            name = unit.methodRef.name,
+            signature = unit.methodRef.signature,
+            code = unit.methodRef.subSignature.toString(),
+            order = order++,
+            lineNumber = currentLine,
+            columnNumber = currentCol,
+            methodFullName = unit.methodRef.toString().removeSurrounding("<", ">"),
+            argumentIndex = argumentIndex,
+            dispatchType = if (unit.methodRef.isStatic) DispatchType.STATIC_DISPATCH else DispatchType.DYNAMIC_DISPATCH,
+            typeFullName = unit.type.toString(),
+            dynamicTypeHintFullName = unit.type.toQuotedString()
         )
         val callVertices = mutableListOf<PlumeVertex>(callVertex)
         // Create vertices for arguments
-        unit.args.map { it }.forEach {
-            when (it) {
-                is Local -> SootToPlumeUtil.createIdentifierVertex(it, currentLine, currentCol)
-                is Constant -> SootToPlumeUtil.createLiteralVertex(it, currentLine, currentCol)
+        unit.args.forEachIndexed { i, arg ->
+            when (arg) {
+                is Local -> SootToPlumeUtil.createIdentifierVertex(arg, currentLine, currentCol, i)
+                is Constant -> SootToPlumeUtil.createLiteralVertex(arg, currentLine, currentCol, i)
                 else -> null
             }?.let { expressionVertex ->
                 driver.addEdge(callVertex, expressionVertex, EdgeLabel.AST)
                 callVertices.add(expressionVertex)
-                addSootToPlumeAssociation(it, expressionVertex)
+                addSootToPlumeAssociation(arg, expressionVertex)
             }
         }
         // Save PDG arguments
         addSootToPlumeAssociation(unit, callVertices)
         // Create the receiver for the call
         unit.useBoxes.filterIsInstance<JimpleLocalBox>().firstOrNull()?.let {
-            SootToPlumeUtil.createIdentifierVertex(it.value, currentLine, currentCol).apply {
+            SootToPlumeUtil.createIdentifierVertex(it.value, currentLine, currentCol, unit.useBoxes.indexOf(it)).apply {
                 addSootToPlumeAssociation(it.value, this)
                 driver.addEdge(callVertex, this, EdgeLabel.RECEIVER)
                 driver.addEdge(callVertex, this, EdgeLabel.AST)
@@ -187,20 +192,25 @@ class ASTBuilder(private val driver: IDriver) : IGraphBuilder {
      * @param unit The [TableSwitchStmt] from which a [ControlStructureVertex] will be constructed.
      * @return the [ControlStructureVertex] constructed.
      */
-    private fun projectTableSwitch(unit: TableSwitchStmt): ControlStructureVertex {
+    private fun projectTableSwitch(unit: TableSwitchStmt, argumentIndex: Int = 0): ControlStructureVertex {
         val switchVertex = ControlStructureVertex(
-                name = SWITCH_ROOT,
-                code = unit.toString(),
-                lineNumber = unit.javaSourceStartLineNumber,
-                columnNumber = unit.javaSourceStartColumnNumber,
-                order = order++,
-                argumentIndex = 0
+            name = SWITCH_ROOT,
+            code = unit.toString(),
+            lineNumber = unit.javaSourceStartLineNumber,
+            columnNumber = unit.javaSourceStartColumnNumber,
+            order = order++,
+            argumentIndex = argumentIndex
         )
         projectSwitchDefault(unit, switchVertex)
         // Handle case jumps
         unit.targets.forEachIndexed { i, tgt ->
             if (unit.defaultTarget != tgt) {
-                val tgtV = JumpTargetVertex("CASE $i", i, tgt.javaSourceStartLineNumber, tgt.javaSourceStartColumnNumber, tgt.toString(), order++)
+                val tgtV = JumpTargetVertex("CASE $i",
+                    i,
+                    tgt.javaSourceStartLineNumber,
+                    tgt.javaSourceStartColumnNumber,
+                    tgt.toString(),
+                    order++)
                 driver.addEdge(switchVertex, tgtV, EdgeLabel.AST)
                 addSootToPlumeAssociation(unit, tgtV)
             }
@@ -214,14 +224,14 @@ class ASTBuilder(private val driver: IDriver) : IGraphBuilder {
      * @param unit The [LookupSwitchStmt] from which a [ControlStructureVertex] will be constructed.
      * @return the [ControlStructureVertex] constructed.
      */
-    private fun projectLookupSwitch(unit: LookupSwitchStmt): ControlStructureVertex {
+    private fun projectLookupSwitch(unit: LookupSwitchStmt, argumentIndex: Int = 0): ControlStructureVertex {
         val switchVertex = ControlStructureVertex(
-                name = LOOKUP_ROOT,
-                code = unit.toString(),
-                lineNumber = unit.javaSourceStartLineNumber,
-                columnNumber = unit.javaSourceStartColumnNumber,
-                order = order++,
-                argumentIndex = 0
+            name = LOOKUP_ROOT,
+            code = unit.toString(),
+            lineNumber = unit.javaSourceStartLineNumber,
+            columnNumber = unit.javaSourceStartColumnNumber,
+            order = order++,
+            argumentIndex = argumentIndex
         )
         projectSwitchDefault(unit, switchVertex)
         // Handle case jumps
@@ -229,7 +239,12 @@ class ASTBuilder(private val driver: IDriver) : IGraphBuilder {
             val tgt = unit.getTarget(i)
             if (unit.defaultTarget != tgt) {
                 val lookupValue = unit.getLookupValue(i)
-                val tgtV = JumpTargetVertex("CASE $lookupValue", lookupValue, tgt.javaSourceStartLineNumber, tgt.javaSourceStartColumnNumber, tgt.toString(), order++)
+                val tgtV = JumpTargetVertex("CASE $lookupValue",
+                    lookupValue,
+                    tgt.javaSourceStartLineNumber,
+                    tgt.javaSourceStartColumnNumber,
+                    tgt.toString(),
+                    order++)
                 driver.addEdge(switchVertex, tgtV, EdgeLabel.AST)
                 addSootToPlumeAssociation(unit, tgtV)
             }
@@ -247,7 +262,12 @@ class ASTBuilder(private val driver: IDriver) : IGraphBuilder {
         projectOp(unit.key)?.let { driver.addEdge(switchVertex, it, EdgeLabel.CONDITION) }
         // Handle default target jump
         unit.defaultTarget.let {
-            val tgtV = JumpTargetVertex("DEFAULT", -1, it.javaSourceStartLineNumber, it.javaSourceStartColumnNumber, it.toString(), order++)
+            val tgtV = JumpTargetVertex("DEFAULT",
+                -1,
+                it.javaSourceStartLineNumber,
+                it.javaSourceStartColumnNumber,
+                it.toString(),
+                order++)
             driver.addEdge(switchVertex, tgtV, EdgeLabel.AST)
             addSootToPlumeAssociation(unit, tgtV)
         }
@@ -259,13 +279,23 @@ class ASTBuilder(private val driver: IDriver) : IGraphBuilder {
      * @param unit The [IfStmt] from which a [ControlStructureVertex] will be constructed.
      * @return the [ControlStructureVertex] constructed.
      */
-    private fun projectIfStatement(unit: IfStmt): ControlStructureVertex {
-        val ifRootVertex = projectIfRootAndCondition(unit)
+    private fun projectIfStatement(unit: IfStmt, argumentIndex: Int = 0): ControlStructureVertex {
+        val ifRootVertex = projectIfRootAndCondition(unit, argumentIndex)
         graph.getSuccsOf(unit).forEach {
             val condBody: JumpTargetVertex = if (it == unit.target) {
-                JumpTargetVertex(FALSE_TARGET, 0, it.javaSourceStartLineNumber, it.javaSourceStartColumnNumber, "ELSE_BODY", order++)
+                JumpTargetVertex(FALSE_TARGET,
+                    0,
+                    it.javaSourceStartLineNumber,
+                    it.javaSourceStartColumnNumber,
+                    "ELSE_BODY",
+                    order++)
             } else {
-                JumpTargetVertex(TRUE_TARGET, 1, it.javaSourceStartLineNumber, it.javaSourceStartColumnNumber, "IF_BODY", order++)
+                JumpTargetVertex(TRUE_TARGET,
+                    1,
+                    it.javaSourceStartLineNumber,
+                    it.javaSourceStartColumnNumber,
+                    "IF_BODY",
+                    order++)
             }
             driver.addEdge(ifRootVertex, condBody, EdgeLabel.AST)
             addSootToPlumeAssociation(unit, condBody)
@@ -279,18 +309,18 @@ class ASTBuilder(private val driver: IDriver) : IGraphBuilder {
      * @param unit The [IfStmt] from which a [ControlStructureVertex] and condition [BlockVertex] will be constructed.
      * @return the [ControlStructureVertex] constructed.
      */
-    private fun projectIfRootAndCondition(unit: IfStmt): ControlStructureVertex {
+    private fun projectIfRootAndCondition(unit: IfStmt, argumentIndex: Int = 0): ControlStructureVertex {
         val ifRootVertex = ControlStructureVertex(
-                name = IF_ROOT,
-                code = unit.toString(),
-                lineNumber = unit.javaSourceStartLineNumber,
-                columnNumber = unit.javaSourceStartColumnNumber,
-                order = order++,
-                argumentIndex = 0
+            name = IF_ROOT,
+            code = unit.toString(),
+            lineNumber = unit.javaSourceStartLineNumber,
+            columnNumber = unit.javaSourceStartColumnNumber,
+            order = order++,
+            argumentIndex = argumentIndex
         )
         driver.addVertex(ifRootVertex)
         val condition = unit.condition as ConditionExpr
-        val conditionExpr = projectFlippedConditionalExpr(condition)
+        val conditionExpr = projectFlippedConditionalExpr(condition, argumentIndex + 1)
         driver.addEdge(ifRootVertex, conditionExpr, EdgeLabel.CONDITION)
         addSootToPlumeAssociation(unit, conditionExpr)
         return ifRootVertex
@@ -302,39 +332,51 @@ class ASTBuilder(private val driver: IDriver) : IGraphBuilder {
      * @param unit The [AssignStmt] from which a [CallVertex] and its children vertices will be constructed.
      * @return the [CallVertex] constructed.
      */
-    private fun projectVariableAssignment(unit: DefinitionStmt): CallVertex {
+    private fun projectVariableAssignment(unit: DefinitionStmt, argumentIndex: Int = 0): CallVertex {
         val assignVariables = mutableListOf<PlumeVertex>()
         val leftOp = unit.leftOp
         val rightOp = unit.rightOp
+        val leftOpArgIdx = argumentIndex + 1
+        val rightOpArgIdx = argumentIndex + 2
         val assignBlock = CallVertex(
-                name = ASSIGN,
-                code = "=",
-                signature = "${leftOp.type} = ${rightOp.type}",
-                methodFullName = "=",
-                dispatchType = DispatchType.STATIC_DISPATCH,
-                order = order++,
-                argumentIndex = 0,
-                typeFullName = leftOp.type.toQuotedString(),
-                dynamicTypeHintFullName = rightOp.type.toQuotedString(),
-                lineNumber = unit.javaSourceStartLineNumber,
-                columnNumber = unit.javaSourceStartColumnNumber
+            name = ASSIGN,
+            code = "=",
+            signature = "${leftOp.type} = ${rightOp.type}",
+            methodFullName = "=",
+            dispatchType = DispatchType.STATIC_DISPATCH,
+            order = order++,
+            argumentIndex = argumentIndex,
+            typeFullName = leftOp.type.toQuotedString(),
+            dynamicTypeHintFullName = rightOp.type.toQuotedString(),
+            lineNumber = unit.javaSourceStartLineNumber,
+            columnNumber = unit.javaSourceStartColumnNumber
         )
         when (leftOp) {
-            is Local -> SootToPlumeUtil.createIdentifierVertex(leftOp, currentLine, currentCol).apply {
+            is Local -> SootToPlumeUtil.createIdentifierVertex(leftOp, currentLine, currentCol, leftOpArgIdx).apply {
                 addSootToPlumeAssociation(leftOp, this)
             }
-            is FieldRef -> SootToPlumeUtil.createFieldIdentifierVertex(leftOp, currentLine, currentCol).apply {
-                addSootToPlumeAssociation(leftOp.field, this)
-            }
-            is ArrayRef -> SootToPlumeUtil.createArrayRefIdentifier(leftOp, currentLine, currentCol).apply {
-                addSootToPlumeAssociation(leftOp.base, this)
-            }
+            is FieldRef -> SootToPlumeUtil.createFieldIdentifierVertex(leftOp, currentLine, currentCol, leftOpArgIdx)
+                .apply {
+                    addSootToPlumeAssociation(leftOp.field, this)
+                }
+            is ArrayRef -> SootToPlumeUtil.createArrayRefIdentifier(leftOp, currentLine, currentCol, leftOpArgIdx)
+                .apply {
+                    addSootToPlumeAssociation(leftOp.base, this)
+                }
             else -> {
                 logger.debug("Unhandled class for leftOp under projectVariableAssignment: ${leftOp.javaClass} containing value $leftOp")
                 null
             }
-        }?.let { driver.addEdge(assignBlock, it, EdgeLabel.AST); assignVariables.add(it) }
-        projectOp(rightOp)?.let { driver.addEdge(assignBlock, it, EdgeLabel.AST); assignVariables.add(it) }
+        }?.let {
+            driver.addEdge(assignBlock, it, EdgeLabel.AST)
+            assignVariables.add(it)
+            addSootToPlumeAssociation(leftOp, it)
+        }
+        projectOp(rightOp, rightOpArgIdx)?.let {
+            driver.addEdge(assignBlock, it, EdgeLabel.AST)
+            assignVariables.add(it)
+            addSootToPlumeAssociation(rightOp, it)
+        }
         // Save PDG arguments
         addSootToPlumeAssociation(unit, assignVariables)
         return assignBlock
@@ -347,68 +389,84 @@ class ASTBuilder(private val driver: IDriver) : IGraphBuilder {
      * @param expr The [BinopExpr] from which a [CallVertex] and its children vertices will be constructed.
      * @return the [CallVertex] constructed.
      */
-    private fun projectBinopExpr(expr: BinopExpr): CallVertex {
+    private fun projectBinopExpr(expr: BinopExpr, argumentIndex: Int = 0): CallVertex {
         val binopVertices = mutableListOf<PlumeVertex>()
         val binOpExpr = BINOPS[expr.symbol.trim()] ?: throw Exception("Unknown binary operator $expr")
         val binOpBlock = CallVertex(
-                name = binOpExpr,
-                code = expr.symbol.trim(),
-                signature = "${expr.op1.type.toQuotedString()}${expr.symbol}${expr.op2.type.toQuotedString()}",
-                methodFullName = expr.symbol.trim(),
-                dispatchType = DispatchType.STATIC_DISPATCH,
-                order = order++,
-                argumentIndex = 0,
-                typeFullName = expr.type.toQuotedString(),
-                dynamicTypeHintFullName = expr.type.toString(),
-                lineNumber = currentLine,
-                columnNumber = currentCol
+            name = binOpExpr,
+            code = expr.symbol.trim(),
+            signature = "${expr.op1.type.toQuotedString()}${expr.symbol}${expr.op2.type.toQuotedString()}",
+            methodFullName = expr.symbol.trim(),
+            dispatchType = DispatchType.STATIC_DISPATCH,
+            order = order++,
+            argumentIndex = argumentIndex,
+            typeFullName = expr.type.toQuotedString(),
+            dynamicTypeHintFullName = expr.type.toString(),
+            lineNumber = currentLine,
+            columnNumber = currentCol
         ).apply { binopVertices.add(this) }
-        projectOp(expr.op1)?.let { driver.addEdge(binOpBlock, it, EdgeLabel.AST); binopVertices.add(it) }
-        projectOp(expr.op2)?.let { driver.addEdge(binOpBlock, it, EdgeLabel.AST); binopVertices.add(it) }
+        projectOp(expr.op1, argumentIndex + 1)?.let {
+            driver.addEdge(binOpBlock, it, EdgeLabel.AST)
+            binopVertices.add(it)
+            addSootToPlumeAssociation(expr.op1, it)
+        }
+        projectOp(expr.op2, argumentIndex + 2)?.let {
+            driver.addEdge(binOpBlock, it, EdgeLabel.AST)
+            binopVertices.add(it)
+            addSootToPlumeAssociation(expr.op2, it)
+        }
         // Save PDG arguments
         addSootToPlumeAssociation(expr, binopVertices)
         return binOpBlock
     }
 
-    private fun projectFlippedConditionalExpr(expr: ConditionExpr): CallVertex {
+    private fun projectFlippedConditionalExpr(expr: ConditionExpr, argumentIndex: Int = 0): CallVertex {
         val conditionVertices = mutableListOf<PlumeVertex>()
         val operator = SootParserUtil.parseAndFlipEquality(expr.symbol.trim())
         val symbol = BINOPS.filter { it.value == operator }.keys.first()
         val binOpBlock = CallVertex(
-                name = operator,
-                code = symbol,
-                order = order++,
-                argumentIndex = 0,
-                dispatchType = DispatchType.STATIC_DISPATCH,
-                signature = "${expr.op1.type} $symbol ${expr.op2.type}",
-                methodFullName = symbol,
-                typeFullName = expr.type.toQuotedString(),
-                dynamicTypeHintFullName = expr.type.toQuotedString(),
-                lineNumber = currentLine,
-                columnNumber = currentCol
+            name = operator,
+            code = symbol,
+            order = order++,
+            argumentIndex = argumentIndex,
+            dispatchType = DispatchType.STATIC_DISPATCH,
+            signature = "${expr.op1.type} $symbol ${expr.op2.type}",
+            methodFullName = symbol,
+            typeFullName = expr.type.toQuotedString(),
+            dynamicTypeHintFullName = expr.type.toQuotedString(),
+            lineNumber = currentLine,
+            columnNumber = currentCol
         ).apply { conditionVertices.add(this) }
-        projectOp(expr.op1)?.let { driver.addEdge(binOpBlock, it, EdgeLabel.AST); conditionVertices.add(it) }
-        projectOp(expr.op2)?.let { driver.addEdge(binOpBlock, it, EdgeLabel.AST); conditionVertices.add(it) }
+        projectOp(expr.op1, argumentIndex + 1)?.let {
+            driver.addEdge(binOpBlock, it, EdgeLabel.AST)
+            conditionVertices.add(it)
+            addSootToPlumeAssociation(expr.op1, it)
+        }
+        projectOp(expr.op2, argumentIndex + 2)?.let {
+            driver.addEdge(binOpBlock, it, EdgeLabel.AST)
+            conditionVertices.add(it)
+            addSootToPlumeAssociation(expr.op2, it)
+        }
         addSootToPlumeAssociation(expr, conditionVertices)
         return binOpBlock
     }
 
-    private fun projectCastExpr(expr: CastExpr): CallVertex {
+    private fun projectCastExpr(expr: CastExpr, argumentIndex: Int = 0): CallVertex {
         val castVertices = mutableListOf<PlumeVertex>()
         val castBlock = CallVertex(
-                name = CAST,
-                code = "(${expr.castType.toQuotedString()})",
-                signature = "(${expr.castType.toQuotedString()}) ${expr.op.type.toQuotedString()}",
-                dispatchType = DispatchType.STATIC_DISPATCH,
-                order = order++,
-                argumentIndex = 0,
-                typeFullName = expr.castType.toQuotedString(),
-                methodFullName = "(${expr.castType.toQuotedString()})",
-                dynamicTypeHintFullName = expr.castType.toQuotedString(),
-                lineNumber = currentLine,
-                columnNumber = currentCol
+            name = CAST,
+            code = "(${expr.castType.toQuotedString()})",
+            signature = "(${expr.castType.toQuotedString()}) ${expr.op.type.toQuotedString()}",
+            dispatchType = DispatchType.STATIC_DISPATCH,
+            order = order++,
+            argumentIndex = argumentIndex,
+            typeFullName = expr.castType.toQuotedString(),
+            methodFullName = "(${expr.castType.toQuotedString()})",
+            dynamicTypeHintFullName = expr.castType.toQuotedString(),
+            lineNumber = currentLine,
+            columnNumber = currentCol
         ).apply { castVertices.add(this) }
-        projectOp(expr.op)?.let {
+        projectOp(expr.op, argumentIndex + 1)?.let {
             driver.addEdge(castBlock, it, EdgeLabel.AST); castVertices.add(it)
         }
         // Save PDG arguments
@@ -416,33 +474,39 @@ class ASTBuilder(private val driver: IDriver) : IGraphBuilder {
         return castBlock
     }
 
-    private fun projectOp(expr: Value): PlumeVertex? {
+    private fun projectOp(expr: Value, argumentIndex: Int = 0): PlumeVertex? {
         return when (expr) {
-            is Local -> SootToPlumeUtil.createIdentifierVertex(expr, currentLine, currentCol)
-            is Constant -> SootToPlumeUtil.createLiteralVertex(expr, currentLine, currentCol)
-            is CastExpr -> projectCastExpr(expr)
-            is BinopExpr -> projectBinopExpr(expr)
-            is InvokeExpr -> projectCallVertex(expr)
-            is StaticFieldRef -> SootToPlumeUtil.createFieldIdentifierVertex(expr, currentLine, currentCol)
-            is NewExpr -> createNewExpr(expr)
-            is NewArrayExpr -> createNewArrayExpr(expr)
-            is CaughtExceptionRef -> SootToPlumeUtil.createIdentifierVertex(expr, currentLine, currentCol)
+            is Local -> SootToPlumeUtil.createIdentifierVertex(expr, currentLine, currentCol, argumentIndex)
+            is Constant -> SootToPlumeUtil.createLiteralVertex(expr, currentLine, currentCol, argumentIndex)
+            is CastExpr -> projectCastExpr(expr, argumentIndex)
+            is BinopExpr -> projectBinopExpr(expr, argumentIndex)
+            is InvokeExpr -> projectCallVertex(expr, argumentIndex)
+            is StaticFieldRef -> SootToPlumeUtil.createFieldIdentifierVertex(expr,
+                currentLine,
+                currentCol,
+                argumentIndex)
+            is NewExpr -> createNewExpr(expr, argumentIndex)
+            is NewArrayExpr -> createNewArrayExpr(expr, argumentIndex)
+            is CaughtExceptionRef -> SootToPlumeUtil.createIdentifierVertex(expr,
+                currentLine,
+                currentCol,
+                argumentIndex)
             else -> {
                 logger.debug("projectOp unhandled class ${expr.javaClass}"); null
             }
         }
     }
 
-    private fun createNewArrayExpr(expr: NewArrayExpr): TypeRefVertex {
+    private fun createNewArrayExpr(expr: NewArrayExpr, argumentIndex: Int = 0): TypeRefVertex {
         val newArrayExprVertices = mutableListOf<PlumeVertex>()
         val typeRef = TypeRefVertex(
-                typeFullName = expr.type.toQuotedString(),
-                dynamicTypeFullName = expr.type.toQuotedString(),
-                code = expr.toString(),
-                argumentIndex = 0,
-                lineNumber = currentLine,
-                columnNumber = currentCol,
-                order = order++
+            typeFullName = expr.type.toQuotedString(),
+            dynamicTypeFullName = expr.type.toQuotedString(),
+            code = expr.toString(),
+            argumentIndex = argumentIndex,
+            lineNumber = currentLine,
+            columnNumber = currentCol,
+            order = order++
         ).apply { addSootToPlumeAssociation(expr, this) }
         ArrayInitializerVertex(order++).let {
             driver.addEdge(typeRef, it, EdgeLabel.AST)
@@ -452,38 +516,38 @@ class ASTBuilder(private val driver: IDriver) : IGraphBuilder {
         return typeRef
     }
 
-    private fun createNewExpr(expr: NewExpr): TypeRefVertex {
+    private fun createNewExpr(expr: NewExpr, argumentIndex: Int = 0): TypeRefVertex {
         return TypeRefVertex(
-                typeFullName = expr.baseType.toQuotedString(),
-                dynamicTypeFullName = expr.type.toQuotedString(),
-                code = expr.toString(),
-                argumentIndex = 0,
-                lineNumber = currentLine,
-                columnNumber = currentCol,
-                order = order++
+            typeFullName = expr.baseType.toQuotedString(),
+            dynamicTypeFullName = expr.type.toQuotedString(),
+            code = expr.toString(),
+            argumentIndex = argumentIndex,
+            lineNumber = currentLine,
+            columnNumber = currentCol,
+            order = order++
         ).apply { addSootToPlumeAssociation(expr, this) }
     }
 
-    private fun projectReturnVertex(ret: ReturnStmt): ReturnVertex {
+    private fun projectReturnVertex(ret: ReturnStmt, argumentIndex: Int = 0): ReturnVertex {
         val retV = ReturnVertex(
-                code = ret.toString(),
-                argumentIndex = 0,
-                lineNumber = ret.javaSourceStartLineNumber,
-                columnNumber = ret.javaSourceStartColumnNumber,
-                order = order++
+            code = ret.toString(),
+            argumentIndex = argumentIndex,
+            lineNumber = ret.javaSourceStartLineNumber,
+            columnNumber = ret.javaSourceStartColumnNumber,
+            order = order++
         )
-        projectOp(ret.op)?.let { driver.addEdge(retV, it, EdgeLabel.AST) }
+        projectOp(ret.op, argumentIndex + 1)?.let { driver.addEdge(retV, it, EdgeLabel.AST) }
         driver.addEdge(getSootAssociation(graph.body.method)?.first { it is BlockVertex }!!, retV, EdgeLabel.AST)
         return retV
     }
 
-    private fun projectReturnVertex(ret: ReturnVoidStmt): ReturnVertex {
+    private fun projectReturnVertex(ret: ReturnVoidStmt, argumentIndex: Int = 0): ReturnVertex {
         val retV = ReturnVertex(
-                code = ret.toString(),
-                argumentIndex = 0,
-                lineNumber = ret.javaSourceStartLineNumber,
-                columnNumber = ret.javaSourceStartColumnNumber,
-                order = order++
+            code = ret.toString(),
+            argumentIndex = argumentIndex,
+            lineNumber = ret.javaSourceStartLineNumber,
+            columnNumber = ret.javaSourceStartColumnNumber,
+            order = order++
         )
         driver.addEdge(getSootAssociation(graph.body.method)?.first { it is BlockVertex }!!, retV, EdgeLabel.AST)
         return retV

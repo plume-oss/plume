@@ -5,7 +5,7 @@ import java.io.File
 /**
  * Generic wrapper for supported Plume source/class files.
  */
-open class PlumeFile(pathname: String) : File(pathname) {
+abstract class PlumeFile(pathname: String) : File(pathname) {
 
     override fun hashCode() = if (this.exists())
         FileFactory.getFileHash(this)

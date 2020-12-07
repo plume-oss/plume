@@ -40,10 +40,10 @@ object SootToPlumeUtil {
      * @param field The [SootField] from which the class member information is constructed from.
      */
     private fun projectMember(field: SootField) = MemberVertex(
-            name = field.name,
-            code = field.declaration,
-            typeFullName = field.type.toQuotedString(),
-            order = ASTBuilder.incOrder()
+        name = field.name,
+        code = field.declaration,
+        typeFullName = field.type.toQuotedString(),
+        order = ASTBuilder.incOrder()
     )
 
     /**
@@ -53,14 +53,14 @@ object SootToPlumeUtil {
      * @return the constructed vertex.
      */
     fun projectMethodParameterIn(local: Local, currentLine: Int) =
-            MethodParameterInVertex(
-                    code = "${local.type} ${local.name}",
-                    name = local.name,
-                    evaluationStrategy = determineEvaluationStrategy(local.type.toString(), isMethodReturn = false),
-                    typeFullName = local.type.toString(),
-                    lineNumber = currentLine,
-                    order = ASTBuilder.incOrder()
-            )
+        MethodParameterInVertex(
+            code = "${local.type} ${local.name}",
+            name = local.name,
+            evaluationStrategy = determineEvaluationStrategy(local.type.toString(), isMethodReturn = false),
+            typeFullName = local.type.toString(),
+            lineNumber = currentLine,
+            order = ASTBuilder.incOrder()
+        )
 
     /**
      * Given an [Local], will construct local variable information in the graph.
@@ -69,14 +69,14 @@ object SootToPlumeUtil {
      * @return the constructed vertex.
      */
     fun projectLocalVariable(local: Local, currentLine: Int, currentCol: Int) =
-            LocalVertex(
-                    code = "${local.type} ${local.name}",
-                    name = local.name,
-                    typeFullName = local.type.toString(),
-                    lineNumber = currentLine,
-                    columnNumber = currentCol,
-                    order = ASTBuilder.incOrder()
-            )
+        LocalVertex(
+            code = "${local.type} ${local.name}",
+            name = local.name,
+            typeFullName = local.type.toString(),
+            lineNumber = currentLine,
+            columnNumber = currentCol,
+            order = ASTBuilder.incOrder()
+        )
 
     /**
      * Creates the [MethodVertex] and its children vertices [MethodParameterInVertex] for parameters,
@@ -91,18 +91,30 @@ object SootToPlumeUtil {
         val currentLine = mtd.javaSourceStartLineNumber
         val currentCol = mtd.javaSourceStartColumnNumber
         // Method vertex
-        val mtdVertex = MethodVertex(mtd.name, "${mtd.declaringClass}.${mtd.name}", mtd.subSignature, mtd.declaration, currentLine, currentCol, ASTBuilder.incOrder())
+        val mtdVertex = MethodVertex(mtd.name,
+            "${mtd.declaringClass}.${mtd.name}",
+            mtd.subSignature,
+            mtd.declaration,
+            currentLine,
+            currentCol,
+            ASTBuilder.incOrder())
         methodHeadChildren.add(mtdVertex)
         // Store return type
         projectMethodReturnVertex(mtd.returnType, currentLine, currentCol)
-                .apply { driver.addEdge(mtdVertex, this, EdgeLabel.AST); methodHeadChildren.add(this) }
+            .apply { driver.addEdge(mtdVertex, this, EdgeLabel.AST); methodHeadChildren.add(this) }
         // Modifier vertices
         SootParserUtil.determineModifiers(mtd.modifiers, mtd.name)
-                .map { ModifierVertex(it, ASTBuilder.incOrder()) }
-                .forEach { driver.addEdge(mtdVertex, it, EdgeLabel.AST); methodHeadChildren.add(it) }
+            .map { ModifierVertex(it, ASTBuilder.incOrder()) }
+            .forEach { driver.addEdge(mtdVertex, it, EdgeLabel.AST); methodHeadChildren.add(it) }
         // Store method vertex
-        BlockVertex(ExtractorConst.ENTRYPOINT, ExtractorConst.VOID, ExtractorConst.ENTRYPOINT, ASTBuilder.incOrder(), 0, currentLine, currentCol)
-                .apply { driver.addEdge(mtdVertex, this, EdgeLabel.AST); methodHeadChildren.add(this) }
+        BlockVertex(ExtractorConst.ENTRYPOINT,
+            ExtractorConst.VOID,
+            ExtractorConst.ENTRYPOINT,
+            ASTBuilder.incOrder(),
+            0,
+            currentLine,
+            currentCol)
+            .apply { driver.addEdge(mtdVertex, this, EdgeLabel.AST); methodHeadChildren.add(this) }
         // Associate all head vertices to the SootMethod
         addSootToPlumeAssociation(mtd, methodHeadChildren)
         return mtdVertex
@@ -129,26 +141,33 @@ object SootToPlumeUtil {
         return mtdVertex
     }
 
-    private fun connectCallToReturn(mtd: SootMethod, driver: IDriver, mtdVertex: MethodVertex, currentLine: Int, currentCol: Int) {
+    private fun connectCallToReturn(
+        mtd: SootMethod,
+        driver: IDriver,
+        mtdVertex: MethodVertex,
+        currentLine: Int,
+        currentCol: Int,
+        argumentIndex: Int = 0
+    ) {
         mtd.parameterTypes.forEachIndexed { i, type ->
             MethodParameterInVertex(
-                    code = "$type param$i",
-                    name = "param$i",
-                    evaluationStrategy = determineEvaluationStrategy(type.toString(), isMethodReturn = false),
-                    typeFullName = type.toString(),
-                    lineNumber = mtd.javaSourceStartLineNumber,
-                    order = ASTBuilder.incOrder()
+                code = "$type param$i",
+                name = "param$i",
+                evaluationStrategy = determineEvaluationStrategy(type.toString(), isMethodReturn = false),
+                typeFullName = type.toString(),
+                lineNumber = mtd.javaSourceStartLineNumber,
+                order = ASTBuilder.incOrder()
             ).apply { driver.addEdge(mtdVertex, this, EdgeLabel.AST); addSootToPlumeAssociation(mtd, this) }
         }
         // Connect a call to return
         val entryPoint = Extractor.getSootAssociation(mtd)?.filterIsInstance<BlockVertex>()?.firstOrNull()
         val mtdReturn = Extractor.getSootAssociation(mtd)?.filterIsInstance<MethodReturnVertex>()?.firstOrNull()
         ReturnVertex(
-                lineNumber = currentLine,
-                columnNumber = currentCol,
-                order = ASTBuilder.incOrder(),
-                argumentIndex = 0,
-                code = "return ${mtd.returnType.toQuotedString()}"
+            lineNumber = currentLine,
+            columnNumber = currentCol,
+            order = ASTBuilder.incOrder(),
+            argumentIndex = argumentIndex,
+            code = "return ${mtd.returnType.toQuotedString()}"
         ).apply {
             driver.addEdge(entryPoint!!, this, EdgeLabel.CFG)
             driver.addEdge(this, mtdReturn!!, EdgeLabel.CFG)
@@ -193,7 +212,8 @@ object SootToPlumeUtil {
         val namespaceBuilder = StringBuilder(namespaceList[0])
         for (i in 1 until namespaceList.size) {
             namespaceBuilder.append("." + namespaceList[i])
-            currNamespaceBlock = NamespaceBlockVertex(namespaceList[i], namespaceBuilder.toString(), ASTBuilder.incOrder())
+            currNamespaceBlock =
+                NamespaceBlockVertex(namespaceList[i], namespaceBuilder.toString(), ASTBuilder.incOrder())
             driver.addEdge(currNamespaceBlock, prevNamespaceBlock, EdgeLabel.AST)
             prevNamespaceBlock = currNamespaceBlock
         }
@@ -208,10 +228,10 @@ object SootToPlumeUtil {
      * @return The [TypeDeclVertex] representing this newly created vertex.
      */
     fun buildTypeDeclaration(cls: SootClass, driver: IDriver) = TypeDeclVertex(
-            name = cls.shortName,
-            fullName = cls.name,
-            typeDeclFullName = cls.javaStyleName,
-            order = ASTBuilder.incOrder()
+        name = cls.shortName,
+        fullName = cls.name,
+        typeDeclFullName = cls.javaStyleName,
+        order = ASTBuilder.incOrder()
     ).apply {
         // Attach fields to the TypeDecl
         cls.fields.forEach { field ->
@@ -242,68 +262,68 @@ object SootToPlumeUtil {
     }
 
     private fun projectMethodReturnVertex(type: Type, currentLine: Int, currentCol: Int) =
-            MethodReturnVertex(
-                    name = ExtractorConst.RETURN,
-                    code = "return ${type.toQuotedString()}",
-                    evaluationStrategy = determineEvaluationStrategy(type.toQuotedString(), true),
-                    typeFullName = type.toQuotedString(),
-                    lineNumber = currentLine,
-                    columnNumber = currentCol,
-                    order = ASTBuilder.incOrder()
-            )
+        MethodReturnVertex(
+            name = ExtractorConst.RETURN,
+            code = "return ${type.toQuotedString()}",
+            evaluationStrategy = determineEvaluationStrategy(type.toQuotedString(), true),
+            typeFullName = type.toQuotedString(),
+            lineNumber = currentLine,
+            columnNumber = currentCol,
+            order = ASTBuilder.incOrder()
+        )
 
     /**
      * Creates a [LiteralVertex] from a [Constant].
      */
-    fun createLiteralVertex(constant: Constant, currentLine: Int, currentCol: Int) =
-            LiteralVertex(
-                    name = constant.toString(),
-                    code = constant.toString(),
-                    order = ASTBuilder.incOrder(),
-                    argumentIndex = 0,
-                    typeFullName = constant.type.toQuotedString(),
-                    lineNumber = currentLine,
-                    columnNumber = currentCol
-            )
+    fun createLiteralVertex(constant: Constant, currentLine: Int, currentCol: Int, argumentIndex: Int = 0) =
+        LiteralVertex(
+            name = constant.toString(),
+            code = constant.toString(),
+            order = ASTBuilder.incOrder(),
+            argumentIndex = argumentIndex,
+            typeFullName = constant.type.toQuotedString(),
+            lineNumber = currentLine,
+            columnNumber = currentCol
+        )
 
     /**
      * Creates a [IdentifierVertex] from a [Value].
      */
-    fun createIdentifierVertex(local: Value, currentLine: Int, currentCol: Int) =
-            IdentifierVertex(
-                    code = "$local",
-                    name = local.toString(),
-                    order = ASTBuilder.incOrder(),
-                    argumentIndex = 0,
-                    typeFullName = local.type.toQuotedString(),
-                    lineNumber = currentLine,
-                    columnNumber = currentCol
-            )
+    fun createIdentifierVertex(local: Value, currentLine: Int, currentCol: Int, argumentIndex: Int = 0) =
+        IdentifierVertex(
+            code = "$local",
+            name = local.toString(),
+            order = ASTBuilder.incOrder(),
+            argumentIndex = argumentIndex,
+            typeFullName = local.type.toQuotedString(),
+            lineNumber = currentLine,
+            columnNumber = currentCol
+        )
 
     /**
      * Creates a [IdentifierVertex] from an [ArrayRef].
      */
-    fun createArrayRefIdentifier(leftOp: ArrayRef, currentLine: Int, currentCol: Int) =
-            IdentifierVertex(
-                    code = "$leftOp",
-                    name = leftOp.toString(),
-                    order = ASTBuilder.incOrder(),
-                    argumentIndex = leftOp.index.toString().toInt(),
-                    typeFullName = leftOp.type.toQuotedString(),
-                    lineNumber = currentLine,
-                    columnNumber = currentCol
-            )
+    fun createArrayRefIdentifier(leftOp: ArrayRef, currentLine: Int, currentCol: Int, argumentIndex: Int = 0) =
+        IdentifierVertex(
+            code = "$leftOp",
+            name = leftOp.toString(),
+            order = ASTBuilder.incOrder(),
+            argumentIndex = leftOp.index.toString().toIntOrNull() ?: argumentIndex,
+            typeFullName = leftOp.type.toQuotedString(),
+            lineNumber = currentLine,
+            columnNumber = currentCol
+        )
 
     /**
      * Creates a [FieldIdentifierVertex] from a [FieldRef].
      */
-    fun createFieldIdentifierVertex(field: FieldRef, currentLine: Int, currentCol: Int) =
-            FieldIdentifierVertex(
-                    canonicalName = field.field.signature,
-                    code = field.field.declaration,
-                    argumentIndex = 0,
-                    lineNumber = currentLine,
-                    columnNumber = currentCol,
-                    order = ASTBuilder.incOrder()
-            )
+    fun createFieldIdentifierVertex(field: FieldRef, currentLine: Int, currentCol: Int, argumentIndex: Int = 0) =
+        FieldIdentifierVertex(
+            canonicalName = field.field.signature,
+            code = field.field.declaration,
+            argumentIndex = argumentIndex,
+            lineNumber = currentLine,
+            columnNumber = currentCol,
+            order = ASTBuilder.incOrder()
+        )
 }

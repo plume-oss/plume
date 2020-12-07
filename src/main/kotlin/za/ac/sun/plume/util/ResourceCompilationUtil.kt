@@ -19,6 +19,7 @@ import org.apache.logging.log4j.LogManager
 import org.apache.logging.log4j.Logger
 import org.python.util.JycompileAntTask
 import za.ac.sun.plume.domain.exceptions.PlumeCompileException
+import za.ac.sun.plume.domain.files.JVMClassFile
 import za.ac.sun.plume.domain.files.PlumeFile
 import java.io.File
 import java.io.IOException
@@ -54,13 +55,13 @@ object ResourceCompilationUtil {
      * @throws PlumeCompileException if there is no suitable Java compiler found.
      */
     @JvmStatic
-    fun compileJavaFiles(files: List<PlumeFile>): List<PlumeFile> {
+    fun compileJavaFiles(files: List<PlumeFile>): List<JVMClassFile> {
         if (files.isEmpty()) return emptyList()
         val javac = getJavaCompiler()
         val fileManager = javac.getStandardFileManager(null, null, null)
         javac.getTask(null, fileManager, null, listOf("-g"), null,
                 fileManager.getJavaFileObjectsFromFiles(files)).call()
-        return files.map { PlumeFile(it.absolutePath.replace(".java", ".class")) }.toList()
+        return files.map { JVMClassFile(it.absolutePath.replace(".java", ".class")) }.toList()
     }
 
     /**
@@ -70,7 +71,7 @@ object ResourceCompilationUtil {
      * @throws PlumeCompileException if there is no suitable Java compiler found.
      */
     @JvmStatic
-    fun compilePythonFiles(files: List<PlumeFile>): List<PlumeFile> {
+    fun compilePythonFiles(files: List<PlumeFile>): List<JVMClassFile> {
         if (files.isEmpty()) return emptyList()
         val jythonc = JycompileAntTask()
         getJavaCompiler()
@@ -82,10 +83,10 @@ object ResourceCompilationUtil {
             else dirMap[dir]?.add(it)
         }
         dirMap.forEach {
-            jythonc.destdir = PlumeFile(it.key)
+            jythonc.destdir = File(it.key)
             jythonc.process(it.value.toSet())
         }
-        return files.map { PlumeFile(it.absolutePath.replace(".py", "\$py.class")) }.toList()
+        return files.map { JVMClassFile(it.absolutePath.replace(".py", "\$py.class")) }.toList()
     }
 
     /**
@@ -95,13 +96,13 @@ object ResourceCompilationUtil {
      * @throws PlumeCompileException if there is no suitable Java compiler found.
      */
     @JvmStatic
-    fun compileJavaScriptFiles(files: List<PlumeFile>): List<PlumeFile> {
+    fun compileJavaScriptFiles(files: List<PlumeFile>): List<JVMClassFile> {
         if (files.isEmpty()) return emptyList()
         val jsc = JSC()
         getJavaCompiler()
         jsc.processOptions(arrayOf("-version", "170", "-g"))
         jsc.processSource(files.parallelStream().map { it.absolutePath }.toList().toTypedArray())
-        return files.map { PlumeFile(it.absolutePath.replace(".js", ".class")) }.toList()
+        return files.map { JVMClassFile(it.absolutePath.replace(".js", ".class")) }.toList()
     }
 
     /**

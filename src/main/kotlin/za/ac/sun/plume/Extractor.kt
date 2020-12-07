@@ -75,31 +75,22 @@ class Extractor(val driver: IDriver, private val classPath: File) {
         callGraphBuilder = CallGraphBuilder(driver)
     }
 
+    // The companion object of this class holds the state of the current extraction
     companion object {
         private val sootToPlume = mutableMapOf<Any, MutableList<PlumeVertex>>()
         private val classToFileHash = mutableMapOf<SootClass, String>()
         private val savedCallGraphEdges = mutableMapOf<MethodVertex, MutableList<CallVertex>>()
 
         /**
-         * Associates the given Soot object to the given [PlumeVertex]
-         *
-         * @param sootObject The object from a Soot [BriefUnitGraph] to associate from.
-         * @param plumeVertex The [PlumeVertex] to associate to.
-         */
-        fun addSootToPlumeAssociation(sootObject: Any, plumeVertex: PlumeVertex) {
-            if (!sootToPlume.containsKey(sootObject)) sootToPlume[sootObject] = mutableListOf(plumeVertex)
-            else sootToPlume[sootObject]?.add(plumeVertex)
-        }
-
-        /**
-         * Associates the given Soot object to the given [PlumeVertex] at the given index.
+         * Associates the given Soot object to the given [PlumeVertex].
          *
          * @param sootObject The object from a Soot [BriefUnitGraph] to associate from.
          * @param plumeVertex The [PlumeVertex] to associate to.
          * @param index The index to place the associated [PlumeVertex] at.
          */
-        fun addSootToPlumeAssociation(sootObject: Any, plumeVertex: PlumeVertex, index: Int) {
+        fun addSootToPlumeAssociation(sootObject: Any, plumeVertex: PlumeVertex, index: Int = -1) {
             if (!sootToPlume.containsKey(sootObject)) sootToPlume[sootObject] = mutableListOf(plumeVertex)
+            else if (index <= -1) sootToPlume[sootObject]?.add(plumeVertex)
             else sootToPlume[sootObject]?.add(index, plumeVertex)
         }
 
@@ -108,10 +99,12 @@ class Extractor(val driver: IDriver, private val classPath: File) {
          *
          * @param sootObject The object from a Soot [BriefUnitGraph] to associate from.
          * @param plumeVertices The list of [PlumeVertex]s to associate to.
+         * @param index The index to place the associated [PlumeVertex](s) at.
          */
-        fun addSootToPlumeAssociation(sootObject: Any, plumeVertices: MutableList<PlumeVertex>) {
+        fun addSootToPlumeAssociation(sootObject: Any, plumeVertices: MutableList<PlumeVertex>, index: Int = -1) {
             if (!sootToPlume.containsKey(sootObject)) sootToPlume[sootObject] = plumeVertices
-            else sootToPlume[sootObject]?.addAll(plumeVertices)
+            else if (index <= -1) sootToPlume[sootObject]?.addAll(plumeVertices)
+            else sootToPlume[sootObject]?.addAll(index, plumeVertices)
         }
 
         /**
@@ -199,7 +192,7 @@ class Extractor(val driver: IDriver, private val classPath: File) {
      * @param files [PlumeFile] pointers to source files.
      * @return A set of [PlumeFile] pointers to the compiled class files.
      */
-    private fun compileLoadedFiles(files: HashSet<PlumeFile>): HashSet<PlumeFile> {
+    private fun compileLoadedFiles(files: HashSet<PlumeFile>): HashSet<JVMClassFile> {
         val splitFiles = mapOf<SupportedFile, MutableList<PlumeFile>>(
                 SupportedFile.JAVA to mutableListOf(),
                 SupportedFile.JAVASCRIPT to mutableListOf(),
@@ -217,7 +210,7 @@ class Extractor(val driver: IDriver, private val classPath: File) {
                     }
                 }
         return splitFiles.keys.map {
-            val filesToCompile = (splitFiles[it] ?: emptyList<PlumeFile>()).toList()
+            val filesToCompile = (splitFiles[it] ?: emptyList<JVMClassFile>()).toList()
             return@map when (it) {
                 SupportedFile.JAVA ->
                     compileJavaFiles(filesToCompile)
@@ -229,7 +222,7 @@ class Extractor(val driver: IDriver, private val classPath: File) {
                     compileJavaScriptFiles(filesToCompile)
                             .apply { if (this.isNotEmpty()) driver.addVertex(MetaDataVertex("JavaScript", "170")) }
                 SupportedFile.JVM_CLASS ->
-                    filesToCompile
+                    filesToCompile.map { cls -> cls as JVMClassFile }
                             .apply { if (this.isNotEmpty()) driver.addVertex(MetaDataVertex("Java", System.getProperty("java.runtime.version"))) }
             }
         }.asSequence().flatten().toHashSet()
@@ -403,7 +396,7 @@ class Extractor(val driver: IDriver, private val classPath: File) {
      * @param classNames A set of class files.
      * @return the given class files as a list of [SootClass].
      */
-    private fun loadClassesIntoSoot(classNames: HashSet<PlumeFile>): List<SootClass> {
+    private fun loadClassesIntoSoot(classNames: HashSet<JVMClassFile>): List<SootClass> {
         classNames.map(this::getQualifiedClassPath).forEach(Scene.v()::addBasicClass)
         Scene.v().loadBasicClasses()
         return classNames.map { Pair(it, getQualifiedClassPath(it)) }
