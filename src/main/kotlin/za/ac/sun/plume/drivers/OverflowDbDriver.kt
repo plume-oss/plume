@@ -1,5 +1,6 @@
 package za.ac.sun.plume.drivers
 
+import org.apache.logging.log4j.LogManager
 import io.shiftleft.codepropertygraph.generated.nodes.*
 import overflowdb.Config
 import overflowdb.Edge
@@ -30,6 +31,8 @@ import za.ac.sun.plume.domain.models.vertices.*
  * */
 class OverflowDbDriver : IDriver {
 
+    private val logger = LogManager.getLogger(OverflowDbDriver::class.java)
+
     private var graph : Graph = createEmptyGraph()
 
     var dbfilename: String = ""
@@ -54,14 +57,16 @@ class OverflowDbDriver : IDriver {
 
     override fun addVertex(v: PlumeVertex) {
         val id = v.hashCode()
-        val node = convert(v)
-        val newNode = graph.addNode(id.toLong(), node.label())
-        node.properties().foreachEntry { key, value ->
-            newNode.setProperty(key, value)
+        convert(v)?.let{ node ->
+            val newNode = graph.addNode(id.toLong(), node.label())
+            node.properties().foreachEntry { key, value ->
+                newNode.setProperty(key, value)
+            }
         }
+
     }
 
-    private fun convert(v : PlumeVertex) : NewNode {
+    private fun convert(v : PlumeVertex) : NewNode? {
         return when(v) {
             is ArrayInitializerVertex -> arrayInitializer(v.order)
             is BindingVertex -> binding(v.name, v.signature)
@@ -85,8 +90,7 @@ class OverflowDbDriver : IDriver {
             is TypeDeclVertex -> typeDecl(v.name, v.fullName, v.order, v.typeDeclFullName)
             is TypeParameterVertex -> typeParameter(v.name, v.order)
             else -> {
-               println(v)
-               TODO("Not implemented")
+               logger.warn("Received unsupported vertex type."); null
            }
 
        }
