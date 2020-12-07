@@ -1,5 +1,6 @@
 plugins {
     id 'scala'
+    id 'cz.alenkacz.gradle.scalafmt' version '1.14.0'
 }
 
 repositories {
