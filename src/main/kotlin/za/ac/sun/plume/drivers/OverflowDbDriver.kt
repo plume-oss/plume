@@ -73,7 +73,7 @@ class OverflowDbDriver : IDriver {
             is BlockVertex -> block(v.code, v.columnNumber, v.lineNumber, v.order, v.typeFullName, v.argumentIndex)
             is CallVertex -> call(v.code, v.name, v.columnNumber, v.lineNumber, v.order, v.methodFullName, v.argumentIndex, v.signature, v.dispatchType.name, v.dynamicTypeHintFullName, v.typeFullName)
             is ControlStructureVertex -> controlStructure(v.code, v.columnNumber, v.lineNumber, v.order)
-            is FileVertex -> file(v.name, v.order)
+            is FileVertex -> file(v.name, v.hash, v.order)
             is IdentifierVertex -> identifier(v.code, v.name, v.columnNumber, v.lineNumber, v.order, v.typeFullName, v.argumentIndex)
             is JumpTargetVertex -> jumpTarget(v.code, v.name, v.columnNumber, v.lineNumber, v.order)
             is LiteralVertex -> literal(v.code, v.columnNumber, v.lineNumber, v.order, v.typeFullName, v.argumentIndex)
@@ -105,7 +105,7 @@ class OverflowDbDriver : IDriver {
                     getOrElse(v.dynamicTypeHintFullName().headOption(), ""), v.name(), v.signature(), v.code(), v.order(),
                     getOrElse(v.lineNumber(), 0), getOrElse(v.columnNumber(), 0)
             )
-            is File -> FileVertex(v.name(), v.order())
+            is File -> FileVertex(v.name(), getOrElse(v.hash(), ""), v.order())
             is Identifier -> IdentifierVertex(v.name(), v.typeFullName(), v.code(), v.order(), v.argumentIndex(), getOrElse(v.lineNumber(), 0), getOrElse(v.columnNumber(), 0))
             is MetaData -> MetaDataVertex(v.language(), v.version())
             is Method -> MethodVertex(v.name(), v.fullName(), v.signature(), v.code(),

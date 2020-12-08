@@ -54,8 +54,8 @@ object CpgDomainObjCreator {
                               lineNumber = Some(lineNumber),
                               order = order)
 
-  def file(name: String, order: Int): nodes.NewFile =
-    nodes.NewFile(name = name, order = order)
+  def file(name: String, hash : String, order: Int): nodes.NewFile =
+    nodes.NewFile(name = name, hash = Some(hash), order = order)
 
   def jumpTarget(code: String, name: String, columnNumber: Int, lineNumber: Int, order: Int): nodes.NewJumpTarget =
     nodes.NewJumpTarget(code = code,
