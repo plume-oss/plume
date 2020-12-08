@@ -1,6 +1,6 @@
 # Plume
 [![License](https://img.shields.io/badge/License-Apache%202.0-blue.svg)](https://opensource.org/licenses/Apache-2.0)
-[![Build Status](https://travis-ci.org/plume-oss/plume-driver.svg?branch=develop)](https://travis-ci.org/plume-oss/plume-driver)
+![GitHub Actions](https://github.com/plume-oss/plume-driver/workflows/Kotlin%20CI%20with%20Gradle/badge.svg)
 [![codecov](https://codecov.io/gh/plume-oss/plume-driver/branch/develop/graph/badge.svg)](https://codecov.io/gh/plume-oss/plume-driver)
 
 A Kotlin driver for the Plume library to provide an interface for connecting and writing to various graph databases based
