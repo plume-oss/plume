@@ -1,6 +1,6 @@
 # Plume Extractor
 [![License](https://img.shields.io/badge/License-Apache%202.0-blue.svg)](https://opensource.org/licenses/Apache-2.0)
-[![Build Status](https://travis-ci.org/plume-oss/plume-extractor.svg?branch=develop)](https://travis-ci.org/plume-oss/plume-extractor)
+![GitHub Actions](https://github.com/plume-oss/plume-extractor/workflows/Kotlin%20CI%20with%20Gradle/badge.svg)
 [![codecov](https://codecov.io/gh/plume-oss/plume-extractor/branch/develop/graph/badge.svg)](https://codecov.io/gh/plume-oss/plume-extractor)
 
 Converts a Java program, JAR or class file into a code-property graph and inserts it into a graph database to be 
