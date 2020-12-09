@@ -6,7 +6,6 @@ import za.ac.sun.plume.domain.enums.EvaluationStrategy
 import za.ac.sun.plume.domain.enums.ModifierType
 import za.ac.sun.plume.domain.models.vertices.*
 import za.ac.sun.plume.drivers.IDriver
-import za.ac.sun.plume.drivers.TinkerGraphDriverTest
 
 class TestDomainResources {
     companion object {

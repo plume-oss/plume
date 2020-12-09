@@ -12,9 +12,10 @@ gradle-app.setting
 .gradletasknamecache
 
 # IDE
-/plume-driver.iml
+/plume.iml
 /.idea/
 .project
 .settings
 .classpath
 /src/test/resources/conf/SFSRootCAG2.pem
+/sootOutput/

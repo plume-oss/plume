@@ -1,14 +1,14 @@
 site:
   about:
-    siteName: Plume Driver
-    siteDescription: Provides a type-safe interface for connecting and writing to various graph databases based on the code-property graph schema.
+    siteName: Plume
+    siteDescription: Projects bytecode into a code-property graph which is inserted it into a graph database. A type-safe interface for connecting and writing to various graph databases is provided. This based on the code-property graph schema.
 Editorial:
   primaryColor: '#00bdd6'
   legacySearch: false
   metaComponents:
     - type: 'orchidSearch'
   social:
-    github: 'plume-oss/plume-driver'
+    github: 'plume-oss/plume'
   menu:
     - type: 'separator'
       title: 'API Docs'
@@ -32,4 +32,4 @@ services:
     stages:
       - type: 'githubPages'
         username: 'DavidBakerEffendi' # the username which created the personal access token
-        repo: 'plume-oss/plume-driver' # the repo to publish to
+        repo: 'plume-oss/plume' # the repo to publish to
