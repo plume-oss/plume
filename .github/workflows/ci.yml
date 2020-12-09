@@ -1,4 +1,4 @@
-name: Kotlin CI with Gradle
+name: CI
 
 on:
   push:
@@ -7,23 +7,29 @@ on:
     branches: [ develop ]
 
 jobs:
-  build:
-    runs-on: ubuntu-20.04
+  test:
+    name: Test on JDK 11 and ${{ matrix.os }}
+    runs-on: ${{ matrix.os }}
+
     strategy:
       matrix:
-        java: [ 11, 12, 13, 14 ]
+        os: [ ubuntu-latest, macOS-latest, windows-latest ]
+
     steps:
     - uses: actions/checkout@v2
       with:
         lfs: true
-    - name: Set up JDK ${{ matrix.java }}
+
+    - name: Set up JDK 11
       uses: actions/setup-java@v1
       with:
-        java-version: ${{ matrix.java }}
+        java-version: 11
+
     - name: Grant execute permission for gradlew
       run: chmod +x gradlew
     - name: Compile classes
       run: ./gradlew classes
+
     - name: Run unit tests
       run: ./gradlew test
     - name: Run JanusGraph integration tests
@@ -32,6 +38,7 @@ jobs:
       run: ./gradlew tigerGraphIntTest
     - name: Run Neo4j integration tests
       run: ./gradlew neo4jIntTest
+
     - name: Compile coverage report
       run: ./gradlew jacocoTestReport
     - name: Upload coverage to Codecov

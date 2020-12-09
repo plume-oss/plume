@@ -1,11 +1,19 @@
-name: KDocs with Orchid
+name: Release
 
 on:
   push:
     branches: [ master ]
 
 jobs:
-  deploy:
+  prepare:
+    runs-on: ubuntu-latest
+    if: "! contains(github.event.head_commit.message, '[skip ci]')"
+    steps:
+      - run: echo "${{ github.event.head_commit.message }}"
+
+  publish:
+    name: KDocs with Orchid
+    needs: prepare
 
     runs-on: ubuntu-latest
 
@@ -17,5 +25,7 @@ jobs:
         java-version: 11
     - name: Grant execute permission for gradlew
       run: chmod +x gradlew
+    - name: Build code
+    - run: ./gradlew build
     - name: Build and deploy Orchid token
       run: ./gradlew :orchidDeploy -PorchidEnvironment=prod
