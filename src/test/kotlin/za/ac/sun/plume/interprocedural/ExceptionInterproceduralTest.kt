@@ -67,7 +67,7 @@ class ExceptionInterproceduralTest {
         val parseIntCall = vertices.filterIsInstance<CallVertex>().filter { it.name == "parseInt" }
                 .apply { assertEquals(1, this.size) }.firstOrNull().apply { assertNotNull(this) }
         parseIntCall!!
-        graph.edgesOut(parseIntCall)[EdgeLabel.AST]?.filterIsInstance<LiteralVertex>()?.firstOrNull()?.let { assertEquals("\"2\"", it.name) }
+        graph.edgesOut(parseIntCall)[EdgeLabel.AST]?.filterIsInstance<LiteralVertex>()?.firstOrNull()?.let { assertEquals("\"2\"", it.code) }
     }
 
     @Test
@@ -86,7 +86,7 @@ class ExceptionInterproceduralTest {
         val parseIntCall = vertices.filterIsInstance<CallVertex>().filter { it.name == "parseInt" }
                 .apply { assertEquals(1, this.size) }.firstOrNull().apply { assertNotNull(this) }
         parseIntCall!!
-        graph.edgesOut(parseIntCall)[EdgeLabel.AST]?.filterIsInstance<LiteralVertex>()?.firstOrNull()?.let { assertEquals("\"2\"", it.name) }
+        graph.edgesOut(parseIntCall)[EdgeLabel.AST]?.filterIsInstance<LiteralVertex>()?.firstOrNull()?.let { assertEquals("\"2\"", it.code) }
     }
 
 }

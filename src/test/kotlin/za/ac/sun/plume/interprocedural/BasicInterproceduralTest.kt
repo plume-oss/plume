@@ -71,7 +71,7 @@ class BasicInterproceduralTest {
         val assignVert = graph.edgesIn(fCall)[EdgeLabel.ARGUMENT]?.firstOrNull()?.apply { assertNotNull(this) }
         assignVert!!
         graph.edgesOut(assignVert)[EdgeLabel.REF]?.contains(fMethod)?.let { assertTrue(it) }
-        graph.edgesOut(fCall)[EdgeLabel.ARGUMENT]?.filterIsInstance<LiteralVertex>()?.firstOrNull()?.let { assertEquals("5", it.name) }
+        graph.edgesOut(fCall)[EdgeLabel.ARGUMENT]?.filterIsInstance<LiteralVertex>()?.firstOrNull()?.let { assertEquals("5", it.code) }
     }
 
     @Test
@@ -106,8 +106,8 @@ class BasicInterproceduralTest {
         graph.edgesOut(initMethod)[EdgeLabel.REF]?.filterIsInstance<MethodVertex>()?.firstOrNull()?.apply { assertNotNull(this); assertEquals(initMethod.name, this.name) }
         graph.edgesOut(fCall)[EdgeLabel.REF]?.contains(fMethod)?.let { assertTrue(it) }
         graph.edgesOut(fCall)[EdgeLabel.ARGUMENT]?.filterIsInstance<LiteralVertex>()?.let { lv ->
-            assertTrue(lv.any { it.name == "5" })
-            assertTrue(lv.any { it.name == "6" })
+            assertTrue(lv.any { it.code == "5" })
+            assertTrue(lv.any { it.code == "6" })
         }
         graph.edgesOut(fMethod)[EdgeLabel.AST]?.filterIsInstance<MethodParameterInVertex>()?.let { mpv ->
             assertTrue(mpv.any { it.name == "i" })
@@ -133,8 +133,8 @@ class BasicInterproceduralTest {
         graph.edgesOut(initMethod)[EdgeLabel.REF]?.filterIsInstance<MethodVertex>()?.firstOrNull()?.apply { assertNotNull(this); assertEquals(initMethod.name, this.name) }
         graph.edgesOut(fCall)[EdgeLabel.REF]?.contains(fMethod)?.let { assertTrue(it) }
         graph.edgesOut(fCall)[EdgeLabel.ARGUMENT]?.filterIsInstance<LiteralVertex>()?.let { lv ->
-            assertTrue(lv.any { it.name == "\"Test\"" })
-            assertTrue(lv.any { it.name == "\"Case\"" })
+            assertTrue(lv.any { it.code == "\"Test\"" })
+            assertTrue(lv.any { it.code == "\"Case\"" })
         }
         graph.edgesOut(fMethod)[EdgeLabel.AST]?.filterIsInstance<MethodParameterInVertex>()?.let { mpv ->
             assertTrue(mpv.any { it.name == "prefix" })

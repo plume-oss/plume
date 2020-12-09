@@ -56,10 +56,10 @@ class UpdateGraphTest {
         listOf(testFile1, testFile2).forEach { extractor.load(it) }
         extractor.project()
         val g2 = driver.getWholeGraph()
-        assertTrue(g1.vertices().filterIsInstance<LiteralVertex>().any { it.name == "5" })
-        assertTrue(g2.vertices().filterIsInstance<LiteralVertex>().any { it.name == "9" })
-        assertTrue(g2.vertices().filterIsInstance<LiteralVertex>().none { it.name == "5" })
-        assertTrue(g1.vertices().filterIsInstance<LiteralVertex>().none { it.name == "9" })
+        assertTrue(g1.vertices().filterIsInstance<LiteralVertex>().any { it.code == "5" })
+        assertTrue(g2.vertices().filterIsInstance<LiteralVertex>().any { it.code == "9" })
+        assertTrue(g2.vertices().filterIsInstance<LiteralVertex>().none { it.code == "5" })
+        assertTrue(g1.vertices().filterIsInstance<LiteralVertex>().none { it.code == "9" })
         assertFalse(g1 == g2)
     }
 

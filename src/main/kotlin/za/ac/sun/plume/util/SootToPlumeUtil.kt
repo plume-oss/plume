@@ -91,13 +91,14 @@ object SootToPlumeUtil {
         val currentLine = mtd.javaSourceStartLineNumber
         val currentCol = mtd.javaSourceStartColumnNumber
         // Method vertex
-        val mtdVertex = MethodVertex(mtd.name,
-            "${mtd.declaringClass}.${mtd.name}",
-            mtd.subSignature,
-            mtd.declaration,
-            currentLine,
-            currentCol,
-            ASTBuilder.incOrder())
+        val mtdVertex = MethodVertex(
+            name = mtd.name,
+            fullName = "${mtd.declaringClass}.${mtd.name}",
+            signature = mtd.subSignature,
+            code = mtd.declaration,
+            lineNumber = currentLine,
+            columnNumber = currentCol,
+            order = ASTBuilder.incOrder())
         methodHeadChildren.add(mtdVertex)
         // Store return type
         projectMethodReturnVertex(mtd.returnType, currentLine, currentCol)
@@ -107,13 +108,13 @@ object SootToPlumeUtil {
             .map { ModifierVertex(it, ASTBuilder.incOrder()) }
             .forEach { driver.addEdge(mtdVertex, it, EdgeLabel.AST); methodHeadChildren.add(it) }
         // Store method vertex
-        BlockVertex(ExtractorConst.ENTRYPOINT,
-            ExtractorConst.VOID,
-            ExtractorConst.ENTRYPOINT,
-            ASTBuilder.incOrder(),
-            0,
-            currentLine,
-            currentCol)
+        BlockVertex(
+            typeFullName = mtd.returnType.toQuotedString(),
+            code = ExtractorConst.ENTRYPOINT,
+            order = ASTBuilder.incOrder(),
+            argumentIndex = 0,
+            lineNumber = currentLine,
+            columnNumber = currentCol)
             .apply { driver.addEdge(mtdVertex, this, EdgeLabel.AST); methodHeadChildren.add(this) }
         // Associate all head vertices to the SootMethod
         addSootToPlumeAssociation(mtd, methodHeadChildren)
@@ -263,7 +264,6 @@ object SootToPlumeUtil {
 
     private fun projectMethodReturnVertex(type: Type, currentLine: Int, currentCol: Int) =
         MethodReturnVertex(
-            name = ExtractorConst.RETURN,
             code = "return ${type.toQuotedString()}",
             evaluationStrategy = determineEvaluationStrategy(type.toQuotedString(), true),
             typeFullName = type.toQuotedString(),
@@ -277,7 +277,6 @@ object SootToPlumeUtil {
      */
     fun createLiteralVertex(constant: Constant, currentLine: Int, currentCol: Int, argumentIndex: Int = 0) =
         LiteralVertex(
-            name = constant.toString(),
             code = constant.toString(),
             order = ASTBuilder.incOrder(),
             argumentIndex = argumentIndex,

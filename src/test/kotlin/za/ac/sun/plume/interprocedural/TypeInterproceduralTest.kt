@@ -80,6 +80,6 @@ class TypeInterproceduralTest {
     fun type3Test() {
         val vertices = graph.vertices()
         assertNotNull(vertices.filterIsInstance<LocalVertex>().firstOrNull { it.name == "cls" && it.typeFullName == "java.lang.Class" })
-        assertNotNull(vertices.filterIsInstance<LiteralVertex>().firstOrNull { it.name == "class \"Lintraprocedural/type/Type3;\"" && it.typeFullName == "java.lang.Class" })
+        assertNotNull(vertices.filterIsInstance<LiteralVertex>().firstOrNull { it.code == "class \"Lintraprocedural/type/Type3;\"" && it.typeFullName == "java.lang.Class" })
     }
 }
