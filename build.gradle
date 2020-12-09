@@ -19,8 +19,11 @@ repositories {
 }
 
 dependencies {
+    // Logging
     implementation 'org.apache.logging.log4j:log4j-core:2.13.3'
     implementation 'org.apache.logging.log4j:log4j-slf4j-impl:2.13.3'
+
+    // Core dependencies
     implementation 'org.apache.tinkerpop:gremlin-core:3.4.8'
     implementation 'org.apache.tinkerpop:tinkergraph-gremlin:3.4.8'
     implementation 'org.apache.tinkerpop:gremlin-driver:3.4.8'
@@ -31,14 +34,27 @@ dependencies {
     implementation 'org.jetbrains.kotlin:kotlin-stdlib-jdk8:1.3.72'
     implementation 'org.jetbrains.kotlin:kotlin-reflect:1.3.72'
     implementation 'io.shiftleft:codepropertygraph_2.13:1.3.5'
+    implementation 'org.soot-oss:soot:4.2.1'
+    implementation 'org.python:jython-standalone:2.7.2'
+    implementation 'org.apache.ant:ant:1.10.8'
+    implementation 'org.mozilla:rhino:1.7.13'
+    implementation 'org.lz4:lz4-java:1.7.1'
 
+    // CPG integration
     implementation project(":cpgconv")
 
-    testImplementation 'org.junit.jupiter:junit-jupiter-engine:5.4.0'
+    // Orchid Docs
     orchidRuntime 'io.github.javaeden.orchid:OrchidDocs:0.21.0'
     orchidRuntime 'io.github.javaeden.orchid:OrchidKotlindoc:0.21.0'
     orchidRuntime 'io.github.javaeden.orchid:OrchidPluginDocs:0.21.0'
     orchidRuntime 'io.github.javaeden.orchid:OrchidGithub:0.21.0'
+
+    // Kotlin
+    implementation 'org.jetbrains.kotlin:kotlin-stdlib-jdk8:1.3.72'
+    implementation 'org.jetbrains.kotlin:kotlin-reflect:1.3.72'
+    testImplementation 'org.junit.jupiter:junit-jupiter-engine:5.4.2'
+    testImplementation 'org.apache.tinkerpop:tinkergraph-gremlin:3.4.5'
+    testRuntimeOnly 'org.junit.jupiter:junit-jupiter-api:5.4.2'
 }
 
 sourceSets {
@@ -143,7 +159,7 @@ jacocoTestReport {
 
 orchid {
     theme = "Editorial"
-    baseUrl = "https://plume-oss.github.io/plume-driver"
+    baseUrl = "https://plume-oss.github.io/plume"
     version = "0.0.1"
     githubToken = System.getenv("ORCHID_TOKEN")
 }
@@ -153,7 +169,9 @@ jacocoTestCoverageVerification.dependsOn jacocoTestReport
 
 group = 'za.ac.sun.plume'
 version = 'X.X.X'
-description = 'Provides a type-safe interface for connecting and writing to various graph databases based on the code-property graph schema.'
+description = 'Projects bytecode into a code-property graph which is inserted it into a graph database. ' +
+        'A type-safe interface for connecting and writing to various graph databases is provided.' +
+        'This based on the code-property graph schema.'
 sourceCompatibility = '8'
 
 task fatJar(type: Jar) {
@@ -184,12 +202,12 @@ publishing {
 tasks.withType(JavaCompile) {
     options.encoding = 'UTF-8'
 }
+
 compileKotlin {
     kotlinOptions {
         jvmTarget = "1.8"
     }
 }
-
 compileTestKotlin {
     kotlinOptions {
         jvmTarget = "1.8"
