@@ -11,7 +11,7 @@ import za.ac.sun.plume.domain.models.vertices.MetaDataVertex
 import za.ac.sun.plume.domain.models.vertices.TypeVertex
 import kotlin.properties.Delegates
 
-class OverflowDbDriverTest {
+class OverflowDbDriverIntTest {
 
     companion object {
         private var testStartTime by Delegates.notNull<Long>()
@@ -24,7 +24,7 @@ class OverflowDbDriverTest {
         @AfterAll
         @JvmStatic
         fun tearDownAll() {
-            println("${OverflowDbDriverTest::class.java.simpleName} completed in ${(System.nanoTime() - testStartTime) / 1e6} ms")
+            println("${OverflowDbDriverIntTest::class.java.simpleName} completed in ${(System.nanoTime() - testStartTime) / 1e6} ms")
         }
     }
 

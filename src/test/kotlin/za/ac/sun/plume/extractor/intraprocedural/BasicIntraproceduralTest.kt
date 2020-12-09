@@ -1,16 +1,14 @@
-package za.ac.sun.plume.intraprocedural
+package za.ac.sun.plume.extractor.intraprocedural
 
 import org.junit.jupiter.api.*
 import org.junit.jupiter.api.Assertions.assertEquals
 import org.junit.jupiter.api.Assertions.assertNotNull
 import za.ac.sun.plume.Extractor
-import za.ac.sun.plume.TestConstants.testGraph
 import za.ac.sun.plume.domain.models.PlumeGraph
 import za.ac.sun.plume.domain.models.vertices.*
 import za.ac.sun.plume.drivers.DriverFactory
 import za.ac.sun.plume.drivers.GraphDatabase
 import za.ac.sun.plume.drivers.TinkerGraphDriver
-import za.ac.sun.plume.util.ResourceCompilationUtil.deleteClassFiles
 import java.io.File
 import java.io.IOException
 

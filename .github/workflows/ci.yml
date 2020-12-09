@@ -29,15 +29,22 @@ jobs:
       run: chmod +x gradlew
     - name: Compile classes
       run: ./gradlew classes
-
     - name: Run unit tests
       run: ./gradlew test
+
+    - name: Run TinkerGaph integration tests
+      run: ./gradlew tinkerGraphIntTest
+    - name: Run OverflowDb integration tests
+      run: ./gradlew overflowDbIntTest
     - name: Run JanusGraph integration tests
       run: ./gradlew janusGraphIntTest
     - name: Run TigerGraph integration tests
       run: ./gradlew tigerGraphIntTest
     - name: Run Neo4j integration tests
       run: ./gradlew neo4jIntTest
+
+    - name: Run extractor tests
+      run: ./gradlew extractorTest
 
     - name: Compile coverage report
       run: ./gradlew jacocoTestReport

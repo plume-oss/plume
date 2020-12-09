@@ -67,7 +67,40 @@ sourceSets {
 
 test {
     useJUnitPlatform()
-    exclude "**/*IntTest*"
+    exclude "**/*IntTest*", "**/extractor/**"
+
+    testLogging {
+        events 'FAILED', 'SKIPPED'
+    }
+}
+
+task extractorTest(type: Test) {
+    useJUnitPlatform()
+    description = "Execute extractor tests."
+    group = "verification"
+    include "**/extractor/**"
+
+    testLogging {
+        events 'FAILED', 'SKIPPED'
+    }
+}
+
+task tinkerGraphIntTest(type: Test) {
+    useJUnitPlatform()
+    description = "Execute TinkerGraph integration tests."
+    group = "verification"
+    include "**/*TinkerGraph*"
+
+    testLogging {
+        events 'FAILED', 'SKIPPED'
+    }
+}
+
+task overflowDbIntTest(type: Test) {
+    useJUnitPlatform()
+    description = "Execute OverflowDb integration tests."
+    group = "verification"
+    include "**/*OverflowDb*"
 
     testLogging {
         events 'FAILED', 'SKIPPED'
@@ -154,7 +187,7 @@ jacocoTestReport {
         html.destination file("${buildDir}/reports/jacoco")
         csv.enabled false
     }
-    executionData test, janusGraphIntTest, tigerGraphIntTest, neo4jIntTest
+    executionData test, extractorTest, tinkerGraphIntTest, overflowDbIntTest, janusGraphIntTest, tigerGraphIntTest, neo4jIntTest
 }
 
 orchid {

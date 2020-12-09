@@ -34,11 +34,11 @@ import za.ac.sun.plume.TestDomainResources.Companion.v7
 import za.ac.sun.plume.TestDomainResources.Companion.v8
 import za.ac.sun.plume.TestDomainResources.Companion.v9
 
-class TinkerGraphDriverTest {
+class TinkerGraphDriverIntTest {
 
     companion object {
         private val tempDir = System.getProperty("java.io.tmpdir")
-        private val logger = LogManager.getLogger(TinkerGraphDriverTest::class.java)
+        private val logger = LogManager.getLogger(TinkerGraphDriverIntTest::class.java)
         private var testStartTime by Delegates.notNull<Long>()
         lateinit var driver: TinkerGraphDriver
         val testGraphML = "$tempDir/plume/plume_driver_test.xml"
@@ -52,7 +52,7 @@ class TinkerGraphDriverTest {
         @AfterAll
         @JvmStatic
         fun tearDownAll() {
-            println("${TinkerGraphDriverTest::class.java.simpleName} completed in ${(System.nanoTime() - testStartTime) / 1e6} ms")
+            println("${TinkerGraphDriverIntTest::class.java.simpleName} completed in ${(System.nanoTime() - testStartTime) / 1e6} ms")
 
             val testFiles = arrayOf(File(testGraphML), File(testGraphSON), File(testGryo))
             Arrays.stream(testFiles).forEach { file: File ->

@@ -1,4 +1,4 @@
-package za.ac.sun.plume.intraprocedural
+package za.ac.sun.plume.extractor.intraprocedural
 
 import org.junit.jupiter.api.AfterEach
 import org.junit.jupiter.api.Assertions.*
