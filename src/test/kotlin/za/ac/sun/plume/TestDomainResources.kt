@@ -24,20 +24,20 @@ class TestDomainResources {
         val vertices = listOf(
                 ArrayInitializerVertex(INT_1),
                 BindingVertex(STRING_1, STRING_2),
-                BlockVertex(STRING_1, STRING_1, STRING_1, INT_1, INT_1, INT_1, INT_1),
+                BlockVertex(STRING_1, STRING_1, INT_1, INT_1, INT_1, INT_1),
                 CallVertex(STRING_1, INT_1, DISPATCH_1, STRING_1, STRING_1, STRING_1, STRING_1, STRING_1, INT_1, INT_1, INT_1),
                 ControlStructureVertex(STRING_1, STRING_1, INT_1, INT_1, INT_1, INT_1),
                 FieldIdentifierVertex(STRING_1, STRING_1, INT_1, INT_1, INT_1, INT_1),
                 FileVertex(STRING_1, STRING_2, INT_1),
                 IdentifierVertex(STRING_1, STRING_1, STRING_1, INT_1, INT_1, INT_1, INT_1),
                 JumpTargetVertex(STRING_1, INT_1, INT_1, INT_1, STRING_1, INT_1),
-                LiteralVertex(STRING_1, STRING_1, STRING_1, INT_1, INT_1, INT_1, INT_1),
+                LiteralVertex(STRING_1, STRING_1, INT_1, INT_1, INT_1, INT_1),
                 LocalVertex(STRING_1, STRING_1, INT_1, INT_1, STRING_1, INT_1),
                 MemberVertex(STRING_1, STRING_1, STRING_1, INT_1),
                 MetaDataVertex(STRING_1, STRING_1),
                 MethodParameterInVertex(STRING_1, EVAL_1, STRING_1, INT_1, STRING_1, INT_1),
                 MethodRefVertex(STRING_1, STRING_1, STRING_1, INT_1, INT_1, INT_1, INT_1),
-                MethodReturnVertex(STRING_1, STRING_1, EVAL_1, STRING_1, INT_1, INT_1, INT_1),
+                MethodReturnVertex(STRING_1, EVAL_1, STRING_1, INT_1, INT_1, INT_1),
                 MethodVertex(STRING_1, STRING_1, STRING_1, STRING_1, INT_1, INT_1, INT_1),
                 ModifierVertex(MOD_1, INT_1),
                 NamespaceBlockVertex(STRING_1, STRING_1, INT_1),
@@ -52,14 +52,14 @@ class TestDomainResources {
 
         val v1 = MethodVertex(STRING_1, STRING_1, STRING_2, STRING_1, INT_1, INT_2, INT_1)
         val v2 = MethodParameterInVertex(STRING_1, EVAL_1, STRING_1, INT_1, STRING_2, INT_2)
-        val v3 = BlockVertex(STRING_1, STRING_1, STRING_1, INT_1, INT_2, INT_2, INT_1)
+        val v3 = BlockVertex(STRING_1, STRING_1, INT_1, INT_2, INT_2, INT_1)
         val v4 = CallVertex(STRING_1, INT_1, DISPATCH_1, STRING_1, STRING_1, STRING_2, STRING_2, STRING_2, INT_1, INT_1, INT_1)
         val v5 = LocalVertex(STRING_1, STRING_2, INT_1, INT_1, STRING_1, INT_1)
         val v6 = IdentifierVertex(STRING_1, STRING_1, STRING_1, INT_1, INT_1, INT_1, INT_1)
         val v7 = TypeDeclVertex(STRING_1, STRING_2, STRING_1, INT_1)
-        val v8 = LiteralVertex(STRING_1, STRING_2, STRING_2, INT_1, INT_1, INT_1, INT_1)
+        val v8 = LiteralVertex(STRING_2, STRING_2, INT_1, INT_1, INT_1, INT_1)
         val v9 = ReturnVertex(INT_1, INT_1, INT_1, INT_1, STRING_1)
-        val v10 = MethodReturnVertex(STRING_1, STRING_1, EVAL_1, STRING_1, INT_1, INT_1, INT_1)
+        val v10 = MethodReturnVertex(STRING_1, EVAL_1, STRING_1, INT_1, INT_1, INT_1)
         val v11 = FileVertex(STRING_1, STRING_2, INT_1)
         val v12 = NamespaceBlockVertex(STRING_1, STRING_1, INT_1)
         val v13 = NamespaceBlockVertex(STRING_2, STRING_2, INT_1)

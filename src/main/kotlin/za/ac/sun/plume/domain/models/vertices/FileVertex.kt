@@ -9,7 +9,7 @@ import java.util.*
 /**
  * Node representing a source file. Often also the AST root.
  */
-class FileVertex(val name: String, val hash: String, order: Int) : ASTVertex(order) {
+class FileVertex(val name: String, val hash : String, order: Int) : ASTVertex(order) {
     companion object {
         @JvmField
         val LABEL = VertexLabel.FILE

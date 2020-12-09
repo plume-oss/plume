@@ -79,7 +79,6 @@ class VertexMapper {
                         order = map["order"] as Int
                 )
                 METHOD_RETURN -> MethodReturnVertex(
-                        name = map["name"] as String,
                         code = map["code"] as String,
                         evaluationStrategy = EvaluationStrategy.valueOf(map["evaluationStrategy"] as String),
                         typeFullName = map["typeFullName"] as String,
@@ -121,7 +120,6 @@ class VertexMapper {
                         order = map["order"] as Int
                 )
                 LITERAL -> LiteralVertex(
-                        name = map["name"] as String,
                         code = map["code"] as String,
                         typeFullName = map["typeFullName"] as String,
                         lineNumber = map["lineNumber"] as Int,
@@ -175,7 +173,6 @@ class VertexMapper {
                         columnNumber = map["columnNumber"] as Int
                 )
                 BLOCK -> BlockVertex(
-                        name = map["name"] as String,
                         code = map["code"] as String,
                         typeFullName = map["typeFullName"] as String,
                         order = map["order"] as Int,

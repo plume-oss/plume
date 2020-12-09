@@ -10,7 +10,6 @@ import java.util.*
  * A structuring block in the AST.
  */
 class BlockVertex(
-        val name: String,
         val typeFullName: String,
         code: String,
         order: Int,
@@ -73,7 +72,7 @@ class BlockVertex(
     }
 
     override fun toString(): String {
-        return "BlockVertex(name='$name', typeFullName='$typeFullName')"
+        return "BlockVertex(typeFullName='$typeFullName')"
     }
 
 }
