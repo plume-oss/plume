@@ -8,12 +8,8 @@ on:
 
 jobs:
   test:
-    name: Test on JDK 11 and ${{ matrix.os }}
-    runs-on: ${{ matrix.os }}
-
-    strategy:
-      matrix:
-        os: [ ubuntu-latest, windows-latest ]
+    name: Test on JDK 11 and Ubuntu 20.04
+    runs-on: ubuntu-20.04
 
     steps:
       - uses: actions/checkout@v2
