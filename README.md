@@ -16,7 +16,7 @@ can be hosted on a Maven repository or similar.
 ```shell script
 git clone https://github.com/plume-oss/plume.git
 cd plume-driver
-./gradlew jar # For main artifact only
+./gradlew oneJar # For main artifact only
 ./gradlew fatJar # For fat jar with dependencies
 ```
 This will build `target/plume-X.X.X[-all].jar` which is imported into your local project.
@@ -50,8 +50,8 @@ Dependencies per graph database technology:
 ```
 #### _OverflowDb_
 ```groovy
-  implementation 'org.apache.tinkerpop:gremlin-core:3.4.8'
   implementation 'io.shiftleft:codepropertygraph_2.13:1.3.5'
+  implementation 'io.shiftleft:semanticcpg_2.13:1.3.5'
 ```
 #### _JanusGraph_ 
 ```groovy
@@ -61,6 +61,7 @@ Dependencies per graph database technology:
 #### _TigerGraph_
 ```groovy
   implementation 'khttp:khttp:1.0.0'
+  implementation 'com.fasterxml.jackson.core:jackson-databind:2.11.2'
 ```
 #### _Amazon Neptune_
 ```groovy
