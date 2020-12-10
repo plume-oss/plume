@@ -11,6 +11,7 @@ CREATE VERTEX CPG_VERT (
     evaluationStrategy STRING DEFAULT "BY_REFERENCE",
     methodFullName STRING DEFAULT "null",
     methodInstFullName STRING DEFAULT "null",
+    modifierType STRING DEFAULT "null",
     typeFullName STRING DEFAULT "null",
     typeDeclFullName STRING DEFAULT "null",
     dynamicTypeHintFullName STRING DEFAULT "null",

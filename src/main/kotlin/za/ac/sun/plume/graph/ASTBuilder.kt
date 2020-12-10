@@ -29,13 +29,11 @@ import za.ac.sun.plume.domain.enums.EdgeLabel
 import za.ac.sun.plume.domain.models.PlumeVertex
 import za.ac.sun.plume.domain.models.vertices.*
 import za.ac.sun.plume.drivers.IDriver
+import za.ac.sun.plume.util.ExtractorConst
 import za.ac.sun.plume.util.ExtractorConst.ASSIGN
 import za.ac.sun.plume.util.ExtractorConst.BINOPS
 import za.ac.sun.plume.util.ExtractorConst.CAST
 import za.ac.sun.plume.util.ExtractorConst.FALSE_TARGET
-import za.ac.sun.plume.util.ExtractorConst.IF_ROOT
-import za.ac.sun.plume.util.ExtractorConst.LOOKUP_ROOT
-import za.ac.sun.plume.util.ExtractorConst.SWITCH_ROOT
 import za.ac.sun.plume.util.ExtractorConst.TRUE_TARGET
 import za.ac.sun.plume.util.SootParserUtil
 import za.ac.sun.plume.util.SootToPlumeUtil
@@ -194,8 +192,7 @@ class ASTBuilder(private val driver: IDriver) : IGraphBuilder {
      */
     private fun projectTableSwitch(unit: TableSwitchStmt, argumentIndex: Int = 0): ControlStructureVertex {
         val switchVertex = ControlStructureVertex(
-            name = SWITCH_ROOT,
-            code = unit.toString(),
+            code = ExtractorConst.TABLE_SWITCH,
             lineNumber = unit.javaSourceStartLineNumber,
             columnNumber = unit.javaSourceStartColumnNumber,
             order = order++,
@@ -226,8 +223,7 @@ class ASTBuilder(private val driver: IDriver) : IGraphBuilder {
      */
     private fun projectLookupSwitch(unit: LookupSwitchStmt, argumentIndex: Int = 0): ControlStructureVertex {
         val switchVertex = ControlStructureVertex(
-            name = LOOKUP_ROOT,
-            code = unit.toString(),
+            code = ExtractorConst.LOOKUP_ROOT,
             lineNumber = unit.javaSourceStartLineNumber,
             columnNumber = unit.javaSourceStartColumnNumber,
             order = order++,
@@ -311,8 +307,7 @@ class ASTBuilder(private val driver: IDriver) : IGraphBuilder {
      */
     private fun projectIfRootAndCondition(unit: IfStmt, argumentIndex: Int = 0): ControlStructureVertex {
         val ifRootVertex = ControlStructureVertex(
-            name = IF_ROOT,
-            code = unit.toString(),
+            code = ExtractorConst.IF_ROOT,
             lineNumber = unit.javaSourceStartLineNumber,
             columnNumber = unit.javaSourceStartColumnNumber,
             order = order++,

@@ -87,7 +87,7 @@ class VertexMapper {
                         order = map["order"] as Int
                 )
                 MODIFIER -> ModifierVertex(
-                        name = ModifierType.valueOf(map["name"] as String),
+                        modifierType = ModifierType.valueOf(map["modifierType"] as String),
                         order = map["order"] as Int
                 )
                 TYPE -> TypeVertex(
@@ -207,7 +207,6 @@ class VertexMapper {
                         columnNumber = map["columnNumber"] as Int
                 )
                 CONTROL_STRUCTURE -> ControlStructureVertex(
-                        name = map["name"] as String,
                         code = map["code"] as String,
                         order = map["order"] as Int,
                         argumentIndex = map["argumentIndex"] as Int,

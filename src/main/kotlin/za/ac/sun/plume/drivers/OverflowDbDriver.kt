@@ -1,7 +1,7 @@
 package za.ac.sun.plume.drivers
 
-import org.apache.logging.log4j.LogManager
 import io.shiftleft.codepropertygraph.generated.nodes.*
+import org.apache.logging.log4j.LogManager
 import overflowdb.Config
 import overflowdb.Edge
 import overflowdb.Graph
@@ -13,6 +13,7 @@ import za.ac.sun.plume.Traversals
 import za.ac.sun.plume.domain.enums.DispatchType
 import za.ac.sun.plume.domain.enums.EdgeLabel
 import za.ac.sun.plume.domain.enums.EvaluationStrategy
+import za.ac.sun.plume.domain.enums.ModifierType
 import za.ac.sun.plume.domain.exceptions.PlumeSchemaViolationException
 import za.ac.sun.plume.domain.models.PlumeGraph
 import za.ac.sun.plume.domain.models.PlumeVertex
@@ -33,7 +34,7 @@ class OverflowDbDriver : IDriver {
 
     private val logger = LogManager.getLogger(OverflowDbDriver::class.java)
 
-    private var graph : Graph = createEmptyGraph()
+    private var graph: Graph = createEmptyGraph()
 
     var dbfilename: String = ""
         private set
@@ -44,20 +45,22 @@ class OverflowDbDriver : IDriver {
         graph = createEmptyGraph()
     }
 
-    private fun createEmptyGraph() : Graph {
+    private fun createEmptyGraph(): Graph {
         val odbConfig = if (dbfilename != "") {
             Config.withDefaults().withStorageLocation(dbfilename)
         } else {
             Config.withDefaults()
         }
-        return Graph.open(odbConfig,
-                io.shiftleft.codepropertygraph.generated.nodes.Factories.allAsJava(),
-                io.shiftleft.codepropertygraph.generated.edges.Factories.allAsJava())
+        return Graph.open(
+            odbConfig,
+            io.shiftleft.codepropertygraph.generated.nodes.Factories.allAsJava(),
+            io.shiftleft.codepropertygraph.generated.edges.Factories.allAsJava()
+        )
     }
 
     override fun addVertex(v: PlumeVertex) {
         val id = v.hashCode()
-        convert(v)?.let{ node ->
+        convert(v)?.let { node ->
             val newNode = graph.addNode(id.toLong(), node.label())
             node.properties().foreachEntry { key, value ->
                 newNode.setProperty(key, value)
@@ -66,75 +69,233 @@ class OverflowDbDriver : IDriver {
 
     }
 
-    private fun convert(v : PlumeVertex) : NewNode? {
-        return when(v) {
+    private fun convert(v: PlumeVertex): NewNode? {
+        return when (v) {
             is ArrayInitializerVertex -> arrayInitializer(v.order)
             is BindingVertex -> binding(v.name, v.signature)
             is BlockVertex -> block(v.code, v.columnNumber, v.lineNumber, v.order, v.typeFullName, v.argumentIndex)
-            is CallVertex -> call(v.code, v.name, v.columnNumber, v.lineNumber, v.order, v.methodFullName, v.argumentIndex, v.signature, v.dispatchType.name, v.dynamicTypeHintFullName, v.typeFullName)
+            is CallVertex -> call(
+                v.code,
+                v.name,
+                v.columnNumber,
+                v.lineNumber,
+                v.order,
+                v.methodFullName,
+                v.argumentIndex,
+                v.signature,
+                v.dispatchType.name,
+                v.dynamicTypeHintFullName,
+                v.typeFullName
+            )
             is ControlStructureVertex -> controlStructure(v.code, v.columnNumber, v.lineNumber, v.order)
+            is FieldIdentifierVertex -> fieldIdentifier(
+                v.canonicalName,
+                v.code,
+                v.argumentIndex,
+                v.lineNumber,
+                v.columnNumber,
+                v.order
+            )
             is FileVertex -> file(v.name, v.hash, v.order)
-            is IdentifierVertex -> identifier(v.code, v.name, v.columnNumber, v.lineNumber, v.order, v.typeFullName, v.argumentIndex)
+            is IdentifierVertex -> identifier(
+                v.code,
+                v.name,
+                v.columnNumber,
+                v.lineNumber,
+                v.order,
+                v.typeFullName,
+                v.argumentIndex
+            )
             is JumpTargetVertex -> jumpTarget(v.code, v.name, v.columnNumber, v.lineNumber, v.order)
             is LiteralVertex -> literal(v.code, v.columnNumber, v.lineNumber, v.order, v.typeFullName, v.argumentIndex)
             is LocalVertex -> local(v.code, v.name, v.columnNumber, v.lineNumber, v.order, v.typeFullName)
+            is MemberVertex -> member(v.code, v.name, v.typeFullName, v.order)
             is MetaDataVertex -> metaData(v.language, v.version)
+            is MethodParameterInVertex -> methodParameterIn(
+                v.code,
+                v.name,
+                v.lineNumber,
+                v.order,
+                v.evaluationStrategy.name,
+                v.typeFullName
+            )
+            is MethodRefVertex -> methodRef(
+                v.methodInstFullName,
+                v.methodFullName,
+                v.code,
+                v.order,
+                v.argumentIndex,
+                v.lineNumber,
+                v.columnNumber
+            )
+            is MethodReturnVertex -> methodReturn(
+                v.code,
+                v.columnNumber,
+                v.lineNumber,
+                v.order,
+                v.typeFullName,
+                v.evaluationStrategy.name
+            )
             is MethodVertex ->
                 method(v.code, v.name, v.fullName, v.signature, v.order, v.columnNumber, v.lineNumber)
-            is MethodParameterInVertex -> methodParameter(v.code, v.name, v.lineNumber, v.order, v.evaluationStrategy.name, v.typeFullName)
-            is MethodReturnVertex -> methodReturn(v.code, v.columnNumber, v.lineNumber, v.order, v.typeFullName, v.evaluationStrategy.name)
+            is ModifierVertex -> modifier(v.modifierType.name, v.order)
             is NamespaceBlockVertex -> namespaceBlock(v.name, v.fullName, v.order)
             is ReturnVertex -> returnNode(v.code, v.lineNumber, v.order, v.argumentIndex)
-            is TypeVertex -> NewType(v.name, v.fullName, v.typeDeclFullName)
             is TypeArgumentVertex -> typeArgument(v.order)
             is TypeDeclVertex -> typeDecl(v.name, v.fullName, v.order, v.typeDeclFullName)
             is TypeParameterVertex -> typeParameter(v.name, v.order)
+            is TypeRefVertex -> typeRef(
+                v.typeFullName,
+                v.dynamicTypeFullName,
+                v.code,
+                v.argumentIndex,
+                v.lineNumber,
+                v.columnNumber,
+                v.order
+            )
+            is TypeVertex -> NewType(v.name, v.fullName, v.typeDeclFullName)
+            is UnknownVertex -> unknown(v.typeFullName, v.code, v.order, v.argumentIndex, v.lineNumber, v.columnNumber)
             else -> {
-               logger.warn("Received unsupported vertex type."); null
-           }
+                logger.warn("Received unsupported vertex type."); null
+            }
 
-       }
+        }
     }
 
-    private fun convert(v : Node) : PlumeVertex? {
-        return when(v) {
+    private fun convert(v: Node): PlumeVertex? {
+        return when (v) {
             is ArrayInitializer -> ArrayInitializerVertex(v.order())
-            is Block -> BlockVertex(v.typeFullName(), v.code(), v.order(), v.argumentIndex(), getOrElse(v.lineNumber(), 0), getOrElse(v.columnNumber(), 0))
-            is Call -> CallVertex(v.methodFullName(), v.argumentIndex(),
-                    convertDispatchType(v.dispatchType()), v.typeFullName(),
-                    getOrElse(v.dynamicTypeHintFullName().headOption(), ""), v.name(), v.signature(), v.code(), v.order(),
-                    getOrElse(v.lineNumber(), 0), getOrElse(v.columnNumber(), 0)
+            is Binding -> BindingVertex(v.name(), v.signature())
+            is Block -> BlockVertex(
+                v.typeFullName(),
+                v.code(),
+                v.order(),
+                v.argumentIndex(),
+                getOrElse(v.lineNumber(), 0),
+                getOrElse(v.columnNumber(), 0)
+            )
+            is Call -> CallVertex(
+                v.methodFullName(), v.argumentIndex(),
+                convertDispatchType(v.dispatchType()), v.typeFullName(),
+                getOrElse(v.dynamicTypeHintFullName().headOption(), ""), v.name(), v.signature(), v.code(), v.order(),
+                getOrElse(v.lineNumber(), 0), getOrElse(v.columnNumber(), 0)
+            )
+            is ControlStructure -> ControlStructureVertex(
+                v.code(),
+                getOrElse(v.lineNumber(), 0),
+                getOrElse(v.columnNumber(), 0),
+                v.order(),
+                v.argumentIndex()
+            )
+            is FieldIdentifier -> FieldIdentifierVertex(
+                v.canonicalName(),
+                v.code(),
+                v.argumentIndex(),
+                getOrElse(v.lineNumber(), 0),
+                getOrElse(v.columnNumber(), 0),
+                v.order()
             )
             is File -> FileVertex(v.name(), getOrElse(v.hash(), ""), v.order())
-            is Identifier -> IdentifierVertex(v.name(), v.typeFullName(), v.code(), v.order(), v.argumentIndex(), getOrElse(v.lineNumber(), 0), getOrElse(v.columnNumber(), 0))
+            is Identifier -> IdentifierVertex(
+                v.name(),
+                v.typeFullName(),
+                v.code(),
+                v.order(),
+                v.argumentIndex(),
+                getOrElse(v.lineNumber(), 0),
+                getOrElse(v.columnNumber(), 0)
+            )
+            is JumpTarget -> JumpTargetVertex(
+                v.name(),
+                v.argumentIndex(),
+                getOrElse(v.lineNumber(), 0),
+                getOrElse(v.columnNumber(), 0),
+                v.code(),
+                v.order()
+            )
+            is Literal -> LiteralVertex(
+                v.typeFullName(),
+                v.code(),
+                v.order(),
+                v.argumentIndex(),
+                getOrElse(v.lineNumber(), 0),
+                getOrElse(v.columnNumber(), 0)
+            )
+            is Local -> LocalVertex(
+                v.code(),
+                v.typeFullName(),
+                getOrElse(v.lineNumber(), 0),
+                getOrElse(v.columnNumber(), 0),
+                v.name(),
+                v.order()
+            )
+            is Member -> MemberVertex(v.code(), v.name(), v.typeFullName(), v.order())
             is MetaData -> MetaDataVertex(v.language(), v.version())
-            is Method -> MethodVertex(v.name(), v.fullName(), v.signature(), v.code(),
-                    getOrElse(v.lineNumber(), 0), getOrElse(v.columnNumber(), 0), v.order())
-            is MethodParameterIn -> MethodParameterInVertex(v.code(), convertEvalStrategy(v.evaluationStrategy()) , v.typeFullName(), getOrElse(v.lineNumber(), 0), v.name(), v.order())
-            is MethodReturn -> MethodReturnVertex(v.typeFullName(),
-                    convertEvalStrategy(v.evaluationStrategy()), v.code(),
-                    getOrElse(v.lineNumber(), 0), getOrElse(v.columnNumber(),0), v.order())
-            is Literal -> LiteralVertex(v.typeFullName(), v.code(), v.order(), v.argumentIndex(), getOrElse(v.lineNumber(), 0), getOrElse(v.columnNumber(), 0))
-            is Local -> LocalVertex(v.code(), v.typeFullName(), getOrElse(v.lineNumber(), 0), getOrElse(v.columnNumber(), 0), v.name(), v.order())
+            is MethodParameterIn -> MethodParameterInVertex(
+                v.code(),
+                convertEvalStrategy(v.evaluationStrategy()),
+                v.typeFullName(),
+                getOrElse(v.lineNumber(), 0),
+                v.name(),
+                v.order()
+            )
+            is MethodReturn -> MethodReturnVertex(
+                v.typeFullName(),
+                convertEvalStrategy(v.evaluationStrategy()), v.code(),
+                getOrElse(v.lineNumber(), 0), getOrElse(v.columnNumber(), 0), v.order()
+            )
+            is Method -> MethodVertex(
+                v.name(), v.fullName(), v.signature(), v.code(),
+                getOrElse(v.lineNumber(), 0), getOrElse(v.columnNumber(), 0), v.order()
+            )
+            is Modifier -> ModifierVertex(
+                ModifierType.valueOf(v.modifierType()),
+                v.order()
+            )
             is NamespaceBlock -> NamespaceBlockVertex(v.name(), v.fullName(), v.order())
-            is Return -> ReturnVertex(getOrElse(v.lineNumber(), 0), getOrElse(v.columnNumber(), 0), v.order(), v.argumentIndex(), v.code())
+            is Return -> ReturnVertex(
+                getOrElse(v.lineNumber(), 0),
+                getOrElse(v.columnNumber(), 0),
+                v.order(),
+                v.argumentIndex(),
+                v.code()
+            )
             is TypeDecl -> TypeDeclVertex(v.name(), v.fullName(), v.astParentFullName(), v.order())
+            is TypeParameter -> TypeParameterVertex(v.name(), v.order())
+            is TypeRef -> TypeRefVertex(
+                v.typeFullName(),
+                v.dynamicTypeHintFullName().head(),
+                v.code(),
+                v.argumentIndex(),
+                getOrElse(v.lineNumber(), 0),
+                getOrElse(v.columnNumber(), 0),
+                v.order()
+            )
+            is Type -> TypeVertex(v.name(), v.fullName(), v.typeDeclFullName())
+            is Unknown -> UnknownVertex(
+                v.typeFullName(),
+                v.code(),
+                v.order(),
+                v.argumentIndex(),
+                getOrElse(v.lineNumber(), 0),
+                getOrElse(v.columnNumber(), 0)
+            )
             else -> {
                 logger.warn("Received unsupported vertex type."); null
             }
         }
     }
 
-    private fun convertEvalStrategy(str : String) : EvaluationStrategy {
+    private fun convertEvalStrategy(str: String): EvaluationStrategy {
         return EvaluationStrategy.valueOf(str)
     }
 
-    private fun convertDispatchType(str : String) : DispatchType {
+    private fun convertDispatchType(str: String): DispatchType {
         return DispatchType.valueOf(str)
     }
 
-    private fun <T>getOrElse(opt : scala.Option<T>, def : T) : T {
-        class F<T>(val x : T) : AbstractFunction0<T>() {
+    private fun <T> getOrElse(opt: scala.Option<T>, def: T): T {
+        class F<T>(val x: T) : AbstractFunction0<T>() {
             override fun apply(): T {
                 return x;
             }
@@ -149,7 +310,7 @@ class OverflowDbDriver : IDriver {
     override fun exists(fromV: PlumeVertex, toV: PlumeVertex, edge: EdgeLabel): Boolean {
         val srcNode = graph.node(fromV.hashCode().toLong()) ?: return false
         val dstNode = graph.node(toV.hashCode().toLong()) ?: return false
-        return srcNode.out(edge.name).asSequence().toList().any { node -> node.id().equals(dstNode.id()) }
+        return srcNode.out(edge.name).asSequence().toList().any { node -> node.id() == dstNode.id() }
     }
 
     override fun addEdge(fromV: PlumeVertex, toV: PlumeVertex, edge: EdgeLabel) {
@@ -166,10 +327,9 @@ class OverflowDbDriver : IDriver {
 
         try {
             srcNode.addEdge(edge.name, dstNode)
-        } catch(exc : RuntimeException) {
+        } catch (exc: RuntimeException) {
             throw PlumeSchemaViolationException(fromV, toV, edge)
         }
-
     }
 
     override fun maxOrder(): Int {
@@ -194,14 +354,14 @@ class OverflowDbDriver : IDriver {
         return edgeListToPlumeGraph(Traversals.getMethodStub(graph, fullName, signature))
     }
 
-    private fun nodesWithEdgesToPlumeGraph(nodesWithEdges : List<Tuple2<StoredNode, List<Edge>>>) : PlumeGraph {
+    private fun nodesWithEdgesToPlumeGraph(nodesWithEdges: List<Tuple2<StoredNode, List<Edge>>>): PlumeGraph {
         val plumeGraph = PlumeGraph()
         val plumeVertices = nodesWithEdges
-                .map{ x -> x._1 }
-                .distinct()
-                .map{node -> Pair(node.id(), convert(node)) }
-                .toMap()
-        plumeVertices.values.forEach { v -> v?.let{ x -> plumeGraph.addVertex(x) } }
+            .map { x -> x._1 }
+            .distinct()
+            .map { node -> Pair(node.id(), convert(node)) }
+            .toMap()
+        plumeVertices.values.forEach { v -> v?.let { x -> plumeGraph.addVertex(x) } }
         val edges = nodesWithEdges.flatMap { x -> x._2 }
         edges.forEach { edge ->
             val srcNode = plumeVertices.get(edge.outNode().id())
@@ -213,15 +373,15 @@ class OverflowDbDriver : IDriver {
         return plumeGraph
     }
 
-    private fun edgeListToPlumeGraph(edges : List<Edge>) : PlumeGraph {
+    private fun edgeListToPlumeGraph(edges: List<Edge>): PlumeGraph {
         val plumeGraph = PlumeGraph()
 
-        val plumeVertices = edges.flatMap{ edge -> listOf(edge.inNode(), edge.outNode()) }
-                .distinct()
-                .map{node -> Pair(node.id(), convert(node)) }
-                .toMap()
+        val plumeVertices = edges.flatMap { edge -> listOf(edge.inNode(), edge.outNode()) }
+            .distinct()
+            .map { node -> Pair(node.id(), convert(node)) }
+            .toMap()
 
-        plumeVertices.values.forEach { v ->  v?.let{ x -> plumeGraph.addVertex(x) } }
+        plumeVertices.values.forEach { v -> v?.let { x -> plumeGraph.addVertex(x) } }
         edges.forEach { edge ->
             val srcNode = plumeVertices.get(edge.outNode().id())
             val dstNode = plumeVertices.get(edge.inNode().id())

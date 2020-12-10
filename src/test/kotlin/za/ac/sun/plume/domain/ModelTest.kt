@@ -71,7 +71,7 @@ class ModelTest {
         @Test
         fun controlStructureVertexToString() {
             val vertex = TestDomainResources.vertices.first { it is ControlStructureVertex }
-            assertEquals("ControlStructureVertex(name='$STRING_1', order=$INT_1)", vertex.toString())
+            assertEquals("ControlStructureVertex(code='$STRING_1', order=$INT_1)", vertex.toString())
         }
 
         @Test
@@ -143,7 +143,7 @@ class ModelTest {
         @Test
         fun modifierVertexToString() {
             val vertex = TestDomainResources.vertices.first { it is ModifierVertex }
-            assertEquals("ModifierVertex(name=$MOD_1, order=$INT_1)", vertex.toString())
+            assertEquals("ModifierVertex(modifierType=$MOD_1, order=$INT_1)", vertex.toString())
         }
 
         @Test
@@ -271,13 +271,13 @@ class ModelTest {
 
         @Test
         fun controlStructureVertexEquality() {
-            val vertex1 = ControlStructureVertex(STRING_1, STRING_1, INT_1, INT_1, INT_1, INT_1)
-            val vertex2 = ControlStructureVertex(STRING_1, STRING_1, INT_1, INT_1, INT_1, INT_1)
-            val vertex3 = ControlStructureVertex(STRING_1, STRING_2, INT_1, INT_1, INT_1, INT_1)
-            val vertex4 = ControlStructureVertex(STRING_1, STRING_1, INT_2, INT_1, INT_1, INT_1)
-            val vertex5 = ControlStructureVertex(STRING_1, STRING_1, INT_1, INT_2, INT_1, INT_1)
-            val vertex6 = ControlStructureVertex(STRING_1, STRING_1, INT_1, INT_1, INT_2, INT_1)
-            val vertex7 = ControlStructureVertex(STRING_1, STRING_1, INT_1, INT_1, INT_1, INT_2)
+            val vertex1 = ControlStructureVertex(STRING_1, INT_1, INT_1, INT_1, INT_1)
+            val vertex2 = ControlStructureVertex(STRING_1, INT_1, INT_1, INT_1, INT_1)
+            val vertex3 = ControlStructureVertex(STRING_2, INT_1, INT_1, INT_1, INT_1)
+            val vertex4 = ControlStructureVertex(STRING_1, INT_2, INT_1, INT_1, INT_1)
+            val vertex5 = ControlStructureVertex(STRING_1, INT_1, INT_2, INT_1, INT_1)
+            val vertex6 = ControlStructureVertex(STRING_1, INT_1, INT_1, INT_2, INT_1)
+            val vertex7 = ControlStructureVertex(STRING_1, INT_1, INT_1, INT_1, INT_2)
             assertVertexEquality(vertex1, vertex2)
             assertVertexInequality(vertex1, vertex3)
             assertVertexInequality(vertex1, vertex4)
@@ -665,10 +665,9 @@ class ModelTest {
 
         @Test
         fun controlStructureVertexEquality() {
-            val vertex1 = ControlStructureVertex(STRING_1, STRING_1, INT_1, INT_1, INT_1, INT_1)
+            val vertex1 = ControlStructureVertex(STRING_1, INT_1, INT_1, INT_1, INT_1)
             assertEquals(VertexLabel.CONTROL_STRUCTURE, ControlStructureVertex.LABEL)
             assertEquals(EnumSet.of(VertexBaseTrait.EXPRESSION), ControlStructureVertex.TRAITS)
-            assertEquals(vertex1.name, STRING_1)
             assertEquals(vertex1.code, STRING_1)
             assertEquals(vertex1.order, INT_1)
             assertEquals(vertex1.lineNumber, INT_1)
@@ -827,7 +826,7 @@ class ModelTest {
             val vertex1 = ModifierVertex(MOD_1, INT_1)
             assertEquals(VertexLabel.MODIFIER, ModifierVertex.LABEL)
             assertEquals(EnumSet.of(VertexBaseTrait.AST_NODE), ModifierVertex.TRAITS)
-            assertEquals(vertex1.name, MOD_1)
+            assertEquals(vertex1.modifierType, MOD_1)
             assertEquals(vertex1.order, INT_1)
         }
 

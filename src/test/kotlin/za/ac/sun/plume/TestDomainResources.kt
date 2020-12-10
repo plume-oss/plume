@@ -25,7 +25,7 @@ class TestDomainResources {
                 BindingVertex(STRING_1, STRING_2),
                 BlockVertex(STRING_1, STRING_1, INT_1, INT_1, INT_1, INT_1),
                 CallVertex(STRING_1, INT_1, DISPATCH_1, STRING_1, STRING_1, STRING_1, STRING_1, STRING_1, INT_1, INT_1, INT_1),
-                ControlStructureVertex(STRING_1, STRING_1, INT_1, INT_1, INT_1, INT_1),
+                ControlStructureVertex(STRING_1, INT_1, INT_1, INT_1, INT_1),
                 FieldIdentifierVertex(STRING_1, STRING_1, INT_1, INT_1, INT_1, INT_1),
                 FileVertex(STRING_1, STRING_2, INT_1),
                 IdentifierVertex(STRING_1, STRING_1, STRING_1, INT_1, INT_1, INT_1, INT_1),
@@ -63,7 +63,7 @@ class TestDomainResources {
         val v12 = NamespaceBlockVertex(STRING_1, STRING_1, INT_1)
         val v13 = NamespaceBlockVertex(STRING_2, STRING_2, INT_1)
         val v14 = MetaDataVertex(STRING_1, STRING_2)
-        val v15 = ControlStructureVertex(STRING_1, STRING_1, INT_1, INT_1, INT_1, INT_1)
+        val v15 = ControlStructureVertex(STRING_1, INT_1, INT_1, INT_1, INT_1)
         val v16 = JumpTargetVertex(STRING_1, INT_1, INT_1, INT_1, STRING_1, INT_1)
         val v17 = BindingVertex(STRING_1, STRING_2)
         val v18 = TypeArgumentVertex(INT_1)

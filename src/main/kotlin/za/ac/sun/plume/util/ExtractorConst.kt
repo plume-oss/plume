@@ -21,8 +21,8 @@ object ExtractorConst {
     const val CAST = "CAST"
     const val ENTRYPOINT = "BODY"
     const val IF_ROOT = "IF"
-    const val SWITCH_ROOT = "TABLE SWITCH"
-    const val LOOKUP_ROOT = "LOOKUP SWITCH"
+    const val TABLE_SWITCH = "TABLE_SWITCH"
+    const val LOOKUP_ROOT = "LOOKUP_SWITCH"
     const val TRUE_TARGET = "TRUE"
     const val FALSE_TARGET = "FALSE"
 

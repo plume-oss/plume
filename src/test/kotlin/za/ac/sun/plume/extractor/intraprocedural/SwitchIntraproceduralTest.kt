@@ -59,7 +59,7 @@ class SwitchIntraproceduralTest {
         vertices.filterIsInstance<JumpTargetVertex>().filter { it.name == "CASE 3" }.let { assertEquals(1, it.size) }
         vertices.filterIsInstance<JumpTargetVertex>().filter { it.name == "DEFAULT" }.let { assertEquals(1, it.size) }
         assertEquals(4, vertices.filterIsInstance<JumpTargetVertex>().size)
-        vertices.filterIsInstance<ControlStructureVertex>().filter { it.name == "TABLE SWITCH" }.let { csv ->
+        vertices.filterIsInstance<ControlStructureVertex>().filter { it.code == "TABLE_SWITCH" }.let { csv ->
             val switchVert = csv.firstOrNull(); assertNotNull(switchVert); switchVert!!
             assertTrue(graph.edgesOut(switchVert).containsKey(EdgeLabel.CONDITION))
             graph.edgesOut(switchVert)[EdgeLabel.CONDITION]!!.filterIsInstance<IdentifierVertex>().let {
@@ -80,7 +80,7 @@ class SwitchIntraproceduralTest {
         vertices.filterIsInstance<JumpTargetVertex>().filter { it.name == "CASE 2" }.let { assertEquals(1, it.size) }
         vertices.filterIsInstance<JumpTargetVertex>().filter { it.name == "DEFAULT" }.let { assertEquals(2, it.size) }
         assertEquals(14, vertices.filterIsInstance<JumpTargetVertex>().size)
-        vertices.filterIsInstance<ControlStructureVertex>().filter { it.name == "TABLE SWITCH" }.let { csv ->
+        vertices.filterIsInstance<ControlStructureVertex>().filter { it.code == "TABLE_SWITCH" }.let { csv ->
             val switchVert = csv.firstOrNull(); assertNotNull(switchVert); switchVert!!
             assertTrue(graph.edgesOut(switchVert).containsKey(EdgeLabel.CONDITION))
             graph.edgesOut(switchVert)[EdgeLabel.CONDITION]!!.filterIsInstance<IdentifierVertex>().let {
@@ -89,7 +89,7 @@ class SwitchIntraproceduralTest {
             }
             assertEquals(4, graph.edgesOut(switchVert)[EdgeLabel.CFG]!!.filterIsInstance<JumpTargetVertex>().size)
         }
-        vertices.filterIsInstance<ControlStructureVertex>().filter { it.name == "LOOKUP SWITCH" }.let { csv ->
+        vertices.filterIsInstance<ControlStructureVertex>().filter { it.code == "LOOKUP_SWITCH" }.let { csv ->
             val switchVert = csv.firstOrNull(); assertNotNull(switchVert); switchVert!!
             assertTrue(graph.edgesOut(switchVert).containsKey(EdgeLabel.CONDITION))
             graph.edgesOut(switchVert)[EdgeLabel.CONDITION]!!.filterIsInstance<IdentifierVertex>().let {
@@ -109,7 +109,7 @@ class SwitchIntraproceduralTest {
         vertices.filterIsInstance<JumpTargetVertex>().filter { it.name == "CASE 3" }.let { assertEquals(1, it.size) }
         vertices.filterIsInstance<JumpTargetVertex>().filter { it.name == "DEFAULT" }.let { assertEquals(1, it.size) }
         assertEquals(4, vertices.filterIsInstance<JumpTargetVertex>().size)
-        vertices.filterIsInstance<ControlStructureVertex>().filter { it.name == "TABLE SWITCH" }.let { csv ->
+        vertices.filterIsInstance<ControlStructureVertex>().filter { it.code == "TABLE_SWITCH" }.let { csv ->
             val switchVert = csv.firstOrNull(); assertNotNull(switchVert); switchVert!!
             assertTrue(graph.edgesOut(switchVert).containsKey(EdgeLabel.CONDITION))
             graph.edgesOut(switchVert)[EdgeLabel.CONDITION]!!.filterIsInstance<IdentifierVertex>().let {
@@ -130,7 +130,7 @@ class SwitchIntraproceduralTest {
         vertices.filterIsInstance<JumpTargetVertex>().filter { it.name == "CASE 117" }.let { assertEquals(1, it.size) }
         vertices.filterIsInstance<JumpTargetVertex>().filter { it.name == "DEFAULT" }.let { assertEquals(1, it.size) }
         assertEquals(6, vertices.filterIsInstance<JumpTargetVertex>().size)
-        vertices.filterIsInstance<ControlStructureVertex>().filter { it.name == "LOOKUP SWITCH" }.let { csv ->
+        vertices.filterIsInstance<ControlStructureVertex>().filter { it.code == "LOOKUP_SWITCH" }.let { csv ->
             val switchVert = csv.firstOrNull(); assertNotNull(switchVert); switchVert!!
             assertTrue(graph.edgesOut(switchVert).containsKey(EdgeLabel.CONDITION))
             graph.edgesOut(switchVert)[EdgeLabel.CONDITION]!!.filterIsInstance<IdentifierVertex>().let {
@@ -150,7 +150,7 @@ class SwitchIntraproceduralTest {
         vertices.filterIsInstance<JumpTargetVertex>().filter { it.name == "CASE 2" }.let { assertEquals(1, it.size) }
         vertices.filterIsInstance<JumpTargetVertex>().filter { it.name == "DEFAULT" }.let { assertEquals(1, it.size) }
         assertEquals(4, vertices.filterIsInstance<JumpTargetVertex>().size)
-        vertices.filterIsInstance<ControlStructureVertex>().filter { it.name == "TABLE SWITCH" }.let { csv ->
+        vertices.filterIsInstance<ControlStructureVertex>().filter { it.code == "TABLE_SWITCH" }.let { csv ->
             val switchVert = csv.firstOrNull(); assertNotNull(switchVert); switchVert!!
             assertTrue(graph.edgesOut(switchVert).containsKey(EdgeLabel.CONDITION))
             graph.edgesOut(switchVert)[EdgeLabel.CONDITION]!!.filterIsInstance<IdentifierVertex>().let {

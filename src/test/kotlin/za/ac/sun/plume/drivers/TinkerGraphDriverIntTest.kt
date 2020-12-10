@@ -354,7 +354,7 @@ class TinkerGraphDriverIntTest {
 
         @BeforeEach
         fun setUp() {
-           TestDomainResources.generateSimpleCPG(driver)
+            TestDomainResources.generateSimpleCPG(driver)
         }
 
         @Test

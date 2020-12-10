@@ -61,7 +61,7 @@ class LoopIntraproceduralTest {
         vertices.filterIsInstance<CallVertex>().filter { it.name == "ADD" }.let { assertEquals(1, it.size) }
         assertEquals(2, vertices.filterIsInstance<JumpTargetVertex>().size)
         vertices.filterIsInstance<CallVertex>().filter { it.name == "LT" }.let { assertNotNull(it) }
-        vertices.filterIsInstance<ControlStructureVertex>().filter { it.name == "IF" }.let { csv ->
+        vertices.filterIsInstance<ControlStructureVertex>().filter { it.code == "IF" }.let { csv ->
             val ifVert = csv.firstOrNull(); assertNotNull(ifVert); ifVert!!
             assertTrue(graph.edgesOut(ifVert).containsKey(EdgeLabel.CFG))
             graph.edgesOut(ifVert)[EdgeLabel.CFG]!!.filterIsInstance<JumpTargetVertex>().let {
@@ -80,7 +80,7 @@ class LoopIntraproceduralTest {
         vertices.filterIsInstance<CallVertex>().filter { it.name == "ADD" }.let { assertEquals(1, it.size) }
         assertEquals(2, vertices.filterIsInstance<JumpTargetVertex>().size)
         vertices.filterIsInstance<CallVertex>().filter { it.name == "LT" }.let { assertNotNull(it) }
-        vertices.filterIsInstance<ControlStructureVertex>().filter { it.name == "IF" }.let { csv ->
+        vertices.filterIsInstance<ControlStructureVertex>().filter { it.code == "IF" }.let { csv ->
             val ifVert = csv.firstOrNull(); assertNotNull(ifVert); ifVert!!
             assertTrue(graph.edgesOut(ifVert).containsKey(EdgeLabel.CFG))
             graph.edgesOut(ifVert)[EdgeLabel.CFG]!!.filterIsInstance<JumpTargetVertex>().let {
@@ -99,7 +99,7 @@ class LoopIntraproceduralTest {
         vertices.filterIsInstance<CallVertex>().filter { it.name == "ADD" }.let { assertEquals(1, it.size) }
         assertEquals(4, vertices.filterIsInstance<JumpTargetVertex>().size)
         vertices.filterIsInstance<CallVertex>().filter { it.name == "GTE" }.let { assertNotNull(it); assertEquals(2, it.size) }
-        vertices.filterIsInstance<ControlStructureVertex>().filter { it.name == "IF" }.let { csv ->
+        vertices.filterIsInstance<ControlStructureVertex>().filter { it.code == "IF" }.let { csv ->
             csv.forEach { ifVert ->
                 assertNotNull(ifVert)
                 assertTrue(graph.edgesOut(ifVert).containsKey(EdgeLabel.CFG))
@@ -120,7 +120,7 @@ class LoopIntraproceduralTest {
         vertices.filterIsInstance<CallVertex>().filter { it.name == "ADD" }.let { assertEquals(1, it.size) }
         assertEquals(4, vertices.filterIsInstance<JumpTargetVertex>().size)
         vertices.filterIsInstance<CallVertex>().filter { it.name == "LT" }.let { assertNotNull(it); assertEquals(2, it.size) }
-        vertices.filterIsInstance<ControlStructureVertex>().filter { it.name == "IF" }.let { csv ->
+        vertices.filterIsInstance<ControlStructureVertex>().filter { it.code == "IF" }.let { csv ->
             csv.forEach { ifVert ->
                 assertNotNull(ifVert)
                 assertTrue(graph.edgesOut(ifVert).containsKey(EdgeLabel.CFG))
@@ -142,7 +142,7 @@ class LoopIntraproceduralTest {
         assertEquals(4, vertices.filterIsInstance<JumpTargetVertex>().size)
         vertices.filterIsInstance<CallVertex>().filter { it.name == "LT" }.let { assertNotNull(it); assertEquals(1, it.size) }
         vertices.filterIsInstance<CallVertex>().filter { it.name == "GTE" }.let { assertNotNull(it); assertEquals(1, it.size) }
-        vertices.filterIsInstance<ControlStructureVertex>().filter { it.name == "IF" }.let { csv ->
+        vertices.filterIsInstance<ControlStructureVertex>().filter { it.code == "IF" }.let { csv ->
             csv.forEach { ifVert ->
                 assertNotNull(ifVert)
                 assertTrue(graph.edgesOut(ifVert).containsKey(EdgeLabel.CFG))
@@ -163,7 +163,7 @@ class LoopIntraproceduralTest {
         vertices.filterIsInstance<CallVertex>().filter { it.name == "ADD" }.let { assertEquals(2, it.size) }
         assertEquals(2, vertices.filterIsInstance<JumpTargetVertex>().size)
         vertices.filterIsInstance<CallVertex>().filter { it.name == "LT" }.let { assertNotNull(it) }
-        vertices.filterIsInstance<ControlStructureVertex>().filter { it.name == "IF" }.let { csv ->
+        vertices.filterIsInstance<ControlStructureVertex>().filter { it.code == "IF" }.let { csv ->
             val ifVert = csv.firstOrNull(); assertNotNull(ifVert); ifVert!!
             assertTrue(graph.edgesOut(ifVert).containsKey(EdgeLabel.CFG))
             graph.edgesOut(ifVert)[EdgeLabel.CFG]!!.filterIsInstance<JumpTargetVertex>().let {
@@ -182,7 +182,7 @@ class LoopIntraproceduralTest {
         vertices.filterIsInstance<CallVertex>().filter { it.name == "ADD" }.let { assertEquals(4, it.size) }
         assertEquals(4, vertices.filterIsInstance<JumpTargetVertex>().size)
         vertices.filterIsInstance<CallVertex>().filter { it.name == "LT" }.let { assertNotNull(it) }
-        vertices.filterIsInstance<ControlStructureVertex>().filter { it.name == "IF" }.let { csv ->
+        vertices.filterIsInstance<ControlStructureVertex>().filter { it.code == "IF" }.let { csv ->
             val ifVert = csv.firstOrNull(); assertNotNull(ifVert); ifVert!!
             assertTrue(graph.edgesOut(ifVert).containsKey(EdgeLabel.CFG))
             graph.edgesOut(ifVert)[EdgeLabel.CFG]!!.filterIsInstance<JumpTargetVertex>().let {
@@ -201,7 +201,7 @@ class LoopIntraproceduralTest {
         vertices.filterIsInstance<CallVertex>().filter { it.name == "ADD" }.let { assertEquals(4, it.size) }
         assertEquals(4, vertices.filterIsInstance<JumpTargetVertex>().size)
         vertices.filterIsInstance<CallVertex>().filter { it.name == "LT" }.let { assertNotNull(it) }
-        vertices.filterIsInstance<ControlStructureVertex>().filter { it.name == "IF" }.let { csv ->
+        vertices.filterIsInstance<ControlStructureVertex>().filter { it.code == "IF" }.let { csv ->
             val ifVert = csv.firstOrNull(); assertNotNull(ifVert); ifVert!!
             assertTrue(graph.edgesOut(ifVert).containsKey(EdgeLabel.CFG))
             graph.edgesOut(ifVert)[EdgeLabel.CFG]!!.filterIsInstance<JumpTargetVertex>().let {
@@ -220,7 +220,7 @@ class LoopIntraproceduralTest {
         vertices.filterIsInstance<CallVertex>().filter { it.name == "ADD" }.let { assertEquals(4, it.size) }
         assertEquals(4, vertices.filterIsInstance<JumpTargetVertex>().size)
         vertices.filterIsInstance<CallVertex>().filter { it.name == "LT" }.let { assertNotNull(it) }
-        vertices.filterIsInstance<ControlStructureVertex>().filter { it.name == "IF" }.let { csv ->
+        vertices.filterIsInstance<ControlStructureVertex>().filter { it.code == "IF" }.let { csv ->
             val ifVert = csv.firstOrNull(); assertNotNull(ifVert); ifVert!!
             assertTrue(graph.edgesOut(ifVert).containsKey(EdgeLabel.CFG))
             graph.edgesOut(ifVert)[EdgeLabel.CFG]!!.filterIsInstance<JumpTargetVertex>().let {
@@ -239,7 +239,7 @@ class LoopIntraproceduralTest {
         vertices.filterIsInstance<CallVertex>().filter { it.name == "ADD" }.let { assertEquals(2, it.size) }
         assertEquals(4, vertices.filterIsInstance<JumpTargetVertex>().size)
         vertices.filterIsInstance<CallVertex>().filter { it.name == "LT" }.let { assertNotNull(it) }
-        vertices.filterIsInstance<ControlStructureVertex>().filter { it.name == "IF" }.let { csv ->
+        vertices.filterIsInstance<ControlStructureVertex>().filter { it.code == "IF" }.let { csv ->
             val ifVert = csv.firstOrNull(); assertNotNull(ifVert); ifVert!!
             assertTrue(graph.edgesOut(ifVert).containsKey(EdgeLabel.CFG))
             graph.edgesOut(ifVert)[EdgeLabel.CFG]!!.filterIsInstance<JumpTargetVertex>().let {
