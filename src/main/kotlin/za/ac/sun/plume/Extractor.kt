@@ -34,6 +34,7 @@ import za.ac.sun.plume.domain.models.vertices.MetaDataVertex
 import za.ac.sun.plume.domain.models.vertices.MethodVertex
 import za.ac.sun.plume.drivers.GremlinDriver
 import za.ac.sun.plume.drivers.IDriver
+import za.ac.sun.plume.drivers.OverflowDbDriver
 import za.ac.sun.plume.graph.ASTBuilder
 import za.ac.sun.plume.graph.CFGBuilder
 import za.ac.sun.plume.graph.CallGraphBuilder
@@ -158,6 +159,7 @@ class Extractor(val driver: IDriver, private val classPath: File) {
     private fun checkDriverConnection(driver: IDriver) {
         when (driver) {
             is GremlinDriver -> if (!driver.connected) driver.connect()
+            is OverflowDbDriver -> if (!driver.connected) driver.connect()
         }
     }
 

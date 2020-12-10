@@ -35,6 +35,12 @@ class OverflowDbDriver : IDriver {
 
     private val logger = LogManager.getLogger(OverflowDbDriver::class.java)
 
+    /**
+     * Indicates whether the driver is connected to the graph database or not.
+     */
+    var connected = false
+        protected set
+
     private var graph: Graph = createEmptyGraph()
 
     var dbfilename: String = ""
