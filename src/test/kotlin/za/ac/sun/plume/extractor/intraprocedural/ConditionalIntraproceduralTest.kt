@@ -67,7 +67,7 @@ class ConditionalIntraproceduralTest {
         vertices.filterIsInstance<CallVertex>().filter { it.name == "SUB" }.let { assertEquals(2, it.size) }
         assertEquals(2, vertices.filterIsInstance<JumpTargetVertex>().size)
         vertices.filterIsInstance<CallVertex>().filter { it.name == "GT" }.let { assertNotNull(it) }
-        vertices.filterIsInstance<ControlStructureVertex>().filter { it.name == "IF" }.let { csv ->
+        vertices.filterIsInstance<ControlStructureVertex>().filter { it.code == "IF" }.let { csv ->
             val ifVert = csv.firstOrNull(); assertNotNull(ifVert); ifVert!!
             assertTrue(graph.edgesOut(ifVert).containsKey(EdgeLabel.CFG))
             graph.edgesOut(ifVert)[EdgeLabel.CFG]!!.filterIsInstance<JumpTargetVertex>().let {
@@ -87,7 +87,7 @@ class ConditionalIntraproceduralTest {
         vertices.filterIsInstance<CallVertex>().filter { it.name == "SUB" }.let { assertEquals(2, it.size) }
         assertEquals(2, vertices.filterIsInstance<JumpTargetVertex>().size)
         vertices.filterIsInstance<CallVertex>().filter { it.name == "GT" }.let { assertNotNull(it) }
-        vertices.filterIsInstance<ControlStructureVertex>().filter { it.name == "IF" }.let { csv ->
+        vertices.filterIsInstance<ControlStructureVertex>().filter { it.code == "IF" }.let { csv ->
             val ifVert = csv.firstOrNull(); assertNotNull(ifVert); ifVert!!
             assertTrue(graph.edgesOut(ifVert).containsKey(EdgeLabel.CFG))
             graph.edgesOut(ifVert)[EdgeLabel.CFG]!!.filterIsInstance<JumpTargetVertex>().let {
@@ -108,7 +108,7 @@ class ConditionalIntraproceduralTest {
         vertices.filterIsInstance<CallVertex>().filter { it.name == "MUL" }.let { assertEquals(1, it.size) }
         assertEquals(2, vertices.filterIsInstance<JumpTargetVertex>().size)
         vertices.filterIsInstance<CallVertex>().filter { it.name == "GT" }.let { assertNotNull(it) }
-        vertices.filterIsInstance<ControlStructureVertex>().filter { it.name == "IF" }.let { csv ->
+        vertices.filterIsInstance<ControlStructureVertex>().filter { it.code == "IF" }.let { csv ->
             val ifVert = csv.firstOrNull(); assertNotNull(ifVert); ifVert!!
             assertTrue(graph.edgesOut(ifVert).containsKey(EdgeLabel.CFG))
             graph.edgesOut(ifVert)[EdgeLabel.CFG]!!.filterIsInstance<JumpTargetVertex>().let {
@@ -130,7 +130,7 @@ class ConditionalIntraproceduralTest {
         assertEquals(4, vertices.filterIsInstance<JumpTargetVertex>().size)
         vertices.filterIsInstance<CallVertex>().filter { it.name == "GT" }.let { assertNotNull(it) }
         vertices.filterIsInstance<CallVertex>().filter { it.name == "EQ" }.let { assertNotNull(it) }
-        vertices.filterIsInstance<ControlStructureVertex>().filter { it.name == "IF" }.let { csv ->
+        vertices.filterIsInstance<ControlStructureVertex>().filter { it.code == "IF" }.let { csv ->
             assertEquals(2, csv.size)
         }
     }
@@ -147,7 +147,7 @@ class ConditionalIntraproceduralTest {
         vertices.filterIsInstance<CallVertex>().filter { it.name == "GT" }.let { assertNotNull(it) }
         vertices.filterIsInstance<CallVertex>().filter { it.name == "EQ" }.let { assertNotNull(it) }
         vertices.filterIsInstance<CallVertex>().filter { it.name == "LT" }.let { assertNotNull(it) }
-        vertices.filterIsInstance<ControlStructureVertex>().filter { it.name == "IF" }.let { csv ->
+        vertices.filterIsInstance<ControlStructureVertex>().filter { it.code == "IF" }.let { csv ->
             assertEquals(3, csv.size)
         }
     }
@@ -162,7 +162,7 @@ class ConditionalIntraproceduralTest {
         vertices.filterIsInstance<CallVertex>().filter { it.name == "GT" }.let { assertNotNull(it) }
         vertices.filterIsInstance<CallVertex>().filter { it.name == "EQ" }.let { assertNotNull(it) }
         vertices.filterIsInstance<CallVertex>().filter { it.name == "LT" }.let { assertNotNull(it) }
-        vertices.filterIsInstance<ControlStructureVertex>().filter { it.name == "IF" }.let { csv -> assertEquals(1, csv.size) }
+        vertices.filterIsInstance<ControlStructureVertex>().filter { it.code == "IF" }.let { csv -> assertEquals(1, csv.size) }
     }
 
     @Test
@@ -178,7 +178,7 @@ class ConditionalIntraproceduralTest {
         vertices.filterIsInstance<CallVertex>().filter { it.name == "GT" }.let { assertNotNull(it) }
         vertices.filterIsInstance<CallVertex>().filter { it.name == "EQ" }.let { assertNotNull(it) }
         vertices.filterIsInstance<CallVertex>().filter { it.name == "LT" }.let { assertNotNull(it) }
-        vertices.filterIsInstance<ControlStructureVertex>().filter { it.name == "IF" }.let { csv ->
+        vertices.filterIsInstance<ControlStructureVertex>().filter { it.code == "IF" }.let { csv ->
             assertEquals(3, csv.size)
         }
     }
@@ -196,7 +196,7 @@ class ConditionalIntraproceduralTest {
         vertices.filterIsInstance<CallVertex>().filter { it.name == "GT" }.let { assertNotNull(it) }
         vertices.filterIsInstance<CallVertex>().filter { it.name == "EQ" }.let { assertNotNull(it) }
         vertices.filterIsInstance<CallVertex>().filter { it.name == "LT" }.let { assertNotNull(it) }
-        vertices.filterIsInstance<ControlStructureVertex>().filter { it.name == "IF" }.let { csv ->
+        vertices.filterIsInstance<ControlStructureVertex>().filter { it.code == "IF" }.let { csv ->
             assertEquals(3, csv.size)
         }
     }
@@ -209,7 +209,7 @@ class ConditionalIntraproceduralTest {
         assertNotNull(vertices.find { it is LocalVertex && it.name == "c" })
         assertEquals(2, vertices.filterIsInstance<JumpTargetVertex>().size)
         vertices.filterIsInstance<CallVertex>().filter { it.name == "GT" }.let { assertNotNull(it) }
-        vertices.filterIsInstance<ControlStructureVertex>().filter { it.name == "IF" }.let { csv ->
+        vertices.filterIsInstance<ControlStructureVertex>().filter { it.code == "IF" }.let { csv ->
             assertEquals(1, csv.size)
         }
     }
@@ -223,7 +223,7 @@ class ConditionalIntraproceduralTest {
         assertEquals(4, vertices.filterIsInstance<JumpTargetVertex>().size)
         vertices.filterIsInstance<CallVertex>().filter { it.name == "GT" }.let { assertNotNull(it) }
         vertices.filterIsInstance<CallVertex>().filter { it.name == "LT" }.let { assertNotNull(it) }
-        vertices.filterIsInstance<ControlStructureVertex>().filter { it.name == "IF" }.let { csv ->
+        vertices.filterIsInstance<ControlStructureVertex>().filter { it.code == "IF" }.let { csv ->
             assertEquals(2, csv.size)
         }
     }
@@ -237,7 +237,7 @@ class ConditionalIntraproceduralTest {
         assertEquals(4, vertices.filterIsInstance<JumpTargetVertex>().size)
         vertices.filterIsInstance<CallVertex>().filter { it.name == "GT" }.let { assertNotNull(it) }
         vertices.filterIsInstance<CallVertex>().filter { it.name == "LT" }.let { assertNotNull(it) }
-        vertices.filterIsInstance<ControlStructureVertex>().filter { it.name == "IF" }.let { csv ->
+        vertices.filterIsInstance<ControlStructureVertex>().filter { it.code == "IF" }.let { csv ->
             assertEquals(2, csv.size)
         }
     }

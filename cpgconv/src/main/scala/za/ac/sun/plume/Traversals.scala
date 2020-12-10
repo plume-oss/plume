@@ -17,7 +17,7 @@ object Traversals {
   }
 
   def deleteMethod(graph: Graph, fullName: String, signature: String): Unit = {
-    val nodesToDelete = Cpg(graph).method.fullNameExact(fullName).ast.l
+    val nodesToDelete = Cpg(graph).method.fullNameExact(fullName).signatureExact(signature).ast.l
     nodesToDelete.foreach(v => graph.remove(v))
   }
 

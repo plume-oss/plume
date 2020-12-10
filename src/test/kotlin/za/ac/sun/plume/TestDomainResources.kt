@@ -25,7 +25,7 @@ class TestDomainResources {
                 BindingVertex(STRING_1, STRING_2),
                 BlockVertex(STRING_1, STRING_1, INT_1, INT_1, INT_1, INT_1),
                 CallVertex(STRING_1, INT_1, DISPATCH_1, STRING_1, STRING_1, STRING_1, STRING_1, STRING_1, INT_1, INT_1, INT_1),
-                ControlStructureVertex(STRING_1, STRING_1, INT_1, INT_1, INT_1, INT_1),
+                ControlStructureVertex(STRING_1, INT_1, INT_1, INT_1, INT_1),
                 FieldIdentifierVertex(STRING_1, STRING_1, INT_1, INT_1, INT_1, INT_1),
                 FileVertex(STRING_1, STRING_2, INT_1),
                 IdentifierVertex(STRING_1, STRING_1, STRING_1, INT_1, INT_1, INT_1, INT_1),
@@ -49,51 +49,72 @@ class TestDomainResources {
                 UnknownVertex(STRING_1, STRING_1, INT_1, INT_1, INT_1, INT_1)
         )
 
-        val v1 = MethodVertex(STRING_1, STRING_1, STRING_2, STRING_1, INT_1, INT_2, INT_1)
-        val v2 = MethodParameterInVertex(STRING_1, EVAL_1, STRING_1, INT_1, STRING_2, INT_2)
-        val v3 = BlockVertex(STRING_1, STRING_1, INT_1, INT_2, INT_2, INT_1)
-        val v4 = CallVertex(STRING_1, INT_1, DISPATCH_1, STRING_1, STRING_1, STRING_2, STRING_2, STRING_2, INT_1, INT_1, INT_1)
-        val v5 = LocalVertex(STRING_1, STRING_2, INT_1, INT_1, STRING_1, INT_1)
-        val v6 = IdentifierVertex(STRING_1, STRING_1, STRING_1, INT_1, INT_1, INT_1, INT_1)
-        val v7 = TypeDeclVertex(STRING_1, STRING_2, STRING_1, INT_1)
-        val v8 = LiteralVertex(STRING_2, STRING_2, INT_1, INT_1, INT_1, INT_1)
-        val v9 = ReturnVertex(INT_1, INT_1, INT_1, INT_1, STRING_1)
-        val v10 = MethodReturnVertex(STRING_1, EVAL_1, STRING_1, INT_1, INT_1, INT_1)
-        val v11 = FileVertex(STRING_1, STRING_2, INT_1)
-        val v12 = NamespaceBlockVertex(STRING_1, STRING_1, INT_1)
-        val v13 = NamespaceBlockVertex(STRING_2, STRING_2, INT_1)
-        val v14 = MetaDataVertex(STRING_1, STRING_2)
-        val v15 = ControlStructureVertex(STRING_1, STRING_1, INT_1, INT_1, INT_1, INT_1)
-        val v16 = JumpTargetVertex(STRING_1, INT_1, INT_1, INT_1, STRING_1, INT_1)
-        val v17 = BindingVertex(STRING_1, STRING_2)
-        val v18 = TypeArgumentVertex(INT_1)
-        val v19 = TypeParameterVertex(STRING_1, INT_1)
+        val methodVertex = MethodVertex(STRING_1, STRING_1, STRING_2, STRING_1, INT_1, INT_2, INT_1)
+        val methodParameterInVertex = MethodParameterInVertex(STRING_1, EVAL_1, STRING_1, INT_1, STRING_2, INT_2)
+        val blockVertex = BlockVertex(STRING_1, STRING_1, INT_1, INT_2, INT_2, INT_1)
+        val callVertex = CallVertex(STRING_1, INT_1, DISPATCH_1, STRING_1, STRING_1, STRING_2, STRING_2, STRING_2, INT_1, INT_1, INT_1)
+        val localVertex = LocalVertex(STRING_1, STRING_2, INT_1, INT_1, STRING_1, INT_1)
+        val identifierVertex = IdentifierVertex(STRING_1, STRING_1, STRING_1, INT_1, INT_1, INT_1, INT_1)
+        val typeDeclVertex = TypeDeclVertex(STRING_1, STRING_2, STRING_1, INT_1)
+        val literalVertex = LiteralVertex(STRING_2, STRING_2, INT_1, INT_1, INT_1, INT_1)
+        val returnVertex = ReturnVertex(INT_1, INT_1, INT_1, INT_1, STRING_1)
+        val methodReturnVertex = MethodReturnVertex(STRING_1, EVAL_1, STRING_1, INT_1, INT_1, INT_1)
+        val fileVertex = FileVertex(STRING_1, STRING_2, INT_1)
+        val namespaceBlockVertex1 = NamespaceBlockVertex(STRING_1, STRING_1, INT_1)
+        val namespaceBlockVertex2 = NamespaceBlockVertex(STRING_2, STRING_2, INT_1)
+        val metaDataVertex = MetaDataVertex(STRING_1, STRING_2)
+        val controlStructureVertex = ControlStructureVertex(STRING_1, INT_1, INT_1, INT_1, INT_1)
+        val jumpTargetVertex = JumpTargetVertex(STRING_1, INT_1, INT_1, INT_1, STRING_1, INT_1)
+        val bindingVertex = BindingVertex(STRING_1, STRING_2)
+        val typeArgumentVertex = TypeArgumentVertex(INT_1)
+        val typeParameterVertex = TypeParameterVertex(STRING_1, INT_1)
+        val fieldIdentifierVertex = FieldIdentifierVertex(STRING_1, STRING_2, INT_1, INT_1, INT_1, INT_1)
+        val methodRefVertex = MethodRefVertex(STRING_1, STRING_2, STRING_1, INT_1, INT_1, INT_1, INT_1)
+        val typeRefVertex = TypeRefVertex(STRING_1, STRING_2, STRING_1, INT_1, INT_1, INT_1, INT_1)
+        val unknownVertex = UnknownVertex(STRING_1, STRING_2, INT_1, INT_1, INT_1, INT_1)
+        val modifierVertex = ModifierVertex(MOD_1, INT_2)
 
         fun generateSimpleCPG(driver: IDriver) {
             // Create program data
-            driver.addVertex(v14)
-            driver.addEdge(v11, v12, EdgeLabel.AST)
-            driver.addEdge(v12, v13, EdgeLabel.AST)
+            driver.addVertex(metaDataVertex)
+            driver.addEdge(fileVertex, namespaceBlockVertex1, EdgeLabel.AST)
+            driver.addEdge(namespaceBlockVertex1, namespaceBlockVertex2, EdgeLabel.AST)
             // Create method head
-            driver.addEdge(v7, v1, EdgeLabel.AST)
-            driver.addEdge(v1, v11, EdgeLabel.SOURCE_FILE)
-            driver.addEdge(v1, v2, EdgeLabel.AST)
-            driver.addEdge(v1, v5, EdgeLabel.AST)
-            driver.addEdge(v1, v3, EdgeLabel.AST)
-            driver.addEdge(v1, v3, EdgeLabel.CFG)
+            driver.addEdge(typeDeclVertex, methodVertex, EdgeLabel.AST)
+            driver.addEdge(methodVertex, fileVertex, EdgeLabel.SOURCE_FILE)
+            driver.addEdge(methodVertex, methodParameterInVertex, EdgeLabel.AST)
+            driver.addEdge(methodVertex, localVertex, EdgeLabel.AST)
+            driver.addEdge(methodVertex, blockVertex, EdgeLabel.AST)
+            driver.addEdge(methodVertex, blockVertex, EdgeLabel.CFG)
+            driver.addEdge(methodVertex, modifierVertex, EdgeLabel.AST)
             // Create method body
-            driver.addEdge(v3, v4, EdgeLabel.AST)
-            driver.addEdge(v3, v4, EdgeLabel.CFG)
-            driver.addEdge(v4, v6, EdgeLabel.AST)
-            driver.addEdge(v4, v8, EdgeLabel.AST)
-            driver.addEdge(v4, v6, EdgeLabel.ARGUMENT)
-            driver.addEdge(v4, v8, EdgeLabel.ARGUMENT)
-            driver.addEdge(v3, v9, EdgeLabel.AST)
-            driver.addEdge(v4, v9, EdgeLabel.CFG)
-            driver.addEdge(v1, v10, EdgeLabel.AST)
-            driver.addEdge(v9, v10, EdgeLabel.CFG)
+            driver.addEdge(blockVertex, callVertex, EdgeLabel.AST)
+            driver.addEdge(callVertex, identifierVertex, EdgeLabel.AST)
+            driver.addEdge(callVertex, literalVertex, EdgeLabel.AST)
+            driver.addEdge(callVertex, identifierVertex, EdgeLabel.ARGUMENT)
+            driver.addEdge(callVertex, literalVertex, EdgeLabel.ARGUMENT)
+            driver.addEdge(blockVertex, returnVertex, EdgeLabel.AST)
+            driver.addEdge(callVertex, fieldIdentifierVertex, EdgeLabel.AST)
+            driver.addEdge(methodVertex, methodReturnVertex, EdgeLabel.AST)
+            driver.addEdge(blockVertex, methodRefVertex, EdgeLabel.AST)
+            driver.addEdge(blockVertex, typeRefVertex, EdgeLabel.AST)
+            driver.addEdge(blockVertex, controlStructureVertex, EdgeLabel.AST)
+            driver.addEdge(blockVertex, jumpTargetVertex, EdgeLabel.AST)
+
+            driver.addEdge(blockVertex, callVertex, EdgeLabel.CFG)
+            driver.addEdge(callVertex, fieldIdentifierVertex, EdgeLabel.CFG)
+            driver.addEdge(fieldIdentifierVertex, methodRefVertex, EdgeLabel.CFG)
+            driver.addEdge(methodRefVertex, typeRefVertex, EdgeLabel.CFG)
+            driver.addEdge(typeRefVertex, controlStructureVertex, EdgeLabel.CFG)
+            driver.addEdge(controlStructureVertex, jumpTargetVertex, EdgeLabel.CFG)
+            driver.addEdge(jumpTargetVertex, returnVertex, EdgeLabel.CFG)
+            driver.addEdge(returnVertex, methodReturnVertex, EdgeLabel.CFG)
+
+            // Just add some vertices to test conversion
+            driver.addVertex(unknownVertex)
+
             // Link dependencies
-            driver.addEdge(v6, v5, EdgeLabel.REF)
+            driver.addEdge(identifierVertex, localVertex, EdgeLabel.REF)
         }
         
     }

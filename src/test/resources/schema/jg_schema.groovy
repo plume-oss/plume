@@ -52,6 +52,8 @@ mgmt.containsPropertyKey('canonicalName') ?: mgmt.makePropertyKey('canonicalName
 mgmt.containsPropertyKey('dispatchType') ?: mgmt.makePropertyKey('dispatchType').dataType(String.class).cardinality(Cardinality.SINGLE).make()
 mgmt.containsPropertyKey('code') ?: mgmt.makePropertyKey('code').dataType(String.class).cardinality(Cardinality.SINGLE).make()
 mgmt.containsPropertyKey('typeFullName') ?: mgmt.makePropertyKey('typeFullName').dataType(String.class).cardinality(Cardinality.SINGLE).make()
+mgmt.containsPropertyKey('modifierType') ?: mgmt.makePropertyKey('modifierType').dataType(String.class).cardinality(Cardinality.SINGLE).make()
+mgmt.containsPropertyKey('dynamicTypeHintFullName') ?: mgmt.makePropertyKey('dynamicTypeFullName').dataType(String.class).cardinality(Cardinality.SINGLE).make()
 mgmt.containsPropertyKey('dynamicTypeHintFullName') ?: mgmt.makePropertyKey('dynamicTypeHintFullName').dataType(String.class).cardinality(Cardinality.SINGLE).make()
 mgmt.containsPropertyKey('methodFullName') ?: mgmt.makePropertyKey('methodFullName').dataType(String.class).cardinality(Cardinality.SINGLE).make()
 mgmt.containsPropertyKey('typeDeclFullName') ?: mgmt.makePropertyKey('typeDeclFullName').dataType(String.class).cardinality(Cardinality.SINGLE).make()

@@ -37,6 +37,8 @@ class ArrayInitializerVertex(order: Int) : ASTVertex(order) {
     }
 
     override fun hashCode(): Int {
-        return order
+        var result = super.hashCode()
+        result = 31 * result + ArrayInitializerVertex::class.java.name.hashCode()
+        return result
     }
 }

@@ -69,6 +69,7 @@ class UnknownVertex(
 
     override fun hashCode(): Int {
         var result = super.hashCode()
+        result = 31 * result + UnknownVertex::class.java.name.hashCode()
         result = 31 * result + typeFullName.hashCode()
         return result
     }

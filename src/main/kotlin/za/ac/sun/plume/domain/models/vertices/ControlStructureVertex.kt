@@ -10,7 +10,6 @@ import java.util.*
  * A control structure such as if, while, or for
  */
 class ControlStructureVertex(
-        val name: String,
         code: String,
         lineNumber: Int,
         columnNumber: Int,
@@ -76,19 +75,17 @@ class ControlStructureVertex(
         if (other !is ControlStructureVertex) return false
         if (!super.equals(other)) return false
 
-        if (name != other.name) return false
-
         return true
     }
 
     override fun hashCode(): Int {
         var result = super.hashCode()
-        result = 31 * result + name.hashCode()
+        result = 31 * result + ControlStructureVertex::class.java.name.hashCode()
         return result
     }
 
     override fun toString(): String {
-        return "ControlStructureVertex(name='$name', order=$order)"
+        return "ControlStructureVertex(code='$code', order=$order)"
     }
 
 }

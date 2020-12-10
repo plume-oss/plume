@@ -10,7 +10,7 @@ import java.util.*
 /**
  * A modifier, e.g., static, public, private
  */
-class ModifierVertex(val name: ModifierType, order: Int) : ASTVertex(order) {
+class ModifierVertex(val modifierType: ModifierType, order: Int) : ASTVertex(order) {
     companion object {
         @JvmField
         val LABEL = VertexLabel.MODIFIER
@@ -28,19 +28,19 @@ class ModifierVertex(val name: ModifierType, order: Int) : ASTVertex(order) {
 
         other as ModifierVertex
 
-        if (name != other.name) return false
+        if (modifierType != other.modifierType) return false
         if (order != other.order) return false
 
         return true
     }
 
     override fun hashCode(): Int {
-        var result = name.hashCode()
+        var result = modifierType.hashCode()
         result = 31 * result + order
         return result
     }
 
     override fun toString(): String {
-        return "ModifierVertex(name=$name, order=$order)"
+        return "ModifierVertex(modifierType=$modifierType, order=$order)"
     }
 }

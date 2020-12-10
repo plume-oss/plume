@@ -47,7 +47,6 @@ class MethodRefVertex(
     override fun equals(other: Any?): Boolean {
         if (this === other) return true
         if (other !is MethodRefVertex) return false
-        if (!super.equals(other)) return false
 
         if (methodInstFullName != other.methodInstFullName) return false
         if (methodFullName != other.methodFullName) return false
@@ -56,7 +55,7 @@ class MethodRefVertex(
     }
 
     override fun hashCode(): Int {
-        var result = super.hashCode()
+        var result = MethodRefVertex::class.java.name.hashCode()
         result = 31 * result + methodInstFullName.hashCode()
         result = 31 * result + methodFullName.hashCode()
         return result
