@@ -88,7 +88,7 @@ class OverflowDbDriver : IDriver {
                 v.dynamicTypeHintFullName,
                 v.typeFullName
             )
-            is ControlStructureVertex -> controlStructure(v.code, v.columnNumber, v.lineNumber, v.order)
+            is ControlStructureVertex -> controlStructure(v.code, v.columnNumber, v.lineNumber, v.order, v.argumentIndex)
             is FieldIdentifierVertex -> fieldIdentifier(
                 v.canonicalName,
                 v.code,
@@ -107,7 +107,7 @@ class OverflowDbDriver : IDriver {
                 v.typeFullName,
                 v.argumentIndex
             )
-            is JumpTargetVertex -> jumpTarget(v.code, v.name, v.columnNumber, v.lineNumber, v.order)
+            is JumpTargetVertex -> jumpTarget(v.code, v.name, v.columnNumber, v.lineNumber, v.order, v.argumentIndex)
             is LiteralVertex -> literal(v.code, v.columnNumber, v.lineNumber, v.order, v.typeFullName, v.argumentIndex)
             is LocalVertex -> local(v.code, v.name, v.columnNumber, v.lineNumber, v.order, v.typeFullName)
             is MemberVertex -> member(v.code, v.name, v.typeFullName, v.order)
@@ -311,7 +311,7 @@ class OverflowDbDriver : IDriver {
     private fun <T> getOrElse(opt: scala.Option<T>, def: T): T {
         class F<T>(val x: T) : AbstractFunction0<T>() {
             override fun apply(): T {
-                return x;
+                return x
             }
         }
         return opt.getOrElse(F(def))
