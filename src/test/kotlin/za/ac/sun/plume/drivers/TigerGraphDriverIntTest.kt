@@ -8,6 +8,7 @@ import za.ac.sun.plume.TestDomainResources.Companion.INT_1
 import za.ac.sun.plume.TestDomainResources.Companion.INT_2
 import za.ac.sun.plume.TestDomainResources.Companion.STRING_1
 import za.ac.sun.plume.TestDomainResources.Companion.STRING_2
+import za.ac.sun.plume.TestDomainResources.Companion.generateSimpleCPG
 import za.ac.sun.plume.domain.enums.EdgeLabel
 import za.ac.sun.plume.domain.exceptions.PlumeSchemaViolationException
 import za.ac.sun.plume.domain.models.vertices.*
@@ -24,6 +25,10 @@ import za.ac.sun.plume.TestDomainResources.Companion.v17
 import za.ac.sun.plume.TestDomainResources.Companion.v18
 import za.ac.sun.plume.TestDomainResources.Companion.v19
 import za.ac.sun.plume.TestDomainResources.Companion.v2
+import za.ac.sun.plume.TestDomainResources.Companion.v20
+import za.ac.sun.plume.TestDomainResources.Companion.v21
+import za.ac.sun.plume.TestDomainResources.Companion.v22
+import za.ac.sun.plume.TestDomainResources.Companion.v23
 import za.ac.sun.plume.TestDomainResources.Companion.v3
 import za.ac.sun.plume.TestDomainResources.Companion.v4
 import za.ac.sun.plume.TestDomainResources.Companion.v5
@@ -291,15 +296,15 @@ class TigerGraphDriverIntTest {
 
         @BeforeEach
         fun setUp() {
-            TestDomainResources.generateSimpleCPG(driver)
+            generateSimpleCPG(driver)
         }
 
         @Test
         fun testGetWholeGraph() {
             val plumeGraph = driver.getWholeGraph()
-            assertEquals("PlumeGraph(vertices:14, edges:19)", plumeGraph.toString())
+            assertEquals("PlumeGraph(vertices:18, edges:25)", plumeGraph.toString())
             val graphVertices = plumeGraph.vertices()
-            assertEquals(14, graphVertices.size)
+            assertEquals(18, graphVertices.size)
             // Check program structure
             assertTrue(plumeGraph.edgesOut(v11)[EdgeLabel.AST]?.contains(v12) ?: false)
             assertTrue(plumeGraph.edgesOut(v12)[EdgeLabel.AST]?.contains(v13) ?: false)
@@ -332,11 +337,13 @@ class TigerGraphDriverIntTest {
             assertTrue(plumeGraph.edgesIn(v10)[EdgeLabel.AST]?.contains(v1) ?: false)
             // Check method body CFG
             assertTrue(plumeGraph.edgesOut(v3)[EdgeLabel.CFG]?.contains(v4) ?: false)
-            assertTrue(plumeGraph.edgesOut(v4)[EdgeLabel.CFG]?.contains(v9) ?: false)
+            assertTrue(plumeGraph.edgesOut(v4)[EdgeLabel.CFG]?.contains(v20) ?: false)
+            assertTrue(plumeGraph.edgesOut(v20)[EdgeLabel.CFG]?.contains(v21) ?: false)
+            assertTrue(plumeGraph.edgesOut(v21)[EdgeLabel.CFG]?.contains(v22) ?: false)
             assertTrue(plumeGraph.edgesOut(v9)[EdgeLabel.CFG]?.contains(v10) ?: false)
 
             assertTrue(plumeGraph.edgesIn(v4)[EdgeLabel.CFG]?.contains(v3) ?: false)
-            assertTrue(plumeGraph.edgesIn(v9)[EdgeLabel.CFG]?.contains(v4) ?: false)
+            assertTrue(plumeGraph.edgesIn(v9)[EdgeLabel.CFG]?.contains(v22) ?: false)
             assertTrue(plumeGraph.edgesIn(v10)[EdgeLabel.CFG]?.contains(v9) ?: false)
             // Check method body misc. edges
             assertTrue(plumeGraph.edgesOut(v4)[EdgeLabel.ARGUMENT]?.contains(v6) ?: false)
@@ -346,6 +353,7 @@ class TigerGraphDriverIntTest {
             assertTrue(plumeGraph.edgesIn(v6)[EdgeLabel.ARGUMENT]?.contains(v4) ?: false)
             assertTrue(plumeGraph.edgesIn(v8)[EdgeLabel.ARGUMENT]?.contains(v4) ?: false)
             assertTrue(plumeGraph.edgesIn(v5)[EdgeLabel.REF]?.contains(v6) ?: false)
+            assertTrue(plumeGraph.vertices().contains(v23))
         }
 
         @Test
@@ -384,9 +392,9 @@ class TigerGraphDriverIntTest {
         @Test
         fun testGetMethodBody() {
             val plumeGraph = driver.getMethod(v1.fullName, v1.signature, true)
-            assertEquals("PlumeGraph(vertices:9, edges:15)", plumeGraph.toString())
+            assertEquals("PlumeGraph(vertices:12, edges:21)", plumeGraph.toString())
             val graphVertices = plumeGraph.vertices()
-            assertEquals(9, graphVertices.size)
+            assertEquals(12, graphVertices.size)
             // Assert no program structure vertices part of the method body
             assertFalse(graphVertices.contains(v14))
             assertFalse(graphVertices.contains(v13))
@@ -404,9 +412,10 @@ class TigerGraphDriverIntTest {
             assertTrue(plumeGraph.edgesIn(v3)[EdgeLabel.AST]?.contains(v1) ?: false)
             assertTrue(plumeGraph.edgesIn(v10)[EdgeLabel.AST]?.contains(v1) ?: false)
             assertTrue(plumeGraph.edgesIn(v3)[EdgeLabel.CFG]?.contains(v1) ?: false)
-            // Check method body AST
+
             assertTrue(plumeGraph.edgesOut(v3)[EdgeLabel.AST]?.contains(v4) ?: false)
             assertTrue(plumeGraph.edgesOut(v4)[EdgeLabel.AST]?.contains(v6) ?: false)
+
             assertTrue(plumeGraph.edgesOut(v4)[EdgeLabel.AST]?.contains(v8) ?: false)
             assertTrue(plumeGraph.edgesOut(v3)[EdgeLabel.AST]?.contains(v9) ?: false)
             assertTrue(plumeGraph.edgesOut(v1)[EdgeLabel.AST]?.contains(v10) ?: false)
@@ -418,11 +427,14 @@ class TigerGraphDriverIntTest {
             assertTrue(plumeGraph.edgesIn(v10)[EdgeLabel.AST]?.contains(v1) ?: false)
             // Check method body CFG
             assertTrue(plumeGraph.edgesOut(v3)[EdgeLabel.CFG]?.contains(v4) ?: false)
-            assertTrue(plumeGraph.edgesOut(v4)[EdgeLabel.CFG]?.contains(v9) ?: false)
+            assertTrue(plumeGraph.edgesOut(v4)[EdgeLabel.CFG]?.contains(v20) ?: false)
             assertTrue(plumeGraph.edgesOut(v9)[EdgeLabel.CFG]?.contains(v10) ?: false)
+            assertTrue(plumeGraph.edgesOut(v20)[EdgeLabel.CFG]?.contains(v21) ?: false)
+            assertTrue(plumeGraph.edgesOut(v21)[EdgeLabel.CFG]?.contains(v22) ?: false)
+            assertTrue(plumeGraph.edgesOut(v22)[EdgeLabel.CFG]?.contains(v9) ?: false)
 
             assertTrue(plumeGraph.edgesIn(v4)[EdgeLabel.CFG]?.contains(v3) ?: false)
-            assertTrue(plumeGraph.edgesIn(v9)[EdgeLabel.CFG]?.contains(v4) ?: false)
+            assertTrue(plumeGraph.edgesIn(v20)[EdgeLabel.CFG]?.contains(v4) ?: false)
             assertTrue(plumeGraph.edgesIn(v10)[EdgeLabel.CFG]?.contains(v9) ?: false)
             // Check method body misc. edges
             assertTrue(plumeGraph.edgesOut(v4)[EdgeLabel.ARGUMENT]?.contains(v6) ?: false)

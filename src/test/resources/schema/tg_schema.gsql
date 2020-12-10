@@ -14,6 +14,7 @@ CREATE VERTEX CPG_VERT (
     modifierType STRING DEFAULT "null",
     typeFullName STRING DEFAULT "null",
     typeDeclFullName STRING DEFAULT "null",
+    dynamicTypeFullName STRING DEFAULT "null",
     dynamicTypeHintFullName STRING DEFAULT "null",
     code STRING DEFAULT "null",
     columnNumber INT DEFAULT -1,

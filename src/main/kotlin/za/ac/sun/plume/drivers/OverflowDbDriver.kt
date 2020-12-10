@@ -15,6 +15,7 @@ import za.ac.sun.plume.domain.enums.EdgeLabel
 import za.ac.sun.plume.domain.enums.EvaluationStrategy
 import za.ac.sun.plume.domain.enums.ModifierType
 import za.ac.sun.plume.domain.exceptions.PlumeSchemaViolationException
+import za.ac.sun.plume.domain.mappers.VertexMapper
 import za.ac.sun.plume.domain.models.PlumeGraph
 import za.ac.sun.plume.domain.models.PlumeVertex
 import za.ac.sun.plume.domain.models.vertices.*
@@ -239,6 +240,15 @@ class OverflowDbDriver : IDriver {
                 v.name(),
                 v.order()
             )
+            is MethodRef -> MethodRefVertex(
+                v.methodInstFullName().get(),
+                v.methodFullName(),
+                v.code(),
+                v.order(),
+                v.argumentIndex(),
+                getOrElse(v.lineNumber(), 0),
+                getOrElse(v.columnNumber(), 0)
+            )
             is MethodReturn -> MethodReturnVertex(
                 v.typeFullName(),
                 convertEvalStrategy(v.evaluationStrategy()), v.code(),
@@ -249,7 +259,7 @@ class OverflowDbDriver : IDriver {
                 getOrElse(v.lineNumber(), 0), getOrElse(v.columnNumber(), 0), v.order()
             )
             is Modifier -> ModifierVertex(
-                ModifierType.valueOf(v.modifierType()),
+                convertModifierType(v.modifierType()),
                 v.order()
             )
             is NamespaceBlock -> NamespaceBlockVertex(v.name(), v.fullName(), v.order())
@@ -286,6 +296,10 @@ class OverflowDbDriver : IDriver {
         }
     }
 
+    private fun convertModifierType(str: String): ModifierType {
+        return ModifierType.valueOf(str)
+    }
+
     private fun convertEvalStrategy(str: String): EvaluationStrategy {
         return EvaluationStrategy.valueOf(str)
     }
@@ -314,6 +328,7 @@ class OverflowDbDriver : IDriver {
     }
 
     override fun addEdge(fromV: PlumeVertex, toV: PlumeVertex, edge: EdgeLabel) {
+        if (!VertexMapper.checkSchemaConstraints(fromV, toV, edge)) throw PlumeSchemaViolationException(fromV, toV, edge)
         var srcNode = graph.node(fromV.hashCode().toLong())
         if (srcNode == null) {
             addVertex(fromV)
@@ -361,35 +376,37 @@ class OverflowDbDriver : IDriver {
             .distinct()
             .map { node -> Pair(node.id(), convert(node)) }
             .toMap()
+
         plumeVertices.values.forEach { v -> v?.let { x -> plumeGraph.addVertex(x) } }
         val edges = nodesWithEdges.flatMap { x -> x._2 }
-        edges.forEach { edge ->
-            val srcNode = plumeVertices.get(edge.outNode().id())
-            val dstNode = plumeVertices.get(edge.inNode().id())
-            if (srcNode != null && dstNode != null) {
-                plumeGraph.addEdge(srcNode, dstNode, EdgeLabel.valueOf(edge.label()))
-            }
-        }
+        serializePlumeEdges(edges, plumeVertices, plumeGraph)
         return plumeGraph
     }
 
     private fun edgeListToPlumeGraph(edges: List<Edge>): PlumeGraph {
         val plumeGraph = PlumeGraph()
-
         val plumeVertices = edges.flatMap { edge -> listOf(edge.inNode(), edge.outNode()) }
             .distinct()
             .map { node -> Pair(node.id(), convert(node)) }
             .toMap()
 
         plumeVertices.values.forEach { v -> v?.let { x -> plumeGraph.addVertex(x) } }
+        serializePlumeEdges(edges, plumeVertices, plumeGraph)
+        return plumeGraph
+    }
+
+    private fun serializePlumeEdges(
+        edges: List<Edge>,
+        plumeVertices: Map<Long, PlumeVertex?>,
+        plumeGraph: PlumeGraph
+    ) {
         edges.forEach { edge ->
-            val srcNode = plumeVertices.get(edge.outNode().id())
-            val dstNode = plumeVertices.get(edge.inNode().id())
+            val srcNode = plumeVertices[edge.outNode().id()]
+            val dstNode = plumeVertices[edge.inNode().id()]
             if (srcNode != null && dstNode != null) {
                 plumeGraph.addEdge(srcNode, dstNode, EdgeLabel.valueOf(edge.label()))
             }
         }
-        return plumeGraph
     }
 
     override fun getProgramStructure(): PlumeGraph {

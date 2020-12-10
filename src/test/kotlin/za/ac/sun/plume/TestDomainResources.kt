@@ -68,6 +68,10 @@ class TestDomainResources {
         val v17 = BindingVertex(STRING_1, STRING_2)
         val v18 = TypeArgumentVertex(INT_1)
         val v19 = TypeParameterVertex(STRING_1, INT_1)
+        val v20 = FieldIdentifierVertex(STRING_1, STRING_2, INT_1, INT_1, INT_1, INT_1)
+        val v21 = MethodRefVertex(STRING_1, STRING_2, STRING_1, INT_1, INT_1, INT_1, INT_1)
+        val v22 = TypeRefVertex(STRING_1, STRING_2, STRING_1, INT_1, INT_1, INT_1, INT_1)
+        val v23 = UnknownVertex(STRING_1, STRING_2, INT_1, INT_1, INT_1, INT_1)
 
         fun generateSimpleCPG(driver: IDriver) {
             // Create program data
@@ -83,15 +87,26 @@ class TestDomainResources {
             driver.addEdge(v1, v3, EdgeLabel.CFG)
             // Create method body
             driver.addEdge(v3, v4, EdgeLabel.AST)
-            driver.addEdge(v3, v4, EdgeLabel.CFG)
             driver.addEdge(v4, v6, EdgeLabel.AST)
             driver.addEdge(v4, v8, EdgeLabel.AST)
             driver.addEdge(v4, v6, EdgeLabel.ARGUMENT)
             driver.addEdge(v4, v8, EdgeLabel.ARGUMENT)
             driver.addEdge(v3, v9, EdgeLabel.AST)
-            driver.addEdge(v4, v9, EdgeLabel.CFG)
+            driver.addEdge(v4, v20, EdgeLabel.AST)
             driver.addEdge(v1, v10, EdgeLabel.AST)
+            driver.addEdge(v3, v21, EdgeLabel.AST)
+            driver.addEdge(v3, v22, EdgeLabel.AST)
+
+            driver.addEdge(v3, v4, EdgeLabel.CFG)
+            driver.addEdge(v4, v20, EdgeLabel.CFG)
+            driver.addEdge(v20, v21, EdgeLabel.CFG)
+            driver.addEdge(v21, v22, EdgeLabel.CFG)
+            driver.addEdge(v22, v9, EdgeLabel.CFG)
             driver.addEdge(v9, v10, EdgeLabel.CFG)
+
+            // Just add some vertices to test conversion
+            driver.addVertex(v23)
+
             // Link dependencies
             driver.addEdge(v6, v5, EdgeLabel.REF)
         }
