@@ -33,3 +33,4 @@ services:
       - type: 'githubPages'
         username: 'DavidBakerEffendi' # the username which created the personal access token
         repo: 'plume-oss/plume' # the repo to publish to
+        versioned: true

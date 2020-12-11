@@ -5,6 +5,7 @@ plugins {
     id "com.eden.orchidPlugin" version "$orchidVersion"
     id "com.avast.gradle.docker-compose" version "$avastDockerVersion"
     id "org.jetbrains.kotlin.jvm" version "$kotlinVersion"
+    id "com.jfrog.bintray" version "$bintrayVersion"
 }
 
 repositories {
@@ -77,10 +78,7 @@ task allTests(
 test {
     useJUnitPlatform()
     exclude "**/*IntTest*", "**/extractor/**"
-
-    testLogging {
-        events "FAILED", "SKIPPED"
-    }
+    testLogging { events "FAILED", "SKIPPED" }
 }
 
 task extractorTest(type: Test) {
@@ -88,10 +86,7 @@ task extractorTest(type: Test) {
     description = "Execute extractor tests."
     group = "verification"
     include "**/extractor/**"
-
-    testLogging {
-        events "FAILED", "SKIPPED"
-    }
+    testLogging { events "FAILED", "SKIPPED" }
 }
 
 task tinkerGraphIntTest(type: Test) {
@@ -99,10 +94,7 @@ task tinkerGraphIntTest(type: Test) {
     description = "Execute TinkerGraph integration tests."
     group = "verification"
     include "**/*TinkerGraph*"
-
-    testLogging {
-        events "FAILED", "SKIPPED"
-    }
+    testLogging { events "FAILED", "SKIPPED" }
 }
 
 task overflowDbIntTest(type: Test) {
@@ -110,10 +102,7 @@ task overflowDbIntTest(type: Test) {
     description = "Execute OverflowDb integration tests."
     group = "verification"
     include "**/*OverflowDb*"
-
-    testLogging {
-        events "FAILED", "SKIPPED"
-    }
+    testLogging { events "FAILED", "SKIPPED" }
 }
 
 task janusGraphIntTest(type: Test) {
@@ -121,13 +110,8 @@ task janusGraphIntTest(type: Test) {
     description = "Execute JanusGraph integration tests."
     group = "verification"
     include "**/*JanusGraph*"
-
-    testLogging {
-        events "FAILED", "SKIPPED"
-    }
-    doFirst {
-        dockerCompose.exposeAsEnvironment(janusGraphIntTest)
-    }
+    testLogging { events "FAILED", "SKIPPED" }
+    doFirst { dockerCompose.exposeAsEnvironment(janusGraphIntTest) }
 }
 
 task tigerGraphIntTest(type: Test) {
@@ -135,13 +119,8 @@ task tigerGraphIntTest(type: Test) {
     description = "Execute TigerGraph integration tests."
     group = "verification"
     include "**/*TigerGraph*"
-
-    testLogging {
-        events "FAILED", "SKIPPED"
-    }
-    doFirst {
-        dockerCompose.exposeAsEnvironment(tigerGraphIntTest)
-    }
+    testLogging { events "FAILED", "SKIPPED" }
+    doFirst { dockerCompose.exposeAsEnvironment(tigerGraphIntTest) }
 }
 
 task neptuneIntTest(type: Test) {
@@ -149,10 +128,7 @@ task neptuneIntTest(type: Test) {
     description = "Execute Neptune integration tests."
     group = "verification"
     include "**/*Neptune*"
-
-    testLogging {
-        events "FAILED", "SKIPPED"
-    }
+    testLogging { events "FAILED", "SKIPPED" }
 }
 
 task neo4jIntTest(type: Test) {
@@ -160,13 +136,8 @@ task neo4jIntTest(type: Test) {
     description = "Execute Neo4j integration tests."
     group = "verification"
     include "**/*Neo4j*"
-
-    testLogging {
-        events "FAILED", "SKIPPED"
-    }
-    doFirst {
-        dockerCompose.exposeAsEnvironment(neo4jIntTest)
-    }
+    testLogging { events "FAILED", "SKIPPED" }
+    doFirst { dockerCompose.exposeAsEnvironment(neo4jIntTest) }
 }
 
 dockerCompose {
@@ -184,9 +155,7 @@ dockerCompose {
     }
 }
 
-jacoco {
-    toolVersion = "0.8.5"
-}
+jacoco { toolVersion = "$jacocoVersion" }
 
 jacocoTestReport {
     reports {
@@ -202,7 +171,7 @@ jacocoTestReport {
 orchid {
     theme = "Editorial"
     baseUrl = "https://plume-oss.github.io/plume"
-    version = "0.0.1"
+    version = version
     githubToken = System.getenv("ORCHID_TOKEN")
 }
 
@@ -213,9 +182,10 @@ group = "za.ac.sun.plume"
 version = "0.0.1"
 description = "Plume is a code property graph analysis library with options to extract the CPG from Java bytecode and store the result in various graph databases."
 sourceCompatibility = "8"
+def repoUrl = "https://github.com/plume-oss/plume.git"
+def mainProjects = [":cpgconv"]
 
 // Binds the main project and Scala layer into one Jar
-def mainProjects = [":cpgconv"]
 task oneJar(type: Jar, dependsOn: mainProjects.collect { it + ":compileJava" }) {
     duplicatesStrategy = DuplicatesStrategy.EXCLUDE
     from files(mainProjects.collect { project(it).sourceSets.main.output }) {
@@ -229,49 +199,68 @@ task oneJar(type: Jar, dependsOn: mainProjects.collect { it + ":compileJava" }) 
 task fatJar(type: Jar) {
     archiveClassifier.set("all")
     duplicatesStrategy = DuplicatesStrategy.EXCLUDE
-    from {
-        configurations.runtimeClasspath.collect { it.isDirectory() ? it : zipTree(it) }
-    } {
+    from { configurations.runtimeClasspath.collect { it.isDirectory() ? it : zipTree(it) } } {
         exclude "META-INF/*.SF"
         exclude "META-INF/*.DSA"
         exclude "META-INF/*.RSA"
     }
+    zip64 = true
     with jar
 }
 
-artifacts {
-    archives oneJar, fatJar
-}
-
-tasks.register("sourcesJar", Jar) {
-    from sourceSets.main.allJava
-    classifier "sources"
-}
-
-tasks.register("javadocJar", Jar) {
-    from javadoc
-    classifier "javadoc"
-}
+artifacts { archives oneJar, fatJar }
 
 publishing {
     publications {
-        maven(MavenPublication) {
-            from(components.java)
+        mavenJava(MavenPublication) {
+            artifact oneJar
+            pom {
+                name = 'Plume'
+                description = description
+                url = 'https://plume-oss.github.io/plume-docs/'
+                licenses {
+                    license {
+                        name = 'The Apache License, Version 2.0'
+                        url = 'http://www.apache.org/licenses/LICENSE-2.0.txt'
+                    }
+                }
+                developers {
+                    developer {
+                        id = 'DavidBakerEffendi'
+                        name = 'David Baker Effendi'
+                        email = 'dbe@sun.ac.za'
+                    }
+                }
+                scm {
+                    connection = "scm:git:https://github.com/plume-oss/plume.git"
+                    developerConnection = "scm:git:https://github.com/plume-oss/plume.git"
+                    url = repoUrl
+                }
+            }
         }
     }
 }
 
-tasks.withType(JavaCompile) {
-    options.encoding = "UTF-8"
+bintray {
+    user = System.getenv("BINTRAY_USER")
+    key = System.getenv("BINTRAY_TOKEN")
+    publications = ['mavenJava']
+    pkg {
+        repo = 'maven'
+        name = 'plume-core'
+        userOrg = 'plume-oss'
+        vcsUrl = repoUrl
+        licenses = ['Apache-2.0']
+    }
+    version {
+        name = version
+        desc = description
+        released = (new Date()).toString()
+        vscTag = version
+    }
 }
 
-compileKotlin {
-    kotlinOptions {
-        jvmTarget = "1.8"
-    }
-}
-compileTestKotlin {
-    kotlinOptions {
-        jvmTarget = "1.8"
-    }
-}
+tasks.withType(JavaCompile) { options.encoding = "UTF-8" }
+
+compileKotlin { kotlinOptions { jvmTarget = "1.8" } }
+compileTestKotlin { kotlinOptions { jvmTarget = "1.8" } }
