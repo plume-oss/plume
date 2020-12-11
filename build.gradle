@@ -250,12 +250,12 @@ bintray {
         userOrg = 'plume-oss'
         vcsUrl = repoUrl
         licenses = ['Apache-2.0']
-    }
-    version {
-        name = version
-        desc = description
-        released = new Date()
-        vscTag = version
+        version {
+            name = version
+            desc = description
+            released = new Date()
+            vcsTag = version
+        }
     }
 }
 
