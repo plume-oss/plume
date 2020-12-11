@@ -161,10 +161,9 @@ def repoUrl = "https://github.com/plume-oss/plume.git"
 def artifactVersion = "0.0.1"
 def website = "https://plume-oss.github.io/plume-docs/"
 
-group = "za.ac.sun"
+group = "io.github.plume-oss"
 version = artifactVersion
 description = artifactDesc
-sourceCompatibility = "8"
 
 orchid {
     theme = "Editorial"
@@ -196,7 +195,7 @@ jar {
         exclude "META-INF/*.SF"
         exclude "META-INF/*.DSA"
         exclude "META-INF/*.RSA"
-        include "za/ac/sun/plume/**"
+        include "io/github/plume/oss/**"
     }
 }
 
@@ -248,7 +247,7 @@ bintray {
     publish = true
     pkg {
         repo = "maven"
-        name = "plume-core"
+        name = "plume"
         userOrg = "plume-oss"
         vcsUrl = repoUrl
         websiteUrl = website

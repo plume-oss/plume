@@ -13,8 +13,8 @@ dependencies {
     implementation 'io.shiftleft:semanticcpg_2.13:1.3.5'
 }
 
-group = 'za.ac.sun'
-sourceCompatibility = '8'
+group = "io.github.plume-oss"
+version = "0.0.1"
 
 sourceSets {
     main.java.srcDirs = []
