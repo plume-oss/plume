@@ -61,6 +61,19 @@ sourceSets {
     test.resources.srcDirs = ["src/test/resources"]
 }
 
+task allTests(
+        type: Test,
+        dependsOn: [
+                "test",
+                "tinkerGraphIntTest",
+                "overflowDbIntTest",
+                "janusGraphIntTest",
+                "tigerGraphIntTest",
+                "neo4jIntTest",
+                "extractorTest",
+        ]
+) { group = "verification" }
+
 test {
     useJUnitPlatform()
     exclude "**/*IntTest*", "**/extractor/**"
@@ -203,9 +216,9 @@ sourceCompatibility = "8"
 
 // Binds the main project and Scala layer into one Jar
 def mainProjects = [":cpgconv"]
-task oneJar( type: Jar , dependsOn: mainProjects.collect{ it + ":compileJava"}) {
+task oneJar(type: Jar, dependsOn: mainProjects.collect { it + ":compileJava" }) {
     duplicatesStrategy = DuplicatesStrategy.EXCLUDE
-    from files(mainProjects.collect{ project(it).sourceSets.main.output }) {
+    from files(mainProjects.collect { project(it).sourceSets.main.output }) {
         exclude "META-INF/*.SF"
         exclude "META-INF/*.DSA"
         exclude "META-INF/*.RSA"
