@@ -13,7 +13,10 @@ dependencies {
     implementation 'io.shiftleft:semanticcpg_2.13:1.3.5'
 }
 
-group = 'za.ac.sun.plume'
-version = '0.0.1'
-description = 'Plume is a code property graph analysis library with options to extract the CPG from Java bytecode and store the result in various graph databases.'
+group = 'za.ac.sun'
 sourceCompatibility = '8'
+
+sourceSets {
+    main.java.srcDirs = []
+    main.scala.srcDirs = ["src/main/scala"]
+}

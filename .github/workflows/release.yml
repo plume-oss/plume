@@ -22,7 +22,9 @@ jobs:
       - name: Grant execute permission for gradlew
         run: chmod +x gradlew
       - name: Build code
-        run: ./gradlew build
+        run: |
+          ./gradlew classes
+          ./gradlew jar
       - name: Publish release to jCenter
         run: ./gradlew bintrayUpload
       - name: Build and deploy Orchid documentation

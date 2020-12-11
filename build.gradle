@@ -58,7 +58,7 @@ sourceSets {
     main.java.srcDirs = []
     main.kotlin.srcDirs = ["src/main/kotlin"]
     main.resources.srcDirs = ["src/main/resources"]
-    main.java.srcDirs = []
+    test.java.srcDirs = []
     test.kotlin.srcDirs = ["src/test/kotlin"]
     test.resources.srcDirs = ["src/test/resources"]
 }
@@ -158,7 +158,6 @@ dockerCompose {
 
 def artifactDesc = "Plume is a code property graph analysis library with options to extract the CPG from Java bytecode and store the result in various graph databases."
 def repoUrl = "https://github.com/plume-oss/plume.git"
-def mainProjects = [":cpgconv"]
 def artifactVersion = "0.0.1"
 def website = "https://plume-oss.github.io/plume-docs/"
 
@@ -191,14 +190,14 @@ check.dependsOn jacocoTestCoverageVerification
 jacocoTestCoverageVerification.dependsOn jacocoTestReport
 
 // Binds the main project and Scala layer into one Jar
-task oneJar(type: Jar, dependsOn: mainProjects.collect { it + ":compileJava" }) {
+jar {
     duplicatesStrategy = DuplicatesStrategy.EXCLUDE
-    from files(mainProjects.collect { project(it).sourceSets.main.output }) {
+    from { configurations.runtimeClasspath.collect { it.isDirectory() ? it : zipTree(it) } } {
         exclude "META-INF/*.SF"
         exclude "META-INF/*.DSA"
         exclude "META-INF/*.RSA"
+        include "za/ac/sun/plume/**"
     }
-    with jar
 }
 
 task fatJar(type: Jar) {
@@ -213,12 +212,12 @@ task fatJar(type: Jar) {
     with jar
 }
 
-artifacts { archives oneJar, fatJar }
+artifacts { archives fatJar }
 
 publishing {
     publications {
         mavenJava(MavenPublication) {
-            artifact oneJar
+            artifact jar
             pom {
                 name = 'Plume'
                 description = artifactDesc
