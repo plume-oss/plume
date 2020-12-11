@@ -156,19 +156,21 @@ dockerCompose {
     }
 }
 
-def desc = "Plume is a code property graph analysis library with options to extract the CPG from Java bytecode and store the result in various graph databases."
+def artifactDesc = "Plume is a code property graph analysis library with options to extract the CPG from Java bytecode and store the result in various graph databases."
 def repoUrl = "https://github.com/plume-oss/plume.git"
 def mainProjects = [":cpgconv"]
+def artifactVersion = "0.0.1"
+def website = "https://plume-oss.github.io/plume-docs/"
 
-group = "za.ac.sun.plume"
-version = "0.0.1"
-description = desc
+group = "za.ac.sun"
+version = artifactVersion
+description = artifactDesc
 sourceCompatibility = "8"
 
 orchid {
     theme = "Editorial"
     baseUrl = "https://plume-oss.github.io/plume"
-    version = version
+    version = artifactVersion
     githubToken = System.getenv("ORCHID_TOKEN")
 }
 
@@ -219,8 +221,8 @@ publishing {
             artifact oneJar
             pom {
                 name = 'Plume'
-                description = desc
-                url = 'https://plume-oss.github.io/plume-docs/'
+                description = artifactDesc
+                url = website
                 licenses {
                     license {
                         name = 'The Apache License, Version 2.0'
@@ -244,17 +246,21 @@ bintray {
     user = System.getenv("BINTRAY_USER")
     key = System.getenv("BINTRAY_TOKEN")
     publications = ['mavenJava']
+    publish = true
     pkg {
-        repo = 'maven'
-        name = 'plume-core'
-        userOrg = 'plume-oss'
+        repo = "maven"
+        name = "plume-core"
+        userOrg = "plume-oss"
         vcsUrl = repoUrl
+        websiteUrl = website
+        issueTrackerUrl = "https://github.com/plume-oss/plume/issues"
+        githubRepo = repoUrl
         licenses = ['Apache-2.0']
         version {
-            name = version
-            desc = description
+            name = artifactVersion
+            desc = artifactDesc
             released = new Date()
-            vcsTag = version
+            vcsTag = artifactVersion
         }
     }
 }
