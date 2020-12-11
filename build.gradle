@@ -156,6 +156,22 @@ dockerCompose {
     }
 }
 
+def desc = "Plume is a code property graph analysis library with options to extract the CPG from Java bytecode and store the result in various graph databases."
+def repoUrl = "https://github.com/plume-oss/plume.git"
+def mainProjects = [":cpgconv"]
+
+group = "za.ac.sun.plume"
+version = "0.0.1"
+description = desc
+sourceCompatibility = "8"
+
+orchid {
+    theme = "Editorial"
+    baseUrl = "https://plume-oss.github.io/plume"
+    version = version
+    githubToken = System.getenv("ORCHID_TOKEN")
+}
+
 jacoco { toolVersion = "$jacocoVersion" }
 
 jacocoTestReport {
@@ -169,22 +185,8 @@ jacocoTestReport {
     executionData test, extractorTest, tinkerGraphIntTest, overflowDbIntTest, janusGraphIntTest, tigerGraphIntTest, neo4jIntTest
 }
 
-orchid {
-    theme = "Editorial"
-    baseUrl = "https://plume-oss.github.io/plume"
-    version = version
-    githubToken = System.getenv("ORCHID_TOKEN")
-}
-
 check.dependsOn jacocoTestCoverageVerification
 jacocoTestCoverageVerification.dependsOn jacocoTestReport
-
-group = "za.ac.sun.plume"
-version = "0.0.1"
-description = "Plume is a code property graph analysis library with options to extract the CPG from Java bytecode and store the result in various graph databases."
-sourceCompatibility = "8"
-def repoUrl = "https://github.com/plume-oss/plume.git"
-def mainProjects = [":cpgconv"]
 
 // Binds the main project and Scala layer into one Jar
 task oneJar(type: Jar, dependsOn: mainProjects.collect { it + ":compileJava" }) {
@@ -217,7 +219,7 @@ publishing {
             artifact oneJar
             pom {
                 name = 'Plume'
-                description = description
+                description = desc
                 url = 'https://plume-oss.github.io/plume-docs/'
                 licenses {
                     license {
@@ -226,11 +228,7 @@ publishing {
                     }
                 }
                 developers {
-                    developer {
-                        id = 'DavidBakerEffendi'
-                        name = 'David Baker Effendi'
-                        email = 'dbe@sun.ac.za'
-                    }
+                    developer { id = 'DavidBakerEffendi'; name = 'David Baker Effendi'; email = 'dbe@sun.ac.za' }
                 }
                 scm {
                     connection = "scm:git:https://github.com/plume-oss/plume.git"
@@ -256,7 +254,7 @@ bintray {
     version {
         name = version
         desc = description
-        released = (new Date()).toString()
+        released = new Date()
         vscTag = version
     }
 }
