@@ -1,25 +1,56 @@
 # Plume
 [![License](https://img.shields.io/badge/License-Apache%202.0-blue.svg)](https://opensource.org/licenses/Apache-2.0)
-[![Build Status](https://travis-ci.org/plume-oss/plume-driver.svg?branch=develop)](https://travis-ci.org/plume-oss/plume-driver)
-[![codecov](https://codecov.io/gh/plume-oss/plume-driver/branch/develop/graph/badge.svg)](https://codecov.io/gh/plume-oss/plume-driver)
+![GitHub Actions](https://github.com/plume-oss/plume/workflows/CI/badge.svg)
+[![codecov](https://codecov.io/gh/plume-oss/plume/branch/develop/graph/badge.svg)](https://codecov.io/gh/plume-oss/plume)
+[![Download](https://api.bintray.com/packages/plume-oss/maven/plume-core/images/download.svg)](https://bintray.com/plume-oss/maven/plume-core/_latestVersion)
 
-A Java driver for the Plume library to provide an interface for connecting and writing to various graph databases based
+A Kotlin driver for the Plume library to provide an interface for connecting and writing to various graph databases based
 on the [code-property graph schema](https://github.com/ShiftLeftSecurity/codepropertygraph/blob/master/codepropertygraph/src/main/resources/schemas/base.json).
 
-This CPG schema has been slightly adjusted to work with a graph database agnostic project. The models and enums can be
-found under `za.ac.sun.plume.domain`. The extensive documentation will be released with the first major release of the
-Plume project.
+For more documentation check out the [Plume docs](https://plume-oss.github.io/plume-docs/).
 
-## Features
+## Download from jCenter Bintray
 
-Plume is currently under development. It has the following capabilities:
-* Writes domain models to the graph database.
-* Project an intraprocedural AST of a JVM program using JVM bytecode:
-  - Package/Class/Method hierarchy
-  - Variable assignments
-  - Arithmetic
-  - If-else bodies
-* Can export an in-memory graph database to GraphML, GraphSON, and Gryo.
+Replace `X.X.X` with the desired version on [jCenter](https://bintray.com/plume-oss/maven/plume-core/_latestVersion).
+
+Maven:
+```mxml
+<dependency>
+  <groupId>za.ac.sun</groupId>
+  <artifactId>plume</artifactId>
+  <version>X.X.X</version>
+  <type>pom</type>
+</dependency>
+```
+
+Gradle:
+```groovy
+implementation 'za.ac.sun:plume:X.X.X'
+```
+
+Don't forget to include the jCenter repository in your `pom.xml` or `build.gradle`.
+
+Maven:
+```mxml
+<project>
+  [...]
+  <repositories>
+    <repository>
+      <id>jcenter</id>
+      <name>jcenter</name>
+      <url>https://jcenter.bintray.com</url>
+    </repository>
+  </repositories>
+  [...]
+</project>
+```
+
+Gradle:
+```groovy
+repositories {
+    jcenter()
+}
+```
 
 ## Building from Source
 
@@ -27,117 +58,69 @@ In order to use Plume one will need to build from the source code. This will be 
 can be hosted on a Maven repository or similar.
 
 ```shell script
-git clone https://github.com/plume-oss/plume-driver.git
+git clone https://github.com/plume-oss/plume.git
 cd plume-driver
-./gradlew jar # For main artifact only
+./gradlew oneJar # For main artifact only
 ./gradlew fatJar # For fat jar with dependencies
 ```
-This will build `target/plume-driver-X.X.X[-all].jar` which is imported into your local project. E.g.
-```mxml
-<dependency>
-  <groupId>za.ac.sun.plume</groupId>
-  <artifactId>plume-driver</artifactId>
-  <version>X.X.X</version>
-  <scope>system</scope>
-  <systemPath>${project.basedir}/lib/plume-driver-X.X.X.jar</systemPath>
-</dependency>
-``` 
-```groovy
-repositories {
-    // ...
-    flatDir {
-        dirs 'lib'
-    }
-}
-dependencies {
-    // ...
-    implementation name: 'plume-driver-X.X.X'
-}
-```
+This will build `target/plume-X.X.X[-all].jar` which is imported into your local project.
 
 ## Dependencies
 
 ### Packages
 
-The following packages used by the Plume driver are:
+The following packages used for logging:
 
-* `org.apache.logging.log4j:log4j-core:2.8.2`
-* `org.apache.logging.log4j:log4j-slf4j-impl:2.8.2`
-* `org.apache.tinkerpop:gremlin-core:3.4.5`
+```groovy
+implementation 'org.apache.logging.log4j:log4j-core:2.13.3'
+implementation 'org.apache.logging.log4j:log4j-slf4j-impl:2.13.3'
+```
 
-Dependencies per graph database technology connected to:
+The extractor uses the following dependencies:
+```groovy
+  implementation 'org.soot-oss:soot:4.2.1'
+  implementation 'org.python:jython-standalone:2.7.2'
+  implementation 'org.apache.ant:ant:1.10.8'
+  implementation 'org.mozilla:rhino:1.7.13'
+  implementation 'org.lz4:lz4-java:1.7.1'
+```
 
-* _TinkerGraph_ `org.apache.tinkerpop:tinkergraph-gremlin:3.4.5`
-* _JanusGraph_ `org.janusgraph:janusgraph-driver:0.5.1`
+Dependencies per graph database technology:
 
+#### _TinkerGraph_ 
+```groovy
+    implementation 'org.apache.tinkerpop:gremlin-core:3.4.8'
+    implementation 'org.apache.tinkerpop:tinkergraph-gremlin:3.4.8'
+```
+#### _OverflowDb_
+```groovy
+  implementation 'io.shiftleft:codepropertygraph_2.13:1.3.5'
+  implementation 'io.shiftleft:semanticcpg_2.13:1.3.5'
+```
+#### _JanusGraph_ 
+```groovy
+  implementation 'org.apache.tinkerpop:gremlin-core:3.4.8'
+  implementation 'org.janusgraph:janusgraph-driver:0.5.2'
+```
+#### _TigerGraph_
+```groovy
+  implementation 'khttp:khttp:1.0.0'
+  implementation 'com.fasterxml.jackson.core:jackson-databind:2.11.2'
+```
+#### _Amazon Neptune_
+```groovy
+  implementation 'org.apache.tinkerpop:gremlin-core:3.4.8'
+  implementation 'org.apache.tinkerpop:gremlin-driver:3.4.8'
+```
+#### _Neo4j_
+```groovy
+  implementation 'org.apache.tinkerpop:gremlin-core:3.4.8'
+  implementation 'com.steelbridgelabs.oss:neo4j-gremlin-bolt:0.4.4'
+```
+    
 It is not recommended using the fat jar in your project if using a build tool such as Ant, Maven, Gradle, etc. Rather,
 use the main artifact and add the dependencies manually (in your `pom.xml`, `build.gradle`, etc.). Note that if you are
-connecting to Neo4j, for example, you would not need the TinkerGraph, TigerGraph, etc. dependencies. 
-
-### Java Support
-
-The officially supported versions of Java are the following:
-* OpenJDK 8
-* OpenJDK 9
-* OpenJDK 10
-* OpenJDK 11
-
-### Graph Database Support
-
-Databases supported:
-* TinkerGraph
-* JanusGraph (`exportGraph` currently not supported due to how JanusGraph Driver works)
-
-Planned to support in the near future:
-* TigerGraph
-* Neo4j
-* Amazon Neptune
-
-## Basic Process
-
-Plume driver works through immutable domain objects, and a high level API in order to construct and analyse a
-code-property graph. The notation used is from the [Java ASM5](https://asm.ow2.io/) library. Method signatures, arrays 
-and types all follow this representation. An example of using the driver API is:
-```java
-import za.ac.sun.plume.domain.enums.EvaluationStrategies;
-import za.ac.sun.plume.domain.models.vertices.BlockVertex;
-import za.ac.sun.plume.domain.models.vertices.FileVertex;
-import za.ac.sun.plume.domain.models.vertices.MethodVertex;
-import za.ac.sun.plume.domain.models.vertices.MethodReturnVertex;
-import za.ac.sun.plume.hooks.TinkerGraphHook;
-
-public class PlumeDemo {
-
-    public static void main(String[] args) {
-        int order = 0;
-        int lineNumber = 1;
-        TinkerGraphHook hook = new TinkerGraphHook.TinkerGraphHookBuilder("./Plume_demo.xml")
-                .createNewGraph(true)
-                .build();
-        FileVertex fileVertex = new FileVertex("PlumeTest", order++);
-        MethodVertex methodVertex = new MethodVertex("add", "PlumeTest.add", "II", lineNumber, order++);
-        // Since the associated file and method vertices aren't already in the database, they will automatically
-        // be created in the following method:
-        hook.joinFileVertexTo(fileVertex, methodVertex);
-        hook.createAndAddToMethod(
-                methodVertex,
-                new MethodReturnVertex("VOID", "V", EvaluationStrategies.BY_VALUE, lineNumber, order++)
-        );
-        // ...
-        // etc.
-        hook.exportCurrentGraph();
-    }
-
-}
-```
-Given that this class is in this directory and Plume driver has been packaged using the `./gradlew fatJar` command, we
-can compile and execute this code using the following:
-```shell script
-javac -cp ".:build/libs/plume-driver-x.x.x-all.jar:" PlumeDemo.java
-java -cp ".:build/libs/plume-driver-x.x.x-all.jar:" PlumeDemo 
-```
-This will export a file named `Plume_demo.xml` which can be visualized using tools such as
-[Cytoscape](https://cytoscape.org/). Using Cytoscape and the tree layout.
+connecting to Neo4j, for example, you would not need the TinkerGraph, TigerGraph, etc. dependencies.
 
 ## Logging
 

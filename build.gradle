@@ -1,40 +1,109 @@
 plugins {
-    id 'java'
-    id 'maven-publish'
-    id 'jacoco'
-    id 'com.avast.gradle.docker-compose' version '0.10.11'
-    id 'org.jetbrains.kotlin.jvm' version '1.3.72'
+    id "java"
+    id "maven-publish"
+    id "jacoco"
+    id "com.eden.orchidPlugin" version "$orchidVersion"
+    id "com.avast.gradle.docker-compose" version "$avastDockerVersion"
+    id "org.jetbrains.kotlin.jvm" version "$kotlinVersion"
+    id "com.jfrog.bintray" version "$bintrayVersion"
 }
 
 repositories {
     mavenLocal()
-    maven {
-        url = uri('https://repo.maven.apache.org/maven2')
-    }
     mavenCentral()
     jcenter()
+    maven { url = "https://kotlin.bintray.com/kotlinx/" }
 }
 
 dependencies {
-    implementation 'org.apache.logging.log4j:log4j-core:2.13.3'
-    implementation 'org.apache.logging.log4j:log4j-slf4j-impl:2.13.3'
-    implementation 'org.apache.tinkerpop:gremlin-core:3.4.6'
-    implementation 'org.apache.tinkerpop:tinkergraph-gremlin:3.4.6'
-    implementation 'org.janusgraph:janusgraph-driver:0.5.2'
-    implementation 'khttp:khttp:1.0.0'
-    compile 'com.fasterxml.jackson.core:jackson-databind:2.9.9'
-    testImplementation 'org.junit.jupiter:junit-jupiter-engine:5.4.0'
-    implementation "org.jetbrains.kotlin:kotlin-stdlib-jdk8"
-    implementation "org.jetbrains.kotlin:kotlin-reflect:1.3.72"
+    // Logging
+    implementation "org.apache.logging.log4j:log4j-core:2.13.3"
+    implementation "org.apache.logging.log4j:log4j-slf4j-impl:2.13.3"
+
+    // Core dependencies
+    implementation "org.apache.tinkerpop:gremlin-core:$gremlinVersion"
+    implementation "org.apache.tinkerpop:tinkergraph-gremlin:$gremlinVersion"
+    implementation "org.apache.tinkerpop:gremlin-driver:$gremlinVersion"
+    implementation "org.janusgraph:janusgraph-driver:$jgVersion"
+    implementation "com.steelbridgelabs.oss:neo4j-gremlin-bolt:$neo4jGremlinVersion"
+    implementation "khttp:khttp:$khttpVersion"
+    implementation "com.fasterxml.jackson.core:jackson-databind:$jacksonVersion"
+    implementation "io.shiftleft:codepropertygraph_2.13:$shiftleftVersion"
+    implementation "io.shiftleft:semanticcpg_2.13:$shiftleftVersion"
+    implementation "org.soot-oss:soot:$sootVersion"
+    implementation "org.python:jython-standalone:$jythonVersion"
+    implementation "org.apache.ant:ant:$antVersion"
+    implementation "org.mozilla:rhino:$rhinoVersion"
+    implementation "org.lz4:lz4-java:$lz4Version"
+
+    // CPG integration
+    implementation project(":cpgconv")
+
+    // Orchid Docs
+    orchidRuntime "io.github.javaeden.orchid:OrchidDocs:$orchidVersion"
+    orchidRuntime "io.github.javaeden.orchid:OrchidKotlindoc:$orchidVersion"
+    orchidRuntime "io.github.javaeden.orchid:OrchidPluginDocs:$orchidVersion"
+    orchidRuntime "io.github.javaeden.orchid:OrchidGithub:$orchidVersion"
+
+    // Kotlin
+    implementation "org.jetbrains.kotlin:kotlin-stdlib-jdk8:$kotlinVersion"
+    implementation "org.jetbrains.kotlin:kotlin-reflect:$kotlinVersion"
+
+    // Testing
+    testImplementation "org.junit.jupiter:junit-jupiter-engine:$junitVersion"
+    testRuntimeOnly "org.junit.jupiter:junit-jupiter-api:$junitVersion"
 }
+
+sourceSets {
+    main.java.srcDirs = []
+    main.kotlin.srcDirs = ["src/main/kotlin"]
+    main.resources.srcDirs = ["src/main/resources"]
+    test.java.srcDirs = []
+    test.kotlin.srcDirs = ["src/test/kotlin"]
+    test.resources.srcDirs = ["src/test/resources"]
+}
+
+task allTests(
+        type: Test,
+        dependsOn: [
+                "test",
+                "tinkerGraphIntTest",
+                "overflowDbIntTest",
+                "janusGraphIntTest",
+                "tigerGraphIntTest",
+                "neo4jIntTest",
+                "extractorTest",
+        ]
+) { group = "verification" }
 
 test {
     useJUnitPlatform()
-    exclude "**/*IntTest*"
+    exclude "**/*IntTest*", "**/extractor/**"
+    testLogging { events "FAILED", "SKIPPED" }
+}
 
-    testLogging {
-        events 'FAILED', 'SKIPPED'
-    }
+task extractorTest(type: Test) {
+    useJUnitPlatform()
+    description = "Execute extractor tests."
+    group = "verification"
+    include "**/extractor/**"
+    testLogging { events "FAILED", "SKIPPED" }
+}
+
+task tinkerGraphIntTest(type: Test) {
+    useJUnitPlatform()
+    description = "Execute TinkerGraph integration tests."
+    group = "verification"
+    include "**/*TinkerGraph*"
+    testLogging { events "FAILED", "SKIPPED" }
+}
+
+task overflowDbIntTest(type: Test) {
+    useJUnitPlatform()
+    description = "Execute OverflowDb integration tests."
+    group = "verification"
+    include "**/*OverflowDb*"
+    testLogging { events "FAILED", "SKIPPED" }
 }
 
 task janusGraphIntTest(type: Test) {
@@ -42,13 +111,8 @@ task janusGraphIntTest(type: Test) {
     description = "Execute JanusGraph integration tests."
     group = "verification"
     include "**/*JanusGraph*"
-
-    testLogging {
-        events 'FAILED', 'SKIPPED'
-    }
-    doFirst {
-        dockerCompose.exposeAsEnvironment(janusGraphIntTest)
-    }
+    testLogging { events "FAILED", "SKIPPED" }
+    doFirst { dockerCompose.exposeAsEnvironment(janusGraphIntTest) }
 }
 
 task tigerGraphIntTest(type: Test) {
@@ -56,83 +120,151 @@ task tigerGraphIntTest(type: Test) {
     description = "Execute TigerGraph integration tests."
     group = "verification"
     include "**/*TigerGraph*"
+    testLogging { events "FAILED", "SKIPPED" }
+    doFirst { dockerCompose.exposeAsEnvironment(tigerGraphIntTest) }
+}
 
-    testLogging {
-        events 'FAILED', 'SKIPPED'
-    }
-    doFirst {
-        dockerCompose.exposeAsEnvironment(tigerGraphIntTest)
-    }
+task neptuneIntTest(type: Test) {
+    useJUnitPlatform()
+    description = "Execute Neptune integration tests."
+    group = "verification"
+    include "**/*Neptune*"
+    testLogging { events "FAILED", "SKIPPED" }
+}
+
+task neo4jIntTest(type: Test) {
+    useJUnitPlatform()
+    description = "Execute Neo4j integration tests."
+    group = "verification"
+    include "**/*Neo4j*"
+    testLogging { events "FAILED", "SKIPPED" }
+    doFirst { dockerCompose.exposeAsEnvironment(neo4jIntTest) }
 }
 
 dockerCompose {
     janusGraphSetup {
-        useComposeFiles = ['src/test/resources/docker/janus-berkeleyje-lucene.yml']
+        useComposeFiles = ["src/test/resources/docker/janus-berkeleyje-lucene.yml"]
         isRequiredBy(project.tasks.janusGraphIntTest)
     }
     tigerGraphSetup {
-        useComposeFiles = ['src/test/resources/docker/tigergraph.yml']
+        useComposeFiles = ["src/test/resources/docker/tigergraph.yml"]
         isRequiredBy(project.tasks.tigerGraphIntTest)
+    }
+    neo4jGraphSetup {
+        useComposeFiles = ["src/test/resources/docker/neo4j.yml"]
+        isRequiredBy(project.tasks.neo4jIntTest)
     }
 }
 
-jacoco {
-    toolVersion = "0.8.5"
+def artifactDesc = "Plume is a code property graph analysis library with options to extract the CPG from Java bytecode and store the result in various graph databases."
+def repoUrl = "https://github.com/plume-oss/plume.git"
+def artifactVersion = "0.0.1"
+def website = "https://plume-oss.github.io/plume-docs/"
+
+group = "za.ac.sun"
+version = artifactVersion
+description = artifactDesc
+sourceCompatibility = "8"
+
+orchid {
+    theme = "Editorial"
+    baseUrl = "https://plume-oss.github.io/plume"
+    version = artifactVersion
+    githubToken = System.getenv("ORCHID_TOKEN")
 }
+
+jacoco { toolVersion = "$jacocoVersion" }
 
 jacocoTestReport {
     reports {
         xml.enabled true
         xml.destination file("${buildDir}/reports/jacoco/report.xml")
         html.enabled true
+        html.destination file("${buildDir}/reports/jacoco")
         csv.enabled false
     }
-    executionData test, janusGraphIntTest, tigerGraphIntTest
+    executionData test, extractorTest, tinkerGraphIntTest, overflowDbIntTest, janusGraphIntTest, tigerGraphIntTest, neo4jIntTest
 }
 
 check.dependsOn jacocoTestCoverageVerification
 jacocoTestCoverageVerification.dependsOn jacocoTestReport
 
-group = 'za.ac.sun.plume'
-version = 'X.X.X'
-description = 'plume-driver'
-sourceCompatibility = '8'
+// Binds the main project and Scala layer into one Jar
+jar {
+    duplicatesStrategy = DuplicatesStrategy.EXCLUDE
+    from { configurations.runtimeClasspath.collect { it.isDirectory() ? it : zipTree(it) } } {
+        exclude "META-INF/*.SF"
+        exclude "META-INF/*.DSA"
+        exclude "META-INF/*.RSA"
+        include "za/ac/sun/plume/**"
+    }
+}
 
 task fatJar(type: Jar) {
-    archiveClassifier.set('all')
+    archiveClassifier.set("all")
     duplicatesStrategy = DuplicatesStrategy.EXCLUDE
-    from {
-        configurations.runtimeClasspath.collect { it.isDirectory() ? it : zipTree(it) }
-    } {
+    from { configurations.runtimeClasspath.collect { it.isDirectory() ? it : zipTree(it) } } {
         exclude "META-INF/*.SF"
         exclude "META-INF/*.DSA"
         exclude "META-INF/*.RSA"
     }
+    zip64 = true
     with jar
 }
 
-artifacts {
-    archives fatJar
-}
+artifacts { archives fatJar }
 
 publishing {
     publications {
-        maven(MavenPublication) {
-            from(components.java)
+        mavenJava(MavenPublication) {
+            artifact jar
+            pom {
+                name = 'Plume'
+                description = artifactDesc
+                url = website
+                licenses {
+                    license {
+                        name = 'The Apache License, Version 2.0'
+                        url = 'http://www.apache.org/licenses/LICENSE-2.0.txt'
+                    }
+                }
+                developers {
+                    developer { id = 'DavidBakerEffendi'; name = 'David Baker Effendi'; email = 'dbe@sun.ac.za' }
+                }
+                scm {
+                    connection = "scm:git:https://github.com/plume-oss/plume.git"
+                    developerConnection = "scm:git:https://github.com/plume-oss/plume.git"
+                    url = repoUrl
+                }
+            }
         }
     }
 }
 
-tasks.withType(JavaCompile) {
-    options.encoding = 'UTF-8'
-}
-compileKotlin {
-    kotlinOptions {
-        jvmTarget = "1.8"
+bintray {
+    user = project.hasProperty('bintrayUser') ? project.property('bintrayUser') : System.getenv('BINTRAY_USER')
+    key = project.hasProperty('bintrayApiKey') ? project.property('bintrayApiKey') : System.getenv('BINTRAY_API_KEY')
+    publications = ['mavenJava']
+    publish = true
+    pkg {
+        repo = "maven"
+        name = "plume-core"
+        userOrg = "plume-oss"
+        vcsUrl = repoUrl
+        websiteUrl = website
+        issueTrackerUrl = "https://github.com/plume-oss/plume/issues"
+        githubRepo = repoUrl
+        licenses = ['Apache-2.0']
+        version {
+            name = artifactVersion
+            desc = artifactDesc
+            released = new Date()
+            vcsTag = artifactVersion
+        }
     }
 }
-compileTestKotlin {
-    kotlinOptions {
-        jvmTarget = "1.8"
-    }
-}
+
+tasks.withType(JavaCompile) { options.encoding = "UTF-8" }
+
+compileKotlin { kotlinOptions { jvmTarget = "1.8" } }
+compileTestKotlin { kotlinOptions { jvmTarget = "1.8" } }
