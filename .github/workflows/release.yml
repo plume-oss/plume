@@ -27,5 +27,10 @@ jobs:
           ./gradlew jar
       - name: Publish release to jCenter
         run: ./gradlew bintrayUpload
+        env:
+          BINTRAY_USER: ${{ secrets.BINTRAY_USER }}
+          BINTRAY_API_KEY: ${{ secrets.BINTRAY_API_KEY }}
       - name: Build and deploy Orchid documentation
         run: ./gradlew :orchidDeploy -PorchidEnvironment=prod
+        env:
+          ORCHID_TOKEN: ${{ secrets.ORCHID_TOKEN }}
