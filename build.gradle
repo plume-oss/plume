@@ -195,7 +195,7 @@ jar {
         exclude "META-INF/*.SF"
         exclude "META-INF/*.DSA"
         exclude "META-INF/*.RSA"
-        include "za/ac/sun/plume/**"
+        include "io/github/plume/oss/**"
     }
 }
 

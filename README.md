@@ -2,7 +2,7 @@
 [![License](https://img.shields.io/badge/License-Apache%202.0-blue.svg)](https://opensource.org/licenses/Apache-2.0)
 ![GitHub Actions](https://github.com/plume-oss/plume/workflows/CI/badge.svg)
 [![codecov](https://codecov.io/gh/plume-oss/plume/branch/develop/graph/badge.svg)](https://codecov.io/gh/plume-oss/plume)
-[![Download](https://api.bintray.com/packages/plume-oss/maven/plume/images/download.svg)](https://bintray.com/plume-oss/maven/plume/_latestVersion)
+[![Download](https://api.bintray.com/packages/plume-oss/maven/plume/images/download.svg)](https://bintray.com/plume-oss/maven/plume-core/_latestVersion)
 
 A Kotlin driver for the Plume library to provide an interface for connecting and writing to various graph databases based
 on the [code-property graph schema](https://github.com/ShiftLeftSecurity/codepropertygraph/blob/master/codepropertygraph/src/main/resources/schemas/base.json).

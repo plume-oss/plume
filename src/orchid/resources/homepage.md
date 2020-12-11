@@ -2,7 +2,7 @@
 [![License](https://img.shields.io/badge/License-Apache%202.0-blue.svg)](https://opensource.org/licenses/Apache-2.0)
 ![GitHub Actions](https://github.com/plume-oss/plume/workflows/CI/badge.svg)
 [![codecov](https://codecov.io/gh/plume-oss/plume/branch/develop/graph/badge.svg)](https://codecov.io/gh/plume-oss/plume)
-[![Download](https://api.bintray.com/packages/plume-oss/maven/plume/images/download.svg)](https://bintray.com/plume-oss/maven/plume/_latestVersion)
+[![Download](https://api.bintray.com/packages/plume-oss/maven/plume/images/download.svg)](https://bintray.com/plume-oss/maven/plume-core/_latestVersion)
 
 A Kotlin driver for the Plume library to provide an interface for connecting and writing to various graph databases based
 on the [code-property graph schema](https://github.com/ShiftLeftSecurity/codepropertygraph/blob/master/codepropertygraph/src/main/resources/schemas/base.json).
@@ -60,7 +60,7 @@ can be hosted on a Maven repository or similar.
 ```shell script
 git clone https://github.com/plume-oss/plume.git
 cd plume-driver
-./gradlew oneJar # For main artifact only
+./gradlew jar # For main artifact only
 ./gradlew fatJar # For fat jar with dependencies
 ```
 This will build `target/plume-X.X.X[-all].jar` which is imported into your local project.
@@ -94,8 +94,8 @@ Dependencies per graph database technology:
 ```
 #### _OverflowDb_
 ```groovy
+  implementation 'org.apache.tinkerpop:gremlin-core:3.4.8'
   implementation 'io.shiftleft:codepropertygraph_2.13:1.3.5'
-  implementation 'io.shiftleft:semanticcpg_2.13:1.3.5'
 ```
 #### _JanusGraph_
 ```groovy
@@ -105,7 +105,6 @@ Dependencies per graph database technology:
 #### _TigerGraph_
 ```groovy
   implementation 'khttp:khttp:1.0.0'
-  implementation 'com.fasterxml.jackson.core:jackson-databind:2.11.2'
 ```
 #### _Amazon Neptune_
 ```groovy
