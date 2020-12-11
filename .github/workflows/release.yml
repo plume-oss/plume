@@ -6,7 +6,7 @@ on:
 
 jobs:
   publish:
-    name: KDocs with Orchid
+    name: Publish release and KDocs
     runs-on: ubuntu-latest
 
     steps:
@@ -22,6 +22,10 @@ jobs:
       - name: Grant execute permission for gradlew
         run: chmod +x gradlew
       - name: Build code
-        run: ./gradlew build
-      - name: Build and deploy Orchid token
+        run: |
+          ./gradlew classes
+          ./gradlew jar
+      - name: Publish release to jCenter
+        run: ./gradlew bintrayUpload
+      - name: Build and deploy Orchid documentation
         run: ./gradlew :orchidDeploy -PorchidEnvironment=prod

@@ -2,11 +2,55 @@
 [![License](https://img.shields.io/badge/License-Apache%202.0-blue.svg)](https://opensource.org/licenses/Apache-2.0)
 ![GitHub Actions](https://github.com/plume-oss/plume/workflows/CI/badge.svg)
 [![codecov](https://codecov.io/gh/plume-oss/plume/branch/develop/graph/badge.svg)](https://codecov.io/gh/plume-oss/plume)
+[![Download](https://api.bintray.com/packages/plume-oss/maven/plume-core/images/download.svg)](https://bintray.com/plume-oss/maven/plume-core/_latestVersion)
 
 A Kotlin driver for the Plume library to provide an interface for connecting and writing to various graph databases based
 on the [code-property graph schema](https://github.com/ShiftLeftSecurity/codepropertygraph/blob/master/codepropertygraph/src/main/resources/schemas/base.json).
 
 For more documentation check out the [Plume docs](https://plume-oss.github.io/plume-docs/).
+
+## Download from jCenter Bintray
+
+Replace `X.X.X` with the desired version on [jCenter](https://bintray.com/plume-oss/maven/plume-core/_latestVersion).
+
+Maven:
+```mxml
+<dependency>
+  <groupId>za.ac.sun</groupId>
+  <artifactId>plume</artifactId>
+  <version>X.X.X</version>
+  <type>pom</type>
+</dependency>
+```
+
+Gradle:
+```groovy
+implementation 'za.ac.sun:plume:X.X.X'
+```
+
+Don't forget to include the jCenter repository in your `pom.xml` or `build.gradle`.
+
+Maven:
+```mxml
+<project>
+  [...]
+  <repositories>
+    <repository>
+      <id>jcenter</id>
+      <name>jcenter</name>
+      <url>https://jcenter.bintray.com</url>
+    </repository>
+  </repositories>
+  [...]
+</project>
+```
+
+Gradle:
+```groovy
+repositories {
+    jcenter()
+}
+```
 
 ## Building from Source
 
