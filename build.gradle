@@ -2,6 +2,7 @@ plugins {
     id "java"
     id "maven-publish"
     id "jacoco"
+    id "org.jetbrains.dokka" version "$dokkaVersion"
     id "com.eden.orchidPlugin" version "$orchidVersion"
     id "com.avast.gradle.docker-compose" version "$avastDockerVersion"
     id "org.jetbrains.kotlin.jvm" version "$kotlinVersion"
@@ -188,6 +189,19 @@ jacocoTestReport {
 check.dependsOn jacocoTestCoverageVerification
 jacocoTestCoverageVerification.dependsOn jacocoTestReport
 
+task sourcesJar(type: Jar) {
+    archiveClassifier.set("sources")
+    from(sourceSets.getByName("main").allSource)
+}
+
+task dokkaJar(type: Jar) {
+    group = JavaBasePlugin.DOCUMENTATION_GROUP
+    description = "Assembles Kotlin docs with Dokka"
+    archiveClassifier.set("javadoc")
+    from(tasks.dokka)
+    dependsOn(tasks.dokka)
+}
+
 // Binds the main project and Scala layer into one Jar
 jar {
     duplicatesStrategy = DuplicatesStrategy.EXCLUDE
@@ -211,12 +225,18 @@ task fatJar(type: Jar) {
     with jar
 }
 
-artifacts { archives fatJar }
+artifacts { archives sourcesJar, dokkaJar }
 
 publishing {
     publications {
         mavenJava(MavenPublication) {
+            // Main artifact
             artifact jar
+            // Sources
+            artifact sourcesJar
+            // Documentation artifact
+            artifact dokkaJar
+
             pom {
                 name = 'Plume'
                 description = artifactDesc
