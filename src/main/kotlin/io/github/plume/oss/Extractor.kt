@@ -329,7 +329,7 @@ class Extractor(val driver: IDriver, private val classPath: File) {
                     logger.debug("Deleting method and saving incoming call graph edges (if any) ${mtdV.fullName} ${mtdV.signature}")
                     driver.getMethod(mtdV.fullName, mtdV.signature, false).let { g ->
                         g.vertices().filterIsInstance<MethodVertex>().firstOrNull()?.let { mtdV ->
-                            driver.getNeighbours(mtdV).edgesIn(mtdV)[EdgeLabel.REF]
+                            driver.getNeighbours(mtdV).edgesIn(mtdV)[EdgeLabel.CALL]
                                     ?.filterIsInstance<CallVertex>()
                                     ?.forEach { saveCallGraphEdge(mtdV, it) }
                         }

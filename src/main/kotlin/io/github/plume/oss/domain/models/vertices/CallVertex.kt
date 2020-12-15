@@ -82,7 +82,7 @@ class CallVertex(
                         VertexLabel.CONTROL_STRUCTURE,
                         VertexLabel.UNKNOWN
                 ),
-                EdgeLabel.REF to listOf(VertexLabel.METHOD)
+                EdgeLabel.CALL to listOf(VertexLabel.METHOD)
         )
     }
 

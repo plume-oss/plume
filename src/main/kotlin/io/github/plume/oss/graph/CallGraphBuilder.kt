@@ -39,7 +39,7 @@ class CallGraphBuilder(private val driver: IDriver) : IGraphBuilder {
             getSootAssociation(unit)?.firstOrNull()?.let { srcPlumeVertex ->
                 val tgtPlumeVertex = getSootAssociation(e.tgt.method())?.firstOrNull()
                         ?: constructPhantom(e.tgt.method(), driver)
-                driver.addEdge(srcPlumeVertex, tgtPlumeVertex, EdgeLabel.REF)
+                driver.addEdge(srcPlumeVertex, tgtPlumeVertex, EdgeLabel.CALL)
             }
         }
     }
@@ -48,7 +48,7 @@ class CallGraphBuilder(private val driver: IDriver) : IGraphBuilder {
         Extractor.getIncomingCallGraphEdges(mtdV)?.let { incomingVs ->
             if (incomingVs.isNotEmpty()) {
                 logger.debug("Saved call graph edges found - reconnecting incoming call graph edges")
-                incomingVs.forEach { inV -> driver.addEdge(inV, mtdV, EdgeLabel.REF) }
+                incomingVs.forEach { inV -> driver.addEdge(inV, mtdV, EdgeLabel.CALL) }
             } else {
                 logger.debug("No previous call graph edges were found")
             }

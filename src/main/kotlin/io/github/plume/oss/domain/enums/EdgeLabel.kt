@@ -53,4 +53,9 @@ enum class EdgeLabel {
      * Source file of a node, in which its LINE_NUMBER and COLUMN_NUMBER are valid.
      */
     SOURCE_FILE,
+
+    /**
+     * Method invocation edge - caller/callee relationship.
+     */
+    CALL
 }
