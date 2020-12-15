@@ -103,9 +103,10 @@ abstract class GremlinDriver : IDriver {
         require(connected) { "Cannot close a graph that is not already connected!" }
         try {
             graph.close()
-            connected = false
         } catch (e: Exception) {
             logger.warn("Exception thrown while attempting to close graph.", e)
+        } finally {
+            connected = false
         }
     }
 

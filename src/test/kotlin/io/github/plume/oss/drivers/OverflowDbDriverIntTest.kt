@@ -1,40 +1,40 @@
 package io.github.plume.oss.drivers
 
-import org.junit.jupiter.api.*
-import org.junit.jupiter.api.Assertions.*
 import io.github.plume.oss.TestDomainResources.Companion.INT_1
 import io.github.plume.oss.TestDomainResources.Companion.INT_2
 import io.github.plume.oss.TestDomainResources.Companion.STRING_1
 import io.github.plume.oss.TestDomainResources.Companion.STRING_2
-import io.github.plume.oss.TestDomainResources.Companion.generateSimpleCPG
-import io.github.plume.oss.TestDomainResources.Companion.methodVertex
-import io.github.plume.oss.TestDomainResources.Companion.methodReturnVertex
-import io.github.plume.oss.TestDomainResources.Companion.fileVertex
-import io.github.plume.oss.TestDomainResources.Companion.namespaceBlockVertex1
-import io.github.plume.oss.TestDomainResources.Companion.namespaceBlockVertex2
-import io.github.plume.oss.TestDomainResources.Companion.metaDataVertex
-import io.github.plume.oss.TestDomainResources.Companion.controlStructureVertex
-import io.github.plume.oss.TestDomainResources.Companion.jumpTargetVertex
 import io.github.plume.oss.TestDomainResources.Companion.bindingVertex
-import io.github.plume.oss.TestDomainResources.Companion.typeArgumentVertex
-import io.github.plume.oss.TestDomainResources.Companion.typeParameterVertex
-import io.github.plume.oss.TestDomainResources.Companion.methodParameterInVertex
-import io.github.plume.oss.TestDomainResources.Companion.fieldIdentifierVertex
-import io.github.plume.oss.TestDomainResources.Companion.methodRefVertex
-import io.github.plume.oss.TestDomainResources.Companion.typeRefVertex
-import io.github.plume.oss.TestDomainResources.Companion.unknownVertex
 import io.github.plume.oss.TestDomainResources.Companion.blockVertex
 import io.github.plume.oss.TestDomainResources.Companion.callVertex
-import io.github.plume.oss.TestDomainResources.Companion.localVertex
+import io.github.plume.oss.TestDomainResources.Companion.controlStructureVertex
+import io.github.plume.oss.TestDomainResources.Companion.fieldIdentifierVertex
+import io.github.plume.oss.TestDomainResources.Companion.fileVertex
+import io.github.plume.oss.TestDomainResources.Companion.generateSimpleCPG
 import io.github.plume.oss.TestDomainResources.Companion.identifierVertex
-import io.github.plume.oss.TestDomainResources.Companion.typeDeclVertex
+import io.github.plume.oss.TestDomainResources.Companion.jumpTargetVertex
 import io.github.plume.oss.TestDomainResources.Companion.literalVertex
+import io.github.plume.oss.TestDomainResources.Companion.localVertex
+import io.github.plume.oss.TestDomainResources.Companion.metaDataVertex
+import io.github.plume.oss.TestDomainResources.Companion.methodParameterInVertex
+import io.github.plume.oss.TestDomainResources.Companion.methodRefVertex
+import io.github.plume.oss.TestDomainResources.Companion.methodReturnVertex
+import io.github.plume.oss.TestDomainResources.Companion.methodVertex
 import io.github.plume.oss.TestDomainResources.Companion.modifierVertex
+import io.github.plume.oss.TestDomainResources.Companion.namespaceBlockVertex1
+import io.github.plume.oss.TestDomainResources.Companion.namespaceBlockVertex2
 import io.github.plume.oss.TestDomainResources.Companion.returnVertex
+import io.github.plume.oss.TestDomainResources.Companion.typeArgumentVertex
+import io.github.plume.oss.TestDomainResources.Companion.typeDeclVertex
+import io.github.plume.oss.TestDomainResources.Companion.typeParameterVertex
+import io.github.plume.oss.TestDomainResources.Companion.typeRefVertex
+import io.github.plume.oss.TestDomainResources.Companion.unknownVertex
 import io.github.plume.oss.domain.enums.EdgeLabel
 import io.github.plume.oss.domain.exceptions.PlumeSchemaViolationException
 import io.github.plume.oss.domain.models.vertices.*
 import org.apache.logging.log4j.LogManager
+import org.junit.jupiter.api.*
+import org.junit.jupiter.api.Assertions.*
 import java.io.File
 import kotlin.properties.Delegates
 
@@ -66,6 +66,10 @@ class OverflowDbDriverIntTest {
             storageLocation = OverflowDbDriverIntTest.storageLocation
             connect()
         }
+        assertFalse(driver.serializationStatsEnabled)
+        assertTrue(driver.overflow)
+        assertEquals(90, driver.heapPercentageThreshold)
+        assertEquals(storageLocation, driver.storageLocation)
     }
 
     @AfterEach
