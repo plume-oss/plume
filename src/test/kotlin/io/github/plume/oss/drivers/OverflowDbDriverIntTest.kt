@@ -34,12 +34,16 @@ import io.github.plume.oss.TestDomainResources.Companion.returnVertex
 import io.github.plume.oss.domain.enums.EdgeLabel
 import io.github.plume.oss.domain.exceptions.PlumeSchemaViolationException
 import io.github.plume.oss.domain.models.vertices.*
+import org.apache.logging.log4j.LogManager
+import java.io.File
 import kotlin.properties.Delegates
 
 class OverflowDbDriverIntTest {
 
     companion object {
+        private val logger = LogManager.getLogger(OverflowDbDriverIntTest::class.java)
         private var testStartTime by Delegates.notNull<Long>()
+        private val storageLocation = "${System.getProperty("java.io.tmpdir")}/plume/cpg.bin"
         lateinit var driver: OverflowDbDriver
 
         @JvmStatic
@@ -55,11 +59,24 @@ class OverflowDbDriverIntTest {
 
     @BeforeEach
     fun setUp() {
-        driver = (DriverFactory(GraphDatabase.OVERFLOWDB) as OverflowDbDriver).apply { connect() }
+        driver = (DriverFactory(GraphDatabase.OVERFLOWDB) as OverflowDbDriver).apply {
+            serializationStatsEnabled = false
+            overflow = true
+            heapPercentageThreshold = 90
+            storageLocation = OverflowDbDriverIntTest.storageLocation
+            connect()
+        }
     }
 
     @AfterEach
-    fun tearDown() = driver.clearGraph().close()
+    fun tearDown() {
+        driver.close()
+        try {
+            if (!File(storageLocation).delete()) logger.warn("Could not clear test resources.")
+        } catch (e: Exception) {
+            logger.warn("Could not clear test resources.", e)
+        }
+    }
 
     @Nested
     @DisplayName("Test driver vertex find and exist methods")
