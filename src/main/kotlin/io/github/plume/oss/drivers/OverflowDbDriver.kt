@@ -1,13 +1,5 @@
 package io.github.plume.oss.drivers
 
-import io.shiftleft.codepropertygraph.generated.nodes.*
-import org.apache.logging.log4j.LogManager
-import overflowdb.Config
-import overflowdb.Edge
-import overflowdb.Graph
-import overflowdb.Node
-import scala.Tuple2
-import scala.runtime.AbstractFunction0
 import io.github.plume.oss.CpgDomainObjCreator.*
 import io.github.plume.oss.Traversals
 import io.github.plume.oss.domain.enums.DispatchType
@@ -19,18 +11,21 @@ import io.github.plume.oss.domain.mappers.VertexMapper
 import io.github.plume.oss.domain.models.PlumeGraph
 import io.github.plume.oss.domain.models.PlumeVertex
 import io.github.plume.oss.domain.models.vertices.*
+import io.shiftleft.codepropertygraph.generated.nodes.*
+import org.apache.logging.log4j.LogManager
+import overflowdb.Config
+import overflowdb.Edge
+import overflowdb.Graph
+import overflowdb.Node
+import scala.Tuple2
+import scala.runtime.AbstractFunction0
+import io.shiftleft.codepropertygraph.generated.edges.Factories as EdgeFactories
+import io.shiftleft.codepropertygraph.generated.nodes.Factories as NodeFactories
 
 
 /**
- * Driver to create an overflowDB database file from Plume's domain classes.
- *
- * TODO: the Plume domain classes and those provided by io.shiftleft.codepropertygraph
- * are so similar that it is worth investigating whether they can be used as a
- * replacement for Plume's domain classes. The advantage would be that (a) the
- * importer is backed by disk, meaning that we do not run into memory pressure for
- * large input programs, and (b) that no conversion from the Plume domain classes
- * is necessary when exporting to overflowdb.
- * */
+ * Driver to create an OverflowDB database file from Plume's domain classes.
+ */
 class OverflowDbDriver : IDriver {
 
     private val logger = LogManager.getLogger(OverflowDbDriver::class.java)
@@ -38,34 +33,51 @@ class OverflowDbDriver : IDriver {
     /**
      * Indicates whether the driver is connected to the graph database or not.
      */
-    var connected = false
-        protected set
+    internal var connected = false
 
-    private var graph: Graph = createEmptyGraph()
+    private lateinit var graph: Graph
 
-    var dbfilename: String = ""
-        private set
+    /**
+     * Where the database will be serialize/deserialize and overflow to disk.
+     */
+    var storageLocation: String = ""
 
-    fun dbfilename(value: String) = apply { dbfilename = value }
+    /**
+     * Specifies if OverflowDb should write to disk when memory is constrained.
+     */
+    var overflow: Boolean = true
+
+    /**
+     * Percentage of the heap from when overflowing should begin to occur. Default is 80%.
+     */
+    var heapPercentageThreshold: Int = 80
+
+    /**
+     * If specified, OverflowDB will measure and report serialization/deserialization timing averages.
+     */
+    var serializationStatsEnabled: Boolean = false
 
     fun connect() {
-        graph = createEmptyGraph()
-    }
+        require(!connected) { "Please close the graph before trying to make another connection." }
+        val odbConfig = Config.withDefaults()
+            .apply {
+                if (this@OverflowDbDriver.storageLocation.isNotBlank())
+                    this.withStorageLocation(this@OverflowDbDriver.storageLocation)
+            }
+            .apply { if (!overflow) this.disableOverflow() }
+            .apply { if (serializationStatsEnabled) this.withSerializationStatsEnabled() }
+            .withHeapPercentageThreshold(heapPercentageThreshold)
 
-    private fun createEmptyGraph(): Graph {
-        val odbConfig = if (dbfilename != "") {
-            Config.withDefaults().withStorageLocation(dbfilename)
-        } else {
-            Config.withDefaults()
-        }
-        return Graph.open(
+        graph = Graph.open(
             odbConfig,
-            io.shiftleft.codepropertygraph.generated.nodes.Factories.allAsJava(),
-            io.shiftleft.codepropertygraph.generated.edges.Factories.allAsJava()
+            NodeFactories.allAsJava(),
+            EdgeFactories.allAsJava()
         )
+        connected = true
     }
 
     override fun addVertex(v: PlumeVertex) {
+        if (exists(v)) return
         val id = v.hashCode()
         convert(v)?.let { node ->
             val newNode = graph.addNode(id.toLong(), node.label())
@@ -73,7 +85,6 @@ class OverflowDbDriver : IDriver {
                 newNode.setProperty(key, value)
             }
         }
-
     }
 
     private fun convert(v: PlumeVertex): NewNode? {
@@ -94,7 +105,11 @@ class OverflowDbDriver : IDriver {
                 v.dynamicTypeHintFullName,
                 v.typeFullName
             )
-            is ControlStructureVertex -> controlStructure(v.code, v.columnNumber, v.lineNumber, v.order, v.argumentIndex)
+            is ControlStructureVertex -> controlStructure(v.code,
+                v.columnNumber,
+                v.lineNumber,
+                v.order,
+                v.argumentIndex)
             is FieldIdentifierVertex -> fieldIdentifier(
                 v.canonicalName,
                 v.code,
@@ -334,7 +349,9 @@ class OverflowDbDriver : IDriver {
     }
 
     override fun addEdge(fromV: PlumeVertex, toV: PlumeVertex, edge: EdgeLabel) {
-        if (!VertexMapper.checkSchemaConstraints(fromV, toV, edge)) throw PlumeSchemaViolationException(fromV, toV, edge)
+        if (!VertexMapper.checkSchemaConstraints(fromV, toV, edge)) throw PlumeSchemaViolationException(fromV,
+            toV,
+            edge)
         var srcNode = graph.node(fromV.hashCode().toLong())
         if (srcNode == null) {
             addVertex(fromV)
@@ -435,7 +452,14 @@ class OverflowDbDriver : IDriver {
     }
 
     override fun close() {
-        graph.close()
+        require(connected) { "Cannot close a graph that is not already connected!" }
+        try {
+            graph.close()
+        } catch (e: Exception) {
+            logger.warn("Exception thrown while attempting to close graph.", e)
+        }  finally {
+            connected = false
+        }
     }
 
 }

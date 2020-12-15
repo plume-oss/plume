@@ -52,16 +52,16 @@ class InheritanceInterproceduralTest {
         vertices.filterIsInstance<MethodVertex>().first { it.fullName == "interprocedural.inheritance.Derived.show" && it.signature == "void show()" }.apply { assertNotNull(this) }
         vertices.filterIsInstance<CallVertex>().filter { it.methodFullName == "interprocedural.inheritance.Base: void <init>()" }
                 .apply { assertEquals(2, this.size) }
-                .forEach { assertFalse(graph.edgesOut(it).containsKey(EdgeLabel.REF)) }
+                .forEach { assertFalse(graph.edgesOut(it).containsKey(EdgeLabel.CALL)) }
         vertices.filterIsInstance<CallVertex>().filter { it.methodFullName == "interprocedural.inheritance.Derived: void <init>()" }
                 .apply { assertEquals(2, this.size) }
-                .forEach { assertFalse(graph.edgesOut(it).containsKey(EdgeLabel.REF)) }
+                .forEach { assertFalse(graph.edgesOut(it).containsKey(EdgeLabel.CALL)) }
         vertices.filterIsInstance<CallVertex>().filter { it.methodFullName == "interprocedural.inheritance.Base: void show()" }
                 .apply { assertEquals(2, this.size) }
-                .forEach { assertFalse(graph.edgesOut(it).containsKey(EdgeLabel.REF)) }
+                .forEach { assertFalse(graph.edgesOut(it).containsKey(EdgeLabel.CALL)) }
         vertices.filterIsInstance<CallVertex>().filter { it.methodFullName == "interprocedural.inheritance.Derived: void show()" }
                 .apply { assertEquals(1, this.size) }
-                .forEach { assertFalse(graph.edgesOut(it).containsKey(EdgeLabel.REF)) }
+                .forEach { assertFalse(graph.edgesOut(it).containsKey(EdgeLabel.CALL)) }
     }
 
     @Test
@@ -81,23 +81,23 @@ class InheritanceInterproceduralTest {
         val derivedShow = vertices.filterIsInstance<MethodVertex>().first { it.fullName == "interprocedural.inheritance.Derived.show" && it.signature == "void show()" }.apply { assertNotNull(this) }
         vertices.filterIsInstance<CallVertex>().filter { it.methodFullName == "interprocedural.inheritance.Base: void <init>()" }
                 .apply { assertEquals(2, this.size) }
-                .forEach { assertTrue(graph.edgesOut(it)[EdgeLabel.REF]!!.contains(baseInit)) }
+                .forEach { assertTrue(graph.edgesOut(it)[EdgeLabel.CALL]!!.contains(baseInit)) }
         vertices.filterIsInstance<CallVertex>().filter { it.methodFullName == "interprocedural.inheritance.Derived: void <init>()" }
                 .apply { assertEquals(2, this.size) }
-                .forEach { assertTrue(graph.edgesOut(it)[EdgeLabel.REF]!!.contains(derivedInit)) }
+                .forEach { assertTrue(graph.edgesOut(it)[EdgeLabel.CALL]!!.contains(derivedInit)) }
         vertices.filterIsInstance<CallVertex>().filter { it.methodFullName == "interprocedural.inheritance.Base: void show()" }
                 .apply { assertEquals(2, this.size) }
                 .forEach {
-                    if (graph.edgesOut(it)[EdgeLabel.REF]!!.size > 1) {
-                        assertTrue(graph.edgesOut(it)[EdgeLabel.REF]!!.contains(derivedShow))
-                        assertTrue(graph.edgesOut(it)[EdgeLabel.REF]!!.contains(baseShow))
+                    if (graph.edgesOut(it)[EdgeLabel.CALL]!!.size > 1) {
+                        assertTrue(graph.edgesOut(it)[EdgeLabel.CALL]!!.contains(derivedShow))
+                        assertTrue(graph.edgesOut(it)[EdgeLabel.CALL]!!.contains(baseShow))
                     } else {
-                        assertTrue(graph.edgesOut(it)[EdgeLabel.REF]!!.contains(derivedShow))
+                        assertTrue(graph.edgesOut(it)[EdgeLabel.CALL]!!.contains(derivedShow))
                     }
                 }
         vertices.filterIsInstance<CallVertex>().filter { it.methodFullName == "interprocedural.inheritance.Derived: void show()" }
                 .apply { assertEquals(1, this.size) }
-                .forEach { assertTrue(graph.edgesOut(it)[EdgeLabel.REF]!!.contains(derivedShow)) }
+                .forEach { assertTrue(graph.edgesOut(it)[EdgeLabel.CALL]!!.contains(derivedShow)) }
     }
 
     @Test
@@ -117,18 +117,18 @@ class InheritanceInterproceduralTest {
         val derivedShow = vertices.filterIsInstance<MethodVertex>().first { it.fullName == "interprocedural.inheritance.Derived.show" && it.signature == "void show()" }.apply { assertNotNull(this) }
         vertices.filterIsInstance<CallVertex>().filter { it.methodFullName == "interprocedural.inheritance.Base: void <init>()" }
                 .apply { assertEquals(2, this.size) }
-                .forEach { assertTrue(graph.edgesOut(it)[EdgeLabel.REF]!!.contains(baseInit)) }
+                .forEach { assertTrue(graph.edgesOut(it)[EdgeLabel.CALL]!!.contains(baseInit)) }
         vertices.filterIsInstance<CallVertex>().filter { it.methodFullName == "interprocedural.inheritance.Derived: void <init>()" }
                 .apply { assertEquals(2, this.size) }
-                .forEach { assertTrue(graph.edgesOut(it)[EdgeLabel.REF]!!.contains(derivedInit)) }
+                .forEach { assertTrue(graph.edgesOut(it)[EdgeLabel.CALL]!!.contains(derivedInit)) }
         vertices.filterIsInstance<CallVertex>().filter { it.methodFullName == "interprocedural.inheritance.Base: void show()" }
                 .apply { assertEquals(2, this.size) }
                 .let { cvs ->
-                    assertTrue(cvs.any { graph.edgesOut(it)[EdgeLabel.REF]!!.contains(derivedShow) })
-                    assertTrue(cvs.any { graph.edgesOut(it)[EdgeLabel.REF]!!.contains(baseShow) })
+                    assertTrue(cvs.any { graph.edgesOut(it)[EdgeLabel.CALL]!!.contains(derivedShow) })
+                    assertTrue(cvs.any { graph.edgesOut(it)[EdgeLabel.CALL]!!.contains(baseShow) })
                 }
         vertices.filterIsInstance<CallVertex>().filter { it.methodFullName == "interprocedural.inheritance.Derived: void show()" }
                 .apply { assertEquals(1, this.size) }
-                .forEach { assertTrue(graph.edgesOut(it)[EdgeLabel.REF]!!.contains(derivedShow)) }
+                .forEach { assertTrue(graph.edgesOut(it)[EdgeLabel.CALL]!!.contains(derivedShow)) }
     }
 }
