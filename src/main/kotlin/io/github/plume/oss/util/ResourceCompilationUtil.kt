@@ -111,6 +111,7 @@ object ResourceCompilationUtil {
                 cr.accept(rootVisitor, SKIP_CODE)
             }
             val dstFile = JVMClassFile(destPath)
+            dstFile.mkdirs()
             Files.copy(f.toPath(), dstFile.toPath(), StandardCopyOption.REPLACE_EXISTING)
             dstFile
         }.toList()
