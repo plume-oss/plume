@@ -79,9 +79,6 @@ implementation 'org.apache.logging.log4j:log4j-slf4j-impl:2.13.3'
 The extractor uses the following dependencies:
 ```groovy
   implementation 'org.soot-oss:soot:4.2.1'
-  implementation 'org.python:jython-standalone:2.7.2'
-  implementation 'org.apache.ant:ant:1.10.8'
-  implementation 'org.mozilla:rhino:1.7.13'
   implementation 'org.lz4:lz4-java:1.7.1'
 ```
 

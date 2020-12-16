@@ -24,7 +24,6 @@ import org.objectweb.asm.ClassReader
 import org.objectweb.asm.ClassReader.SKIP_CODE
 import org.objectweb.asm.ClassVisitor
 import org.objectweb.asm.Opcodes
-import org.python.util.JycompileAntTask
 import java.io.File
 import java.io.FileInputStream
 import java.io.IOException
@@ -36,8 +35,6 @@ import java.util.*
 import java.util.stream.Collectors
 import javax.tools.JavaCompiler
 import javax.tools.ToolProvider
-import kotlin.streams.toList
-import org.mozilla.javascript.tools.jsc.Main as JSC
 import javax.tools.JavaFileObject
 
 import javax.tools.StandardLocation
@@ -86,7 +83,12 @@ object ResourceCompilationUtil {
         }.toList()
     }
 
-    fun moveClassFiles(files: List<PlumeFile>): List<JVMClassFile> {
+    /**
+     * Inspects class files and moves them to the temp directory based on their package path.
+     *
+     * @param files the class files to move.
+     */
+    fun moveClassFiles(files: List<JVMClassFile>): List<JVMClassFile> {
         lateinit var destPath: String
 
         class ClassPathVisitor : ClassVisitor(Opcodes.ASM5) {
@@ -112,45 +114,6 @@ object ResourceCompilationUtil {
             Files.copy(f.toPath(), dstFile.toPath(), StandardCopyOption.REPLACE_EXISTING)
             dstFile
         }.toList()
-    }
-
-    /**
-     * Given paths to a Python source files, programmatically compiles the source (.py) files.
-     *
-     * @param files the source files to compile.
-     * @throws PlumeCompileException if there is no suitable Java compiler found.
-     */
-    fun compilePythonFiles(files: List<PlumeFile>): List<JVMClassFile> {
-        if (files.isEmpty()) return emptyList()
-        val jythonc = JycompileAntTask()
-        getJavaCompiler()
-        // These needs to be compiled per directory level
-        val dirMap = mutableMapOf<String, MutableList<PlumeFile>>()
-        files.forEach {
-            val dir = it.absolutePath.removeSuffix("/${it.name}")
-            if (dirMap[dir].isNullOrEmpty()) dirMap[dir] = mutableListOf(it)
-            else dirMap[dir]?.add(it)
-        }
-        dirMap.forEach {
-            jythonc.destdir = File(it.key)
-            jythonc.process(it.value.toSet())
-        }
-        return files.map { JVMClassFile(it.absolutePath.replace(".py", "\$py.class")) }.toList()
-    }
-
-    /**
-     * Given paths to a JavaScript source files, programmatically compiles the source (.js) files.
-     *
-     * @param files the source files to compile.
-     * @throws PlumeCompileException if there is no suitable Java compiler found.
-     */
-    fun compileJavaScriptFiles(files: List<PlumeFile>): List<JVMClassFile> {
-        if (files.isEmpty()) return emptyList()
-        val jsc = JSC()
-        getJavaCompiler()
-        jsc.processOptions(arrayOf("-version", "170", "-g"))
-        jsc.processSource(files.parallelStream().map { it.absolutePath }.toList().toTypedArray())
-        return files.map { JVMClassFile(it.absolutePath.replace(".js", ".class")) }.toList()
     }
 
     /**

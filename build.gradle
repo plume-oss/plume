@@ -32,11 +32,7 @@ dependencies {
     implementation "io.shiftleft:codepropertygraph_2.13:$shiftleftVersion"
     implementation "io.shiftleft:semanticcpg_2.13:$shiftleftVersion"
     implementation "org.soot-oss:soot:$sootVersion"
-    implementation "org.python:jython-standalone:$jythonVersion"
-    implementation "org.apache.ant:ant:$antVersion"
-    implementation "org.mozilla:rhino:$rhinoVersion"
     implementation "org.lz4:lz4-java:$lz4Version"
-    implementation 'org.ow2.asm:asm:7.3.1'
 
     // CPG integration
     implementation project(":cpgconv")
@@ -222,7 +218,6 @@ task fatJar(type: Jar) {
         exclude "META-INF/*.DSA"
         exclude "META-INF/*.RSA"
     }
-    zip64 = true
     with jar
 }
 

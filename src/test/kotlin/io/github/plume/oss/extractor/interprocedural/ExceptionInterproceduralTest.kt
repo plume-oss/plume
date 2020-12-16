@@ -41,7 +41,7 @@ class ExceptionInterproceduralTest {
         val f = File(resourceDir)
         extractor.load(f)
         extractor.project()
-        graph = driver.getMethod("interprocedural.exception.Exception$currentTestNumber.main", "void main(java.lang.String[])")
+        graph = driver.getMethod("intraprocedural.exception.Exception$currentTestNumber.main", "void main(java.lang.String[])")
     }
 
     @AfterEach

@@ -32,11 +32,9 @@ import io.github.plume.oss.graph.CFGBuilder
 import io.github.plume.oss.graph.CallGraphBuilder
 import io.github.plume.oss.graph.PDGBuilder
 import io.github.plume.oss.options.ExtractorOptions
-import io.github.plume.oss.util.ResourceCompilationUtil
 import io.github.plume.oss.util.ResourceCompilationUtil.COMP_DIR
 import io.github.plume.oss.util.ResourceCompilationUtil.compileJavaFiles
-import io.github.plume.oss.util.ResourceCompilationUtil.compileJavaScriptFiles
-import io.github.plume.oss.util.ResourceCompilationUtil.compilePythonFiles
+import io.github.plume.oss.util.ResourceCompilationUtil.deleteClassFiles
 import io.github.plume.oss.util.ResourceCompilationUtil.moveClassFiles
 import io.github.plume.oss.util.SootToPlumeUtil
 import org.apache.logging.log4j.LogManager
@@ -201,8 +199,6 @@ class Extractor(val driver: IDriver) {
     private fun compileLoadedFiles(files: HashSet<PlumeFile>): HashSet<JVMClassFile> {
         val splitFiles = mapOf<SupportedFile, MutableList<PlumeFile>>(
             SupportedFile.JAVA to mutableListOf(),
-            SupportedFile.JAVASCRIPT to mutableListOf(),
-            SupportedFile.PYTHON to mutableListOf(),
             SupportedFile.JVM_CLASS to mutableListOf()
         )
         // Organize file in the map. Perform this sequentially if there are less than 100,000 files.
@@ -210,8 +206,6 @@ class Extractor(val driver: IDriver) {
             .toList().stream().forEach {
                 when (it) {
                     is JavaFile -> splitFiles[SupportedFile.JAVA]?.add(it)
-                    is PythonFile -> splitFiles[SupportedFile.PYTHON]?.add(it)
-                    is JavaScriptFile -> splitFiles[SupportedFile.JAVASCRIPT]?.add(it)
                     is JVMClassFile -> splitFiles[SupportedFile.JVM_CLASS]?.add(it)
                 }
             }
@@ -224,14 +218,8 @@ class Extractor(val driver: IDriver) {
                             if (this.isNotEmpty()) driver.addVertex(MetaDataVertex("Java",
                                 System.getProperty("java.runtime.version")))
                         }
-                SupportedFile.PYTHON ->
-                    compilePythonFiles(filesToCompile)
-                        .apply { if (this.isNotEmpty()) driver.addVertex(MetaDataVertex("Python", "2.7.2")) }
-                SupportedFile.JAVASCRIPT ->
-                    compileJavaScriptFiles(filesToCompile)
-                        .apply { if (this.isNotEmpty()) driver.addVertex(MetaDataVertex("JavaScript", "170")) }
                 SupportedFile.JVM_CLASS ->
-                    moveClassFiles(filesToCompile)
+                    moveClassFiles(filesToCompile.map { f -> f as JVMClassFile }.toList())
                         .apply {
                             if (this.isNotEmpty()) driver.addVertex(MetaDataVertex("Java",
                                 System.getProperty("java.runtime.version")))
@@ -429,7 +417,7 @@ class Extractor(val driver: IDriver) {
         classToFileHash.clear()
         sootToPlume.clear()
         savedCallGraphEdges.clear()
-        ResourceCompilationUtil.deleteClassFiles(File(COMP_DIR))
+        deleteClassFiles(File(COMP_DIR))
         G.reset()
     }
 
