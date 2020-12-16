@@ -79,10 +79,7 @@ implementation 'org.apache.logging.log4j:log4j-slf4j-impl:2.13.3'
 The extractor uses the following dependencies:
 ```groovy
   implementation 'org.soot-oss:soot:4.2.1'
-  implementation 'org.python:jython-standalone:2.7.2'
-  implementation 'org.apache.ant:ant:1.10.8'
-  implementation 'org.mozilla:rhino:1.7.13'
-  implementation 'org.lz4:lz4-java:1.7.1'
+implementation 'org.lz4:lz4-java:1.7.1'
 ```
 
 Dependencies per graph database technology:
@@ -105,12 +102,12 @@ Dependencies per graph database technology:
 #### _TigerGraph_
 ```groovy
   implementation 'khttp:khttp:1.0.0'
-implementation 'com.fasterxml.jackson.core:jackson-databind:2.11.2'
+  implementation 'com.fasterxml.jackson.core:jackson-databind:2.11.2'
 ```
 #### _Amazon Neptune_
 ```groovy
   implementation 'org.apache.tinkerpop:gremlin-core:3.4.8'
-implementation 'org.apache.tinkerpop:gremlin-driver:3.4.8'
+  implementation 'org.apache.tinkerpop:gremlin-driver:3.4.8'
 ```
 #### _Neo4j_
 ```groovy
