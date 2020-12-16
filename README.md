@@ -2,7 +2,7 @@
 [![License](https://img.shields.io/badge/License-Apache%202.0-blue.svg)](https://opensource.org/licenses/Apache-2.0)
 ![GitHub Actions](https://github.com/plume-oss/plume/workflows/CI/badge.svg)
 [![codecov](https://codecov.io/gh/plume-oss/plume/branch/develop/graph/badge.svg)](https://codecov.io/gh/plume-oss/plume)
-[![Download](https://api.bintray.com/packages/plume-oss/maven/plume/images/download.svg)](https://bintray.com/plume-oss/maven/plume-core/_latestVersion)
+[![Download](https://api.bintray.com/packages/plume-oss/maven/plume/images/download.svg)](https://bintray.com/plume-oss/maven/plume/_latestVersion)
 
 A Kotlin driver for the Plume library to provide an interface for connecting and writing to various graph databases based
 on the [code-property graph schema](https://github.com/ShiftLeftSecurity/codepropertygraph/blob/master/codepropertygraph/src/main/resources/schemas/base.json).
@@ -11,7 +11,7 @@ For more documentation check out the [Plume docs](https://plume-oss.github.io/pl
 
 ## Download from jCenter Bintray
 
-Replace `X.X.X` with the desired version on [jCenter](https://bintray.com/plume-oss/maven/plume-core/_latestVersion).
+Replace `X.X.X` with the desired version on [jCenter](https://bintray.com/plume-oss/maven/plume/_latestVersion).
 
 Maven:
 ```mxml
@@ -79,9 +79,6 @@ implementation 'org.apache.logging.log4j:log4j-slf4j-impl:2.13.3'
 The extractor uses the following dependencies:
 ```groovy
   implementation 'org.soot-oss:soot:4.2.1'
-  implementation 'org.python:jython-standalone:2.7.2'
-  implementation 'org.apache.ant:ant:1.10.8'
-  implementation 'org.mozilla:rhino:1.7.13'
   implementation 'org.lz4:lz4-java:1.7.1'
 ```
 

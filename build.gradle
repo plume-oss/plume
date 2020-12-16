@@ -2,6 +2,7 @@ plugins {
     id "java"
     id "maven-publish"
     id "jacoco"
+    id "org.jetbrains.dokka" version "$dokkaVersion"
     id "com.eden.orchidPlugin" version "$orchidVersion"
     id "com.avast.gradle.docker-compose" version "$avastDockerVersion"
     id "org.jetbrains.kotlin.jvm" version "$kotlinVersion"
@@ -31,9 +32,6 @@ dependencies {
     implementation "io.shiftleft:codepropertygraph_2.13:$shiftleftVersion"
     implementation "io.shiftleft:semanticcpg_2.13:$shiftleftVersion"
     implementation "org.soot-oss:soot:$sootVersion"
-    implementation "org.python:jython-standalone:$jythonVersion"
-    implementation "org.apache.ant:ant:$antVersion"
-    implementation "org.mozilla:rhino:$rhinoVersion"
     implementation "org.lz4:lz4-java:$lz4Version"
 
     // CPG integration
@@ -158,7 +156,7 @@ dockerCompose {
 
 def artifactDesc = "Plume is a code property graph analysis library with options to extract the CPG from Java bytecode and store the result in various graph databases."
 def repoUrl = "https://github.com/plume-oss/plume.git"
-def artifactVersion = "0.0.1"
+def artifactVersion = "0.0.2"
 def website = "https://plume-oss.github.io/plume-docs/"
 
 group = "io.github.plume-oss"
@@ -188,6 +186,19 @@ jacocoTestReport {
 check.dependsOn jacocoTestCoverageVerification
 jacocoTestCoverageVerification.dependsOn jacocoTestReport
 
+task sourcesJar(type: Jar) {
+    archiveClassifier.set("sources")
+    from(sourceSets.getByName("main").allSource)
+}
+
+task dokkaJar(type: Jar) {
+    group = JavaBasePlugin.DOCUMENTATION_GROUP
+    description = "Assembles Kotlin docs with Dokka"
+    archiveClassifier.set("javadoc")
+    from(tasks.dokka)
+    dependsOn(tasks.dokka)
+}
+
 // Binds the main project and Scala layer into one Jar
 jar {
     duplicatesStrategy = DuplicatesStrategy.EXCLUDE
@@ -207,16 +218,21 @@ task fatJar(type: Jar) {
         exclude "META-INF/*.DSA"
         exclude "META-INF/*.RSA"
     }
-    zip64 = true
     with jar
 }
 
-artifacts { archives fatJar }
+artifacts { archives sourcesJar, dokkaJar }
 
 publishing {
     publications {
         mavenJava(MavenPublication) {
+            // Main artifact
             artifact jar
+            // Sources
+            artifact sourcesJar
+            // Documentation artifact
+            artifact dokkaJar
+
             pom {
                 name = 'Plume'
                 description = artifactDesc

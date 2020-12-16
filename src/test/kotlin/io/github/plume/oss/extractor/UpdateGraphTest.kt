@@ -18,7 +18,6 @@ class UpdateGraphTest {
     companion object {
         private val driver = DriverFactory(GraphDatabase.TINKER_GRAPH) as TinkerGraphDriver
         private val TEST_PATH = "extractor_tests${File.separator}update_test${File.separator}"
-        private lateinit var CLS_PATH: File
         private lateinit var extractor: Extractor
         private lateinit var testFile1: File
         private lateinit var testFile2: File
@@ -36,10 +35,7 @@ class UpdateGraphTest {
             testFile1 = getTestResource("${TEST_PATH}UpdateTest1.java")
             testFile2 = getTestResource("${TEST_PATH}UpdateTest2.java")
             testFile2Update = getTestResource("${TEST_PATH}UpdateTest2.txt")
-            CLS_PATH = File(
-                getTestResource(TEST_PATH).absolutePath.replace(System.getProperty("user.dir") + File.separator, "").removeSuffix(
-                    TEST_PATH.removeSuffix(File.separator)))
-            extractor = Extractor(driver, CLS_PATH)
+            extractor = Extractor(driver)
         }
     }
 

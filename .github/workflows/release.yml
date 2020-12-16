@@ -22,9 +22,7 @@ jobs:
       - name: Grant execute permission for gradlew
         run: chmod +x gradlew
       - name: Build code
-        run: |
-          ./gradlew classes
-          ./gradlew jar
+        run: ./gradlew assemble
       - name: Publish release to jCenter
         run: ./gradlew bintrayUpload
         env:

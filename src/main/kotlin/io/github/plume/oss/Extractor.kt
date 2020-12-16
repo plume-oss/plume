@@ -15,14 +15,6 @@
  */
 package io.github.plume.oss
 
-import org.apache.logging.log4j.LogManager
-import org.apache.logging.log4j.Logger
-import soot.*
-import soot.jimple.spark.SparkTransformer
-import soot.jimple.toolkits.callgraph.CHATransformer
-import soot.jimple.toolkits.callgraph.Edge
-import soot.options.Options
-import soot.toolkits.graph.BriefUnitGraph
 import io.github.plume.oss.domain.enums.EdgeLabel
 import io.github.plume.oss.domain.exceptions.PlumeCompileException
 import io.github.plume.oss.domain.files.*
@@ -40,10 +32,19 @@ import io.github.plume.oss.graph.CFGBuilder
 import io.github.plume.oss.graph.CallGraphBuilder
 import io.github.plume.oss.graph.PDGBuilder
 import io.github.plume.oss.options.ExtractorOptions
+import io.github.plume.oss.util.ResourceCompilationUtil.COMP_DIR
 import io.github.plume.oss.util.ResourceCompilationUtil.compileJavaFiles
-import io.github.plume.oss.util.ResourceCompilationUtil.compileJavaScriptFiles
-import io.github.plume.oss.util.ResourceCompilationUtil.compilePythonFiles
+import io.github.plume.oss.util.ResourceCompilationUtil.deleteClassFiles
+import io.github.plume.oss.util.ResourceCompilationUtil.moveClassFiles
 import io.github.plume.oss.util.SootToPlumeUtil
+import org.apache.logging.log4j.LogManager
+import org.apache.logging.log4j.Logger
+import soot.*
+import soot.jimple.spark.SparkTransformer
+import soot.jimple.toolkits.callgraph.CHATransformer
+import soot.jimple.toolkits.callgraph.Edge
+import soot.options.Options
+import soot.toolkits.graph.BriefUnitGraph
 import java.io.File
 import java.io.IOException
 import java.nio.file.Files
@@ -56,10 +57,9 @@ import kotlin.streams.toList
  * The main entrypoint of the extractor from which the CPG will be created.
  *
  * @param driver the [IDriver] with which the graph will be constructed with.
- * @param classPath the root of the source and class files to be analyzed.
  */
-class Extractor(val driver: IDriver, private val classPath: File) {
-    private val logger: Logger = LogManager.getLogger(io.github.plume.oss.Extractor::javaClass)
+class Extractor(val driver: IDriver) {
+    private val logger: Logger = LogManager.getLogger(Extractor::javaClass)
 
     private val loadedFiles: HashSet<PlumeFile> = HashSet()
     private val astBuilder: ASTBuilder
@@ -76,7 +76,9 @@ class Extractor(val driver: IDriver, private val classPath: File) {
         callGraphBuilder = CallGraphBuilder(driver)
     }
 
-    // The companion object of this class holds the state of the current extraction
+    /**
+     * The companion object of this class holds the state of the current extraction
+     */
     companion object {
         private val sootToPlume = mutableMapOf<Any, MutableList<PlumeVertex>>()
         private val classToFileHash = mutableMapOf<SootClass, String>()
@@ -178,10 +180,10 @@ class Extractor(val driver: IDriver, private val classPath: File) {
         } else if (f.isDirectory) {
             Files.walk(Paths.get(f.absolutePath)).use { walk ->
                 walk.map { obj: Path -> obj.toString() }
-                        .map { FileFactory.invoke(it) }
-                        .filter { it !is UnsupportedFile }
-                        .collect(Collectors.toList())
-                        .let { loadedFiles.addAll(it) }
+                    .map { FileFactory.invoke(it) }
+                    .filter { it !is UnsupportedFile }
+                    .collect(Collectors.toList())
+                    .let { loadedFiles.addAll(it) }
             }
         } else if (f.isFile) {
             loadedFiles.add(FileFactory(f))
@@ -196,36 +198,32 @@ class Extractor(val driver: IDriver, private val classPath: File) {
      */
     private fun compileLoadedFiles(files: HashSet<PlumeFile>): HashSet<JVMClassFile> {
         val splitFiles = mapOf<SupportedFile, MutableList<PlumeFile>>(
-                SupportedFile.JAVA to mutableListOf(),
-                SupportedFile.JAVASCRIPT to mutableListOf(),
-                SupportedFile.PYTHON to mutableListOf(),
-                SupportedFile.JVM_CLASS to mutableListOf()
+            SupportedFile.JAVA to mutableListOf(),
+            SupportedFile.JVM_CLASS to mutableListOf()
         )
         // Organize file in the map. Perform this sequentially if there are less than 100,000 files.
         files.stream().let { if (files.size >= 100000) it.parallel() else it.sequential() }
-                .toList().stream().forEach {
-                    when (it) {
-                        is JavaFile -> splitFiles[SupportedFile.JAVA]?.add(it)
-                        is PythonFile -> splitFiles[SupportedFile.PYTHON]?.add(it)
-                        is JavaScriptFile -> splitFiles[SupportedFile.JAVASCRIPT]?.add(it)
-                        is JVMClassFile -> splitFiles[SupportedFile.JVM_CLASS]?.add(it)
-                    }
+            .toList().stream().forEach {
+                when (it) {
+                    is JavaFile -> splitFiles[SupportedFile.JAVA]?.add(it)
+                    is JVMClassFile -> splitFiles[SupportedFile.JVM_CLASS]?.add(it)
                 }
+            }
         return splitFiles.keys.map {
             val filesToCompile = (splitFiles[it] ?: emptyList<JVMClassFile>()).toList()
             return@map when (it) {
                 SupportedFile.JAVA ->
                     compileJavaFiles(filesToCompile)
-                            .apply { if (this.isNotEmpty()) driver.addVertex(MetaDataVertex("Java", System.getProperty("java.runtime.version"))) }
-                SupportedFile.PYTHON ->
-                    compilePythonFiles(filesToCompile)
-                            .apply { if (this.isNotEmpty()) driver.addVertex(MetaDataVertex("Python", "2.7.2")) }
-                SupportedFile.JAVASCRIPT ->
-                    compileJavaScriptFiles(filesToCompile)
-                            .apply { if (this.isNotEmpty()) driver.addVertex(MetaDataVertex("JavaScript", "170")) }
+                        .apply {
+                            if (this.isNotEmpty()) driver.addVertex(MetaDataVertex("Java",
+                                System.getProperty("java.runtime.version")))
+                        }
                 SupportedFile.JVM_CLASS ->
-                    filesToCompile.map { cls -> cls as JVMClassFile }
-                            .apply { if (this.isNotEmpty()) driver.addVertex(MetaDataVertex("Java", System.getProperty("java.runtime.version"))) }
+                    moveClassFiles(filesToCompile.map { f -> f as JVMClassFile }.toList())
+                        .apply {
+                            if (this.isNotEmpty()) driver.addVertex(MetaDataVertex("Java",
+                                System.getProperty("java.runtime.version")))
+                        }
             }
         }.asSequence().flatten().toHashSet()
     }
@@ -249,19 +247,19 @@ class Extractor(val driver: IDriver, private val classPath: File) {
         programStructure = driver.getProgramStructure()
         // Load all methods to construct the CPG from and convert them to UnitGraph objects
         val graphs = classStream.asSequence()
-                .map { it.methods.filter { mtd -> mtd.isConcrete }.toList() }.flatten()
-                .let {
-                    if (ExtractorOptions.callGraphAlg == ExtractorOptions.CallGraphAlg.NONE)
-                        it else it.map(this::addExternallyReferencedMethods).flatten()
-                }
-                .distinct().toList().let { if (it.size >= 100000) it.parallelStream() else it.stream() }
-                .filter { !it.isPhantom }.map { BriefUnitGraph(it.retrieveActiveBody()) }.toList()
+            .map { it.methods.filter { mtd -> mtd.isConcrete }.toList() }.flatten()
+            .let {
+                if (ExtractorOptions.callGraphAlg == ExtractorOptions.CallGraphAlg.NONE)
+                    it else it.map(this::addExternallyReferencedMethods).flatten()
+            }
+            .distinct().toList().let { if (it.size >= 100000) it.parallelStream() else it.stream() }
+            .filter { !it.isPhantom }.map { BriefUnitGraph(it.retrieveActiveBody()) }.toList()
         // Construct the CPGs for methods
         graphs.map(this::constructCPG)
-                .toList().asSequence()
-                .map(this::constructCallGraphEdges)
-                .map { it.declaringClass }.distinct().toList()
-                .forEach(this::constructStructure)
+            .toList().asSequence()
+            .map(this::constructCallGraphEdges)
+            .map { it.declaringClass }.distinct().toList()
+            .forEach(this::constructStructure)
         // Connect methods to their type declarations and source files (if present)
         graphs.forEach { SootToPlumeUtil.connectMethodToTypeDecls(it.body.method, driver) }
         clear()
@@ -329,9 +327,9 @@ class Extractor(val driver: IDriver, private val classPath: File) {
                     logger.debug("Deleting method and saving incoming call graph edges (if any) ${mtdV.fullName} ${mtdV.signature}")
                     driver.getMethod(mtdV.fullName, mtdV.signature, false).let { g ->
                         g.vertices().filterIsInstance<MethodVertex>().firstOrNull()?.let { mtdV ->
-                            driver.getNeighbours(mtdV).edgesIn(mtdV)[EdgeLabel.REF]
-                                    ?.filterIsInstance<CallVertex>()
-                                    ?.forEach { saveCallGraphEdge(mtdV, it) }
+                            driver.getNeighbours(mtdV).edgesIn(mtdV)[EdgeLabel.CALL]
+                                ?.filterIsInstance<CallVertex>()
+                                ?.forEach { saveCallGraphEdge(mtdV, it) }
                         }
                     }
                     driver.deleteMethod(mtdV.fullName, mtdV.signature)
@@ -362,7 +360,7 @@ class Extractor(val driver: IDriver, private val classPath: File) {
         // set application mode
         Options.v().set_app(true)
         // make sure classpath is configured correctly
-        Options.v().set_soot_classpath(classPath.absolutePath)
+        Options.v().set_soot_classpath(COMP_DIR)
         Options.v().set_prepend_classpath(true)
         // keep debugging info
         Options.v().set_keep_line_number(true)
@@ -388,9 +386,9 @@ class Extractor(val driver: IDriver, private val classPath: File) {
      * @return The qualified class path with periods separating packages instead of slashes and no ".class" extension.
      */
     private fun getQualifiedClassPath(classFile: File): String = classFile.absolutePath
-            .removePrefix(classPath.absolutePath + "/")
-            .replace(File.separator, ".")
-            .removeSuffix(".class")
+        .removePrefix(COMP_DIR + File.separator)
+        .replace(File.separator, ".")
+        .removeSuffix(".class")
 
     /**
      * Given a list of class names, load them into the Scene.
@@ -402,13 +400,13 @@ class Extractor(val driver: IDriver, private val classPath: File) {
         classNames.map(this::getQualifiedClassPath).forEach(Scene.v()::addBasicClass)
         Scene.v().loadBasicClasses()
         return classNames.map { Pair(it, getQualifiedClassPath(it)) }
-                .map { Pair(it.first, Scene.v().loadClassAndSupport(it.second)) }
-                .map { clsPair: Pair<File, SootClass> ->
-                    val f = clsPair.first
-                    val cls = clsPair.second
-                    cls.setApplicationClass(); putNewFileHashPair(cls, f.hashCode().toString())
-                    cls
-                }
+            .map { Pair(it.first, Scene.v().loadClassAndSupport(it.second)) }
+            .map { clsPair: Pair<File, SootClass> ->
+                val f = clsPair.first
+                val cls = clsPair.second
+                cls.setApplicationClass(); putNewFileHashPair(cls, f.hashCode().toString())
+                cls
+            }
     }
 
     /**
@@ -419,6 +417,7 @@ class Extractor(val driver: IDriver, private val classPath: File) {
         classToFileHash.clear()
         sootToPlume.clear()
         savedCallGraphEdges.clear()
+        deleteClassFiles(File(COMP_DIR))
         G.reset()
     }
 

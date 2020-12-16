@@ -19,21 +19,19 @@ class BasicIntraproceduralTest {
         private val driver = DriverFactory(GraphDatabase.TINKER_GRAPH) as TinkerGraphDriver
         private lateinit var graph: PlumeGraph
         private var PATH: File
-        private var CLS_PATH: File
         private val TEST_PATH = "intraprocedural${File.separator}basic"
 
         init {
             val testFileUrl = BasicIntraproceduralTest::class.java.classLoader.getResource(TEST_PATH)
                     ?: throw NullPointerException("Unable to obtain test resource")
             PATH = File(testFileUrl.file)
-            CLS_PATH = File(PATH.absolutePath.replace(System.getProperty("user.dir") + File.separator, "").replace(TEST_PATH, ""))
         }
     }
 
     @BeforeEach
     @Throws(IOException::class)
     fun setUp(testInfo: TestInfo) {
-        val extractor = Extractor(driver, CLS_PATH)
+        val extractor = Extractor(driver)
         // Select test resource based on integer in method name
         currentTestNumber = testInfo
                 .displayName
@@ -119,7 +117,7 @@ class BasicIntraproceduralTest {
 
     @Test
     fun basic5Test() {
-        val extractor = Extractor(driver, CLS_PATH)
+        val extractor = Extractor(driver)
         val resourceDir = "${PATH.absolutePath}${File.separator}basic5${File.separator}Basic$currentTestNumber.java"
         // Load test resource and project + export graph
         val f = File(resourceDir)
