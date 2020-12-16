@@ -13,7 +13,6 @@ class PolyglotExtractorTest {
     companion object {
         private val driver = DriverFactory(GraphDatabase.TINKER_GRAPH) as TinkerGraphDriver
         private val TEST_PATH = "extractor_tests${File.separator}"
-        private lateinit var CLS_PATH: File
         private lateinit var extractor: Extractor
         private lateinit var validPy2File: File
         private lateinit var validJsFile: File
@@ -31,10 +30,7 @@ class PolyglotExtractorTest {
             validPy2File = getTestResource("${TEST_PATH}Test4.py")
             validJsFile = getTestResource("${TEST_PATH}Test5.js")
             polyglotDir = getTestResource("${TEST_PATH}polyglot")
-            CLS_PATH = File(
-                getTestResource(TEST_PATH).absolutePath.replace(System.getProperty("user.dir") + File.separator, "").removeSuffix(
-                    TEST_PATH.replace(File.separator, "")))
-            extractor = Extractor(driver, CLS_PATH)
+            extractor = Extractor(driver)
         }
     }
 

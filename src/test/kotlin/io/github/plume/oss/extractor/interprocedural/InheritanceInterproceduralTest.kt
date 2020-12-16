@@ -37,7 +37,7 @@ class InheritanceInterproceduralTest {
 
     @Test
     fun testNoneInheritance() {
-        val extractor = Extractor(driver, CLS_PATH)
+        val extractor = Extractor(driver)
         ExtractorOptions.callGraphAlg = ExtractorOptions.CallGraphAlg.NONE
         // Load test resource and project + export graph
         val f = File(CLS_PATH.absolutePath + File.separator + TEST_PATH)
@@ -66,7 +66,7 @@ class InheritanceInterproceduralTest {
 
     @Test
     fun testCHAInheritance() {
-        val extractor = Extractor(driver, CLS_PATH)
+        val extractor = Extractor(driver)
         ExtractorOptions.callGraphAlg = ExtractorOptions.CallGraphAlg.CHA
         // Load test resource and project + export graph
         val f = File(CLS_PATH.absolutePath + File.separator + TEST_PATH)
@@ -102,7 +102,7 @@ class InheritanceInterproceduralTest {
 
     @Test
     fun testSPARKInheritance() {
-        val extractor = Extractor(driver, CLS_PATH)
+        val extractor = Extractor(driver)
         ExtractorOptions.callGraphAlg = ExtractorOptions.CallGraphAlg.SPARK
         // Load test resource and project + export graph
         val f = File(CLS_PATH.absolutePath + File.separator + TEST_PATH)

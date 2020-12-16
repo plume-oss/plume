@@ -18,21 +18,19 @@ class TypeInterproceduralTest {
         private val driver = DriverFactory(GraphDatabase.TINKER_GRAPH) as TinkerGraphDriver
         private lateinit var graph: PlumeGraph
         private var PATH: File
-        private var CLS_PATH: File
         private val TEST_PATH = "interprocedural${File.separator}type"
 
         init {
             val testFileUrl = TypeInterproceduralTest::class.java.classLoader.getResource(TEST_PATH)
                     ?: throw NullPointerException("Unable to obtain test resource")
             PATH = File(testFileUrl.file)
-            CLS_PATH = File(PATH.absolutePath.replace(System.getProperty("user.dir") + File.separator, "").replace(TEST_PATH, ""))
         }
     }
 
     @BeforeEach
     @Throws(IOException::class)
     fun setUp(testInfo: TestInfo) {
-        val extractor = Extractor(driver, CLS_PATH)
+        val extractor = Extractor(driver)
         // Select test resource based on integer in method name
         val currentTestNumber = testInfo.displayName.replace("[^0-9]".toRegex(), "")
         val resourceDir = "${PATH.absolutePath}${File.separator}Type$currentTestNumber.java"

@@ -36,6 +36,7 @@ dependencies {
     implementation "org.apache.ant:ant:$antVersion"
     implementation "org.mozilla:rhino:$rhinoVersion"
     implementation "org.lz4:lz4-java:$lz4Version"
+    implementation 'org.ow2.asm:asm:7.3.1'
 
     // CPG integration
     implementation project(":cpgconv")

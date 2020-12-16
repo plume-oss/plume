@@ -17,7 +17,6 @@ class BasicExtractorTest {
     companion object {
         private val driver = DriverFactory(GraphDatabase.TINKER_GRAPH) as TinkerGraphDriver
         private val TEST_PATH = "extractor_tests${File.separator}"
-        private lateinit var CLS_PATH: File
         private lateinit var extractor: Extractor
         private lateinit var validSourceFile: File
         private lateinit var validClassFile: File
@@ -37,13 +36,7 @@ class BasicExtractorTest {
             validClassFile = getTestResource("${TEST_PATH}Test2.class")
             validJarFile = getTestResource("${TEST_PATH}Test3.jar")
             validDirectory = getTestResource("${TEST_PATH}dir_test")
-            CLS_PATH = File(
-                getTestResource(TEST_PATH).absolutePath.replace(System.getProperty("user.dir") + File.separator, "")
-                    .removeSuffix(
-                        TEST_PATH.replace(File.separator, "")
-                    )
-            )
-            extractor = Extractor(driver, CLS_PATH)
+            extractor = Extractor(driver)
         }
     }
 
@@ -85,7 +78,7 @@ class BasicExtractorTest {
             .let { assertNotNull(it); assertEquals("byte", it!!.typeFullName) }
         vertices.filterIsInstance<LocalVertex>().find { it.name == "l3" }
             .let { assertNotNull(it); assertEquals("int", it!!.typeFullName) }
-        vertices.filterIsInstance<CallVertex>().find { it.name == "SUB" }.let { assertNotNull(it) }
+        vertices.filterIsInstance<CallVertex>().find { it.name == "ADD" }.let { assertNotNull(it) }
     }
 
     @Test
