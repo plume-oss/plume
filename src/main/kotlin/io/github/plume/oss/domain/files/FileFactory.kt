@@ -15,15 +15,12 @@ object FileFactory {
      * Creates a [File] given the pathname.
      *
      * @param pathname The path at which the file resides.
-     * @return A [File] object if not one of the supported file types or a supported file type such as [JavaFile] or
-     * [PythonFile].
+     * @return A [File] object if not one of the supported file types or a supported file type such as [JavaFile].
      */
     @JvmStatic
     operator fun invoke(pathname: String): PlumeFile {
         return when {
             pathname.endsWith(".java") -> JavaFile(pathname)
-            pathname.endsWith(".py") -> PythonFile(pathname)
-            pathname.endsWith(".js") -> JavaScriptFile(pathname)
             pathname.endsWith(".class") -> JVMClassFile(pathname)
             else -> UnsupportedFile(pathname)
         }
@@ -33,15 +30,12 @@ object FileFactory {
      * Creates a [File] given the pathname.
      *
      * @param f A generic [File] pointer for the file to cast.
-     * @return A [File] object if not one of the supported file types or a supported file type such as [JavaFile] or
-     * [PythonFile].
+     * @return A [File] object if not one of the supported file types or a supported file type such as [JavaFile].
      */
     @JvmStatic
     operator fun invoke(f: File): PlumeFile {
         return when {
             f.name.endsWith(".java") -> JavaFile(f.absolutePath)
-            f.name.endsWith(".py") -> PythonFile(f.absolutePath)
-            f.name.endsWith(".js") -> JavaScriptFile(f.absolutePath)
             f.name.endsWith(".class") -> JVMClassFile(f.absolutePath)
             else -> UnsupportedFile(f.absolutePath)
         }
@@ -81,19 +75,6 @@ enum class SupportedFile {
      * dependencies as possible.
      */
     JAVA,
-
-    /**
-     * Python is an interpreted, high-level and general-purpose programming language. Python's design philosophy
-     * emphasizes code readability with its notable use of significant whitespace.
-     */
-    PYTHON,
-
-    /**
-     * JavaScript is a programming language that conforms to the ECMAScript specification. JavaScript is high-level,
-     * often just-in-time compiled, and multi-paradigm. It has curly-bracket syntax, dynamic typing, prototype-based
-     * object-orientation, and first-class functions.
-     */
-    JAVASCRIPT,
 
     /**
      * Java bytecode is the instruction set of the Java virtual machine.

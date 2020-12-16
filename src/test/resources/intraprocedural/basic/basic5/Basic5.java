@@ -1,4 +1,4 @@
-package intraprocedural.basic.basic6;
+package intraprocedural.basic.basic5;
 
 public class Basic5 {
 

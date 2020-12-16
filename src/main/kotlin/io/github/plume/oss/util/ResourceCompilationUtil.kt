@@ -15,25 +15,34 @@
  */
 package io.github.plume.oss.util
 
-import org.apache.logging.log4j.LogManager
-import org.apache.logging.log4j.Logger
-import org.python.util.JycompileAntTask
 import io.github.plume.oss.domain.exceptions.PlumeCompileException
 import io.github.plume.oss.domain.files.JVMClassFile
 import io.github.plume.oss.domain.files.PlumeFile
+import org.apache.logging.log4j.LogManager
+import org.apache.logging.log4j.Logger
+import org.objectweb.asm.ClassReader
+import org.objectweb.asm.ClassReader.SKIP_CODE
+import org.objectweb.asm.ClassVisitor
+import org.objectweb.asm.Opcodes
 import java.io.File
+import java.io.FileInputStream
 import java.io.IOException
 import java.nio.file.Files
 import java.nio.file.Path
 import java.nio.file.Paths
+import java.nio.file.StandardCopyOption
+import java.util.*
 import java.util.stream.Collectors
 import javax.tools.JavaCompiler
 import javax.tools.ToolProvider
-import kotlin.streams.toList
-import org.mozilla.javascript.tools.jsc.Main as JSC
+import javax.tools.JavaFileObject
+
+import javax.tools.StandardLocation
+
 
 object ResourceCompilationUtil {
     private val logger: Logger = LogManager.getLogger(ResourceCompilationUtil::javaClass)
+    val COMP_DIR = "${System.getProperty("java.io.tmpdir")}${File.separator}plume"
 
     /**
      * Validates the given file as a directory that exists.
@@ -54,55 +63,58 @@ object ResourceCompilationUtil {
      * @param files the source files to compile.
      * @throws PlumeCompileException if there is no suitable Java compiler found.
      */
-    @JvmStatic
     fun compileJavaFiles(files: List<PlumeFile>): List<JVMClassFile> {
         if (files.isEmpty()) return emptyList()
         val javac = getJavaCompiler()
         val fileManager = javac.getStandardFileManager(null, null, null)
-        javac.getTask(null, fileManager, null, listOf("-g"), null,
-                fileManager.getJavaFileObjectsFromFiles(files)).call()
-        return files.map { JVMClassFile(it.absolutePath.replace(".java", ".class")) }.toList()
+        javac.getTask(
+            null,
+            fileManager,
+            null,
+            listOf("-g", "-d", COMP_DIR),
+            null,
+            fileManager.getJavaFileObjectsFromFiles(files)
+        ).call()
+        return sequence {
+            for (jfo in fileManager.list(StandardLocation.CLASS_OUTPUT,
+                "", Collections.singleton(JavaFileObject.Kind.CLASS), true)) {
+                yield(JVMClassFile(jfo.name))
+            }
+        }.toList()
     }
 
     /**
-     * Given paths to a Python source files, programmatically compiles the source (.py) files.
+     * Inspects class files and moves them to the temp directory based on their package path.
      *
-     * @param files the source files to compile.
-     * @throws PlumeCompileException if there is no suitable Java compiler found.
+     * @param files the class files to move.
      */
-    @JvmStatic
-    fun compilePythonFiles(files: List<PlumeFile>): List<JVMClassFile> {
-        if (files.isEmpty()) return emptyList()
-        val jythonc = JycompileAntTask()
-        getJavaCompiler()
-        // These needs to be compiled per directory level
-        val dirMap = mutableMapOf<String, MutableList<PlumeFile>>()
-        files.forEach {
-            val dir = it.absolutePath.removeSuffix("/${it.name}")
-            if (dirMap[dir].isNullOrEmpty()) dirMap[dir] = mutableListOf(it)
-            else dirMap[dir]?.add(it)
-        }
-        dirMap.forEach {
-            jythonc.destdir = File(it.key)
-            jythonc.process(it.value.toSet())
-        }
-        return files.map { JVMClassFile(it.absolutePath.replace(".py", "\$py.class")) }.toList()
-    }
+    fun moveClassFiles(files: List<JVMClassFile>): List<JVMClassFile> {
+        lateinit var destPath: String
 
-    /**
-     * Given paths to a JavaScript source files, programmatically compiles the source (.js) files.
-     *
-     * @param files the source files to compile.
-     * @throws PlumeCompileException if there is no suitable Java compiler found.
-     */
-    @JvmStatic
-    fun compileJavaScriptFiles(files: List<PlumeFile>): List<JVMClassFile> {
-        if (files.isEmpty()) return emptyList()
-        val jsc = JSC()
-        getJavaCompiler()
-        jsc.processOptions(arrayOf("-version", "170", "-g"))
-        jsc.processSource(files.parallelStream().map { it.absolutePath }.toList().toTypedArray())
-        return files.map { JVMClassFile(it.absolutePath.replace(".js", ".class")) }.toList()
+        class ClassPathVisitor : ClassVisitor(Opcodes.ASM5) {
+            override fun visit(
+                version: Int,
+                access: Int,
+                name: String,
+                signature: String?,
+                superName: String?,
+                interfaces: Array<out String>?
+            ) {
+                destPath = COMP_DIR + File.separator + name + ".class"
+            }
+        }
+
+        return files.map { f ->
+            FileInputStream(f).use { fis ->
+                val cr = ClassReader(fis)
+                val rootVisitor = ClassPathVisitor()
+                cr.accept(rootVisitor, SKIP_CODE)
+            }
+            val dstFile = JVMClassFile(destPath)
+            dstFile.mkdirs()
+            Files.copy(f.toPath(), dstFile.toPath(), StandardCopyOption.REPLACE_EXISTING)
+            dstFile
+        }.toList()
     }
 
     /**
@@ -113,7 +125,7 @@ object ResourceCompilationUtil {
      */
     private fun getJavaCompiler(): JavaCompiler {
         val javac = ToolProvider.getSystemJavaCompiler()
-                ?: throw PlumeCompileException("Unable to find a Java compiler on the system!")
+            ?: throw PlumeCompileException("Unable to find a Java compiler on the system!")
         if (javac.sourceVersions.none { it.ordinal >= 8 }) throw PlumeCompileException("Plume requires JDK version >= 8. Please install a suitable JDK and re-run the process.")
         return javac
     }
@@ -124,15 +136,14 @@ object ResourceCompilationUtil {
      * @param path the path to the directory.
      * @throws IOException if the path is not a directory or does not exist.
      */
-    @JvmStatic
     @Throws(IOException::class)
     fun deleteClassFiles(path: File) {
         validateFileAsDirectory(path)
         Files.walk(Paths.get(path.absolutePath)).use { walk ->
             walk.map { obj: Path -> obj.toString() }
-                    .filter { f: String -> f.endsWith(".class") }
-                    .collect(Collectors.toList())
-                    .forEach { f: String -> if (!File(f).delete()) logger.error("Unable to delete: $f") }
+                .filter { f: String -> f.endsWith(".class") }
+                .collect(Collectors.toList())
+                .forEach { f: String -> if (!File(f).delete()) logger.error("Unable to delete: $f") }
         }
     }
 }

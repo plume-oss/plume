@@ -25,6 +25,8 @@ and this project adheres to [Semantic Versioning](http://semver.org/).
 
 - The configuration option `dbfilename` changed to `storageLocation` to match OverflowDB's respective config's
   name.
+- Removed polyglot support
+- All analyzed files are sent to a temp directory so there is no longer a need to specify class path in the Extractor
 
 ### Fixed
 
