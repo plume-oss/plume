@@ -17,9 +17,11 @@ repositories {
 }
 
 dependencies {
+    // Kotlin
+    implementation "org.jetbrains.kotlin:kotlin-stdlib-jdk8:$kotlinVersion"
     // Logging
-    implementation "org.apache.logging.log4j:log4j-core:2.13.3"
-    implementation "org.apache.logging.log4j:log4j-slf4j-impl:2.13.3"
+    implementation "org.apache.logging.log4j:log4j-core:$log4jVersion"
+    implementation "org.apache.logging.log4j:log4j-slf4j-impl:$log4jVersion"
 
     // Core dependencies
     implementation "org.apache.tinkerpop:gremlin-core:$gremlinVersion"
@@ -42,10 +44,6 @@ dependencies {
     orchidRuntime "io.github.javaeden.orchid:OrchidKotlindoc:$orchidVersion"
     orchidRuntime "io.github.javaeden.orchid:OrchidPluginDocs:$orchidVersion"
     orchidRuntime "io.github.javaeden.orchid:OrchidGithub:$orchidVersion"
-
-    // Kotlin
-    implementation "org.jetbrains.kotlin:kotlin-stdlib-jdk8:$kotlinVersion"
-    implementation "org.jetbrains.kotlin:kotlin-reflect:$kotlinVersion"
 
     // Testing
     testImplementation "org.junit.jupiter:junit-jupiter-engine:$junitVersion"

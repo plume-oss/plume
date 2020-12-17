@@ -8,7 +8,7 @@ import io.github.plume.oss.domain.enums.EdgeLabel
 import io.github.plume.oss.domain.exceptions.PlumeSchemaViolationException
 import io.github.plume.oss.domain.exceptions.PlumeTransactionException
 import io.github.plume.oss.domain.mappers.VertexMapper
-import io.github.plume.oss.domain.mappers.VertexMapper.Companion.checkSchemaConstraints
+import io.github.plume.oss.domain.mappers.VertexMapper.checkSchemaConstraints
 import io.github.plume.oss.domain.models.PlumeGraph
 import io.github.plume.oss.domain.models.PlumeVertex
 import io.github.plume.oss.domain.models.vertices.MetaDataVertex

@@ -78,31 +78,31 @@ implementation 'org.apache.logging.log4j:log4j-slf4j-impl:2.13.3'
 
 The extractor uses the following dependencies:
 ```groovy
-  implementation 'org.soot-oss:soot:4.2.1'
-  implementation 'org.lz4:lz4-java:1.7.1'
+implementation 'org.soot-oss:soot:4.2.1'
+implementation 'org.lz4:lz4-java:1.7.1'
 ```
 
 Dependencies per graph database technology:
 
 #### _TinkerGraph_
 ```groovy
-    implementation 'org.apache.tinkerpop:gremlin-core:3.4.8'
-    implementation 'org.apache.tinkerpop:tinkergraph-gremlin:3.4.8'
+implementation 'org.apache.tinkerpop:gremlin-core:3.4.8'
+implementation 'org.apache.tinkerpop:tinkergraph-gremlin:3.4.8'
 ```
 #### _OverflowDb_
 ```groovy
-  implementation 'io.shiftleft:codepropertygraph_2.13:1.3.5'
-  implementation 'io.shiftleft:semanticcpg_2.13:1.3.5'
+implementation 'io.shiftleft:codepropertygraph_2.13:1.3.5'
+implementation 'io.shiftleft:semanticcpg_2.13:1.3.5'
 ```
 #### _JanusGraph_
 ```groovy
-  implementation 'org.apache.tinkerpop:gremlin-core:3.4.8'
-  implementation 'org.janusgraph:janusgraph-driver:0.5.2'
+implementation 'org.apache.tinkerpop:gremlin-core:3.4.8'
+implementation 'org.janusgraph:janusgraph-driver:0.5.2'
 ```
 #### _TigerGraph_
 ```groovy
-  implementation 'khttp:khttp:1.0.0'
-  implementation 'com.fasterxml.jackson.core:jackson-databind:2.11.2'
+implementation 'khttp:khttp:1.0.0'
+implementation 'com.fasterxml.jackson.core:jackson-databind:2.11.2'
 ```
 #### _Amazon Neptune_
 ```groovy
@@ -111,8 +111,8 @@ Dependencies per graph database technology:
 ```
 #### _Neo4j_
 ```groovy
-  implementation 'org.apache.tinkerpop:gremlin-core:3.4.8'
-  implementation 'com.steelbridgelabs.oss:neo4j-gremlin-bolt:0.4.4'
+implementation 'org.apache.tinkerpop:gremlin-core:3.4.8'
+implementation 'com.steelbridgelabs.oss:neo4j-gremlin-bolt:0.4.4'
 ```
 
 It is not recommended using the fat jar in your project if using a build tool such as Ant, Maven, Gradle, etc. Rather,
