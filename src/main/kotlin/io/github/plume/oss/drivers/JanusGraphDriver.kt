@@ -7,7 +7,7 @@ import org.apache.tinkerpop.gremlin.structure.Graph
 import org.apache.tinkerpop.gremlin.structure.Transaction
 import org.apache.tinkerpop.gremlin.structure.Vertex
 import io.github.plume.oss.domain.exceptions.PlumeTransactionException
-import io.github.plume.oss.domain.mappers.VertexMapper.Companion.vertexToMap
+import io.github.plume.oss.domain.mappers.VertexMapper.vertexToMap
 import io.github.plume.oss.domain.models.PlumeVertex
 import java.lang.IllegalArgumentException
 

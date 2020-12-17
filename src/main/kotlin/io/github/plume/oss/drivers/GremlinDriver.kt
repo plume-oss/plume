@@ -14,8 +14,8 @@ import org.apache.tinkerpop.gremlin.tinkergraph.structure.TinkerGraph
 import io.github.plume.oss.domain.enums.EdgeLabel
 import io.github.plume.oss.domain.exceptions.PlumeSchemaViolationException
 import io.github.plume.oss.domain.mappers.VertexMapper
-import io.github.plume.oss.domain.mappers.VertexMapper.Companion.checkSchemaConstraints
-import io.github.plume.oss.domain.mappers.VertexMapper.Companion.vertexToMap
+import io.github.plume.oss.domain.mappers.VertexMapper.checkSchemaConstraints
+import io.github.plume.oss.domain.mappers.VertexMapper.vertexToMap
 import io.github.plume.oss.domain.models.PlumeGraph
 import io.github.plume.oss.domain.models.PlumeVertex
 import io.github.plume.oss.domain.models.vertices.FileVertex
@@ -183,12 +183,12 @@ abstract class GremlinDriver : IDriver {
     protected open fun createVertex(v: PlumeVertex): Vertex =
             try {
                 if (!transactionOpen) openTx()
-                val propertyMap = vertexToMap(v)
+                val propertyMap: MutableMap<String, Any> = vertexToMap(v)
                 // Get the implementing class label parameter
-                val label = propertyMap.remove("label") as String?
+                val label = propertyMap.remove("label") as String
                 // Get the implementing classes fields and values
                 g.graph.addVertex(T.label, label, T.id, v.hashCode().toString()).apply {
-                    propertyMap.forEach { (key: String?, value: Any?) -> this.property(key, value) }
+                    propertyMap.forEach { (key: String, value: Any) -> this.property(key, value) }
                 }
             } finally {
                 if (transactionOpen) closeTx()

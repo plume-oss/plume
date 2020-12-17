@@ -324,7 +324,8 @@ class Extractor(val driver: IDriver) {
                 logger.debug("Existing class was found and file hashes do not match, marking for rebuild.")
                 // Rebuild
                 driver.getNeighbours(fileV).vertices().filterIsInstance<MethodVertex>().forEach { mtdV ->
-                    logger.debug("Deleting method and saving incoming call graph edges (if any) ${mtdV.fullName} ${mtdV.signature}")
+                    logger.debug("Deleting method and saving incoming call graph edges for " +
+                            "${mtdV.fullName} ${mtdV.signature}")
                     driver.getMethod(mtdV.fullName, mtdV.signature, false).let { g ->
                         g.vertices().filterIsInstance<MethodVertex>().firstOrNull()?.let { mtdV ->
                             driver.getNeighbours(mtdV).edgesIn(mtdV)[EdgeLabel.CALL]
@@ -412,7 +413,7 @@ class Extractor(val driver: IDriver) {
     /**
      * Clears resources of file and graph pointers.
      */
-    fun clear() {
+    private fun clear() {
         loadedFiles.clear()
         classToFileHash.clear()
         sootToPlume.clear()

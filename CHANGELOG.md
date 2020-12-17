@@ -9,6 +9,7 @@ and this project adheres to [Semantic Versioning](http://semver.org/).
 ### Added
 
 ### Changed
+- Removed use of reflection to improve performance of serializing and deserializing
 
 ### Fixed
 

@@ -53,7 +53,8 @@ class OverflowDbDriverIntTest {
         @AfterAll
         @JvmStatic
         fun tearDownAll() {
-            println("${OverflowDbDriverIntTest::class.java.simpleName} completed in ${(System.nanoTime() - testStartTime) / 1e6} ms")
+            println("${OverflowDbDriverIntTest::class.java.simpleName} completed in " +
+                    "${(System.nanoTime() - testStartTime) / 1e6} ms")
         }
     }
 
