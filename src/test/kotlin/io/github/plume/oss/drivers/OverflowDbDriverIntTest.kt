@@ -65,6 +65,7 @@ class OverflowDbDriverIntTest {
             overflow = true
             heapPercentageThreshold = 90
             storageLocation = OverflowDbDriverIntTest.storageLocation
+            connect()
         }
         assertFalse(driver.serializationStatsEnabled)
         assertTrue(driver.overflow)
