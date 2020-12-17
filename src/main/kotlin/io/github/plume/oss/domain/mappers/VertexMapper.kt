@@ -49,7 +49,6 @@ object VertexMapper {
                 properties["methodFullName"] = v.methodFullName
                 properties["signature"] = v.signature
                 properties["name"] = v.name
-
             }
             is ControlStructureVertex -> {
                 properties["label"] = ControlStructureVertex.LABEL.name

@@ -53,7 +53,8 @@ class OverflowDbDriverIntTest {
         @AfterAll
         @JvmStatic
         fun tearDownAll() {
-            println("${OverflowDbDriverIntTest::class.java.simpleName} completed in ${(System.nanoTime() - testStartTime) / 1e6} ms")
+            println("${OverflowDbDriverIntTest::class.java.simpleName} completed in " +
+                    "${(System.nanoTime() - testStartTime) / 1e6} ms")
         }
     }
 
@@ -64,7 +65,6 @@ class OverflowDbDriverIntTest {
             overflow = true
             heapPercentageThreshold = 90
             storageLocation = OverflowDbDriverIntTest.storageLocation
-            connect()
         }
         assertFalse(driver.serializationStatsEnabled)
         assertTrue(driver.overflow)
