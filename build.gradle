@@ -228,6 +228,7 @@ artifacts { archives sourcesJar, dokkaJar }
 publishing {
     publications {
         mavenJava(MavenPublication) {
+            from components.java
             // Main artifact
             artifact jar
             // Sources
