@@ -1,3 +1,4 @@
 rootProject.name = 'plume'
-include 'cpgconv'
 include 'extractor'
+include 'cpgconv'
+include 'testing'

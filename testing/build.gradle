@@ -6,11 +6,16 @@ plugins {
 repositories {
     mavenLocal()
     mavenCentral()
+    jcenter()
 }
 
 dependencies {
     implementation "io.shiftleft:codepropertygraph_2.13:$shiftleftVersion"
     implementation "io.shiftleft:semanticcpg_2.13:$shiftleftVersion"
+
+    testImplementation project(":extractor")
+    testImplementation "io.shiftleft:semanticcpg-tests_2.13:$shiftleftVersion:tests"
+    testImplementation "org.scalatest:scalatest_2.13:3.1.1"
 }
 
 group = "io.github.plume-oss"
@@ -18,5 +23,5 @@ version = "0.0.3"
 
 sourceSets {
     main.java.srcDirs = []
-    main.scala.srcDirs += "src/main/scala"
+    main.scala.srcDirs = ["src/main/scala"]
 }
