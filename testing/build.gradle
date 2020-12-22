@@ -2,6 +2,7 @@ plugins {
     id 'scala'
     id 'java'
     id 'cz.alenkacz.gradle.scalafmt' version '1.14.0'
+    id "com.github.maiflai.scalatest" version "0.30"
 }
 
 repositories {
@@ -17,6 +18,7 @@ dependencies {
     testImplementation project(":extractor")
     testImplementation "io.shiftleft:semanticcpg-tests_2.13:$shiftleftVersion:tests"
     testImplementation "org.scalatest:scalatest_2.13:3.1.1"
+    testRuntime 'com.vladsch.flexmark:flexmark-all:0.35.10'
 }
 
 group = "io.github.plume-oss"

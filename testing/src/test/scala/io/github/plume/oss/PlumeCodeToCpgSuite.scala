@@ -2,7 +2,7 @@ package io.github.plume.oss
 import java.io.File
 import io.github.plume.oss.drivers.{DriverFactory, GraphDatabase, OverflowDbDriver}
 import io.shiftleft.codepropertygraph.Cpg
-import io.shiftleft.codepropertygraph.cpgloading.CpgLoader
+import io.shiftleft.codepropertygraph.cpgloading.{CpgLoader, CpgLoaderConfig}
 import io.shiftleft.semanticcpg.testfixtures.{CodeToCpgFixture, LanguageFrontend}
 
 import scala.util.Using
@@ -20,7 +20,9 @@ class PlumeFrontend extends LanguageFrontend {
       extractor.project()
       driver.close()
     }
-    CpgLoader.load(cpgFile.getAbsolutePath)
+    val odbConfig = overflowdb.Config.withDefaults().withStorageLocation(cpgFile.getAbsolutePath)
+    val config = CpgLoaderConfig.withDefaults.withOverflowConfig(odbConfig)
+    CpgLoader.loadFromOverflowDb(config)
   }
 }
 
