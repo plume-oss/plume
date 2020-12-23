@@ -366,7 +366,8 @@ class OverflowDbDriver : IDriver {
         try {
             srcNode.addEdge(edge.name, dstNode)
         } catch (exc: RuntimeException) {
-            throw PlumeSchemaViolationException(fromV, toV, edge)
+            val msg = "CPG schema violation adding a ${edge.name} edge from ${fromV.javaClass.simpleName} to ${toV.javaClass.simpleName}"
+            logger.warn(msg)
         }
     }
 
