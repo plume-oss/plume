@@ -1,3 +1,9 @@
+buildscript {
+    ext {
+        internalDependencies = [project(':cpgconv')]
+    }
+}
+
 plugins {
     id "java"
     id "maven-publish"
@@ -53,11 +59,11 @@ dependencies {
 
 sourceSets {
     main.java.srcDirs = []
-    main.kotlin.srcDirs = ["src/main/kotlin"]
-    main.resources.srcDirs = ["src/main/resources"]
+    main.kotlin.srcDirs += "src/main/kotlin"
+    main.resources.srcDirs += "src/main/resources"
     test.java.srcDirs = []
-    test.kotlin.srcDirs = ["src/test/kotlin"]
-    test.resources.srcDirs = ["src/test/resources"]
+    test.kotlin.srcDirs += "src/test/kotlin"
+    test.resources.srcDirs += "src/test/resources"
 }
 
 task allTests(
@@ -189,8 +195,10 @@ check.dependsOn jacocoTestCoverageVerification
 jacocoTestCoverageVerification.dependsOn jacocoTestReport
 
 task sourcesJar(type: Jar) {
+    duplicatesStrategy = DuplicatesStrategy.EXCLUDE
     archiveClassifier.set("sources")
     from(sourceSets.getByName("main").allSource)
+    from { internalDependencies.collect { it.sourceSets.main.allSource } }
 }
 
 task dokkaJar(type: Jar) {
@@ -210,17 +218,6 @@ jar {
         exclude "META-INF/*.RSA"
         include "io/github/plume/oss/**"
     }
-}
-
-task fatJar(type: Jar) {
-    archiveClassifier.set("all")
-    duplicatesStrategy = DuplicatesStrategy.EXCLUDE
-    from { configurations.runtimeClasspath.collect { it.isDirectory() ? it : zipTree(it) } } {
-        exclude "META-INF/*.SF"
-        exclude "META-INF/*.DSA"
-        exclude "META-INF/*.RSA"
-    }
-    with jar
 }
 
 artifacts { archives sourcesJar, dokkaJar }

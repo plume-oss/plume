@@ -18,5 +18,5 @@ version = "0.0.3"
 
 sourceSets {
     main.java.srcDirs = []
-    main.scala.srcDirs = ["src/main/scala"]
+    main.scala.srcDirs += "src/main/scala"
 }
