@@ -12,6 +12,16 @@ and this project adheres to [Semantic Versioning](http://semver.org/).
 
 ### Fixed
 
+## [0.0.3] - 2020-12-23
+
+### Changed
+- Removed use of reflection to improve performance of serializing and deserializing
+- Extractor now longer halts process if a schema violation occurs
+- ShiftLeft dependencies upgraded
+
+### Fixed
+- Argument index was not being implemented properly, this has been fixed.
+
 ## [0.0.2] - 2020-12-15
 
 ### Added

@@ -1,17 +1,32 @@
+/*
+ * Copyright 2020 David Baker Effendi
+ * <p>
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ * <p>
+ * http://www.apache.org/licenses/LICENSE-2.0
+ * <p>
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
 package io.github.plume.oss.graph
 
-import org.apache.logging.log4j.LogManager
-import soot.Scene
-import soot.Unit
-import soot.jimple.IdentityStmt
-import soot.jimple.toolkits.callgraph.Edge
-import soot.toolkits.graph.BriefUnitGraph
 import io.github.plume.oss.Extractor
 import io.github.plume.oss.Extractor.Companion.getSootAssociation
 import io.github.plume.oss.domain.enums.EdgeLabel
 import io.github.plume.oss.domain.models.vertices.MethodVertex
 import io.github.plume.oss.drivers.IDriver
 import io.github.plume.oss.util.SootToPlumeUtil.constructPhantom
+import org.apache.logging.log4j.LogManager
+import soot.Scene
+import soot.Unit
+import soot.jimple.IdentityStmt
+import soot.jimple.toolkits.callgraph.Edge
+import soot.toolkits.graph.BriefUnitGraph
 
 /**
  * The [IGraphBuilder] that constructs the interprocedural call edges.
@@ -38,8 +53,10 @@ class CallGraphBuilder(private val driver: IDriver) : IGraphBuilder {
         edges.forEach { e: Edge ->
             getSootAssociation(unit)?.firstOrNull()?.let { srcPlumeVertex ->
                 val tgtPlumeVertex = getSootAssociation(e.tgt.method())?.firstOrNull()
-                        ?: constructPhantom(e.tgt.method(), driver)
-                driver.addEdge(srcPlumeVertex, tgtPlumeVertex, EdgeLabel.CALL)
+                    ?: constructPhantom(e.tgt.method(), driver)
+                runCatching {
+                    driver.addEdge(srcPlumeVertex, tgtPlumeVertex, EdgeLabel.CALL)
+                }.onFailure { e -> logger.warn(e.message) }
             }
         }
     }
@@ -48,7 +65,11 @@ class CallGraphBuilder(private val driver: IDriver) : IGraphBuilder {
         Extractor.getIncomingCallGraphEdges(mtdV)?.let { incomingVs ->
             if (incomingVs.isNotEmpty()) {
                 logger.debug("Saved call graph edges found - reconnecting incoming call graph edges")
-                incomingVs.forEach { inV -> driver.addEdge(inV, mtdV, EdgeLabel.CALL) }
+                incomingVs.forEach { inV ->
+                    runCatching {
+                        driver.addEdge(inV, mtdV, EdgeLabel.CALL)
+                    }.onFailure { e -> logger.warn(e.message) }
+                }
             } else {
                 logger.debug("No previous call graph edges were found")
             }

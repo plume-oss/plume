@@ -10,12 +10,12 @@ import io.github.plume.oss.Extractor
 import io.github.plume.oss.domain.models.vertices.*
 import io.github.plume.oss.drivers.DriverFactory
 import io.github.plume.oss.drivers.GraphDatabase
-import io.github.plume.oss.drivers.TinkerGraphDriver
+import io.github.plume.oss.drivers.OverflowDbDriver
 import java.io.File
 
 class BasicExtractorTest {
     companion object {
-        private val driver = DriverFactory(GraphDatabase.TINKER_GRAPH) as TinkerGraphDriver
+        private val driver = DriverFactory(GraphDatabase.OVERFLOWDB) as OverflowDbDriver
         private val TEST_PATH = "extractor_tests${File.separator}"
         private lateinit var extractor: Extractor
         private lateinit var validSourceFile: File
