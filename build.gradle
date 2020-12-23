@@ -230,7 +230,7 @@ publishing {
         mavenJava(MavenPublication) {
             from components.java
             // Main artifact
-            artifact jar
+            from components.java
             // Sources
             artifact sourcesJar
             // Documentation artifact
