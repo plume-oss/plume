@@ -19,6 +19,9 @@ dependencies {
     testImplementation "io.shiftleft:semanticcpg-tests_2.13:$shiftleftVersion:tests"
     testImplementation "org.scalatest:scalatest_2.13:3.1.1"
     testRuntime 'com.vladsch.flexmark:flexmark-all:0.35.10'
+
+    implementation("org.scala-lang:scala-library:2.13.3")
+
 }
 
 group = "io.github.plume-oss"
