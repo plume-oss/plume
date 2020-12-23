@@ -25,7 +25,7 @@ repositories {
 configurations {
     subProject {
         canBeResolved = true
-        canBeConsumed = false
+        canBeConsumed = true
     }
     compileClasspath.extendsFrom(subProject)
     runtimeClasspath.extendsFrom(subProject)
