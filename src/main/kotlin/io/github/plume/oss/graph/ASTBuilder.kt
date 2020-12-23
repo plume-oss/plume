@@ -84,8 +84,13 @@ class ASTBuilder(private val driver: IDriver) : IGraphBuilder {
             .forEachIndexed { idx, u ->
                 projectUnit(u, idx)
                     ?.let {
-                        driver.addEdge(getSootAssociation(mtd)
-                        !!.first { v -> v is BlockVertex }, it, EdgeLabel.AST)
+                        runCatching {
+                            driver.addEdge(
+                                fromV = getSootAssociation(mtd)!!.first { v -> v is BlockVertex },
+                                toV = it,
+                                edge = EdgeLabel.AST
+                            )
+                        }.onFailure { e -> logger.warn(e.message) }
                     }
             }
     }
@@ -97,14 +102,22 @@ class ASTBuilder(private val driver: IDriver) : IGraphBuilder {
                 SootToPlumeUtil.projectMethodParameterIn(it, currentLine)
                     .apply { addSootToPlumeAssociation(it, this) }
             }
-            .forEach { driver.addEdge(mtdVertex, it, EdgeLabel.AST); localVertices.add(it) }
+            .forEach {
+                runCatching {
+                    driver.addEdge(mtdVertex, it, EdgeLabel.AST); localVertices.add(it)
+                }.onFailure { e -> logger.warn(e.message) }
+            }
         graph.body.locals
             .filter { !graph.body.parameterLocals.contains(it) }
             .map {
                 SootToPlumeUtil.projectLocalVariable(it, currentLine, currentCol)
                     .apply { addSootToPlumeAssociation(it, this) }
             }
-            .forEach { driver.addEdge(mtdVertex, it, EdgeLabel.AST); localVertices.add(it) }
+            .forEach {
+                runCatching {
+                    driver.addEdge(mtdVertex, it, EdgeLabel.AST); localVertices.add(it)
+                }.onFailure { e -> logger.warn(e.message) }
+            }
         return localVertices
     }
 
@@ -161,7 +174,9 @@ class ASTBuilder(private val driver: IDriver) : IGraphBuilder {
                 is Constant -> SootToPlumeUtil.createLiteralVertex(arg, currentLine, currentCol, i)
                 else -> null
             }?.let { expressionVertex ->
-                driver.addEdge(callVertex, expressionVertex, EdgeLabel.AST)
+                runCatching {
+                    driver.addEdge(callVertex, expressionVertex, EdgeLabel.AST)
+                }.onFailure { e -> logger.warn(e.message) }
                 callVertices.add(expressionVertex)
                 addSootToPlumeAssociation(arg, expressionVertex)
             }
@@ -172,8 +187,12 @@ class ASTBuilder(private val driver: IDriver) : IGraphBuilder {
         unit.useBoxes.filterIsInstance<JimpleLocalBox>().firstOrNull()?.let {
             SootToPlumeUtil.createIdentifierVertex(it.value, currentLine, currentCol, unit.useBoxes.indexOf(it)).apply {
                 addSootToPlumeAssociation(it.value, this)
-                driver.addEdge(callVertex, this, EdgeLabel.RECEIVER)
-                driver.addEdge(callVertex, this, EdgeLabel.AST)
+                runCatching {
+                    driver.addEdge(callVertex, this, EdgeLabel.RECEIVER)
+                }.onFailure { e -> logger.warn(e.message) }
+                runCatching {
+                    driver.addEdge(callVertex, this, EdgeLabel.AST)
+                }.onFailure { e -> logger.warn(e.message) }
             }
         }
         return callVertex
@@ -197,13 +216,17 @@ class ASTBuilder(private val driver: IDriver) : IGraphBuilder {
         // Handle case jumps
         unit.targets.forEachIndexed { i, tgt ->
             if (unit.defaultTarget != tgt) {
-                val tgtV = JumpTargetVertex("CASE $i",
+                val tgtV = JumpTargetVertex(
+                    "CASE $i",
                     i,
                     tgt.javaSourceStartLineNumber,
                     tgt.javaSourceStartColumnNumber,
                     tgt.toString(),
-                    order++)
-                driver.addEdge(switchVertex, tgtV, EdgeLabel.AST)
+                    order++
+                )
+                runCatching {
+                    driver.addEdge(switchVertex, tgtV, EdgeLabel.AST)
+                }.onFailure { e -> logger.warn(e.message) }
                 addSootToPlumeAssociation(unit, tgtV)
             }
         }
@@ -230,13 +253,17 @@ class ASTBuilder(private val driver: IDriver) : IGraphBuilder {
             val tgt = unit.getTarget(i)
             if (unit.defaultTarget != tgt) {
                 val lookupValue = unit.getLookupValue(i)
-                val tgtV = JumpTargetVertex("CASE $lookupValue",
+                val tgtV = JumpTargetVertex(
+                    "CASE $lookupValue",
                     lookupValue,
                     tgt.javaSourceStartLineNumber,
                     tgt.javaSourceStartColumnNumber,
                     tgt.toString(),
-                    order++)
-                driver.addEdge(switchVertex, tgtV, EdgeLabel.AST)
+                    order++
+                )
+                runCatching {
+                    driver.addEdge(switchVertex, tgtV, EdgeLabel.AST)
+                }.onFailure { e -> logger.warn(e.message) }
                 addSootToPlumeAssociation(unit, tgtV)
             }
         }
@@ -254,13 +281,17 @@ class ASTBuilder(private val driver: IDriver) : IGraphBuilder {
         projectOp(unit.key, totalTgts + 1)?.let { driver.addEdge(switchVertex, it, EdgeLabel.CONDITION) }
         // Handle default target jump
         unit.defaultTarget.let {
-            val tgtV = JumpTargetVertex("DEFAULT",
+            val tgtV = JumpTargetVertex(
+                "DEFAULT",
                 totalTgts + 2,
                 it.javaSourceStartLineNumber,
                 it.javaSourceStartColumnNumber,
                 it.toString(),
-                order++)
-            driver.addEdge(switchVertex, tgtV, EdgeLabel.AST)
+                order++
+            )
+            runCatching {
+                driver.addEdge(switchVertex, tgtV, EdgeLabel.AST)
+            }.onFailure { e -> logger.warn(e.message) }
             addSootToPlumeAssociation(unit, tgtV)
         }
     }
@@ -275,21 +306,27 @@ class ASTBuilder(private val driver: IDriver) : IGraphBuilder {
         val ifRootVertex = projectIfRootAndCondition(unit, childIdx)
         graph.getSuccsOf(unit).forEach {
             val condBody: JumpTargetVertex = if (it == unit.target) {
-                JumpTargetVertex(FALSE_TARGET,
+                JumpTargetVertex(
+                    FALSE_TARGET,
                     0,
                     it.javaSourceStartLineNumber,
                     it.javaSourceStartColumnNumber,
                     "ELSE_BODY",
-                    order++)
+                    order++
+                )
             } else {
-                JumpTargetVertex(TRUE_TARGET,
+                JumpTargetVertex(
+                    TRUE_TARGET,
                     1,
                     it.javaSourceStartLineNumber,
                     it.javaSourceStartColumnNumber,
                     "IF_BODY",
-                    order++)
+                    order++
+                )
             }
-            driver.addEdge(ifRootVertex, condBody, EdgeLabel.AST)
+            runCatching {
+                driver.addEdge(ifRootVertex, condBody, EdgeLabel.AST)
+            }.onFailure { e -> logger.warn(e.message) }
             addSootToPlumeAssociation(unit, condBody)
         }
         return ifRootVertex
@@ -312,7 +349,9 @@ class ASTBuilder(private val driver: IDriver) : IGraphBuilder {
         driver.addVertex(ifRootVertex)
         val condition = unit.condition as ConditionExpr
         val conditionExpr = projectFlippedConditionalExpr(condition)
-        driver.addEdge(ifRootVertex, conditionExpr, EdgeLabel.CONDITION)
+        runCatching {
+            driver.addEdge(ifRootVertex, conditionExpr, EdgeLabel.CONDITION)
+        }.onFailure { e -> logger.warn(e.message) }
         addSootToPlumeAssociation(unit, conditionExpr)
         return ifRootVertex
     }
@@ -353,17 +392,23 @@ class ASTBuilder(private val driver: IDriver) : IGraphBuilder {
                     addSootToPlumeAssociation(leftOp.base, this)
                 }
             else -> {
-                logger.debug("Unhandled class for leftOp under projectVariableAssignment: ${leftOp.javaClass} " +
-                        "containing value $leftOp")
+                logger.debug(
+                    "Unhandled class for leftOp under projectVariableAssignment: ${leftOp.javaClass} " +
+                            "containing value $leftOp"
+                )
                 null
             }
         }?.let {
-            driver.addEdge(assignBlock, it, EdgeLabel.AST)
+            runCatching {
+                driver.addEdge(assignBlock, it, EdgeLabel.AST)
+            }.onFailure { e -> logger.warn(e.message) }
             assignVariables.add(it)
             addSootToPlumeAssociation(leftOp, it)
         }
         projectOp(rightOp, 1)?.let {
-            driver.addEdge(assignBlock, it, EdgeLabel.AST)
+            runCatching {
+                driver.addEdge(assignBlock, it, EdgeLabel.AST)
+            }.onFailure { e -> logger.warn(e.message) }
             assignVariables.add(it)
             addSootToPlumeAssociation(rightOp, it)
         }
@@ -396,12 +441,16 @@ class ASTBuilder(private val driver: IDriver) : IGraphBuilder {
             columnNumber = currentCol
         ).apply { binopVertices.add(this) }
         projectOp(expr.op1, 0)?.let {
-            driver.addEdge(binOpBlock, it, EdgeLabel.AST)
+            runCatching {
+                driver.addEdge(binOpBlock, it, EdgeLabel.AST)
+            }.onFailure { e -> logger.warn(e.message) }
             binopVertices.add(it)
             addSootToPlumeAssociation(expr.op1, it)
         }
         projectOp(expr.op2, 1)?.let {
-            driver.addEdge(binOpBlock, it, EdgeLabel.AST)
+            runCatching {
+                driver.addEdge(binOpBlock, it, EdgeLabel.AST)
+            }.onFailure { e -> logger.warn(e.message) }
             binopVertices.add(it)
             addSootToPlumeAssociation(expr.op2, it)
         }
@@ -428,12 +477,16 @@ class ASTBuilder(private val driver: IDriver) : IGraphBuilder {
             columnNumber = currentCol
         ).apply { conditionVertices.add(this) }
         projectOp(expr.op1, 0)?.let {
-            driver.addEdge(binOpBlock, it, EdgeLabel.AST)
+            runCatching {
+                driver.addEdge(binOpBlock, it, EdgeLabel.AST)
+            }.onFailure { e -> logger.warn(e.message) }
             conditionVertices.add(it)
             addSootToPlumeAssociation(expr.op1, it)
         }
         projectOp(expr.op2, 1)?.let {
-            driver.addEdge(binOpBlock, it, EdgeLabel.AST)
+            runCatching {
+                driver.addEdge(binOpBlock, it, EdgeLabel.AST)
+            }.onFailure { e -> logger.warn(e.message) }
             conditionVertices.add(it)
             addSootToPlumeAssociation(expr.op2, it)
         }
@@ -457,7 +510,9 @@ class ASTBuilder(private val driver: IDriver) : IGraphBuilder {
             columnNumber = currentCol
         ).apply { castVertices.add(this) }
         projectOp(expr.op, 0)?.let {
-            driver.addEdge(castBlock, it, EdgeLabel.AST); castVertices.add(it)
+            runCatching {
+                driver.addEdge(castBlock, it, EdgeLabel.AST); castVertices.add(it)
+            }.onFailure { e -> logger.warn(e.message) }
         }
         // Save PDG arguments
         addSootToPlumeAssociation(expr, castVertices)
@@ -471,16 +526,20 @@ class ASTBuilder(private val driver: IDriver) : IGraphBuilder {
             is CastExpr -> projectCastExpr(expr, childIdx)
             is BinopExpr -> projectBinopExpr(expr, childIdx)
             is InvokeExpr -> projectCallVertex(expr, childIdx)
-            is StaticFieldRef -> SootToPlumeUtil.createFieldIdentifierVertex(expr,
+            is StaticFieldRef -> SootToPlumeUtil.createFieldIdentifierVertex(
+                expr,
                 currentLine,
                 currentCol,
-                childIdx)
+                childIdx
+            )
             is NewExpr -> createNewExpr(expr, childIdx)
             is NewArrayExpr -> createNewArrayExpr(expr, childIdx)
-            is CaughtExceptionRef -> SootToPlumeUtil.createIdentifierVertex(expr,
+            is CaughtExceptionRef -> SootToPlumeUtil.createIdentifierVertex(
+                expr,
                 currentLine,
                 currentCol,
-                childIdx)
+                childIdx
+            )
             else -> {
                 logger.debug("projectOp unhandled class ${expr.javaClass}"); null
             }
@@ -499,7 +558,9 @@ class ASTBuilder(private val driver: IDriver) : IGraphBuilder {
             order = order++
         ).apply { addSootToPlumeAssociation(expr, this) }
         ArrayInitializerVertex(order++).let {
-            driver.addEdge(typeRef, it, EdgeLabel.AST)
+            runCatching {
+                driver.addEdge(typeRef, it, EdgeLabel.AST)
+            }.onFailure { e -> logger.warn(e.message) }
             newArrayExprVertices.add(it)
         }
         addSootToPlumeAssociation(expr, newArrayExprVertices)
@@ -527,7 +588,9 @@ class ASTBuilder(private val driver: IDriver) : IGraphBuilder {
             order = order++
         )
         projectOp(ret.op, childIdx + 1)?.let { driver.addEdge(retV, it, EdgeLabel.AST) }
-        driver.addEdge(getSootAssociation(graph.body.method)?.first { it is BlockVertex }!!, retV, EdgeLabel.AST)
+        runCatching {
+            driver.addEdge(getSootAssociation(graph.body.method)?.first { it is BlockVertex }!!, retV, EdgeLabel.AST)
+        }.onFailure { e -> logger.warn(e.message) }
         return retV
     }
 
@@ -539,7 +602,9 @@ class ASTBuilder(private val driver: IDriver) : IGraphBuilder {
             columnNumber = ret.javaSourceStartColumnNumber,
             order = order++
         )
-        driver.addEdge(getSootAssociation(graph.body.method)?.first { it is BlockVertex }!!, retV, EdgeLabel.AST)
+        runCatching {
+            driver.addEdge(getSootAssociation(graph.body.method)?.first { it is BlockVertex }!!, retV, EdgeLabel.AST)
+        }.onFailure { e -> logger.warn(e.message) }
         return retV
     }
 

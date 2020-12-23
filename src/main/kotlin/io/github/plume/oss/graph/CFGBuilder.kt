@@ -15,17 +15,20 @@
  */
 package io.github.plume.oss.graph
 
+import io.github.plume.oss.Extractor.Companion.getSootAssociation
+import io.github.plume.oss.domain.enums.EdgeLabel
+import io.github.plume.oss.domain.models.PlumeVertex
+import io.github.plume.oss.domain.models.vertices.BlockVertex
+import io.github.plume.oss.domain.models.vertices.ControlStructureVertex
+import io.github.plume.oss.domain.models.vertices.JumpTargetVertex
+import io.github.plume.oss.domain.models.vertices.MethodReturnVertex
+import io.github.plume.oss.drivers.IDriver
+import io.github.plume.oss.util.ExtractorConst.FALSE_TARGET
+import io.github.plume.oss.util.ExtractorConst.TRUE_TARGET
 import org.apache.logging.log4j.LogManager
 import soot.Unit
 import soot.jimple.*
 import soot.toolkits.graph.BriefUnitGraph
-import io.github.plume.oss.Extractor.Companion.getSootAssociation
-import io.github.plume.oss.domain.enums.EdgeLabel
-import io.github.plume.oss.domain.models.PlumeVertex
-import io.github.plume.oss.domain.models.vertices.*
-import io.github.plume.oss.drivers.IDriver
-import io.github.plume.oss.util.ExtractorConst.FALSE_TARGET
-import io.github.plume.oss.util.ExtractorConst.TRUE_TARGET
 
 /**
  * The [IGraphBuilder] that constructs the dependence edges in the graph.
@@ -50,11 +53,9 @@ class CFGBuilder(private val driver: IDriver) : IGraphBuilder {
                     val mtdV = getSootAssociation(mtd)
                     val bodyVertex = mtdV?.first { mtdVertices -> mtdVertices is BlockVertex }!!
                     mtdV.firstOrNull()?.let { mtdVertex -> driver.addEdge(mtdVertex, bodyVertex, EdgeLabel.CFG) }
-                    driver.addEdge(
-                            fromV = bodyVertex,
-                            toV = succVert,
-                            edge = EdgeLabel.CFG
-                    )
+                    runCatching {
+                        driver.addEdge(bodyVertex, succVert, EdgeLabel.CFG)
+                    }.onFailure { e -> logger.warn(e.message) }
                 }
             }
         }
@@ -78,7 +79,11 @@ class CFGBuilder(private val driver: IDriver) : IGraphBuilder {
                 graph.getSuccsOf(sourceUnit).forEach {
                     val targetUnit = if (it is GotoStmt) it.target else it
                     if (sourceVertex != null) {
-                        getSootAssociation(targetUnit)?.let { vList -> driver.addEdge(sourceVertex, vList.first(), EdgeLabel.CFG) }
+                        getSootAssociation(targetUnit)?.let { vList ->
+                            runCatching {
+                                driver.addEdge(sourceVertex, vList.first(), EdgeLabel.CFG)
+                            }.onFailure { e -> logger.warn(e.message) }
+                        }
                     }
                 }
             }
@@ -109,21 +114,39 @@ class CFGBuilder(private val driver: IDriver) : IGraphBuilder {
         }
     }
 
-    private fun projectSwitchTarget(lookupVertices: List<PlumeVertex>, lookupValue: Int, lookupVertex: ControlStructureVertex, tgt: Unit) {
+    private fun projectSwitchTarget(
+        lookupVertices: List<PlumeVertex>,
+        lookupValue: Int,
+        lookupVertex: ControlStructureVertex,
+        tgt: Unit
+    ) {
         val tgtV = lookupVertices.first { it is JumpTargetVertex && it.argumentIndex == lookupValue }
-        driver.addEdge(lookupVertex, tgtV, EdgeLabel.CFG)
-        getSootAssociation(tgt)?.let { vList ->
-            driver.addEdge(tgtV, vList.first(), EdgeLabel.CFG)
+        projectTargetPath(lookupVertex, tgtV, tgt)
+    }
+
+    private fun projectSwitchDefault(
+        unit: SwitchStmt,
+        switchVertices: List<PlumeVertex>,
+        switchVertex: ControlStructureVertex
+    ) {
+        unit.defaultTarget.let { defaultUnit ->
+            val tgtV = switchVertices.first { it is JumpTargetVertex && it.name == "DEFAULT" }
+            projectTargetPath(switchVertex, tgtV, defaultUnit)
         }
     }
 
-    private fun projectSwitchDefault(unit: SwitchStmt, switchVertices: List<PlumeVertex>, switchVertex: ControlStructureVertex) {
-        unit.defaultTarget.let { defaultUnit ->
-            val tgtV = switchVertices.first { it is JumpTargetVertex && it.name == "DEFAULT" }
-            driver.addEdge(switchVertex, tgtV, EdgeLabel.CFG)
-            getSootAssociation(defaultUnit)?.let { vList ->
+    private fun projectTargetPath(
+        lookupVertex: ControlStructureVertex,
+        tgtV: PlumeVertex,
+        tgt: Unit
+    ) {
+        runCatching {
+            driver.addEdge(lookupVertex, tgtV, EdgeLabel.CFG)
+        }.onFailure { e -> logger.warn(e.message) }
+        getSootAssociation(tgt)?.let { vList ->
+            runCatching {
                 driver.addEdge(tgtV, vList.first(), EdgeLabel.CFG)
-            }
+            }.onFailure { e -> logger.warn(e.message) }
         }
     }
 
@@ -138,24 +161,22 @@ class CFGBuilder(private val driver: IDriver) : IGraphBuilder {
             val tgtVertices = if (it is GotoStmt) getSootAssociation(it.target)
             else getSootAssociation(it)
             tgtVertices?.let { vList ->
-                driver.addEdge(ifVertices.first(), srcVertex, EdgeLabel.CFG)
-                driver.addEdge(srcVertex, vList.first(), EdgeLabel.CFG)
+                runCatching {
+                    driver.addEdge(ifVertices.first(), srcVertex, EdgeLabel.CFG)
+                }.onFailure { e -> logger.warn(e.message) }
+                runCatching {
+                    driver.addEdge(srcVertex, vList.first(), EdgeLabel.CFG)
+                }.onFailure { e -> logger.warn(e.message) }
             }
         }
     }
 
-    private fun projectReturnEdge(unit: ReturnStmt) {
+    private fun projectReturnEdge(unit: Stmt) {
         getSootAssociation(unit)?.firstOrNull()?.let { src ->
             getSootAssociation(graph.body.method)?.filterIsInstance<MethodReturnVertex>()?.firstOrNull()?.let { tgt ->
-                driver.addEdge(src, tgt, EdgeLabel.CFG)
-            }
-        }
-    }
-
-    private fun projectReturnEdge(unit: ReturnVoidStmt) {
-        getSootAssociation(unit)?.firstOrNull()?.let { src ->
-            getSootAssociation(graph.body.method)?.filterIsInstance<MethodReturnVertex>()?.firstOrNull()?.let { tgt ->
-                driver.addEdge(src, tgt, EdgeLabel.CFG)
+                runCatching {
+                    driver.addEdge(src, tgt, EdgeLabel.CFG)
+                }.onFailure { e -> logger.warn(e.message) }
             }
         }
     }

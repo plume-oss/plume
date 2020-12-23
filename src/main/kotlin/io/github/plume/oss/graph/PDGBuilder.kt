@@ -15,16 +15,17 @@
  */
 package io.github.plume.oss.graph
 
+import io.github.plume.oss.Extractor.Companion.getSootAssociation
+import io.github.plume.oss.domain.enums.EdgeLabel
+import io.github.plume.oss.domain.models.vertices.CallVertex
+import io.github.plume.oss.domain.models.vertices.IdentifierVertex
+import io.github.plume.oss.domain.models.vertices.LocalVertex
+import io.github.plume.oss.domain.models.vertices.MethodParameterInVertex
+import io.github.plume.oss.drivers.IDriver
 import org.apache.logging.log4j.LogManager
 import soot.Local
 import soot.jimple.*
 import soot.toolkits.graph.BriefUnitGraph
-import io.github.plume.oss.Extractor
-import io.github.plume.oss.Extractor.Companion.getSootAssociation
-import io.github.plume.oss.domain.enums.EdgeLabel
-import io.github.plume.oss.domain.models.PlumeVertex
-import io.github.plume.oss.domain.models.vertices.*
-import io.github.plume.oss.drivers.IDriver
 
 /**
  * The [IGraphBuilder] that constructs the program dependence edges in the graph.
@@ -53,16 +54,17 @@ class PDGBuilder(private val driver: IDriver) : IGraphBuilder {
         this.graph.body.units.filterIsInstance<IfStmt>().map { it.condition }.forEach(this::projectCallArg)
         // Invoke ARGUMENT edges
         this.graph.body.units
-                .filterIsInstance<InvokeStmt>()
-                .map { it.invokeExpr as InvokeExpr }
-                .forEach(this::projectCallArg)
+            .filterIsInstance<InvokeStmt>()
+            .map { it.invokeExpr as InvokeExpr }
+            .forEach(this::projectCallArg)
     }
 
     private fun projectCallArg(value: Any) {
-        val src = getSootAssociation(value)?.firstOrNull { it is CallVertex }
-        getSootAssociation(value)?.filter { it != src }?.forEach {
-            if (src != null) {
-                driver.addEdge(src, it, EdgeLabel.ARGUMENT)
+        getSootAssociation(value)?.firstOrNull { it is CallVertex }?.let { src ->
+            getSootAssociation(value)?.filter { it != src }?.forEach {
+                runCatching {
+                    driver.addEdge(src, it, EdgeLabel.ARGUMENT)
+                }.onFailure { e -> logger.warn(e.message) }
             }
         }
     }
@@ -71,10 +73,11 @@ class PDGBuilder(private val driver: IDriver) : IGraphBuilder {
         getSootAssociation(local)?.let { assocVertices ->
             assocVertices.filterIsInstance<IdentifierVertex>().forEach { identifierV ->
                 assocVertices.firstOrNull { it is LocalVertex || it is MethodParameterInVertex }?.let { src ->
-                    driver.addEdge(identifierV, src, EdgeLabel.REF)
+                    runCatching {
+                        driver.addEdge(identifierV, src, EdgeLabel.REF)
+                    }.onFailure { e -> logger.warn(e.message) }
                 }
             }
         }
     }
-
 }
