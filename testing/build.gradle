@@ -15,7 +15,7 @@ dependencies {
     implementation "io.shiftleft:codepropertygraph_2.13:$shiftleftVersion"
     implementation "io.shiftleft:semanticcpg_2.13:$shiftleftVersion"
 
-    testImplementation project(":main")
+    testImplementation project(":extractor")
     testImplementation "io.shiftleft:semanticcpg-tests_2.13:$shiftleftVersion:tests"
     testImplementation "org.scalatest:scalatest_2.13:3.1.1"
     testRuntime 'com.vladsch.flexmark:flexmark-all:0.35.10'
