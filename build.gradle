@@ -22,6 +22,16 @@ repositories {
     maven { url = "https://kotlin.bintray.com/kotlinx/" }
 }
 
+configurations {
+    subProject {
+        canBeResolved = true
+        canBeConsumed = false
+    }
+    compileClasspath.extendsFrom(subProject)
+    runtimeClasspath.extendsFrom(subProject)
+    testRuntimeClasspath.extendsFrom(subProject)
+}
+
 dependencies {
     // Kotlin
     implementation "org.jetbrains.kotlin:kotlin-stdlib-jdk8:$kotlinVersion"
@@ -43,8 +53,8 @@ dependencies {
     implementation "org.soot-oss:soot:$sootVersion"
     implementation "org.lz4:lz4-java:$lz4Version"
 
-    // CPG integration
-    implementation project(":cpgconv")
+    // Sub-project integration
+    subProject project(":cpgconv")
 
     // Orchid Docs
     orchidRuntime "io.github.javaeden.orchid:OrchidDocs:$orchidVersion"
