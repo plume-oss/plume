@@ -27,7 +27,7 @@ jobs:
         run: ./gradlew classes
       - name: Run unit tests
         run: ./gradlew test
-      -name: Run scalatest
+      - name: Run scalatest
         run: ./gradlew scalatest
       - name: Run TinkerGaph integration tests
         run: ./gradlew tinkerGraphIntTest
