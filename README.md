@@ -54,14 +54,15 @@ repositories {
 
 ## Building from Source
 
-In order to use Plume one will need to build from the source code. This will be the case until the Plume project
-can be hosted on a Maven repository or similar.
+Plume releases are available on JCenter. If downloading from JCenter
+is not an option or you would like to depend on a modified version of
+Plume, you can build Plume locally and use it as an unmanaged
+dependency. JDK version 11 or higher is required.
 
 ```shell script
 git clone https://github.com/plume-oss/plume.git
-cd plume-driver
-./gradlew oneJar # For main artifact only
-./gradlew fatJar # For fat jar with dependencies
+cd plume
+./gradlew jar
 ```
 This will build `target/plume-X.X.X[-all].jar` which is imported into your local project.
 
