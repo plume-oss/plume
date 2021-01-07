@@ -9,8 +9,8 @@ repositories {
 }
 
 dependencies {
-    implementation 'io.shiftleft:codepropertygraph_2.13:1.3.5'
-    implementation 'io.shiftleft:semanticcpg_2.13:1.3.5'
+    implementation "io.shiftleft:codepropertygraph_2.13:$shiftleftVersion"
+    implementation "io.shiftleft:semanticcpg_2.13:$shiftleftVersion"
 }
 
 group = "io.github.plume-oss"

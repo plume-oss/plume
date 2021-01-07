@@ -54,14 +54,19 @@ object CpgDomainObjCreator {
       typeFullName = typeFullName
     )
 
-  def controlStructure(code: String, columnNumber: Int, lineNumber: Int, order: Int, argumentIndex: Int):
-    nodes.NewControlStructure = nodes.NewControlStructure(
-      code = code,
-      columnNumber = Some(columnNumber),
-      lineNumber = Some(lineNumber),
-      order = order,
-      argumentIndex = argumentIndex
-    )
+  def controlStructure(
+    code: String,
+    columnNumber: Int,
+    lineNumber: Int,
+    order: Int,
+    argumentIndex: Int
+  ): nodes.NewControlStructure = nodes.NewControlStructure(
+    code = code,
+    columnNumber = Some(columnNumber),
+    lineNumber = Some(lineNumber),
+    order = order,
+    argumentIndex = argumentIndex
+  )
 
   def fieldIdentifier(
     canonicalName: String,
@@ -82,16 +87,22 @@ object CpgDomainObjCreator {
   def file(name: String, hash: String, order: Int): nodes.NewFile =
     nodes.NewFile(name = name, hash = Some(hash), order = order)
 
-  def jumpTarget(code: String, name: String, columnNumber: Int, lineNumber: Int, order: Int, argumentIndex: Int):
-    nodes.NewJumpTarget =
-      nodes.NewJumpTarget(
-        code = code,
-        name = name,
-        columnNumber = Some(columnNumber),
-        lineNumber = Some(lineNumber),
-        order = order,
-        argumentIndex = argumentIndex
-      )
+  def jumpTarget(
+    code: String,
+    name: String,
+    columnNumber: Int,
+    lineNumber: Int,
+    order: Int,
+    argumentIndex: Int
+  ): nodes.NewJumpTarget =
+    nodes.NewJumpTarget(
+      code = code,
+      name = name,
+      columnNumber = Some(columnNumber),
+      lineNumber = Some(lineNumber),
+      order = order,
+      argumentIndex = argumentIndex
+    )
 
   def identifier(
     code: String,
