@@ -2,235 +2,235 @@ package io.github.plume.oss.domain.mappers
 
 import io.github.plume.oss.domain.enums.*
 import io.github.plume.oss.domain.enums.VertexLabel.*
-import io.github.plume.oss.domain.models.PlumeVertex
-import io.github.plume.oss.domain.models.vertices.*
+import io.shiftleft.codepropertygraph.generated.nodes.*
 
 /**
- * Responsible for marshalling and unmarshalling vertex properties to and from [PlumeVertex] objects to [Map] objects.
+ * Responsible for marshalling and unmarshalling vertex properties to and from [NewNode] objects to [Map] objects.
  */
 object VertexMapper {
     /**
-     * Converts a [PlumeVertex]'s properties to a key-value [Map].
+     * Converts a [NewNode]'s properties to a key-value [Map].
      *
      * @param v The vertex to serialize.
      * @return a [MutableMap] of the vertex's
      */
-    fun vertexToMap(v: PlumeVertex): MutableMap<String, Any> {
+    fun vertexToMap(v: NewNode): MutableMap<String, Any> {
         val properties = emptyMap<String, Any>().toMutableMap()
         when (v) {
-            is ArrayInitializerVertex -> {
-                properties["label"] = ArrayInitializerVertex.LABEL.name
-                properties["order"] = v.order
+            is NewArrayInitializer -> {
+                properties["label"] = ArrayInitializer.Label()
+                properties["order"] = v.order()
             }
-            is BindingVertex -> {
-                properties["label"] = BindingVertex.LABEL.name
-                properties["name"] = v.name
-                properties["signature"] = v.signature
+            is NewBinding -> {
+                properties["label"] = Binding.Label()
+                properties["name"] = v.name()
+                properties["signature"] = v.signature()
             }
-            is BlockVertex -> {
-                properties["label"] = BlockVertex.LABEL.name
-                properties["typeFullName"] = v.typeFullName
-                properties["order"] = v.order
-                properties["argumentIndex"] = v.argumentIndex
-                properties["code"] = v.code
-                properties["columnNumber"] = v.columnNumber
-                properties["lineNumber"] = v.lineNumber
+            is NewBlock -> {
+                properties["label"] = Block.Label()
+                properties["typeFullName"] = v.typeFullName()
+                properties["order"] = v.order()
+                properties["argumentIndex"] = v.argumentIndex()
+                properties["code"] = v.code()
+                properties["columnNumber"] = v.columnNumber().get()
+                properties["lineNumber"] = v.lineNumber().get()
             }
-            is CallVertex -> {
-                properties["label"] = CallVertex.LABEL.name
-                properties["typeFullName"] = v.typeFullName
-                properties["order"] = v.order
-                properties["argumentIndex"] = v.argumentIndex
-                properties["code"] = v.code
-                properties["columnNumber"] = v.columnNumber
-                properties["lineNumber"] = v.lineNumber
-                properties["dispatchType"] = v.dispatchType.name
-                properties["dynamicTypeHintFullName"] = v.dynamicTypeHintFullName
-                properties["methodFullName"] = v.methodFullName
-                properties["signature"] = v.signature
-                properties["name"] = v.name
+            is NewCall -> {
+                properties["label"] = Call.Label()
+                properties["typeFullName"] = v.typeFullName()
+                properties["order"] = v.order()
+                properties["argumentIndex"] = v.argumentIndex()
+                properties["code"] = v.code()
+                properties["columnNumber"] = v.columnNumber().get()
+                properties["lineNumber"] = v.lineNumber().get()
+                properties["dispatchType"] = v.dispatchType()
+//                properties["dynamicTypeHintFullName"] = v.dynamicTypeHintFullName
+                properties["methodFullName"] = v.methodFullName()
+                properties["signature"] = v.signature()
+                properties["name"] = v.name()
             }
-            is ControlStructureVertex -> {
-                properties["label"] = ControlStructureVertex.LABEL.name
-                properties["order"] = v.order
-                properties["argumentIndex"] = v.argumentIndex
-                properties["code"] = v.code
-                properties["columnNumber"] = v.columnNumber
-                properties["lineNumber"] = v.lineNumber
+            is NewControlStructure -> {
+                properties["label"] = ControlStructure.Label()
+                properties["order"] = v.order()
+                properties["argumentIndex"] = v.argumentIndex()
+                properties["code"] = v.code()
+                properties["columnNumber"] = v.columnNumber().get()
+                properties["lineNumber"] = v.lineNumber().get()
             }
-            is FieldIdentifierVertex -> {
-                properties["label"] = FieldIdentifierVertex.LABEL.name
-                properties["order"] = v.order
-                properties["argumentIndex"] = v.argumentIndex
-                properties["code"] = v.code
-                properties["columnNumber"] = v.columnNumber
-                properties["lineNumber"] = v.lineNumber
-                properties["canonicalName"] = v.canonicalName
+            is NewFieldIdentifier -> {
+                properties["label"] = FieldIdentifier.Label()
+                properties["order"] = v.order()
+                properties["argumentIndex"] = v.argumentIndex()
+                properties["code"] = v.code()
+                properties["columnNumber"] = v.columnNumber().get()
+                properties["lineNumber"] = v.lineNumber().get()
+                properties["canonicalName"] = v.canonicalName()
             }
-            is FileVertex -> {
-                properties["label"] = FileVertex.LABEL.name
-                properties["order"] = v.order
-                properties["name"] = v.name
-                properties["hash"] = v.hash
+            is NewFile -> {
+                properties["label"] = File.Label()
+                properties["order"] = v.order()
+                properties["name"] = v.name()
+                properties["hash"] = v.hash().get()
             }
-            is IdentifierVertex -> {
-                properties["label"] = IdentifierVertex.LABEL.name
-                properties["typeFullName"] = v.typeFullName
-                properties["order"] = v.order
-                properties["argumentIndex"] = v.argumentIndex
-                properties["code"] = v.code
-                properties["columnNumber"] = v.columnNumber
-                properties["lineNumber"] = v.lineNumber
-                properties["name"] = v.name
+            is NewIdentifier -> {
+                properties["label"] = Identifier.Label()
+                properties["typeFullName"] = v.typeFullName()
+                properties["order"] = v.order()
+                properties["argumentIndex"] = v.argumentIndex()
+                properties["code"] = v.code()
+                properties["columnNumber"] = v.columnNumber().get()
+                properties["lineNumber"] = v.lineNumber().get()
+                properties["name"] = v.name()
             }
-            is JumpTargetVertex -> {
-                properties["label"] = JumpTargetVertex.LABEL.name
-                properties["order"] = v.order
-                properties["argumentIndex"] = v.argumentIndex
-                properties["code"] = v.code
-                properties["columnNumber"] = v.columnNumber
-                properties["lineNumber"] = v.lineNumber
-                properties["name"] = v.name
+            is NewJumpTarget -> {
+                properties["label"] = JumpTarget.Label()
+                properties["order"] = v.order()
+                properties["argumentIndex"] = v.argumentIndex()
+                properties["code"] = v.code()
+                properties["columnNumber"] = v.columnNumber().get()
+                properties["lineNumber"] = v.lineNumber().get()
+                properties["name"] = v.name()
             }
-            is LiteralVertex -> {
-                properties["label"] = LiteralVertex.LABEL.name
-                properties["typeFullName"] = v.typeFullName
-                properties["order"] = v.order
-                properties["argumentIndex"] = v.argumentIndex
-                properties["code"] = v.code
-                properties["columnNumber"] = v.columnNumber
-                properties["lineNumber"] = v.lineNumber
+            is NewLiteral -> {
+                properties["label"] = Literal.Label()
+                properties["typeFullName"] = v.typeFullName()
+                properties["order"] = v.order()
+                properties["argumentIndex"] = v.argumentIndex()
+                properties["code"] = v.code()
+                properties["columnNumber"] = v.columnNumber().get()
+                properties["lineNumber"] = v.lineNumber().get()
             }
-            is LocalVertex -> {
-                properties["label"] = LocalVertex.LABEL.name
-                properties["typeFullName"] = v.typeFullName
-                properties["order"] = v.order
-                properties["code"] = v.code
-                properties["columnNumber"] = v.columnNumber
-                properties["lineNumber"] = v.lineNumber
-                properties["name"] = v.name
+            is NewLocal -> {
+                properties["label"] = Local.Label()
+                properties["typeFullName"] = v.typeFullName()
+                properties["order"] = v.order()
+                properties["code"] = v.code()
+                properties["columnNumber"] = v.columnNumber().get()
+                properties["lineNumber"] = v.lineNumber().get()
+                properties["name"] = v.name()
             }
-            is MemberVertex -> {
-                properties["label"] = MemberVertex.LABEL.name
-                properties["typeFullName"] = v.typeFullName
-                properties["order"] = v.order
-                properties["code"] = v.code
-                properties["name"] = v.name
+            is NewMember -> {
+                properties["label"] = Member.Label()
+                properties["typeFullName"] = v.typeFullName()
+                properties["order"] = v.order()
+                properties["code"] = v.code()
+                properties["name"] = v.name()
             }
-            is MetaDataVertex -> {
-                properties["label"] = MetaDataVertex.LABEL.name
-                properties["language"] = v.language
-                properties["version"] = v.language
+            is NewMetaData -> {
+                properties["label"] = MetaData.Label()
+                properties["language"] = v.language()
+                properties["version"] = v.version()
             }
-            is MethodParameterInVertex -> {
-                properties["label"] = MethodParameterInVertex.LABEL.name
-                properties["typeFullName"] = v.typeFullName
-                properties["order"] = v.order
-                properties["code"] = v.code
-                properties["lineNumber"] = v.lineNumber
-                properties["name"] = v.name
-                properties["evaluationStrategy"] = v.evaluationStrategy.name
+            is NewMethodParameterIn -> {
+                properties["label"] = MethodParameterIn.Label()
+                properties["typeFullName"] = v.typeFullName()
+                properties["order"] = v.order()
+                properties["code"] = v.code()
+                properties["lineNumber"] = v.lineNumber().get()
+                properties["columnNumber"] = v.columnNumber().get()
+                properties["name"] = v.name()
+                properties["evaluationStrategy"] = v.evaluationStrategy()
             }
-            is MethodRefVertex -> {
-                properties["label"] = MethodRefVertex.LABEL.name
-                properties["order"] = v.order
-                properties["argumentIndex"] = v.argumentIndex
-                properties["code"] = v.code
-                properties["columnNumber"] = v.columnNumber
-                properties["lineNumber"] = v.lineNumber
-                properties["methodFullName"] = v.methodFullName
-                properties["methodInstFullName"] = v.methodInstFullName
+            is NewMethodRef -> {
+                properties["label"] = MethodRef.Label()
+                properties["order"] = v.order()
+                properties["argumentIndex"] = v.argumentIndex()
+                properties["code"] = v.code()
+                properties["columnNumber"] = v.columnNumber().get()
+                properties["lineNumber"] = v.lineNumber().get()
+                properties["methodFullName"] = v.methodFullName()
+                properties["methodInstFullName"] = v.methodInstFullName()
             }
-            is MethodReturnVertex -> {
-                properties["label"] = MethodReturnVertex.LABEL.name
-                properties["typeFullName"] = v.typeFullName
-                properties["order"] = v.order
-                properties["code"] = v.code
-                properties["columnNumber"] = v.columnNumber
-                properties["lineNumber"] = v.lineNumber
-                properties["evaluationStrategy"] = v.evaluationStrategy.name
+            is NewMethodReturn -> {
+                properties["label"] = MethodReturn.Label()
+                properties["typeFullName"] = v.typeFullName()
+                properties["order"] = v.order()
+                properties["code"] = v.code()
+                properties["columnNumber"] = v.columnNumber().get()
+                properties["lineNumber"] = v.lineNumber().get()
+                properties["evaluationStrategy"] = v.evaluationStrategy()
             }
-            is MethodVertex -> {
-                properties["label"] = MethodVertex.LABEL.name
-                properties["order"] = v.order
-                properties["code"] = v.code
-                properties["columnNumber"] = v.columnNumber
-                properties["lineNumber"] = v.lineNumber
-                properties["signature"] = v.signature
-                properties["name"] = v.name
-                properties["fullName"] = v.fullName
+            is NewMethod -> {
+                properties["label"] = Method.Label()
+                properties["order"] = v.order()
+                properties["code"] = v.code()
+                properties["columnNumber"] = v.columnNumber().get()
+                properties["lineNumber"] = v.lineNumber().get()
+                properties["signature"] = v.signature()
+                properties["name"] = v.name()
+                properties["fullName"] = v.fullName()
             }
-            is ModifierVertex -> {
-                properties["label"] = ModifierVertex.LABEL.name
-                properties["order"] = v.order
-                properties["modifierType"] = v.modifierType.name
+            is NewModifier -> {
+                properties["label"] = Modifier.Label()
+                properties["order"] = v.order()
+                properties["modifierType"] = v.modifierType()
             }
-            is NamespaceBlockVertex -> {
-                properties["label"] = NamespaceBlockVertex.LABEL.name
-                properties["order"] = v.order
-                properties["name"] = v.name
-                properties["fullName"] = v.fullName
+            is NewNamespaceBlock -> {
+                properties["label"] = NamespaceBlock.Label()
+                properties["order"] = v.order()
+                properties["name"] = v.name()
+                properties["fullName"] = v.fullName()
             }
-            is ReturnVertex -> {
-                properties["label"] = ReturnVertex.LABEL.name
-                properties["order"] = v.order
-                properties["argumentIndex"] = v.argumentIndex
-                properties["code"] = v.code
-                properties["columnNumber"] = v.columnNumber
-                properties["lineNumber"] = v.lineNumber
+            is NewReturn -> {
+                properties["label"] = Return.Label()
+                properties["order"] = v.order()
+                properties["argumentIndex"] = v.argumentIndex()
+                properties["code"] = v.code()
+                properties["columnNumber"] = v.columnNumber().get()
+                properties["lineNumber"] = v.lineNumber().get()
             }
-            is TypeArgumentVertex -> {
-                properties["label"] = TypeArgumentVertex.LABEL.name
-                properties["order"] = v.order
+            is NewTypeArgument -> {
+                properties["label"] = TypeArgument.Label()
+                properties["order"] = v.order()
             }
-            is TypeDeclVertex -> {
-                properties["label"] = TypeDeclVertex.LABEL.name
-                properties["order"] = v.order
-                properties["name"] = v.name
-                properties["fullName"] = v.fullName
-                properties["typeDeclFullName"] = v.typeDeclFullName
+            is NewTypeDecl -> {
+                properties["label"] = TypeDecl.Label()
+                properties["order"] = v.order()
+                properties["name"] = v.name()
+                properties["fullName"] = v.fullName()
+//                properties["typeDeclFullName"] = v.typeDeclFullName
             }
-            is TypeParameterVertex -> {
-                properties["label"] = TypeParameterVertex.LABEL.name
-                properties["order"] = v.order
-                properties["name"] = v.name
+            is NewTypeParameter -> {
+                properties["label"] = TypeParameter.Label()
+                properties["order"] = v.order()
+                properties["name"] = v.name()
             }
-            is TypeRefVertex -> {
-                properties["label"] = TypeRefVertex.LABEL.name
-                properties["typeFullName"] = v.typeFullName
-                properties["order"] = v.order
-                properties["argumentIndex"] = v.argumentIndex
-                properties["code"] = v.code
-                properties["columnNumber"] = v.columnNumber
-                properties["lineNumber"] = v.lineNumber
-                properties["dynamicTypeFullName"] = v.dynamicTypeFullName
+            is NewTypeRef -> {
+                properties["label"] = TypeRef.Label()
+                properties["typeFullName"] = v.typeFullName()
+                properties["order"] = v.order()
+                properties["argumentIndex"] = v.argumentIndex()
+                properties["code"] = v.code()
+                properties["columnNumber"] = v.columnNumber().get()
+                properties["lineNumber"] = v.lineNumber().get()
+//                properties["dynamicTypeFullName"] = v.dynamicTypeFullName
             }
-            is TypeVertex -> {
-                properties["label"] = TypeVertex.LABEL.name
-                properties["name"] = v.name
-                properties["fullName"] = v.fullName
-                properties["typeDeclFullName"] = v.typeDeclFullName
+            is NewType -> {
+                properties["label"] = Type.Label()
+                properties["name"] = v.name()
+                properties["fullName"] = v.fullName()
+                properties["typeDeclFullName"] = v.typeDeclFullName()
             }
-            is UnknownVertex -> {
-                properties["label"] = UnknownVertex.LABEL.name
-                properties["typeFullName"] = v.typeFullName
-                properties["order"] = v.order
-                properties["argumentIndex"] = v.argumentIndex
-                properties["code"] = v.code
-                properties["columnNumber"] = v.columnNumber
-                properties["lineNumber"] = v.lineNumber
+            is NewUnknown -> {
+                properties["label"] = Unknown.Label()
+                properties["typeFullName"] = v.typeFullName()
+                properties["order"] = v.order()
+                properties["argumentIndex"] = v.argumentIndex()
+                properties["code"] = v.code()
+                properties["columnNumber"] = v.columnNumber().get()
+                properties["lineNumber"] = v.lineNumber().get()
             }
         }
         return properties
     }
 
     /**
-     * Converts a [Map] containing vertex properties to its respective [PlumeVertex] object.
+     * Converts a [Map] containing vertex properties to its respective [NewNode] object.
      *
      * @param mapToConvert The [Map] to deserialize.
-     * @return a [PlumeVertex] represented by the information in the given map.
+     * @return a [NewNode] represented by the information in the given map.
      */
-    fun mapToVertex(mapToConvert: Map<String, Any>): PlumeVertex {
+    fun mapToVertex(mapToConvert: Map<String, Any>): NewNode {
         val map = HashMap<String, Any>()
         mapToConvert.keys.forEach {
             when (val value = mapToConvert[it]) {
@@ -239,11 +239,13 @@ object VertexMapper {
             }
         }
         return when (valueOf(map["label"] as String)) {
-            ARRAY_INITIALIZER -> ArrayInitializerVertex(order = map["order"] as Int)
-            BINDING -> BindingVertex(
-                name = map["name"] as String,
-                signature = map["signature"] as String
-            )
+            ARRAY_INITIALIZER -> NewArrayInitializerBuilder()
+                .order(map["order"] as Int)
+                .build()
+            BINDING -> NewBindingBuilder()
+                .name(map["name"] as String)
+                .signature(map["signature"] as String)
+                .build()
             META_DATA -> MetaDataVertex(
                 language = map["language"] as String,
                 version = map["version"] as String

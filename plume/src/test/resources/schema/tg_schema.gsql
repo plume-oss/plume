@@ -13,8 +13,8 @@ CREATE VERTEX CPG_VERT (
     methodInstFullName STRING DEFAULT "null",
     modifierType STRING DEFAULT "null",
     typeFullName STRING DEFAULT "null",
-    typeDeclFullName STRING DEFAULT "null",
-    dynamicTypeFullName STRING DEFAULT "null",
+    typeDeclFullName STRING DEFAULT "null", # watch this in type decls, no longer available
+    dynamicTypeFullName STRING DEFAULT "null", # watch this in type ref and calls
     dynamicTypeHintFullName STRING DEFAULT "null",
     code STRING DEFAULT "null",
     columnNumber INT DEFAULT -1,

@@ -18,9 +18,9 @@ package io.github.plume.oss.graph
 import io.github.plume.oss.Extractor
 import io.github.plume.oss.Extractor.Companion.getSootAssociation
 import io.github.plume.oss.domain.enums.EdgeLabel
-import io.github.plume.oss.domain.models.vertices.MethodVertex
 import io.github.plume.oss.drivers.IDriver
 import io.github.plume.oss.util.SootToPlumeUtil.constructPhantom
+import io.shiftleft.codepropertygraph.generated.nodes.NewMethod
 import org.apache.logging.log4j.LogManager
 import soot.Scene
 import soot.Unit
@@ -41,7 +41,7 @@ class CallGraphBuilder(private val driver: IDriver) : IGraphBuilder {
         val mtd = graph.body.method
         logger.debug("Building call graph edges for ${mtd.declaration}")
         // If this was an updated method, connect call graphs
-        getSootAssociation(mtd)?.filterIsInstance<MethodVertex>()?.first()?.let { reconnectPriorCallGraphEdges(it) }
+        getSootAssociation(mtd)?.filterIsInstance<NewMethod>()?.first()?.let { reconnectPriorCallGraphEdges(it) }
         this.graph = graph
         // Connect all units to their successors
         this.graph.body.units.filterNot { it is IdentityStmt }.forEach(this::projectUnit)
@@ -61,7 +61,7 @@ class CallGraphBuilder(private val driver: IDriver) : IGraphBuilder {
         }
     }
 
-    private fun reconnectPriorCallGraphEdges(mtdV: MethodVertex) {
+    private fun reconnectPriorCallGraphEdges(mtdV: NewMethod) {
         Extractor.getIncomingCallGraphEdges(mtdV)?.let { incomingVs ->
             if (incomingVs.isNotEmpty()) {
                 logger.debug("Saved call graph edges found - reconnecting incoming call graph edges")
