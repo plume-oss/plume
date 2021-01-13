@@ -4,8 +4,10 @@ import io.github.plume.oss.domain.enums.DispatchType
 import io.github.plume.oss.domain.enums.EdgeLabel
 import io.github.plume.oss.domain.enums.EvaluationStrategy
 import io.github.plume.oss.domain.enums.ModifierType
-import io.github.plume.oss.domain.models.vertices.*
 import io.github.plume.oss.drivers.IDriver
+import io.github.plume.oss.util.SootToPlumeUtil.createSingleItemScalaList
+import io.shiftleft.codepropertygraph.generated.nodes.*
+import scala.Option
 
 class TestDomainResources {
     companion object {
@@ -21,58 +23,116 @@ class TestDomainResources {
         val MOD_2 = ModifierType.CONSTRUCTOR
 
         val vertices = listOf(
-                ArrayInitializerVertex(INT_1),
-                BindingVertex(STRING_1, STRING_2),
-                BlockVertex(STRING_1, STRING_1, INT_1, INT_1, INT_1, INT_1),
-                CallVertex(STRING_1, INT_1, DISPATCH_1, STRING_1, STRING_1, STRING_1, STRING_1, STRING_1, INT_1, INT_1, INT_1),
-                ControlStructureVertex(STRING_1, INT_1, INT_1, INT_1, INT_1),
-                FieldIdentifierVertex(STRING_1, STRING_1, INT_1, INT_1, INT_1, INT_1),
-                FileVertex(STRING_1, STRING_2, INT_1),
-                IdentifierVertex(STRING_1, STRING_1, STRING_1, INT_1, INT_1, INT_1, INT_1),
-                JumpTargetVertex(STRING_1, INT_1, INT_1, INT_1, STRING_1, INT_1),
-                LiteralVertex(STRING_1, STRING_1, INT_1, INT_1, INT_1, INT_1),
-                LocalVertex(STRING_1, STRING_1, INT_1, INT_1, STRING_1, INT_1),
-                MemberVertex(STRING_1, STRING_1, STRING_1, INT_1),
-                MetaDataVertex(STRING_1, STRING_1),
-                MethodParameterInVertex(STRING_1, EVAL_1, STRING_1, INT_1, STRING_1, INT_1),
-                MethodRefVertex(STRING_1, STRING_1, STRING_1, INT_1, INT_1, INT_1, INT_1),
-                MethodReturnVertex(STRING_1, EVAL_1, STRING_1, INT_1, INT_1, INT_1),
-                MethodVertex(STRING_1, STRING_1, STRING_1, STRING_1, INT_1, INT_1, INT_1),
-                ModifierVertex(MOD_1, INT_1),
-                NamespaceBlockVertex(STRING_1, STRING_1, INT_1),
-                ReturnVertex(INT_1, INT_1, INT_1, INT_1, STRING_1),
-                TypeArgumentVertex(INT_1),
-                TypeDeclVertex(STRING_1, STRING_1, STRING_1, INT_1),
-                TypeParameterVertex(STRING_1, INT_1),
-                TypeRefVertex(STRING_1, STRING_1, STRING_1, INT_1, INT_1, INT_1, INT_1),
-                TypeVertex(STRING_1, STRING_1, STRING_1),
-                UnknownVertex(STRING_1, STRING_1, INT_1, INT_1, INT_1, INT_1)
+            NewArrayInitializerBuilder().order(INT_1).build(),
+            NewBindingBuilder().name(STRING_1).signature(STRING_2).build(),
+            NewBlockBuilder().typefullname(STRING_1).code(STRING_1).order(INT_1).argumentindex(INT_1)
+                .linenumber(Option.apply(INT_1)).columnnumber(Option.apply(INT_1)).build(),
+            NewCallBuilder().methodfullname(STRING_1).argumentindex(INT_1).dispatchtype(DISPATCH_1.name)
+                .typefullname(STRING_1)
+                .dynamictypehintfullname(createSingleItemScalaList(STRING_1) as scala.collection.immutable.List<String>)
+                .name(STRING_1).signature(STRING_1).code(STRING_1).order(INT_1).linenumber(Option.apply(INT_1))
+                .columnnumber(Option.apply(INT_1)).build(),
+            NewControlStructureBuilder().code(STRING_1).linenumber(Option.apply(INT_1))
+                .columnnumber(Option.apply(INT_1)).order(INT_1).argumentindex(INT_1).build(),
+            NewFieldIdentifierBuilder().canonicalname(STRING_1).code(STRING_1).argumentindex(INT_1).order(INT_1)
+                .linenumber(Option.apply(INT_1)).columnnumber(Option.apply(INT_1)).build(),
+            NewFileBuilder().name(STRING_1).hash(Option.apply(STRING_2)).order(INT_1).build(),
+            NewIdentifierBuilder().name(STRING_1).typefullname(STRING_1).code(STRING_1).order(INT_1)
+                .argumentindex(INT_1).linenumber(Option.apply(INT_1)).columnnumber(Option.apply(INT_1)).build(),
+            NewJumpTargetBuilder().name(STRING_1).argumentindex(INT_1).code(STRING_1).order(INT_1)
+                .linenumber(Option.apply(INT_1)).columnnumber(Option.apply(INT_1)).build(),
+            NewLiteralBuilder().typefullname(STRING_1).code(STRING_1).order(INT_1).argumentindex(INT_1)
+                .linenumber(Option.apply(INT_1)).columnnumber(Option.apply(INT_1)).build(),
+            NewLocalBuilder().code(STRING_1).typefullname(STRING_1).name(STRING_1).order(INT_1)
+                .linenumber(Option.apply(INT_1)).columnnumber(Option.apply(INT_1)).build(),
+            NewMemberBuilder().code(STRING_1).name(STRING_1).typefullname(STRING_1).order(INT_1).build(),
+            NewMetaDataBuilder().language(STRING_1).version(STRING_1).build(),
+            NewMethodParameterInBuilder().code(STRING_1).evaluationstrategy(EVAL_1.name).typefullname(STRING_1)
+                .name(STRING_1).order(INT_1).linenumber(Option.apply(INT_1)).columnnumber(Option.apply(INT_1))
+                .build(),
+            NewMethodRefBuilder().methodinstfullname(Option.apply(STRING_1)).methodfullname(STRING_1).code(STRING_1)
+                .order(INT_1).argumentindex(INT_1).linenumber(Option.apply(INT_1)).columnnumber(Option.apply(INT_1))
+                .build(),
+            NewMethodReturnBuilder().typefullname(STRING_1).evaluationstrategy(EVAL_1.name).code(STRING_1)
+                .order(INT_1).linenumber(Option.apply(INT_1)).columnnumber(Option.apply(INT_1)).build(),
+            NewMethodBuilder().name(STRING_1).fullname(STRING_1).signature(STRING_1).code(STRING_1).order(INT_1)
+                .linenumber(Option.apply(INT_1)).columnnumber(Option.apply(INT_1)).build(),
+            NewModifierBuilder().modifiertype(MOD_1.name).order(INT_1).build(),
+            NewNamespaceBlockBuilder().name(STRING_1).fullname(STRING_1).order(INT_1).build(),
+            NewReturnBuilder().order(INT_1).argumentindex(INT_1).code(STRING_1).linenumber(Option.apply(INT_1))
+                .columnnumber(Option.apply(INT_1)).build(),
+            NewTypeArgumentBuilder().order(INT_1),
+            NewTypeDeclBuilder().name(STRING_1).fullname(STRING_1).order(INT_1).build(),
+            NewTypeParameterBuilder().name(STRING_1).order(INT_1).build(),
+            NewTypeRefBuilder().typefullname(STRING_1)
+                .dynamictypehintfullname(createSingleItemScalaList(STRING_1) as scala.collection.immutable.List<String>)
+                .code(STRING_1).argumentindex(INT_1).order(INT_1).linenumber(Option.apply(INT_1))
+                .columnnumber(Option.apply(INT_1)).build(),
+            NewTypeBuilder().name(STRING_1).fullname(STRING_1).typedeclfullname(STRING_1).build(),
+            NewUnknownBuilder().typefullname(STRING_1).code(STRING_1).order(INT_1).argumentindex(INT_1)
+                .linenumber(Option.apply(INT_1)).columnnumber(Option.apply(INT_1)).build()
         )
 
-        val methodVertex = MethodVertex(STRING_1, STRING_1, STRING_2, STRING_1, INT_1, INT_2, INT_1)
-        val methodParameterInVertex = MethodParameterInVertex(STRING_1, EVAL_1, STRING_1, INT_1, STRING_2, INT_2)
-        val blockVertex = BlockVertex(STRING_1, STRING_1, INT_1, INT_2, INT_2, INT_1)
-        val callVertex = CallVertex(STRING_1, INT_1, DISPATCH_1, STRING_1, STRING_1, STRING_2, STRING_2, STRING_2, INT_1, INT_1, INT_1)
-        val localVertex = LocalVertex(STRING_1, STRING_2, INT_1, INT_1, STRING_1, INT_1)
-        val identifierVertex = IdentifierVertex(STRING_1, STRING_1, STRING_1, INT_1, INT_1, INT_1, INT_1)
-        val typeDeclVertex = TypeDeclVertex(STRING_1, STRING_2, STRING_1, INT_1)
-        val literalVertex = LiteralVertex(STRING_2, STRING_2, INT_1, INT_1, INT_1, INT_1)
-        val returnVertex = ReturnVertex(INT_1, INT_1, INT_1, INT_1, STRING_1)
-        val methodReturnVertex = MethodReturnVertex(STRING_1, EVAL_1, STRING_1, INT_1, INT_1, INT_1)
-        val fileVertex = FileVertex(STRING_1, STRING_2, INT_1)
-        val namespaceBlockVertex1 = NamespaceBlockVertex(STRING_1, STRING_1, INT_1)
-        val namespaceBlockVertex2 = NamespaceBlockVertex(STRING_2, STRING_2, INT_1)
-        val metaDataVertex = MetaDataVertex(STRING_1, STRING_2)
-        val controlStructureVertex = ControlStructureVertex(STRING_1, INT_1, INT_1, INT_1, INT_1)
-        val jumpTargetVertex = JumpTargetVertex(STRING_1, INT_1, INT_1, INT_1, STRING_1, INT_1)
-        val bindingVertex = BindingVertex(STRING_1, STRING_2)
-        val typeArgumentVertex = TypeArgumentVertex(INT_1)
-        val typeParameterVertex = TypeParameterVertex(STRING_1, INT_1)
-        val fieldIdentifierVertex = FieldIdentifierVertex(STRING_1, STRING_2, INT_1, INT_1, INT_1, INT_1)
-        val methodRefVertex = MethodRefVertex(STRING_1, STRING_2, STRING_1, INT_1, INT_1, INT_1, INT_1)
-        val typeRefVertex = TypeRefVertex(STRING_1, STRING_2, STRING_1, INT_1, INT_1, INT_1, INT_1)
-        val unknownVertex = UnknownVertex(STRING_1, STRING_2, INT_1, INT_1, INT_1, INT_1)
-        val modifierVertex = ModifierVertex(MOD_1, INT_2)
+        val methodVertex: NewMethod =
+            NewMethodBuilder().code(STRING_1).name(STRING_1).fullname(STRING_1).order(INT_1).build()
+        val methodParameterInVertex: NewMethodParameterIn =
+            NewMethodParameterInBuilder().code(STRING_1).evaluationstrategy(EVAL_1.name).typefullname(STRING_1)
+                .name(STRING_1).order(INT_1).linenumber(Option.apply(INT_1)).columnnumber(Option.apply(INT_1))
+                .build()
+        val blockVertex: NewBlock =
+            NewBlockBuilder().typefullname(STRING_1).code(STRING_1).order(INT_1).argumentindex(INT_1)
+                .linenumber(Option.apply(INT_1)).columnnumber(Option.apply(INT_1)).build()
+        val callVertex: NewCall =
+            NewCallBuilder().methodfullname(STRING_1).argumentindex(INT_1).dispatchtype(DISPATCH_1.name)
+                .typefullname(STRING_1)
+                .dynamictypehintfullname(createSingleItemScalaList(STRING_1) as scala.collection.immutable.List<String>)
+                .name(STRING_1).signature(STRING_1).code(STRING_1).order(INT_1).linenumber(Option.apply(INT_1))
+                .columnnumber(Option.apply(INT_1)).build()
+        val localVertex: NewLocal = NewLocalBuilder().code(STRING_1).typefullname(STRING_1).name(STRING_1).order(INT_1)
+            .linenumber(Option.apply(INT_1)).columnnumber(Option.apply(INT_1)).build()
+        val identifierVertex: NewIdentifier =
+            NewIdentifierBuilder().name(STRING_1).typefullname(STRING_1).code(STRING_1).order(INT_1)
+                .argumentindex(INT_1).linenumber(Option.apply(INT_1)).columnnumber(Option.apply(INT_1)).build()
+        val typeDeclVertex: NewTypeDecl = NewTypeDeclBuilder().name(STRING_1).fullname(STRING_1).order(INT_1).build()
+        val literalVertex: NewLiteral =
+            NewLiteralBuilder().typefullname(STRING_1).code(STRING_1).order(INT_1).argumentindex(INT_1)
+                .linenumber(Option.apply(INT_1)).columnnumber(Option.apply(INT_1)).build()
+        val returnVertex: NewReturn =
+            NewReturnBuilder().order(INT_1).argumentindex(INT_1).code(STRING_1).linenumber(Option.apply(INT_1))
+                .columnnumber(Option.apply(INT_1)).build()
+        val methodReturnVertex: NewMethodReturn =
+            NewMethodReturnBuilder().typefullname(STRING_1).evaluationstrategy(EVAL_1.name).code(STRING_1)
+                .order(INT_1).linenumber(Option.apply(INT_1)).columnnumber(Option.apply(INT_1)).build()
+        val fileVertex: NewFile = NewFileBuilder().name(STRING_1).hash(Option.apply(STRING_2)).order(INT_1).build()
+        val namespaceBlockVertex1: NewNamespaceBlock =
+            NewNamespaceBlockBuilder().name(STRING_1).fullname(STRING_1).order(INT_1).build()
+        val namespaceBlockVertex2: NewNamespaceBlock =
+            NewNamespaceBlockBuilder().name(STRING_2).fullname(STRING_2).order(INT_1).build()
+        val metaDataVertex: NewMetaData = NewMetaDataBuilder().language(STRING_1).version(STRING_2).build()
+        val controlStructureVertex: NewControlStructure =
+            NewControlStructureBuilder().code(STRING_1).linenumber(Option.apply(INT_1))
+                .columnnumber(Option.apply(INT_1)).order(INT_1).argumentindex(INT_1).build()
+        val jumpTargetVertex: NewJumpTarget =
+            NewJumpTargetBuilder().name(STRING_1).argumentindex(INT_1).code(STRING_1).order(INT_1)
+                .linenumber(Option.apply(INT_1)).columnnumber(Option.apply(INT_1)).build()
+        val bindingVertex: NewBinding = NewBindingBuilder().name(STRING_1).signature(STRING_2).build()
+        val typeArgumentVertex: NewTypeArgumentBuilder = NewTypeArgumentBuilder().order(INT_1)
+        val typeParameterVertex: NewTypeParameter = NewTypeParameterBuilder().name(STRING_1).order(INT_1).build()
+        val fieldIdentifierVertex: NewFieldIdentifier =
+            NewFieldIdentifierBuilder().canonicalname(STRING_1).code(STRING_1).argumentindex(INT_1).order(INT_1)
+                .linenumber(Option.apply(INT_1)).columnnumber(Option.apply(INT_1)).build()
+        val methodRefVertex: NewMethodRef =
+            NewMethodRefBuilder().methodinstfullname(Option.apply(STRING_1)).methodfullname(STRING_1).code(STRING_1)
+                .order(INT_1).argumentindex(INT_1).linenumber(Option.apply(INT_1)).columnnumber(Option.apply(INT_1))
+                .build()
+        val typeRefVertex: NewTypeRef = NewTypeRefBuilder().typefullname(STRING_1)
+            .dynamictypehintfullname(createSingleItemScalaList(STRING_1) as scala.collection.immutable.List<String>)
+            .code(STRING_1).argumentindex(INT_1).order(INT_1).linenumber(Option.apply(INT_1))
+            .columnnumber(Option.apply(INT_1)).build()
+        val unknownVertex: NewUnknown =
+            NewUnknownBuilder().typefullname(STRING_1).code(STRING_1).order(INT_1).argumentindex(INT_1)
+                .linenumber(Option.apply(INT_1)).columnnumber(Option.apply(INT_1)).build()
+        val modifierVertex: NewModifier = NewModifierBuilder().modifiertype(MOD_1.name).order(INT_1).build()
 
         fun generateSimpleCPG(driver: IDriver) {
             // Create program data
@@ -116,6 +176,6 @@ class TestDomainResources {
             // Link dependencies
             driver.addEdge(identifierVertex, localVertex, EdgeLabel.REF)
         }
-        
+
     }
 }

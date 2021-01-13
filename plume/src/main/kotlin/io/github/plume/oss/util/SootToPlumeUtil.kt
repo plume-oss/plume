@@ -23,6 +23,8 @@ import io.github.plume.oss.graph.ASTBuilder
 import io.github.plume.oss.util.SootParserUtil.determineEvaluationStrategy
 import io.shiftleft.codepropertygraph.generated.nodes.*
 import scala.Option
+import scala.collection.immutable.*
+import scala.collection.immutable.List
 import soot.*
 import soot.jimple.ArrayRef
 import soot.jimple.Constant
@@ -367,4 +369,10 @@ object SootToPlumeUtil {
             .columnnumber(Option.apply(currentCol))
             .order(ASTBuilder.incOrder())
             .build()
+
+    fun <T> createSingleItemScalaList(item: T): List<Any> {
+        val nil = `Nil$`.`MODULE$`
+        val one = `$colon$colon$`.`MODULE$`.apply(item, nil)
+        return one.next()
+    }
 }

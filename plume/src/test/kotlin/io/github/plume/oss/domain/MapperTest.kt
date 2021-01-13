@@ -5,6 +5,8 @@ import io.github.plume.oss.domain.enums.EdgeLabel
 import io.github.plume.oss.domain.enums.VertexLabel
 import io.github.plume.oss.domain.mappers.VertexMapper
 import io.github.plume.oss.domain.models.vertices.*
+import io.shiftleft.codepropertygraph.generated.nodes.ArrayInitializer
+import io.shiftleft.codepropertygraph.generated.nodes.NewArrayInitializer
 import org.junit.jupiter.api.Assertions.*
 import org.junit.jupiter.api.Test
 
@@ -18,16 +20,16 @@ class MapperTest {
             val lbl = map.remove("label") as String
             when (VertexLabel.valueOf(lbl)) {
                 VertexLabel.ARRAY_INITIALIZER -> {
-                    v as ArrayInitializerVertex
+                    v as NewArrayInitializer
                     assertEquals(v.order, map["order"])
                 }
                 VertexLabel.BINDING -> {
-                    v as BindingVertex
+                    v as NewBinding
                     assertEquals(v.name, map["name"])
                     assertEquals(v.signature, map["signature"])
                 }
                 VertexLabel.BLOCK -> {
-                    v as BlockVertex
+                    v as NewBlock
                     assertEquals(v.typeFullName, map["typeFullName"])
                     assertEquals(v.order, map["order"])
                     assertEquals(v.argumentIndex, map["argumentIndex"])
@@ -36,7 +38,7 @@ class MapperTest {
                     assertEquals(v.lineNumber, map["lineNumber"])
                 }
                 VertexLabel.CALL -> {
-                    v as CallVertex
+                    v as Call
                     assertEquals(v.typeFullName, map["typeFullName"])
                     assertEquals(v.order, map["order"])
                     assertEquals(v.argumentIndex, map["argumentIndex"])
@@ -51,7 +53,7 @@ class MapperTest {
 
                 }
                 VertexLabel.CONTROL_STRUCTURE -> {
-                    v as ControlStructureVertex
+                    v as ControlStructure
                     assertEquals(v.order, map["order"])
                     assertEquals(v.argumentIndex, map["argumentIndex"])
                     assertEquals(v.code, map["code"])
@@ -59,7 +61,7 @@ class MapperTest {
                     assertEquals(v.lineNumber, map["lineNumber"])
                 }
                 VertexLabel.FIELD_IDENTIFIER -> {
-                    v as FieldIdentifierVertex
+                    v as FieldIdentifier
                     assertEquals(v.order, map["order"])
                     assertEquals(v.argumentIndex, map["argumentIndex"])
                     assertEquals(v.code, map["code"])
@@ -68,13 +70,13 @@ class MapperTest {
                     assertEquals(v.canonicalName, map["canonicalName"])
                 }
                 VertexLabel.FILE -> {
-                    v as FileVertex
+                    v as File
                     assertEquals(v.order, map["order"])
                     assertEquals(v.name, map["name"])
                     assertEquals(v.hash, map["hash"])
                 }
                 VertexLabel.IDENTIFIER -> {
-                    v as IdentifierVertex
+                    v as Identifier
                     assertEquals(v.typeFullName, map["typeFullName"])
                     assertEquals(v.order, map["order"])
                     assertEquals(v.argumentIndex, map["argumentIndex"])
@@ -84,7 +86,7 @@ class MapperTest {
                     assertEquals(v.name, map["name"])
                 }
                 VertexLabel.JUMP_TARGET -> {
-                    v as JumpTargetVertex
+                    v as JumpTarget
                     assertEquals(v.order, map["order"])
                     assertEquals(v.argumentIndex, map["argumentIndex"])
                     assertEquals(v.code, map["code"])
@@ -93,7 +95,7 @@ class MapperTest {
                     assertEquals(v.name, map["name"])
                 }
                 VertexLabel.LITERAL -> {
-                    v as LiteralVertex
+                    v as Literal
                     assertEquals(v.typeFullName, map["typeFullName"])
                     assertEquals(v.order, map["order"])
                     assertEquals(v.argumentIndex, map["argumentIndex"])
@@ -102,7 +104,7 @@ class MapperTest {
                     assertEquals(v.lineNumber, map["lineNumber"])
                 }
                 VertexLabel.LOCAL -> {
-                    v as LocalVertex
+                    v as Local
                     assertEquals(v.typeFullName, map["typeFullName"])
                     assertEquals(v.order, map["order"])
                     assertEquals(v.code, map["code"])
@@ -111,19 +113,19 @@ class MapperTest {
                     assertEquals(v.name, map["name"])
                 }
                 VertexLabel.MEMBER -> {
-                    v as MemberVertex
+                    v as Member
                     assertEquals(v.typeFullName, map["typeFullName"])
                     assertEquals(v.order, map["order"])
                     assertEquals(v.code, map["code"])
                     assertEquals(v.name, map["name"])
                 }
                 VertexLabel.META_DATA -> {
-                    v as MetaDataVertex
+                    v as MetaData
                     assertEquals(v.language, map["language"])
                     assertEquals(v.language, map["version"])
                 }
                 VertexLabel.METHOD_PARAMETER_IN -> {
-                    v as MethodParameterInVertex
+                    v as MethodParameterIn
                     assertEquals(v.typeFullName, map["typeFullName"])
                     assertEquals(v.order, map["order"])
                     assertEquals(v.code, map["code"])
@@ -132,7 +134,7 @@ class MapperTest {
                     assertEquals(v.evaluationStrategy.name, map["evaluationStrategy"])
                 }
                 VertexLabel.METHOD_REF -> {
-                    v as MethodRefVertex
+                    v as MethodRef
                     assertEquals(v.order, map["order"])
                     assertEquals(v.argumentIndex, map["argumentIndex"])
                     assertEquals(v.code, map["code"])
@@ -142,7 +144,7 @@ class MapperTest {
                     assertEquals(v.methodInstFullName, map["methodInstFullName"])
                 }
                 VertexLabel.METHOD_RETURN -> {
-                    v as MethodReturnVertex
+                    v as MethodReturn
                     assertEquals(v.typeFullName, map["typeFullName"])
                     assertEquals(v.order, map["order"])
                     assertEquals(v.code, map["code"])
@@ -151,7 +153,7 @@ class MapperTest {
                     assertEquals(v.evaluationStrategy.name, map["evaluationStrategy"])
                 }
                 VertexLabel.METHOD -> {
-                    v as MethodVertex
+                    v as Method
                     assertEquals(v.order, map["order"])
                     assertEquals(v.code, map["code"])
                     assertEquals(v.columnNumber, map["columnNumber"])
@@ -161,18 +163,18 @@ class MapperTest {
                     assertEquals(v.fullName, map["fullName"])
                 }
                 VertexLabel.MODIFIER -> {
-                    v as ModifierVertex
+                    v as Modifier
                     assertEquals(v.order, map["order"])
                     assertEquals(v.modifierType.name, map["modifierType"])
                 }
                 VertexLabel.NAMESPACE_BLOCK -> {
-                    v as NamespaceBlockVertex
+                    v as NamespaceBlock
                     assertEquals(v.order, map["order"])
                     assertEquals(v.name, map["name"])
                     assertEquals(v.fullName, map["fullName"])
                 }
                 VertexLabel.RETURN -> {
-                    v as ReturnVertex
+                    v as Return
                     assertEquals(v.order, map["order"])
                     assertEquals(v.argumentIndex, map["argumentIndex"])
                     assertEquals(v.code, map["code"])
@@ -180,23 +182,23 @@ class MapperTest {
                     assertEquals(v.lineNumber, map["lineNumber"])
                 }
                 VertexLabel.TYPE_ARGUMENT -> {
-                    v as TypeArgumentVertex
+                    v as TypeArgument
                     assertEquals(v.order, map["order"])
                 }
                 VertexLabel.TYPE_DECL -> {
-                    v as TypeDeclVertex
+                    v as TypeDecl
                     assertEquals(v.order, map["order"])
                     assertEquals(v.name, map["name"])
                     assertEquals(v.fullName, map["fullName"])
                     assertEquals(v.typeDeclFullName, map["typeDeclFullName"])
                 }
                 VertexLabel.TYPE_PARAMETER -> {
-                    v as TypeParameterVertex
+                    v as TypeParameter
                     assertEquals(v.order, map["order"])
                     assertEquals(v.name, map["name"])
                 }
                 VertexLabel.TYPE_REF -> {
-                    v as TypeRefVertex
+                    v as TypeRef
                     assertEquals(v.typeFullName, map["typeFullName"])
                     assertEquals(v.order, map["order"])
                     assertEquals(v.argumentIndex, map["argumentIndex"])
@@ -206,13 +208,13 @@ class MapperTest {
                     assertEquals(v.dynamicTypeFullName, map["dynamicTypeFullName"])
                 }
                 VertexLabel.TYPE -> {
-                    v as TypeVertex
+                    v as Type
                     assertEquals(v.name, map["name"])
                     assertEquals(v.fullName, map["fullName"])
                     assertEquals(v.typeDeclFullName, map["typeDeclFullName"])
                 }
                 VertexLabel.UNKNOWN -> {
-                    v as UnknownVertex
+                    v as Unknown
                     assertEquals(v.typeFullName, map["typeFullName"])
                     assertEquals(v.order, map["order"])
                     assertEquals(v.argumentIndex, map["argumentIndex"])

@@ -3,6 +3,8 @@ package io.github.plume.oss.domain.mappers
 import io.github.plume.oss.domain.enums.*
 import io.github.plume.oss.domain.enums.VertexLabel.*
 import io.shiftleft.codepropertygraph.generated.nodes.*
+import scala.Array
+import scala.Option
 
 /**
  * Responsible for marshalling and unmarshalling vertex properties to and from [NewNode] objects to [Map] objects.
@@ -246,175 +248,172 @@ object VertexMapper {
                 .name(map["name"] as String)
                 .signature(map["signature"] as String)
                 .build()
-            META_DATA -> MetaDataVertex(
-                language = map["language"] as String,
-                version = map["version"] as String
-            )
-            FILE -> FileVertex(
-                name = map["name"] as String,
-                hash = map["hash"] as String,
-                order = map["order"] as Int
-            )
-            METHOD -> MethodVertex(
-                name = map["name"] as String,
-                code = map["code"] as String,
-                fullName = map["fullName"] as String,
-                signature = map["signature"] as String,
-                lineNumber = map["lineNumber"] as Int,
-                columnNumber = map["columnNumber"] as Int,
-                order = map["order"] as Int
-            )
-            METHOD_PARAMETER_IN -> MethodParameterInVertex(
-                code = map["code"] as String,
-                name = map["name"] as String,
-                evaluationStrategy = EvaluationStrategy.valueOf(map["evaluationStrategy"] as String),
-                typeFullName = map["typeFullName"] as String,
-                lineNumber = map["lineNumber"] as Int,
-                order = map["order"] as Int
-            )
-            METHOD_RETURN -> MethodReturnVertex(
-                code = map["code"] as String,
-                evaluationStrategy = EvaluationStrategy.valueOf(map["evaluationStrategy"] as String),
-                typeFullName = map["typeFullName"] as String,
-                lineNumber = map["lineNumber"] as Int,
-                columnNumber = map["columnNumber"] as Int,
-                order = map["order"] as Int
-            )
-            MODIFIER -> ModifierVertex(
-                modifierType = ModifierType.valueOf(map["modifierType"] as String),
-                order = map["order"] as Int
-            )
-            TYPE -> TypeVertex(
-                name = map["name"] as String,
-                fullName = map["fullName"] as String,
-                typeDeclFullName = map["typeDeclFullName"] as String
-            )
-            TYPE_DECL -> TypeDeclVertex(
-                name = map["name"] as String,
-                order = map["order"] as Int,
-                fullName = map["fullName"] as String,
-                typeDeclFullName = map["typeDeclFullName"] as String
-            )
-            TYPE_PARAMETER -> TypeParameterVertex(
-                name = map["name"] as String,
-                order = map["order"] as Int
-            )
-            TYPE_ARGUMENT -> TypeArgumentVertex(
-                order = map["order"] as Int
-            )
-            MEMBER -> MemberVertex(
-                code = map["code"] as String,
-                name = map["name"] as String,
-                typeFullName = map["typeFullName"] as String,
-                order = map["order"] as Int
-            )
-            NAMESPACE_BLOCK -> NamespaceBlockVertex(
-                name = map["name"] as String,
-                fullName = map["fullName"] as String,
-                order = map["order"] as Int
-            )
-            LITERAL -> LiteralVertex(
-                code = map["code"] as String,
-                typeFullName = map["typeFullName"] as String,
-                lineNumber = map["lineNumber"] as Int,
-                columnNumber = map["columnNumber"] as Int,
-                order = map["order"] as Int,
-                argumentIndex = map["argumentIndex"] as Int
-            )
-            CALL -> CallVertex(
-                code = map["code"] as String,
-                name = map["name"] as String,
-                typeFullName = map["typeFullName"] as String,
-                dynamicTypeHintFullName = map["dynamicTypeHintFullName"] as String,
-                order = map["order"] as Int,
-                argumentIndex = map["argumentIndex"] as Int,
-                methodFullName = map["methodFullName"] as String,
-                lineNumber = map["lineNumber"] as Int,
-                columnNumber = map["columnNumber"] as Int,
-                signature = map["signature"] as String,
-                dispatchType = DispatchType.valueOf(map["dispatchType"] as String)
-            )
-            LOCAL -> LocalVertex(
-                code = map["code"] as String,
-                name = map["name"] as String,
-                typeFullName = map["typeFullName"] as String,
-                lineNumber = map["lineNumber"] as Int,
-                columnNumber = map["columnNumber"] as Int,
-                order = map["order"] as Int
-            )
-            IDENTIFIER -> IdentifierVertex(
-                code = map["code"] as String,
-                name = map["name"] as String,
-                typeFullName = map["typeFullName"] as String,
-                order = map["order"] as Int,
-                argumentIndex = map["argumentIndex"] as Int,
-                lineNumber = map["lineNumber"] as Int,
-                columnNumber = map["columnNumber"] as Int
-            )
-            FIELD_IDENTIFIER -> FieldIdentifierVertex(
-                code = map["code"] as String,
-                canonicalName = map["canonicalName"] as String,
-                order = map["order"] as Int,
-                argumentIndex = map["argumentIndex"] as Int,
-                lineNumber = map["lineNumber"] as Int,
-                columnNumber = map["columnNumber"] as Int
-            )
-            RETURN -> ReturnVertex(
-                code = map["code"] as String,
-                order = map["order"] as Int,
-                argumentIndex = map["argumentIndex"] as Int,
-                lineNumber = map["lineNumber"] as Int,
-                columnNumber = map["columnNumber"] as Int
-            )
-            BLOCK -> BlockVertex(
-                code = map["code"] as String,
-                typeFullName = map["typeFullName"] as String,
-                order = map["order"] as Int,
-                argumentIndex = map["argumentIndex"] as Int,
-                lineNumber = map["lineNumber"] as Int,
-                columnNumber = map["columnNumber"] as Int
-            )
-            METHOD_REF -> MethodRefVertex(
-                code = map["code"] as String,
-                order = map["order"] as Int,
-                argumentIndex = map["argumentIndex"] as Int,
-                methodFullName = map["methodFullName"] as String,
-                methodInstFullName = map["methodInstFullName"] as String,
-                lineNumber = map["lineNumber"] as Int,
-                columnNumber = map["columnNumber"] as Int
-            )
-            TYPE_REF -> TypeRefVertex(
-                code = map["code"] as String,
-                order = map["order"] as Int,
-                typeFullName = map["typeFullName"] as String,
-                dynamicTypeFullName = map["dynamicTypeFullName"] as String,
-                argumentIndex = map["argumentIndex"] as Int,
-                lineNumber = map["lineNumber"] as Int,
-                columnNumber = map["columnNumber"] as Int
-            )
-            JUMP_TARGET -> JumpTargetVertex(
-                name = map["name"] as String,
-                code = map["code"] as String,
-                order = map["order"] as Int,
-                argumentIndex = map["argumentIndex"] as Int,
-                lineNumber = map["lineNumber"] as Int,
-                columnNumber = map["columnNumber"] as Int
-            )
-            CONTROL_STRUCTURE -> ControlStructureVertex(
-                code = map["code"] as String,
-                order = map["order"] as Int,
-                argumentIndex = map["argumentIndex"] as Int,
-                lineNumber = map["lineNumber"] as Int,
-                columnNumber = map["columnNumber"] as Int
-            )
-            UNKNOWN -> UnknownVertex(
-                code = map["code"] as String,
-                typeFullName = map["typeFullName"] as String,
-                order = map["order"] as Int,
-                argumentIndex = map["argumentIndex"] as Int,
-                lineNumber = map["lineNumber"] as Int,
-                columnNumber = map["columnNumber"] as Int
-            )
+            META_DATA -> NewMetaDataBuilder()
+                .language(map["language"] as String)
+                .version(map["version"] as String)
+                .build()
+            FILE -> NewFileBuilder()
+                .name(map["name"] as String)
+                .hash(Option.apply(map["hash"] as String))
+                .order(map["order"] as Int)
+                .build()
+            METHOD -> NewMethodBuilder()
+                .name(map["name"] as String)
+                .code(map["code"] as String)
+                .fullname(map["fullName"] as String)
+                .signature(map["signature"] as String)
+                .linenumber(Option.apply(map["lineNumber"] as Int))
+                .columnnumber(Option.apply(map["columnNumber"] as Int))
+                .order(map["order"] as Int)
+                .build()
+            METHOD_PARAMETER_IN -> NewMethodParameterInBuilder()
+                .code(map["code"] as String)
+                .name(map["name"] as String)
+                .evaluationstrategy(map["evaluationStrategy"] as String)
+                .typefullname(map["typeFullName"] as String)
+                .linenumber(Option.apply(map["lineNumber"] as Int))
+                .columnnumber(Option.apply(map["columnNumber"] as Int))
+                .order(map["order"] as Int)
+                .build()
+            METHOD_RETURN -> NewMethodReturnBuilder()
+                .code(map["code"] as String)
+                .evaluationstrategy(map["evaluationStrategy"] as String)
+                .typefullname(map["typeFullName"] as String)
+                .linenumber(Option.apply(map["lineNumber"] as Int))
+                .columnnumber(Option.apply(map["columnNumber"] as Int))
+                .order(map["order"] as Int)
+                .build()
+            MODIFIER -> NewModifierBuilder()
+                .modifiertype(map["modifierType"] as String)
+                .order(map["order"] as Int)
+                .build()
+            TYPE -> NewTypeBuilder()
+                .name(map["name"] as String)
+                .fullname(map["fullName"] as String)
+                .typedeclfullname(map["typeDeclFullName"] as String)
+                .build()
+            TYPE_DECL -> NewTypeDeclBuilder()
+                .name(map["name"] as String)
+                .fullname(map["fullName"] as String)
+                .order(map["order"] as Int)
+                .build()
+            TYPE_PARAMETER -> NewTypeParameterBuilder()
+                .name(map["name"] as String)
+                .order(map["order"] as Int)
+                .build()
+            TYPE_ARGUMENT -> NewTypeArgumentBuilder()
+                .order(map["order"] as Int)
+                .build()
+            MEMBER -> NewMemberBuilder()
+                .typefullname(map["fullName"] as String)
+                .code(map["code"] as String)
+                .name(map["name"] as String)
+                .order(map["order"] as Int)
+                .build()
+            NAMESPACE_BLOCK -> NewNamespaceBlockBuilder()
+                .fullname(map["fullName"] as String)
+                .name(map["name"] as String)
+                .order(map["order"] as Int)
+                .build()
+            LITERAL -> NewLiteralBuilder()
+                .typefullname(map["fullName"] as String)
+                .code(map["code"] as String)
+                .order(map["order"] as Int)
+                .linenumber(Option.apply(map["lineNumber"] as Int))
+                .columnnumber(Option.apply(map["columnNumber"] as Int))
+                .argumentindex(map["argumentIndex"] as Int)
+                .build()
+            CALL -> NewCallBuilder()
+                .typefullname(map["fullName"] as String)
+                .code(map["code"] as String)
+                .name(map["name"] as String)
+                .order(map["order"] as Int)
+                .linenumber(Option.apply(map["lineNumber"] as Int))
+                .columnnumber(Option.apply(map["columnNumber"] as Int))
+                .argumentindex(map["argumentIndex"] as Int)
+                .signature(map["signature"] as String)
+                .dispatchtype(map["dispatchType"] as String)
+                .methodfullname(map["methodFullName"] as String)
+                .build()
+            LOCAL -> NewLocalBuilder()
+                .typefullname(map["fullName"] as String)
+                .code(map["code"] as String)
+                .name(map["name"] as String)
+                .order(map["order"] as Int)
+                .linenumber(Option.apply(map["lineNumber"] as Int))
+                .columnnumber(Option.apply(map["columnNumber"] as Int))
+                .build()
+            IDENTIFIER -> NewIdentifierBuilder()
+                .typefullname(map["fullName"] as String)
+                .code(map["code"] as String)
+                .name(map["name"] as String)
+                .order(map["order"] as Int)
+                .linenumber(Option.apply(map["lineNumber"] as Int))
+                .columnnumber(Option.apply(map["columnNumber"] as Int))
+                .argumentindex(map["argumentIndex"] as Int)
+                .build()
+            FIELD_IDENTIFIER -> NewFieldIdentifierBuilder()
+                .canonicalname(map["canonicalName"] as String)
+                .code(map["code"] as String)
+                .order(map["order"] as Int)
+                .linenumber(Option.apply(map["lineNumber"] as Int))
+                .columnnumber(Option.apply(map["columnNumber"] as Int))
+                .argumentindex(map["argumentIndex"] as Int)
+                .build()
+            RETURN -> NewReturnBuilder()
+                .code(map["code"] as String)
+                .order(map["order"] as Int)
+                .linenumber(Option.apply(map["lineNumber"] as Int))
+                .columnnumber(Option.apply(map["columnNumber"] as Int))
+                .argumentindex(map["argumentIndex"] as Int)
+                .build()
+            BLOCK -> NewBlockBuilder()
+                .typefullname(map["fullName"] as String)
+                .code(map["code"] as String)
+                .order(map["order"] as Int)
+                .linenumber(Option.apply(map["lineNumber"] as Int))
+                .columnnumber(Option.apply(map["columnNumber"] as Int))
+                .argumentindex(map["argumentIndex"] as Int)
+                .build()
+            METHOD_REF -> NewMethodRefBuilder()
+                .code(map["code"] as String)
+                .order(map["order"] as Int)
+                .methodfullname(map["methodFullName"] as String)
+                .methodinstfullname(Option.apply(map["methodInstFullName"] as String))
+                .linenumber(Option.apply(map["lineNumber"] as Int))
+                .columnnumber(Option.apply(map["columnNumber"] as Int))
+                .argumentindex(map["argumentIndex"] as Int)
+                .build()
+            TYPE_REF -> NewTypeRefBuilder()
+                .typefullname(map["fullName"] as String)
+                .code(map["code"] as String)
+                .order(map["order"] as Int)
+                .linenumber(Option.apply(map["lineNumber"] as Int))
+                .columnnumber(Option.apply(map["columnNumber"] as Int))
+                .argumentindex(map["argumentIndex"] as Int)
+                .build()
+            JUMP_TARGET -> NewJumpTargetBuilder()
+                .code(map["code"] as String)
+                .order(map["order"] as Int)
+                .linenumber(Option.apply(map["lineNumber"] as Int))
+                .columnnumber(Option.apply(map["columnNumber"] as Int))
+                .argumentindex(map["argumentIndex"] as Int)
+                .name(map["name"] as String)
+                .build()
+            CONTROL_STRUCTURE -> NewControlStructureBuilder()
+                .code(map["code"] as String)
+                .order(map["order"] as Int)
+                .linenumber(Option.apply(map["lineNumber"] as Int))
+                .columnnumber(Option.apply(map["columnNumber"] as Int))
+                .argumentindex(map["argumentIndex"] as Int)
+                .build()
+            UNKNOWN -> NewUnknownBuilder()
+                .code(map["code"] as String)
+                .order(map["order"] as Int)
+                .typefullname(map["typeFullName"] as String)
+                .linenumber(Option.apply(map["lineNumber"] as Int))
+                .columnnumber(Option.apply(map["columnNumber"] as Int))
+                .build()
         }
     }
 
@@ -426,7 +425,7 @@ object VertexMapper {
      * @param edge the edge label between the two vertices.
      * @return true if the edge complies with the CPG schema, false if otherwise.
      */
-    fun checkSchemaConstraints(fromV: PlumeVertex, toV: PlumeVertex, edge: EdgeLabel): Boolean {
+    fun checkSchemaConstraints(fromV: NewNode, toV: NewNode, edge: EdgeLabel): Boolean {
         val fromLabel: VertexLabel = valueOf(vertexToMap(fromV).remove("label")!! as String)
         val toLabel: VertexLabel = valueOf(vertexToMap(toV).remove("label")!! as String)
         return checkSchemaConstraints(fromLabel, edge, toLabel)
@@ -442,32 +441,32 @@ object VertexMapper {
      */
     fun checkSchemaConstraints(fromLabel: VertexLabel, edge: EdgeLabel, toLabel: VertexLabel): Boolean {
         return when (fromLabel) {
-            ARRAY_INITIALIZER -> ArrayInitializerVertex.VALID_OUT_EDGES[edge]?.contains(toLabel) ?: false
-            BINDING -> BindingVertex.VALID_OUT_EDGES[edge]?.contains(toLabel) ?: false
-            META_DATA -> MetaDataVertex.VALID_OUT_EDGES[edge]?.contains(toLabel) ?: false
-            FILE -> FileVertex.VALID_OUT_EDGES[edge]?.contains(toLabel) ?: false
-            METHOD -> MethodVertex.VALID_OUT_EDGES[edge]?.contains(toLabel) ?: false
-            METHOD_PARAMETER_IN -> MethodParameterInVertex.VALID_OUT_EDGES[edge]?.contains(toLabel) ?: false
-            METHOD_RETURN -> MethodReturnVertex.VALID_OUT_EDGES[edge]?.contains(toLabel) ?: false
-            MODIFIER -> ModifierVertex.VALID_OUT_EDGES[edge]?.contains(toLabel) ?: false
-            TYPE -> TypeVertex.VALID_OUT_EDGES[edge]?.contains(toLabel) ?: false
-            TYPE_DECL -> TypeDeclVertex.VALID_OUT_EDGES[edge]?.contains(toLabel) ?: false
-            TYPE_PARAMETER -> TypeParameterVertex.VALID_OUT_EDGES[edge]?.contains(toLabel) ?: false
-            TYPE_ARGUMENT -> TypeArgumentVertex.VALID_OUT_EDGES[edge]?.contains(toLabel) ?: false
-            MEMBER -> MemberVertex.VALID_OUT_EDGES[edge]?.contains(toLabel) ?: false
-            NAMESPACE_BLOCK -> NamespaceBlockVertex.VALID_OUT_EDGES[edge]?.contains(toLabel) ?: false
-            LITERAL -> LiteralVertex.VALID_OUT_EDGES[edge]?.contains(toLabel) ?: false
-            CALL -> CallVertex.VALID_OUT_EDGES[edge]?.contains(toLabel) ?: false
-            LOCAL -> LocalVertex.VALID_OUT_EDGES[edge]?.contains(toLabel) ?: false
-            IDENTIFIER -> IdentifierVertex.VALID_OUT_EDGES[edge]?.contains(toLabel) ?: false
-            FIELD_IDENTIFIER -> FieldIdentifierVertex.VALID_OUT_EDGES[edge]?.contains(toLabel) ?: false
-            RETURN -> ReturnVertex.VALID_OUT_EDGES[edge]?.contains(toLabel) ?: false
-            BLOCK -> BlockVertex.VALID_OUT_EDGES[edge]?.contains(toLabel) ?: false
-            METHOD_REF -> MethodRefVertex.VALID_OUT_EDGES[edge]?.contains(toLabel) ?: false
-            TYPE_REF -> TypeRefVertex.VALID_OUT_EDGES[edge]?.contains(toLabel) ?: false
-            JUMP_TARGET -> JumpTargetVertex.VALID_OUT_EDGES[edge]?.contains(toLabel) ?: false
-            CONTROL_STRUCTURE -> ControlStructureVertex.VALID_OUT_EDGES[edge]?.contains(toLabel) ?: false
-            UNKNOWN -> UnknownVertex.VALID_OUT_EDGES[edge]?.contains(toLabel) ?: false
+            ARRAY_INITIALIZER -> ArrayInitializer.Edges.Out().contains(toLabel.name)
+            BINDING -> Binding.Edges.Out().contains(toLabel.name)
+            META_DATA -> MetaData.Edges.Out().contains(toLabel.name)
+            FILE -> File.Edges.Out().contains(toLabel.name)
+            METHOD -> Method.Edges.Out().contains(toLabel.name)
+            METHOD_PARAMETER_IN -> MethodParameterIn.Edges.Out().contains(toLabel.name)
+            METHOD_RETURN -> MethodReturn.Edges.Out().contains(toLabel.name)
+            MODIFIER -> Modifier.Edges.Out().contains(toLabel.name)
+            TYPE -> Type.Edges.Out().contains(toLabel.name)
+            TYPE_DECL -> TypeDecl.Edges.Out().contains(toLabel.name)
+            TYPE_PARAMETER -> TypeParameter.Edges.Out().contains(toLabel.name)
+            TYPE_ARGUMENT -> TypeArgument.Edges.Out().contains(toLabel.name)
+            MEMBER -> Member.Edges.Out().contains(toLabel.name)
+            NAMESPACE_BLOCK -> NamespaceBlock.Edges.Out().contains(toLabel.name)
+            LITERAL -> Literal.Edges.Out().contains(toLabel.name)
+            CALL -> Call.Edges.Out().contains(toLabel.name)
+            LOCAL -> Local.Edges.Out().contains(toLabel.name)
+            IDENTIFIER -> Identifier.Edges.Out().contains(toLabel.name)
+            FIELD_IDENTIFIER -> FieldIdentifier.Edges.Out().contains(toLabel.name)
+            RETURN -> Return.Edges.Out().contains(toLabel.name)
+            BLOCK -> Block.Edges.Out().contains(toLabel.name)
+            METHOD_REF -> MethodRef.Edges.Out().contains(toLabel.name)
+            TYPE_REF -> TypeRef.Edges.Out().contains(toLabel.name)
+            JUMP_TARGET -> JumpTarget.Edges.Out().contains(toLabel.name)
+            CONTROL_STRUCTURE -> ControlStructure.Edges.Out().contains(toLabel.name)
+            UNKNOWN -> Unknown.Edges.Out().contains(toLabel.name)
         }
     }
 }
