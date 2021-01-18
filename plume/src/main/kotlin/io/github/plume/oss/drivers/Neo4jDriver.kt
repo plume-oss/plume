@@ -2,6 +2,9 @@ package io.github.plume.oss.drivers
 
 import com.steelbridgelabs.oss.neo4j.structure.Neo4JGraph
 import com.steelbridgelabs.oss.neo4j.structure.providers.Neo4JNativeElementIdProvider
+import io.github.plume.oss.domain.exceptions.PlumeTransactionException
+import io.github.plume.oss.domain.mappers.VertexMapper
+import io.shiftleft.codepropertygraph.generated.nodes.NewNodeBuilder
 import org.apache.logging.log4j.LogManager
 import org.apache.tinkerpop.gremlin.process.traversal.Order
 import org.apache.tinkerpop.gremlin.process.traversal.dsl.graph.GraphTraversal
@@ -11,9 +14,6 @@ import org.apache.tinkerpop.gremlin.structure.Vertex
 import org.neo4j.driver.AuthTokens
 import org.neo4j.driver.Driver
 import org.neo4j.driver.GraphDatabase
-import io.github.plume.oss.domain.exceptions.PlumeTransactionException
-import io.github.plume.oss.domain.mappers.VertexMapper
-import io.github.plume.oss.domain.models.PlumeVertex
 
 
 /**
@@ -140,32 +140,37 @@ class Neo4jDriver : GremlinDriver() {
         }
     }
 
-    override fun findVertexTraversal(v: PlumeVertex): GraphTraversal<Vertex, Vertex> =
-            g.V().has(v.javaClass.getDeclaredField("LABEL").get(v).toString(), "id", v.hashCode().toString())
+    override fun findVertexTraversal(v: NewNodeBuilder): GraphTraversal<Vertex, Vertex> =
+        g.V().has(v.build().label(), "id", v.id())
 
     override fun maxOrder(): Int =
-            try {
-                if (!transactionOpen) openTx()
-                if (g.V().has("order").hasNext())
-                    (g.V().has("order").order().by("order", Order.desc).limit(1).values<Any>("order").next() as Long).toInt()
-                else 0
-            } finally {
-                if (transactionOpen) closeTx()
-            }
+        try {
+            if (!transactionOpen) openTx()
+            if (g.V().has("order").hasNext())
+                (g.V().has("order").order().by("order", Order.desc).limit(1).values<Any>("order")
+                    .next() as Long).toInt()
+            else 0
+        } finally {
+            if (transactionOpen) closeTx()
+        }
 
-    override fun createVertex(v: PlumeVertex): Vertex =
-            try {
-                if (!transactionOpen) openTx()
-                val propertyMap = VertexMapper.vertexToMap(v)
-                // Get the implementing class label parameter
-                val label = propertyMap.remove("label") as String?
-                // Get the implementing classes fields and values
-                g.graph.addVertex(T.label, label, "id", v.hashCode().toString()).apply {
-                    propertyMap.forEach { (key: String?, value: Any?) -> this.property(key, if (value is Int) value.toLong() else value) }
+    override fun createVertex(v: NewNodeBuilder): Vertex =
+        try {
+            // TODO could use NewNode.properties() here
+            if (!transactionOpen) openTx()
+            val propertyMap = VertexMapper.vertexToMap(v).apply { remove("label") }
+            // Get the implementing classes fields and values
+            g.graph.addVertex(T.label, v.build().label(), "id", v.id()).apply {
+                propertyMap.forEach { (key: String?, value: Any?) ->
+                    this.property(
+                        key,
+                        if (value is Int) value.toLong() else value
+                    )
                 }
-            } finally {
-                if (transactionOpen) closeTx()
             }
+        } finally {
+            if (transactionOpen) closeTx()
+        }
 
     companion object {
         /**

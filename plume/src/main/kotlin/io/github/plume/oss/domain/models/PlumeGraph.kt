@@ -1,59 +1,59 @@
 package io.github.plume.oss.domain.models
 
 import io.github.plume.oss.domain.enums.EdgeLabel
-import io.shiftleft.codepropertygraph.generated.nodes.NewNode
+import io.shiftleft.codepropertygraph.generated.nodes.NewNodeBuilder
 
 /**
- * Represents a CPG where vertices are [NewNode] instances and edges are categorized by their [EdgeLabel] under
- * a [HashMap] which then returns the source [NewNode] and a [HashSet] of all [NewNode]s connected by the
+ * Represents a CPG where vertices are [NewNodeBuilder] instances and edges are categorized by their [EdgeLabel] under
+ * a [HashMap] which then returns the source [NewNodeBuilder] and a [HashSet] of all [NewNodeBuilder]s connected by the
  * [EdgeLabel].
  */
 class PlumeGraph {
 
-    private val vertices = HashSet<NewNode>()
-    private val edges = HashMap<EdgeLabel, HashMap<NewNode, HashSet<NewNode>>>()
+    private val vertices = HashSet<NewNodeBuilder>()
+    private val edges = HashMap<EdgeLabel, HashMap<NewNodeBuilder, HashSet<NewNodeBuilder>>>()
 
     init {
         EdgeLabel.values().forEach { edges[it] = HashMap() }
     }
 
     /**
-     * Returns an immutable set of all the [NewNode]s in this graph.
+     * Returns an immutable set of all the [NewNodeBuilder]s in this graph.
      *
-     * @return An immutable set of [NewNode] instances.
+     * @return An immutable set of [NewNodeBuilder] instances.
      */
     fun vertices() = vertices.toSet()
 
     /**
-     * Adds a [NewNode] to the graph.
+     * Adds a [NewNodeBuilder] to the graph.
      *
-     * @param v A [NewNode] instance to add.
+     * @param v A [NewNodeBuilder] instance to add.
      */
-    fun addVertex(v: NewNode) = vertices.add(v)
+    fun addVertex(v: NewNodeBuilder) = vertices.add(v)
 
     /**
-     * Creates an edge between two [NewNode]s in the graph.
+     * Creates an edge between two [NewNodeBuilder]s in the graph.
      *
-     * @param fromV The from [NewNode].
+     * @param fromV The from [NewNodeBuilder].
      * @param toV   The CPG edge label.
-     * @param edge  The to [NewNode].
+     * @param edge  The to [NewNodeBuilder].
      */
-    fun addEdge(fromV: NewNode, toV: NewNode, edge: EdgeLabel) {
+    fun addEdge(fromV: NewNodeBuilder, toV: NewNodeBuilder, edge: EdgeLabel) {
         vertices.add(fromV)
         vertices.add(toV)
         val edgeMap = edges[edge]!!
-        if (edgeMap[fromV].isNullOrEmpty()) edgeMap[fromV] = HashSet<NewNode>().apply { this.add(toV) }
+        if (edgeMap[fromV].isNullOrEmpty()) edgeMap[fromV] = HashSet<NewNodeBuilder>().apply { this.add(toV) }
         else edgeMap[fromV]!!.add(toV)
     }
 
     /**
-     * Returns all the edges going out of the given [NewNode].
+     * Returns all the edges going out of the given [NewNodeBuilder].
      *
-     * @param v The source [NewNode].
-     * @return a [HashMap] of all edges categorized by [EdgeLabel]s where target [NewNode]s are the values.
+     * @param v The source [NewNodeBuilder].
+     * @return a [HashMap] of all edges categorized by [EdgeLabel]s where target [NewNodeBuilder]s are the values.
      */
-    fun edgesOut(v: NewNode): HashMap<EdgeLabel, HashSet<NewNode>> {
-        val outMap = HashMap<EdgeLabel, HashSet<NewNode>>()
+    fun edgesOut(v: NewNodeBuilder): HashMap<EdgeLabel, HashSet<NewNodeBuilder>> {
+        val outMap = HashMap<EdgeLabel, HashSet<NewNodeBuilder>>()
         edges.keys.filter { !edges[it].isNullOrEmpty() && edges[it]?.containsKey(v) ?: false }
                 .map { Pair(it, edges[it]) }
                 .forEach { outMap[it.first] = it.second?.get(v)!!.toHashSet() }
@@ -61,17 +61,17 @@ class PlumeGraph {
     }
 
     /**
-     * Returns all the edges going into the given [NewNode].
+     * Returns all the edges going into the given [NewNodeBuilder].
      *
-     * @param v The target [NewNode].
-     * @return a [HashMap] of all edges categorized by [EdgeLabel]s where target [NewNode]s are the values.
+     * @param v The target [NewNodeBuilder].
+     * @return a [HashMap] of all edges categorized by [EdgeLabel]s where target [NewNodeBuilder]s are the values.
      */
-    fun edgesIn(v: NewNode): HashMap<EdgeLabel, HashSet<NewNode>> {
-        val inMap = HashMap<EdgeLabel, HashSet<NewNode>>()
+    fun edgesIn(v: NewNodeBuilder): HashMap<EdgeLabel, HashSet<NewNodeBuilder>> {
+        val inMap = HashMap<EdgeLabel, HashSet<NewNodeBuilder>>()
         edges.keys.forEach { eLabel ->
             val vertexMap = edges[eLabel]
             if (!vertexMap.isNullOrEmpty()) {
-                val inVerts = HashSet<NewNode>()
+                val inVerts = HashSet<NewNodeBuilder>()
                 vertexMap.keys.forEach { srcV -> if (vertexMap[srcV]!!.contains(v)) inVerts.add(srcV) }
                 if (inVerts.isNotEmpty()) inMap[eLabel] = inVerts
             }

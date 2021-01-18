@@ -1,18 +1,17 @@
 package io.github.plume.oss.drivers
 
-import org.apache.logging.log4j.LogManager
-import org.apache.tinkerpop.shaded.jackson.databind.ObjectMapper
-import org.json.JSONArray
-import org.json.JSONObject
 import io.github.plume.oss.domain.enums.EdgeLabel
 import io.github.plume.oss.domain.exceptions.PlumeSchemaViolationException
 import io.github.plume.oss.domain.exceptions.PlumeTransactionException
 import io.github.plume.oss.domain.mappers.VertexMapper
 import io.github.plume.oss.domain.mappers.VertexMapper.checkSchemaConstraints
 import io.github.plume.oss.domain.models.PlumeGraph
-import io.github.plume.oss.domain.models.PlumeVertex
-import io.github.plume.oss.domain.models.vertices.MetaDataVertex
-import io.github.plume.oss.domain.models.vertices.MethodVertex
+import io.shiftleft.codepropertygraph.generated.nodes.NewMetaDataBuilder
+import io.shiftleft.codepropertygraph.generated.nodes.NewNodeBuilder
+import org.apache.logging.log4j.LogManager
+import org.apache.tinkerpop.shaded.jackson.databind.ObjectMapper
+import org.json.JSONArray
+import org.json.JSONObject
 import java.io.IOException
 import java.lang.Thread.sleep
 
@@ -90,34 +89,38 @@ class TigerGraphDriver : IDriver {
      */
     fun authKey(value: String): TigerGraphDriver = apply { authKey = value }
 
-    override fun addVertex(v: PlumeVertex) {
+    override fun addVertex(v: NewNodeBuilder) {
         val payload = mutableMapOf<String, Any>(
-                "vertices" to createVertexPayload(v)
+            "vertices" to createVertexPayload(v)
         )
         post("graph/$GRAPH_NAME", payload)
     }
 
-    override fun exists(v: PlumeVertex): Boolean {
+    override fun exists(v: NewNodeBuilder): Boolean {
         val route = when (v) {
-            is MetaDataVertex -> "graph/$GRAPH_NAME/vertices/META_DATA_VERT"
+            is NewMetaDataBuilder -> "graph/$GRAPH_NAME/vertices/META_DATA_VERT"
             else -> "graph/$GRAPH_NAME/vertices/CPG_VERT"
         }
         return try {
-            get("$route/${v.hashCode()}")
+            get("$route/${v.id()}")
             true
         } catch (e: PlumeTransactionException) {
             false
         }
     }
 
-    override fun exists(fromV: PlumeVertex, toV: PlumeVertex, edge: EdgeLabel): Boolean {
+    override fun exists(fromV: NewNodeBuilder, toV: NewNodeBuilder, edge: EdgeLabel): Boolean {
         // No edge can be connected to a MetaDataVertex
-        if (fromV is MetaDataVertex || toV is MetaDataVertex) return false
+        if (fromV is NewMetaDataBuilder || toV is NewMetaDataBuilder) return false
         return try {
-            val response = get("query/$GRAPH_NAME/areVerticesJoinedByEdge",
-                    mapOf("vFrom" to fromV.hashCode().toString(),
-                            "vTo" to toV.hashCode().toString(),
-                            "edgeLabel" to edge.name)).firstOrNull()
+            val response = get(
+                "query/$GRAPH_NAME/areVerticesJoinedByEdge",
+                mapOf(
+                    "vFrom" to fromV.id().toString(),
+                    "vTo" to toV.id().toString(),
+                    "edgeLabel" to edge.name
+                )
+            ).firstOrNull()
             return if (response == null) {
                 throw PlumeTransactionException("Null response for exists query between $fromV and $toV with edge label $edge")
             } else {
@@ -133,35 +136,38 @@ class TigerGraphDriver : IDriver {
         }
     }
 
-    override fun addEdge(fromV: PlumeVertex, toV: PlumeVertex, edge: EdgeLabel) {
+    override fun addEdge(fromV: NewNodeBuilder, toV: NewNodeBuilder, edge: EdgeLabel) {
         if (!checkSchemaConstraints(fromV, toV, edge)) throw PlumeSchemaViolationException(fromV, toV, edge)
         if (exists(fromV, toV, edge)) return
         val fromPayload = createVertexPayload(fromV)
         val toPayload = createVertexPayload(toV)
         val vertexPayload = if (fromPayload.keys.first() == toPayload.keys.first()) mapOf(
-                fromPayload.keys.first() to mapOf(
-                        fromV.hashCode().toString() to (fromPayload.values.first() as Map<*, *>)[fromV.hashCode().toString()],
-                        toV.hashCode().toString() to (toPayload.values.first() as Map<*, *>)[toV.hashCode().toString()]
-                ))
+            fromPayload.keys.first() to mapOf(
+                fromV.id().toString() to (fromPayload.values.first() as Map<*, *>)[fromV.id().toString()],
+                toV.id().toString() to (toPayload.values.first() as Map<*, *>)[toV.id().toString()]
+            )
+        )
         else mapOf(
-                fromPayload.keys.first() to fromPayload.values.first(),
-                toPayload.keys.first() to toPayload.values.first()
+            fromPayload.keys.first() to fromPayload.values.first(),
+            toPayload.keys.first() to toPayload.values.first()
         )
         val payload = mutableMapOf(
-                "vertices" to vertexPayload,
-                "edges" to createEdgePayload(fromV, toV, edge)
+            "vertices" to vertexPayload,
+            "edges" to createEdgePayload(fromV, toV, edge)
         )
         post("graph/$GRAPH_NAME", payload)
     }
 
     override fun maxOrder() = (get("query/$GRAPH_NAME/maxOrder").first() as JSONObject)["@@maxAstOrder"] as Int
 
-    private fun createVertexPayload(plumeVertex: PlumeVertex): Map<String, Any> {
+    private fun createVertexPayload(plumeVertex: NewNodeBuilder): Map<String, Any> {
         val propertyMap = VertexMapper.vertexToMap(plumeVertex)
-        val vertexType = if (plumeVertex is MetaDataVertex) "META_DATA_VERT" else "CPG_VERT"
-        return mapOf(vertexType to mapOf<String, Any>(
-                plumeVertex.hashCode().toString() to extractAttributesFromMap(propertyMap)
-        ))
+        val vertexType = if (plumeVertex is NewMetaDataBuilder) "META_DATA_VERT" else "CPG_VERT"
+        return mapOf(
+            vertexType to mapOf<String, Any>(
+                plumeVertex.id().toString() to extractAttributesFromMap(propertyMap)
+            )
+        )
     }
 
     private fun extractAttributesFromMap(propertyMap: MutableMap<String, Any>): MutableMap<String, Any> {
@@ -173,22 +179,22 @@ class TigerGraphDriver : IDriver {
         return attributes
     }
 
-    private fun createEdgePayload(from: PlumeVertex, to: PlumeVertex, edge: EdgeLabel): Map<String, Any> {
+    private fun createEdgePayload(from: NewNodeBuilder, to: NewNodeBuilder, edge: EdgeLabel): Map<String, Any> {
         val fromPayload = createVertexPayload(from)
         val toPayload = createVertexPayload(to)
         val fromLabel = fromPayload.keys.first()
         val toLabel = toPayload.keys.first()
         return mapOf(
-                fromLabel to mapOf(
-                        from.hashCode().toString() to mapOf<String, Any>(
-                                edge.name to mapOf<String, Any>(
-                                        toLabel to mapOf<String, Any>(
-                                                to.hashCode().toString() to emptyMap<String, Any>()
-                                        )
-                                )
-
+            fromLabel to mapOf(
+                from.id().toString() to mapOf<String, Any>(
+                    edge.name to mapOf<String, Any>(
+                        toLabel to mapOf<String, Any>(
+                            to.id().toString() to emptyMap<String, Any>()
                         )
+                    )
+
                 )
+            )
         )
     }
 
@@ -199,15 +205,13 @@ class TigerGraphDriver : IDriver {
 
     override fun getMethod(fullName: String, signature: String, includeBody: Boolean): PlumeGraph {
         if (includeBody) return getMethod(fullName, signature)
-        var methodHash = MethodVertex::class.java.hashCode()
-        methodHash = 31 * methodHash + fullName.hashCode()
+        var methodHash = fullName.hashCode()
         methodHash = 31 * methodHash + signature.hashCode()
         return getMethod(methodHash, "getMethodHead")
     }
 
     override fun getMethod(fullName: String, signature: String): PlumeGraph {
-        var methodHash = MethodVertex::class.java.hashCode()
-        methodHash = 31 * methodHash + fullName.hashCode()
+        var methodHash = fullName.hashCode()
         methodHash = 31 * methodHash + signature.hashCode()
         return getMethod(methodHash, "getMethod")
     }
@@ -227,20 +231,19 @@ class TigerGraphDriver : IDriver {
         return graphPayloadToPlumeGraph(result)
     }
 
-    override fun getNeighbours(v: PlumeVertex): PlumeGraph {
-        if (v is MetaDataVertex) return PlumeGraph().apply { addVertex(v) }
-        val result = get("query/$GRAPH_NAME/getNeighbours", mapOf("source" to v.hashCode().toString()))
+    override fun getNeighbours(v: NewNodeBuilder): PlumeGraph {
+        if (v is NewMetaDataBuilder) return PlumeGraph().apply { addVertex(v) }
+        val result = get("query/$GRAPH_NAME/getNeighbours", mapOf("source" to v.id().toString()))
         return graphPayloadToPlumeGraph(result)
     }
 
-    override fun deleteVertex(v: PlumeVertex) {
-        val label = if (v is MetaDataVertex) "META_DATA_VERT" else "CPG_VERT"
-        delete("graph/$GRAPH_NAME/vertices/$label/${v.hashCode()}")
+    override fun deleteVertex(v: NewNodeBuilder) {
+        val label = if (v is NewMetaDataBuilder) "META_DATA_VERT" else "CPG_VERT"
+        delete("graph/$GRAPH_NAME/vertices/$label/${v.id()}")
     }
 
     override fun deleteMethod(fullName: String, signature: String) {
-        var methodHash = MethodVertex::class.java.hashCode()
-        methodHash = 31 * methodHash + fullName.hashCode()
+        var methodHash = fullName.hashCode()
         methodHash = 31 * methodHash + signature.hashCode()
         try {
             get("query/$GRAPH_NAME/deleteMethod", mapOf("methodHash" to methodHash.toString()))
@@ -265,20 +268,20 @@ class TigerGraphDriver : IDriver {
     }
 
     private fun connectEdgeResult(plumeGraph: PlumeGraph, edgePayload: JSONObject) {
-        val fromV = plumeGraph.vertices().find { it.hashCode() == edgePayload["from_id"].toString().toInt() }
-        val toV = plumeGraph.vertices().find { it.hashCode() == edgePayload["to_id"].toString().toInt() }
+        val fromV = plumeGraph.vertices().find { it.id() == edgePayload["from_id"].toString().toLong() }
+        val toV = plumeGraph.vertices().find { it.id() == edgePayload["to_id"].toString().toLong() }
         val edge = EdgeLabel.valueOf(edgePayload["e_type"].toString())
         if (fromV != null && toV != null) {
             plumeGraph.addEdge(fromV, toV, edge)
         }
     }
 
-    private fun vertexPayloadToPlumeGraph(o: JSONObject): PlumeVertex {
+    private fun vertexPayloadToPlumeGraph(o: JSONObject): NewNodeBuilder {
         val attributes = o["attributes"] as JSONObject
         val vertexMap = HashMap<String, Any>()
         attributes.keySet().filter { attributes[it] != "" }
-                .map { Pair(if (it == "astOrder") "order" else it, attributes[it]) }
-                .forEach { vertexMap[it.first] = it.second }
+            .map { Pair(if (it == "astOrder") "order" else it, attributes[it]) }
+            .forEach { vertexMap[it.first] = it.second }
         return VertexMapper.mapToVertex(vertexMap)
     }
 
@@ -323,18 +326,20 @@ class TigerGraphDriver : IDriver {
     private fun get(endpoint: String, params: Map<String, String>): JSONArray {
         var tryCount = 0
         val response = if (params.isEmpty()) khttp.get(
-                url = "${api}/$endpoint",
-                headers = headers()
+            url = "${api}/$endpoint",
+            headers = headers()
         ) else khttp.get(
-                url = "${api}/$endpoint",
-                headers = headers(),
-                params = params
+            url = "${api}/$endpoint",
+            headers = headers(),
+            params = params
         )
         while (++tryCount < MAX_RETRY) {
             logger.debug("Get ${response.url}")
             logger.debug("Response ${response.text}")
             when {
-                response.statusCode == 200 -> if (response.jsonObject["error"] as Boolean) throw PlumeTransactionException(response.jsonObject["message"] as String)
+                response.statusCode == 200 -> if (response.jsonObject["error"] as Boolean) throw PlumeTransactionException(
+                    response.jsonObject["message"] as String
+                )
                 else return response.jsonObject["results"] as JSONArray
                 tryCount >= MAX_RETRY -> throw IOException("Could not complete get request due to status code ${response.statusCode} at $api/$endpoint")
                 else -> sleep(500)
@@ -356,14 +361,16 @@ class TigerGraphDriver : IDriver {
         var tryCount = 0
         while (++tryCount < MAX_RETRY) {
             val response = khttp.post(
-                    url = "$api/$endpoint",
-                    headers = headers(),
-                    data = objectMapper.writeValueAsString(payload)
+                url = "$api/$endpoint",
+                headers = headers(),
+                data = objectMapper.writeValueAsString(payload)
             )
             logger.debug("Post ${response.url} ${response.request.data}")
             logger.debug("Response ${response.text}")
             when {
-                response.statusCode == 200 -> if (response.jsonObject["error"] as Boolean) throw PlumeTransactionException(response.jsonObject["message"] as String)
+                response.statusCode == 200 -> if (response.jsonObject["error"] as Boolean) throw PlumeTransactionException(
+                    response.jsonObject["message"] as String
+                )
                 else return
                 tryCount >= MAX_RETRY -> throw IOException("Could not complete post request due to status code ${response.statusCode} at $api/$endpoint")
                 else -> sleep(500)

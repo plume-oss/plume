@@ -4,6 +4,7 @@ import io.github.plume.oss.domain.enums.EdgeLabel
 import io.github.plume.oss.domain.exceptions.PlumeSchemaViolationException
 import io.github.plume.oss.domain.models.PlumeGraph
 import io.shiftleft.codepropertygraph.generated.nodes.NewNode
+import io.shiftleft.codepropertygraph.generated.nodes.NewNodeBuilder
 
 /**
  * The minimal interface for all graph drivers.
@@ -15,39 +16,39 @@ interface IDriver : AutoCloseable {
     /**
      * Inserts a vertex in the graph database.
      *
-     * @param v the [NewNode] to insert.
+     * @param v the [NewNodeBuilder] to insert.
      */
-    fun addVertex(v: NewNode)
+    fun addVertex(v: NewNodeBuilder)
 
     /**
-     * Checks if the given [NewNode] exists in the database.
+     * Checks if the given [NewNodeBuilder] exists in the database.
      *
-     * @param v the [NewNode] to check existence of.
+     * @param v the [NewNodeBuilder] to check existence of.
      * @return true if the vertex exists, false if otherwise.
      */
-    fun exists(v: NewNode): Boolean
+    fun exists(v: NewNodeBuilder): Boolean
 
     /**
-     * Checks if there exists a directed edge of the given label between two [NewNode] vertices.
+     * Checks if there exists a directed edge of the given label between two [NewNodeBuilder] vertices.
      *
-     * @param fromV the source [NewNode].
-     * @param toV the target [NewNode].
+     * @param fromV the source [NewNodeBuilder].
+     * @param toV the target [NewNodeBuilder].
      * @param edge the [EdgeLabel] to label the edge with.
      * @return true if the edge exists, false if otherwise.
      */
-    fun exists(fromV: NewNode, toV: NewNode, edge: EdgeLabel): Boolean
+    fun exists(fromV: NewNodeBuilder, toV: NewNodeBuilder, edge: EdgeLabel): Boolean
 
     /**
-     * Creates an edge with the label from enum [EdgeLabel] between two [NewNode] vertices in the graph database.
+     * Creates an edge with the label from enum [EdgeLabel] between two [NewNodeBuilder] vertices in the graph database.
      * If the given vertices are not already present in the database, they are created. If the edge already exists
      * it wil not be recreated.
      *
-     * @param fromV the source [NewNode].
-     * @param toV the target [NewNode].
+     * @param fromV the source [NewNodeBuilder].
+     * @param toV the target [NewNodeBuilder].
      * @param edge the [EdgeLabel] to label the edge with.
      * @throws PlumeSchemaViolationException if the edge is illegal according to the CPG schema
      */
-    fun addEdge(fromV: NewNode, toV: NewNode, edge: EdgeLabel)
+    fun addEdge(fromV: NewNodeBuilder, toV: NewNodeBuilder, edge: EdgeLabel)
 
     /**
      * Scans the AST vertices of the graph for the largest order property.
@@ -103,14 +104,14 @@ interface IDriver : AutoCloseable {
      * @param v The source vertex.
      * @return The [PlumeGraph] representation of the source vertex and its neighbouring vertices.
      */
-    fun getNeighbours(v: NewNode): PlumeGraph
+    fun getNeighbours(v: NewNodeBuilder): PlumeGraph
 
     /**
      * Given a vertex, will remove it from the graph if present.
      *
      * @param v The vertex to remove.
      */
-    fun deleteVertex(v: NewNode)
+    fun deleteVertex(v: NewNodeBuilder)
 
     /**
      * Given the full signature of a method, removes the method and its body from the graph.

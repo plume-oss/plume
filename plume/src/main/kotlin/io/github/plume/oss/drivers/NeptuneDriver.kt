@@ -1,5 +1,7 @@
 package io.github.plume.oss.drivers
 
+import io.github.plume.oss.domain.mappers.VertexMapper.vertexToMap
+import io.shiftleft.codepropertygraph.generated.nodes.NewNodeBuilder
 import org.apache.logging.log4j.LogManager
 import org.apache.tinkerpop.gremlin.driver.Cluster
 import org.apache.tinkerpop.gremlin.driver.remote.DriverRemoteConnection
@@ -7,8 +9,6 @@ import org.apache.tinkerpop.gremlin.process.traversal.AnonymousTraversalSource.t
 import org.apache.tinkerpop.gremlin.process.traversal.dsl.graph.GraphTraversal
 import org.apache.tinkerpop.gremlin.structure.Graph
 import org.apache.tinkerpop.gremlin.structure.Vertex
-import io.github.plume.oss.domain.mappers.VertexMapper.vertexToMap
-import io.github.plume.oss.domain.models.PlumeVertex
 
 
 /**
@@ -77,8 +77,8 @@ class NeptuneDriver : GremlinDriver() {
         }
     }
 
-    override fun findVertexTraversal(v: PlumeVertex): GraphTraversal<Vertex, Vertex> =
-            g.V().has(v.javaClass.getDeclaredField("LABEL").get(v).toString(), "id", v.hashCode().toString())
+    override fun findVertexTraversal(v: NewNodeBuilder): GraphTraversal<Vertex, Vertex> =
+        g.V().has(v.build().label(), "id", v.id())
 
     /**
      * Given a [PlumeVertex], creates a [Vertex] and translates the object's field properties to key-value
@@ -87,12 +87,11 @@ class NeptuneDriver : GremlinDriver() {
      * @param v the [PlumeVertex] to translate into a [Vertex].
      * @return the newly created [Vertex].
      */
-    override fun createVertex(v: PlumeVertex): Vertex {
-        val propertyMap = vertexToMap(v)
-        // Get the implementing class label parameter
-        val label = propertyMap.remove("label") as String?
+    override fun createVertex(v: NewNodeBuilder): Vertex {
+        // TODO could use NewNode.properties() here
+        val propertyMap = vertexToMap(v).apply { remove("label") }
         // Get the implementing classes fields and values
-        var traversalPointer = g.addV(label).property("id", v.hashCode().toString())
+        var traversalPointer = g.addV(v.build().label()).property("id", v.id())
         for ((key, value) in propertyMap) traversalPointer = traversalPointer.property(key, value)
         return traversalPointer.next()
     }

@@ -8,7 +8,7 @@ import org.apache.tinkerpop.gremlin.structure.Transaction
 import org.apache.tinkerpop.gremlin.structure.Vertex
 import io.github.plume.oss.domain.exceptions.PlumeTransactionException
 import io.github.plume.oss.domain.mappers.VertexMapper.vertexToMap
-import io.github.plume.oss.domain.models.PlumeVertex
+import io.shiftleft.codepropertygraph.generated.nodes.NewNode
 import java.lang.IllegalArgumentException
 
 /**
@@ -116,7 +116,7 @@ class JanusGraphDriver : GremlinDriver() {
         }
     }
 
-    override fun findVertexTraversal(v: PlumeVertex): GraphTraversal<Vertex, Vertex> =
+    override fun findVertexTraversal(v: NewNode): GraphTraversal<Vertex, Vertex> =
             g.V().has(v.javaClass.getDeclaredField("LABEL").get(v).toString(), "id", v.hashCode().toString())
 
     /**
@@ -126,7 +126,7 @@ class JanusGraphDriver : GremlinDriver() {
      * @param v the [PlumeVertex] to translate into a [Vertex].
      * @return the newly created [Vertex].
      */
-    override fun createVertex(v: PlumeVertex): Vertex {
+    override fun createVertex(v: NewNode): Vertex {
         val propertyMap = vertexToMap(v)
         // Get the implementing class label parameter
         val label = propertyMap.remove("label") as String?
