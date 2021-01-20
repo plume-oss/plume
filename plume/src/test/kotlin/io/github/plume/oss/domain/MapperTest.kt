@@ -15,208 +15,209 @@ class MapperTest {
         vertices.forEach { v ->
             val map = VertexMapper.vertexToMap(v)
             val lbl = map.remove("label") as String
+            val node = v.build()
             when (VertexLabel.valueOf(lbl)) {
                 VertexLabel.ARRAY_INITIALIZER -> {
-                    v as NewArrayInitializer
-                    assertEquals(v.order(), map["order"])
+                    node as NewArrayInitializer
+                    assertEquals(node.order(), map["order"])
                 }
                 VertexLabel.BINDING -> {
-                    v as NewBinding
-                    assertEquals(v.name(), map["name"])
-                    assertEquals(v.signature(), map["signature"])
+                    node as NewBinding
+                    assertEquals(node.name(), map["name"])
+                    assertEquals(node.signature(), map["signature"])
                 }
                 VertexLabel.BLOCK -> {
-                    v as NewBlock
-                    assertEquals(v.typeFullName(), map["typeFullName"])
-                    assertEquals(v.order(), map["order"])
-                    assertEquals(v.argumentIndex(), map["argumentIndex"])
-                    assertEquals(v.code(), map["code"])
-                    assertEquals(v.columnNumber(), map["columnNumber"])
-                    assertEquals(v.lineNumber(), map["lineNumber"])
+                    node as NewBlock
+                    assertEquals(node.typeFullName(), map["typeFullName"])
+                    assertEquals(node.order(), map["order"])
+                    assertEquals(node.argumentIndex(), map["argumentIndex"])
+                    assertEquals(node.code(), map["code"])
+                    assertEquals(node.columnNumber().get(), map["columnNumber"])
+                    assertEquals(node.lineNumber().get(), map["lineNumber"])
                 }
                 VertexLabel.CALL -> {
-                    v as NewCall
-                    assertEquals(v.typeFullName(), map["typeFullName"])
-                    assertEquals(v.order(), map["order"])
-                    assertEquals(v.argumentIndex(), map["argumentIndex"])
-                    assertEquals(v.code(), map["code"])
-                    assertEquals(v.columnNumber(), map["columnNumber"])
-                    assertEquals(v.lineNumber(), map["lineNumber"])
-                    assertEquals(v.dispatchType(), map["dispatchType"])
-                    assertEquals(v.dynamicTypeHintFullName().head(), map["dynamicTypeHintFullName"])
-                    assertEquals(v.methodFullName(), map["methodFullName"])
-                    assertEquals(v.signature(), map["signature"])
-                    assertEquals(v.name(), map["name"])
+                    node as NewCall
+                    assertEquals(node.typeFullName(), map["typeFullName"])
+                    assertEquals(node.order(), map["order"])
+                    assertEquals(node.argumentIndex(), map["argumentIndex"])
+                    assertEquals(node.code(), map["code"])
+                    assertEquals(node.columnNumber().get(), map["columnNumber"])
+                    assertEquals(node.lineNumber().get(), map["lineNumber"])
+                    assertEquals(node.dispatchType(), map["dispatchType"])
+                    assertEquals(node.dynamicTypeHintFullName(), map["dynamicTypeHintFullName"])
+                    assertEquals(node.methodFullName(), map["methodFullName"])
+                    assertEquals(node.signature(), map["signature"])
+                    assertEquals(node.name(), map["name"])
 
                 }
                 VertexLabel.CONTROL_STRUCTURE -> {
-                    v as NewControlStructure
-                    assertEquals(v.order(), map["order"])
-                    assertEquals(v.argumentIndex(), map["argumentIndex"])
-                    assertEquals(v.code(), map["code"])
-                    assertEquals(v.columnNumber(), map["columnNumber"])
-                    assertEquals(v.lineNumber(), map["lineNumber"])
+                    node as NewControlStructure
+                    assertEquals(node.order(), map["order"])
+                    assertEquals(node.argumentIndex(), map["argumentIndex"])
+                    assertEquals(node.code(), map["code"])
+                    assertEquals(node.columnNumber().get(), map["columnNumber"])
+                    assertEquals(node.lineNumber().get(), map["lineNumber"])
                 }
                 VertexLabel.FIELD_IDENTIFIER -> {
-                    v as NewFieldIdentifier
-                    assertEquals(v.order(), map["order"])
-                    assertEquals(v.argumentIndex(), map["argumentIndex"])
-                    assertEquals(v.code(), map["code"])
-                    assertEquals(v.columnNumber(), map["columnNumber"])
-                    assertEquals(v.lineNumber(), map["lineNumber"])
-                    assertEquals(v.canonicalName(), map["canonicalName"])
+                    node as NewFieldIdentifier
+                    assertEquals(node.order(), map["order"])
+                    assertEquals(node.argumentIndex(), map["argumentIndex"])
+                    assertEquals(node.code(), map["code"])
+                    assertEquals(node.columnNumber().get(), map["columnNumber"])
+                    assertEquals(node.lineNumber().get(), map["lineNumber"])
+                    assertEquals(node.canonicalName(), map["canonicalName"])
                 }
                 VertexLabel.FILE -> {
-                    v as NewFile
-                    assertEquals(v.order(), map["order"])
-                    assertEquals(v.name(), map["name"])
-                    assertEquals(v.hash(), map["hash"])
+                    node as NewFile
+                    assertEquals(node.order(), map["order"])
+                    assertEquals(node.name(), map["name"])
+                    assertEquals(node.hash().get(), map["hash"])
                 }
                 VertexLabel.IDENTIFIER -> {
-                    v as NewIdentifier
-                    assertEquals(v.typeFullName(), map["typeFullName"])
-                    assertEquals(v.order(), map["order"])
-                    assertEquals(v.argumentIndex(), map["argumentIndex"])
-                    assertEquals(v.code(), map["code"])
-                    assertEquals(v.columnNumber(), map["columnNumber"])
-                    assertEquals(v.lineNumber(), map["lineNumber"])
-                    assertEquals(v.name(), map["name"])
+                    node as NewIdentifier
+                    assertEquals(node.typeFullName(), map["typeFullName"])
+                    assertEquals(node.order(), map["order"])
+                    assertEquals(node.argumentIndex(), map["argumentIndex"])
+                    assertEquals(node.code(), map["code"])
+                    assertEquals(node.columnNumber().get(), map["columnNumber"])
+                    assertEquals(node.lineNumber().get(), map["lineNumber"])
+                    assertEquals(node.name(), map["name"])
                 }
                 VertexLabel.JUMP_TARGET -> {
-                    v as NewJumpTarget
-                    assertEquals(v.order(), map["order"])
-                    assertEquals(v.argumentIndex(), map["argumentIndex"])
-                    assertEquals(v.code(), map["code"])
-                    assertEquals(v.columnNumber(), map["columnNumber"])
-                    assertEquals(v.lineNumber(), map["lineNumber"])
-                    assertEquals(v.name(), map["name"])
+                    node as NewJumpTarget
+                    assertEquals(node.order(), map["order"])
+                    assertEquals(node.argumentIndex(), map["argumentIndex"])
+                    assertEquals(node.code(), map["code"])
+                    assertEquals(node.columnNumber().get(), map["columnNumber"])
+                    assertEquals(node.lineNumber().get(), map["lineNumber"])
+                    assertEquals(node.name(), map["name"])
                 }
                 VertexLabel.LITERAL -> {
-                    v as NewLiteral
-                    assertEquals(v.typeFullName(), map["typeFullName"])
-                    assertEquals(v.order(), map["order"])
-                    assertEquals(v.argumentIndex(), map["argumentIndex"])
-                    assertEquals(v.code(), map["code"])
-                    assertEquals(v.columnNumber(), map["columnNumber"])
-                    assertEquals(v.lineNumber(), map["lineNumber"])
+                    node as NewLiteral
+                    assertEquals(node.typeFullName(), map["typeFullName"])
+                    assertEquals(node.order(), map["order"])
+                    assertEquals(node.argumentIndex(), map["argumentIndex"])
+                    assertEquals(node.code(), map["code"])
+                    assertEquals(node.columnNumber().get(), map["columnNumber"])
+                    assertEquals(node.lineNumber().get(), map["lineNumber"])
                 }
                 VertexLabel.LOCAL -> {
-                    v as NewLocal
-                    assertEquals(v.typeFullName(), map["typeFullName"])
-                    assertEquals(v.order(), map["order"])
-                    assertEquals(v.code(), map["code"])
-                    assertEquals(v.columnNumber(), map["columnNumber"])
-                    assertEquals(v.lineNumber(), map["lineNumber"])
-                    assertEquals(v.name(), map["name"])
+                    node as NewLocal
+                    assertEquals(node.typeFullName(), map["typeFullName"])
+                    assertEquals(node.order(), map["order"])
+                    assertEquals(node.code(), map["code"])
+                    assertEquals(node.columnNumber().get(), map["columnNumber"])
+                    assertEquals(node.lineNumber().get(), map["lineNumber"])
+                    assertEquals(node.name(), map["name"])
                 }
                 VertexLabel.MEMBER -> {
-                    v as NewMember
-                    assertEquals(v.typeFullName(), map["typeFullName"])
-                    assertEquals(v.order(), map["order"])
-                    assertEquals(v.code(), map["code"])
-                    assertEquals(v.name(), map["name"])
+                    node as NewMember
+                    assertEquals(node.typeFullName(), map["typeFullName"])
+                    assertEquals(node.order(), map["order"])
+                    assertEquals(node.code(), map["code"])
+                    assertEquals(node.name(), map["name"])
                 }
                 VertexLabel.META_DATA -> {
-                    v as NewMetaData
-                    assertEquals(v.language(), map["language"])
-                    assertEquals(v.version(), map["version"])
+                    node as NewMetaData
+                    assertEquals(node.language(), map["language"])
+                    assertEquals(node.version(), map["version"])
                 }
                 VertexLabel.METHOD_PARAMETER_IN -> {
-                    v as NewMethodParameterIn
-                    assertEquals(v.typeFullName(), map["typeFullName"])
-                    assertEquals(v.order(), map["order"])
-                    assertEquals(v.code(), map["code"])
-                    assertEquals(v.lineNumber(), map["lineNumber"])
-                    assertEquals(v.name(), map["name"])
-                    assertEquals(v.evaluationStrategy(), map["evaluationStrategy"])
+                    node as NewMethodParameterIn
+                    assertEquals(node.typeFullName(), map["typeFullName"])
+                    assertEquals(node.order(), map["order"])
+                    assertEquals(node.code(), map["code"])
+                    assertEquals(node.lineNumber().get(), map["lineNumber"])
+                    assertEquals(node.name(), map["name"])
+                    assertEquals(node.evaluationStrategy(), map["evaluationStrategy"])
                 }
                 VertexLabel.METHOD_REF -> {
-                    v as NewMethodRef
-                    assertEquals(v.order(), map["order"])
-                    assertEquals(v.argumentIndex(), map["argumentIndex"])
-                    assertEquals(v.code(), map["code"])
-                    assertEquals(v.columnNumber(), map["columnNumber"])
-                    assertEquals(v.lineNumber(), map["lineNumber"])
-                    assertEquals(v.methodFullName(), map["methodFullName"])
-                    assertEquals(v.methodInstFullName(), map["methodInstFullName"])
+                    node as NewMethodRef
+                    assertEquals(node.order(), map["order"])
+                    assertEquals(node.argumentIndex(), map["argumentIndex"])
+                    assertEquals(node.code(), map["code"])
+                    assertEquals(node.columnNumber().get(), map["columnNumber"])
+                    assertEquals(node.lineNumber().get(), map["lineNumber"])
+                    assertEquals(node.methodFullName(), map["methodFullName"])
+                    assertEquals(node.methodInstFullName(), map["methodInstFullName"])
                 }
                 VertexLabel.METHOD_RETURN -> {
-                    v as NewMethodReturn
-                    assertEquals(v.typeFullName(), map["typeFullName"])
-                    assertEquals(v.order(), map["order"])
-                    assertEquals(v.code(), map["code"])
-                    assertEquals(v.columnNumber(), map["columnNumber"])
-                    assertEquals(v.lineNumber(), map["lineNumber"])
-                    assertEquals(v.evaluationStrategy(), map["evaluationStrategy"])
+                    node as NewMethodReturn
+                    assertEquals(node.typeFullName(), map["typeFullName"])
+                    assertEquals(node.order(), map["order"])
+                    assertEquals(node.code(), map["code"])
+                    assertEquals(node.columnNumber().get(), map["columnNumber"])
+                    assertEquals(node.lineNumber().get(), map["lineNumber"])
+                    assertEquals(node.evaluationStrategy(), map["evaluationStrategy"])
                 }
                 VertexLabel.METHOD -> {
-                    v as NewMethod
-                    assertEquals(v.order(), map["order"])
-                    assertEquals(v.code(), map["code"])
-                    assertEquals(v.columnNumber(), map["columnNumber"])
-                    assertEquals(v.lineNumber(), map["lineNumber"])
-                    assertEquals(v.signature(), map["signature"])
-                    assertEquals(v.name(), map["name"])
-                    assertEquals(v.fullName(), map["fullName"])
+                    node as NewMethod
+                    assertEquals(node.order(), map["order"])
+                    assertEquals(node.code(), map["code"])
+                    assertEquals(node.columnNumber().get(), map["columnNumber"])
+                    assertEquals(node.lineNumber().get(), map["lineNumber"])
+                    assertEquals(node.signature(), map["signature"])
+                    assertEquals(node.name(), map["name"])
+                    assertEquals(node.fullName(), map["fullName"])
                 }
                 VertexLabel.MODIFIER -> {
-                    v as NewModifier
-                    assertEquals(v.order(), map["order"])
-                    assertEquals(v.modifierType(), map["modifierType"])
+                    node as NewModifier
+                    assertEquals(node.order(), map["order"])
+                    assertEquals(node.modifierType(), map["modifierType"])
                 }
                 VertexLabel.NAMESPACE_BLOCK -> {
-                    v as NewNamespaceBlock
-                    assertEquals(v.order(), map["order"])
-                    assertEquals(v.name(), map["name"])
-                    assertEquals(v.fullName(), map["fullName"])
+                    node as NewNamespaceBlock
+                    assertEquals(node.order(), map["order"])
+                    assertEquals(node.name(), map["name"])
+                    assertEquals(node.fullName(), map["fullName"])
                 }
                 VertexLabel.RETURN -> {
-                    v as NewReturn
-                    assertEquals(v.order(), map["order"])
-                    assertEquals(v.argumentIndex(), map["argumentIndex"])
-                    assertEquals(v.code(), map["code"])
-                    assertEquals(v.columnNumber(), map["columnNumber"])
-                    assertEquals(v.lineNumber(), map["lineNumber"])
+                    node as NewReturn
+                    assertEquals(node.order(), map["order"])
+                    assertEquals(node.argumentIndex(), map["argumentIndex"])
+                    assertEquals(node.code(), map["code"])
+                    assertEquals(node.columnNumber().get(), map["columnNumber"])
+                    assertEquals(node.lineNumber().get(), map["lineNumber"])
                 }
                 VertexLabel.TYPE_ARGUMENT -> {
-                    v as NewTypeArgument
-                    assertEquals(v.order(), map["order"])
+                    node as NewTypeArgument
+                    assertEquals(node.order(), map["order"])
                 }
                 VertexLabel.TYPE_DECL -> {
-                    v as NewTypeDecl
-                    assertEquals(v.order(), map["order"])
-                    assertEquals(v.name(), map["name"])
-                    assertEquals(v.fullName(), map["fullName"])
+                    node as NewTypeDecl
+                    assertEquals(node.order(), map["order"])
+                    assertEquals(node.name(), map["name"])
+                    assertEquals(node.fullName(), map["fullName"])
                 }
                 VertexLabel.TYPE_PARAMETER -> {
-                    v as NewTypeParameter
-                    assertEquals(v.order(), map["order"])
-                    assertEquals(v.name(), map["name"])
+                    node as NewTypeParameter
+                    assertEquals(node.order(), map["order"])
+                    assertEquals(node.name(), map["name"])
                 }
                 VertexLabel.TYPE_REF -> {
-                    v as NewTypeRef
-                    assertEquals(v.typeFullName(), map["typeFullName"])
-                    assertEquals(v.order(), map["order"])
-                    assertEquals(v.argumentIndex(), map["argumentIndex"])
-                    assertEquals(v.code(), map["code"])
-                    assertEquals(v.columnNumber(), map["columnNumber"])
-                    assertEquals(v.lineNumber(), map["lineNumber"])
-                    assertEquals(v.dynamicTypeHintFullName().head(), map["dynamicTypeFullName"])
+                    node as NewTypeRef
+                    assertEquals(node.typeFullName(), map["typeFullName"])
+                    assertEquals(node.order(), map["order"])
+                    assertEquals(node.argumentIndex(), map["argumentIndex"])
+                    assertEquals(node.code(), map["code"])
+                    assertEquals(node.columnNumber().get(), map["columnNumber"])
+                    assertEquals(node.lineNumber().get(), map["lineNumber"])
+                    assertEquals(node.dynamicTypeHintFullName(), map["dynamicTypeHintFullName"])
                 }
                 VertexLabel.TYPE -> {
-                    v as NewType
-                    assertEquals(v.name(), map["name"])
-                    assertEquals(v.fullName(), map["fullName"])
-                    assertEquals(v.typeDeclFullName(), map["typeDeclFullName"])
+                    node as NewType
+                    assertEquals(node.name(), map["name"])
+                    assertEquals(node.fullName(), map["fullName"])
+                    assertEquals(node.typeDeclFullName(), map["typeDeclFullName"])
                 }
                 VertexLabel.UNKNOWN -> {
-                    v as NewUnknown
-                    assertEquals(v.typeFullName(), map["typeFullName"])
-                    assertEquals(v.order(), map["order"])
-                    assertEquals(v.argumentIndex(), map["argumentIndex"])
-                    assertEquals(v.code(), map["code"])
-                    assertEquals(v.columnNumber(), map["columnNumber"])
-                    assertEquals(v.lineNumber(), map["lineNumber"])
+                    node as NewUnknown
+                    assertEquals(node.typeFullName(), map["typeFullName"])
+                    assertEquals(node.order(), map["order"])
+                    assertEquals(node.argumentIndex(), map["argumentIndex"])
+                    assertEquals(node.code(), map["code"])
+                    assertEquals(node.columnNumber().get(), map["columnNumber"])
+                    assertEquals(node.lineNumber().get(), map["lineNumber"])
                 }
             }
         }
