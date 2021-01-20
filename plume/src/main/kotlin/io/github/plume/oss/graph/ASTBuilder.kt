@@ -76,7 +76,7 @@ class ASTBuilder(private val driver: IDriver) : IGraphBuilder {
         logger.debug("Building AST for ${mtd.declaration}")
         // Connect and create parameters and locals
         getSootAssociation(mtd)?.let { mtdVs ->
-            mtdVs.filterIsInstance<NewMethod>().firstOrNull()?.let { mtdVert ->
+            mtdVs.filterIsInstance<NewMethodBuilder>().firstOrNull()?.let { mtdVert ->
                 addSootToPlumeAssociation(mtd, buildLocals(graph, mtdVert))
             }
         }
@@ -96,8 +96,8 @@ class ASTBuilder(private val driver: IDriver) : IGraphBuilder {
             }
     }
 
-    private fun buildLocals(graph: BriefUnitGraph, mtdVertex: NewMethod): MutableList<NewNode> {
-        val localVertices = mutableListOf<NewNode>()
+    private fun buildLocals(graph: BriefUnitGraph, mtdVertex: NewMethodBuilder): MutableList<NewNodeBuilder> {
+        val localVertices = mutableListOf<NewNodeBuilder>()
         graph.body.parameterLocals
             .map {
                 SootToPlumeUtil.projectMethodParameterIn(it, currentLine, currentCol)
@@ -128,11 +128,11 @@ class ASTBuilder(private val driver: IDriver) : IGraphBuilder {
      *
      * @param unit The [Unit] from which AST vertices and edges will be constructed.
      */
-    private fun projectUnit(unit: Unit, childIdx: Int): NewNode? {
+    private fun projectUnit(unit: Unit, childIdx: Int): NewNodeBuilder? {
         currentLine = unit.javaSourceStartLineNumber
         currentCol = unit.javaSourceStartColumnNumber
 
-        val unitVertex: NewNode? = when (unit) {
+        val unitVertex: NewNodeBuilder? = when (unit) {
             is IfStmt -> projectIfStatement(unit, childIdx)
             is AssignStmt -> projectVariableAssignment(unit, childIdx)
             is LookupSwitchStmt -> projectLookupSwitch(unit, childIdx)
@@ -153,7 +153,7 @@ class ASTBuilder(private val driver: IDriver) : IGraphBuilder {
      * @param unit The [InvokeExpr] from which a [NewCall] will be constructed.
      * @return the [NewCall] constructed.
      */
-    private fun projectCallVertex(unit: InvokeExpr, childIdx: Int): NewNode {
+    private fun projectCallVertex(unit: InvokeExpr, childIdx: Int): NewNodeBuilder {
         val callVertex = NewCallBuilder()
             .name(unit.methodRef.name)
             .signature(unit.methodRef.signature)
@@ -165,8 +165,7 @@ class ASTBuilder(private val driver: IDriver) : IGraphBuilder {
             .argumentindex(childIdx)
             .dispatchtype(if (unit.methodRef.isStatic) DispatchType.STATIC_DISPATCH.name else DispatchType.DYNAMIC_DISPATCH.name)
             .typefullname(unit.type.toString())
-            .build()
-        val callVertices = mutableListOf<NewNode>(callVertex)
+        val callVertices = mutableListOf<NewNodeBuilder>(callVertex)
         // Create vertices for arguments
         unit.args.forEachIndexed { i, arg ->
             when (arg) {
@@ -201,17 +200,16 @@ class ASTBuilder(private val driver: IDriver) : IGraphBuilder {
     /**
      * Given an [TableSwitchStmt], will construct table switch information in the graph.
      *
-     * @param unit The [TableSwitchStmt] from which a [NewControlStructure] will be constructed.
-     * @return the [NewControlStructure] constructed.
+     * @param unit The [TableSwitchStmt] from which a [NewControlStructureBuilder] will be constructed.
+     * @return the [NewControlStructureBuilder] constructed.
      */
-    private fun projectTableSwitch(unit: TableSwitchStmt, childIdx: Int): NewControlStructure {
+    private fun projectTableSwitch(unit: TableSwitchStmt, childIdx: Int): NewControlStructureBuilder {
         val switchVertex = NewControlStructureBuilder()
             .code(ExtractorConst.TABLE_SWITCH)
             .linenumber(Option.apply(currentLine))
             .columnnumber(Option.apply(currentCol))
             .order(order++)
             .argumentindex(childIdx)
-            .build()
         projectSwitchDefault(unit, switchVertex)
         // Handle case jumps
         unit.targets.forEachIndexed { i, tgt ->
@@ -223,7 +221,6 @@ class ASTBuilder(private val driver: IDriver) : IGraphBuilder {
                     .columnnumber(Option.apply(tgt.javaSourceStartColumnNumber))
                     .code(tgt.toString())
                     .order(order++)
-                    .build()
                 runCatching {
                     driver.addEdge(switchVertex, tgtV, EdgeLabel.AST)
                 }.onFailure { e -> logger.warn(e.message) }
@@ -236,17 +233,16 @@ class ASTBuilder(private val driver: IDriver) : IGraphBuilder {
     /**
      * Given an [LookupSwitchStmt], will construct lookup switch information in the graph.
      *
-     * @param unit The [LookupSwitchStmt] from which a [NewControlStructure] will be constructed.
-     * @return the [NewControlStructure] constructed.
+     * @param unit The [LookupSwitchStmt] from which a [NewControlStructureBuilder] will be constructed.
+     * @return the [NewControlStructureBuilder] constructed.
      */
-    private fun projectLookupSwitch(unit: LookupSwitchStmt, childIdx: Int): NewControlStructure {
+    private fun projectLookupSwitch(unit: LookupSwitchStmt, childIdx: Int): NewControlStructureBuilder {
         val switchVertex = NewControlStructureBuilder()
             .code(ExtractorConst.LOOKUP_ROOT)
             .linenumber(Option.apply(unit.javaSourceStartLineNumber))
             .columnnumber(Option.apply(unit.javaSourceStartColumnNumber))
             .order(order++)
             .argumentindex(childIdx)
-            .build()
         projectSwitchDefault(unit, switchVertex)
         // Handle case jumps
         for (i in 0 until unit.targetCount) {
@@ -260,7 +256,6 @@ class ASTBuilder(private val driver: IDriver) : IGraphBuilder {
                     .columnnumber(Option.apply(tgt.javaSourceStartColumnNumber))
                     .code(tgt.toString())
                     .order(order++)
-                    .build()
                 runCatching {
                     driver.addEdge(switchVertex, tgtV, EdgeLabel.AST)
                 }.onFailure { e -> logger.warn(e.message) }
@@ -273,10 +268,10 @@ class ASTBuilder(private val driver: IDriver) : IGraphBuilder {
     /**
      * Creates the default jump target for the given [SwitchStmt] and links it to the given switch vertex.
      *
-     * @param unit The [LookupSwitchStmt] from which a [NewControlStructure] will be constructed.
-     * @param switchVertex The [NewControlStructure] representing the switch statement to link.
+     * @param unit The [LookupSwitchStmt] from which a [NewControlStructureBuilder] will be constructed.
+     * @param switchVertex The [NewControlStructureBuilder] representing the switch statement to link.
      */
-    private fun projectSwitchDefault(unit: SwitchStmt, switchVertex: NewControlStructure) {
+    private fun projectSwitchDefault(unit: SwitchStmt, switchVertex: NewControlStructureBuilder) {
         val totalTgts = unit.targets.size
         projectOp(unit.key, totalTgts + 1)?.let { driver.addEdge(switchVertex, it, EdgeLabel.CONDITION) }
         // Handle default target jump
@@ -288,7 +283,6 @@ class ASTBuilder(private val driver: IDriver) : IGraphBuilder {
                 .columnnumber(Option.apply(it.javaSourceStartColumnNumber))
                 .code(it.toString())
                 .order(order++)
-                .build()
             runCatching {
                 driver.addEdge(switchVertex, tgtV, EdgeLabel.AST)
             }.onFailure { e -> logger.warn(e.message) }
@@ -299,13 +293,13 @@ class ASTBuilder(private val driver: IDriver) : IGraphBuilder {
     /**
      * Given an [IfStmt], will construct if statement information in the graph.
      *
-     * @param unit The [IfStmt] from which a [NewControlStructure] will be constructed.
-     * @return the [NewControlStructure] constructed.
+     * @param unit The [IfStmt] from which a [NewControlStructureBuilder] will be constructed.
+     * @return the [NewControlStructureBuilder] constructed.
      */
-    private fun projectIfStatement(unit: IfStmt, childIdx: Int): NewControlStructure {
+    private fun projectIfStatement(unit: IfStmt, childIdx: Int): NewControlStructureBuilder {
         val ifRootVertex = projectIfRootAndCondition(unit, childIdx)
         graph.getSuccsOf(unit).forEach {
-            val condBody: NewJumpTarget = if (it == unit.target) {
+            val condBody: NewJumpTargetBuilder = if (it == unit.target) {
                 NewJumpTargetBuilder()
                     .name(FALSE_TARGET)
                     .argumentindex(0)
@@ -313,7 +307,6 @@ class ASTBuilder(private val driver: IDriver) : IGraphBuilder {
                     .columnnumber(Option.apply(it.javaSourceStartColumnNumber))
                     .code("ELSE_BODY")
                     .order(order++)
-                    .build()
             } else {
                 NewJumpTargetBuilder()
                     .name(TRUE_TARGET)
@@ -322,7 +315,6 @@ class ASTBuilder(private val driver: IDriver) : IGraphBuilder {
                     .columnnumber(Option.apply(it.javaSourceStartColumnNumber))
                     .code("IF_BODY")
                     .order(order++)
-                    .build()
             }
             runCatching {
                 driver.addEdge(ifRootVertex, condBody, EdgeLabel.AST)
@@ -335,17 +327,16 @@ class ASTBuilder(private val driver: IDriver) : IGraphBuilder {
     /**
      * Given an [IfStmt], will construct condition edge and vertex information.
      *
-     * @param unit The [IfStmt] from which a [NewControlStructure] and condition [NewBlock] will be constructed.
-     * @return the [NewControlStructure] constructed.
+     * @param unit The [IfStmt] from which a [NewControlStructureBuilder] and condition [NewBlock] will be constructed.
+     * @return the [NewControlStructureBuilder] constructed.
      */
-    private fun projectIfRootAndCondition(unit: IfStmt, childIdx: Int): NewControlStructure {
+    private fun projectIfRootAndCondition(unit: IfStmt, childIdx: Int): NewControlStructureBuilder {
         val ifRootVertex = NewControlStructureBuilder()
             .code(ExtractorConst.IF_ROOT)
             .linenumber(Option.apply(unit.javaSourceStartLineNumber))
             .columnnumber(Option.apply(unit.javaSourceStartColumnNumber))
             .order(order++)
             .argumentindex(childIdx)
-            .build()
         driver.addVertex(ifRootVertex)
         val condition = unit.condition as ConditionExpr
         val conditionExpr = projectFlippedConditionalExpr(condition)
@@ -359,11 +350,11 @@ class ASTBuilder(private val driver: IDriver) : IGraphBuilder {
     /**
      * Given an [AssignStmt], will construct variable assignment edge and vertex information.
      *
-     * @param unit The [AssignStmt] from which a [NewCall] and its children vertices will be constructed.
-     * @return the [NewCall] constructed.
+     * @param unit The [AssignStmt] from which a [NewCallBuilder] and its children vertices will be constructed.
+     * @return the [NewCallBuilder] constructed.
      */
-    private fun projectVariableAssignment(unit: DefinitionStmt, childIdx: Int): NewCall {
-        val assignVariables = mutableListOf<NewNode>()
+    private fun projectVariableAssignment(unit: DefinitionStmt, childIdx: Int): NewCallBuilder {
+        val assignVariables = mutableListOf<NewNodeBuilder>()
         val leftOp = unit.leftOp
         val rightOp = unit.rightOp
         val assignBlock = NewCallBuilder()
@@ -377,7 +368,6 @@ class ASTBuilder(private val driver: IDriver) : IGraphBuilder {
             .typefullname(leftOp.type.toQuotedString())
             .linenumber(Option.apply(unit.javaSourceStartLineNumber))
             .columnnumber(Option.apply(unit.javaSourceStartColumnNumber))
-            .build()
         when (leftOp) {
             is Local -> SootToPlumeUtil.createIdentifierVertex(leftOp, currentLine, currentCol, 0).apply {
                 addSootToPlumeAssociation(leftOp, this)
@@ -417,14 +407,14 @@ class ASTBuilder(private val driver: IDriver) : IGraphBuilder {
     }
 
     /**
-     * Given an [BinopExpr], will construct the root operand as a [NewCall] and left and right operations of the
+     * Given an [BinopExpr], will construct the root operand as a [NewCallBuilder] and left and right operations of the
      * binary operation.
      *
-     * @param expr The [BinopExpr] from which a [NewCall] and its children vertices will be constructed.
-     * @return the [NewCall] constructed.
+     * @param expr The [BinopExpr] from which a [NewCallBuilder] and its children vertices will be constructed.
+     * @return the [NewCallBuilder] constructed.
      */
-    private fun projectBinopExpr(expr: BinopExpr, childIdx: Int): NewCall {
-        val binopVertices = mutableListOf<NewNode>()
+    private fun projectBinopExpr(expr: BinopExpr, childIdx: Int): NewCallBuilder {
+        val binopVertices = mutableListOf<NewNodeBuilder>()
         val binOpExpr = BIN_OPS[expr.symbol.trim()] ?: throw Exception("Unknown binary operator $expr")
         val binOpBlock = NewCallBuilder()
             .name(binOpExpr)
@@ -437,7 +427,6 @@ class ASTBuilder(private val driver: IDriver) : IGraphBuilder {
             .typefullname(expr.type.toQuotedString())
             .linenumber(Option.apply(currentLine))
             .columnnumber(Option.apply(currentCol))
-            .build()
             .apply { binopVertices.add(this) }
         projectOp(expr.op1, 0)?.let {
             runCatching {
@@ -458,8 +447,8 @@ class ASTBuilder(private val driver: IDriver) : IGraphBuilder {
         return binOpBlock
     }
 
-    private fun projectFlippedConditionalExpr(expr: ConditionExpr): NewCall {
-        val conditionVertices = mutableListOf<NewNode>()
+    private fun projectFlippedConditionalExpr(expr: ConditionExpr): NewCallBuilder {
+        val conditionVertices = mutableListOf<NewNodeBuilder>()
         val operator = SootParserUtil.parseAndFlipEquality(expr.symbol.trim())
         val symbol = BIN_OPS.filter { it.value == operator }.keys.first()
         val binOpBlock = NewCallBuilder()
@@ -473,8 +462,7 @@ class ASTBuilder(private val driver: IDriver) : IGraphBuilder {
             .typefullname(expr.type.toQuotedString())
             .linenumber(Option.apply(currentLine))
             .columnnumber(Option.apply(currentCol))
-            .dynamictypehintfullname(createSingleItemScalaList(expr.op2.type) as scala.collection.immutable.List<String>) // TODO needs tests
-            .build()
+            .dynamictypehintfullname(createSingleItemScalaList(expr.op2.type))
             .apply { conditionVertices.add(this) }
         projectOp(expr.op1, 0)?.let {
             runCatching {
@@ -494,8 +482,8 @@ class ASTBuilder(private val driver: IDriver) : IGraphBuilder {
         return binOpBlock
     }
 
-    private fun projectCastExpr(expr: CastExpr, childIdx: Int): NewCall {
-        val castVertices = mutableListOf<NewNode>()
+    private fun projectCastExpr(expr: CastExpr, childIdx: Int): NewCallBuilder {
+        val castVertices = mutableListOf<NewNodeBuilder>()
         val castBlock = NewCallBuilder()
             .name(CAST)
             .code("(${expr.castType.toQuotedString()})")
@@ -507,7 +495,6 @@ class ASTBuilder(private val driver: IDriver) : IGraphBuilder {
             .typefullname(expr.type.toQuotedString())
             .linenumber(Option.apply(currentLine))
             .columnnumber(Option.apply(currentCol))
-            .build()
             .apply { castVertices.add(this) }
         projectOp(expr.op, 0)?.let {
             runCatching {
@@ -519,7 +506,7 @@ class ASTBuilder(private val driver: IDriver) : IGraphBuilder {
         return castBlock
     }
 
-    private fun projectOp(expr: Value, childIdx: Int): NewNode? {
+    private fun projectOp(expr: Value, childIdx: Int): NewNodeBuilder? {
         return when (expr) {
             is Local -> SootToPlumeUtil.createIdentifierVertex(expr, currentLine, currentCol, childIdx)
             is Constant -> SootToPlumeUtil.createLiteralVertex(expr, currentLine, currentCol, childIdx)
@@ -546,8 +533,8 @@ class ASTBuilder(private val driver: IDriver) : IGraphBuilder {
         }
     }
 
-    private fun createNewArrayExpr(expr: NewArrayExpr, argumentIndex: Int = 0): NewTypeRef {
-        val newArrayExprVertices = mutableListOf<NewNode>()
+    private fun createNewArrayExpr(expr: NewArrayExpr, argumentIndex: Int = 0): NewTypeRefBuilder {
+        val newArrayExprVertices = mutableListOf<NewNodeBuilder>()
         val typeRef = NewTypeRefBuilder()
             .typefullname(expr.type.toQuotedString())
             .code(expr.toString())
@@ -555,11 +542,9 @@ class ASTBuilder(private val driver: IDriver) : IGraphBuilder {
             .order(order++)
             .linenumber(Option.apply(currentLine))
             .columnnumber(Option.apply(currentCol))
-            .build()
             .apply { addSootToPlumeAssociation(expr, this) }
         NewArrayInitializerBuilder()
             .order(order++)
-            .build()
             .let {
                 runCatching {
                     driver.addEdge(typeRef, it, EdgeLabel.AST)
@@ -570,14 +555,13 @@ class ASTBuilder(private val driver: IDriver) : IGraphBuilder {
         return typeRef
     }
 
-    private fun projectReturnVertex(ret: ReturnStmt, childIdx: Int): NewReturn {
+    private fun projectReturnVertex(ret: ReturnStmt, childIdx: Int): NewReturnBuilder {
         val retV = NewReturnBuilder()
             .code(ret.toString())
             .argumentindex(childIdx)
             .linenumber(Option.apply(ret.javaSourceStartLineNumber))
             .columnnumber(Option.apply(ret.javaSourceStartColumnNumber))
             .order(order++)
-            .build()
         projectOp(ret.op, childIdx + 1)?.let { driver.addEdge(retV, it, EdgeLabel.AST) }
         runCatching {
             driver.addEdge(getSootAssociation(graph.body.method)?.first { it is NewBlock }!!, retV, EdgeLabel.AST)
@@ -585,14 +569,13 @@ class ASTBuilder(private val driver: IDriver) : IGraphBuilder {
         return retV
     }
 
-    private fun projectReturnVertex(ret: ReturnVoidStmt, childIdx: Int): NewReturn {
+    private fun projectReturnVertex(ret: ReturnVoidStmt, childIdx: Int): NewReturnBuilder {
         val retV = NewReturnBuilder()
             .code(ret.toString())
             .argumentindex(childIdx)
             .linenumber(Option.apply(ret.javaSourceStartLineNumber))
             .columnnumber(Option.apply(ret.javaSourceStartColumnNumber))
             .order(order++)
-            .build()
         runCatching {
             driver.addEdge(getSootAssociation(graph.body.method)?.first { it is NewBlock }!!, retV, EdgeLabel.AST)
         }.onFailure { e -> logger.warn(e.message) }

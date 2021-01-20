@@ -17,14 +17,10 @@ package io.github.plume.oss.graph
 
 import io.github.plume.oss.Extractor.Companion.getSootAssociation
 import io.github.plume.oss.domain.enums.EdgeLabel
-import io.github.plume.oss.domain.models.PlumeVertex
-import io.github.plume.oss.domain.models.vertices.BlockVertex
-import io.github.plume.oss.domain.models.vertices.ControlStructureVertex
-import io.github.plume.oss.domain.models.vertices.JumpTargetVertex
-import io.github.plume.oss.domain.models.vertices.MethodReturnVertex
 import io.github.plume.oss.drivers.IDriver
 import io.github.plume.oss.util.ExtractorConst.FALSE_TARGET
 import io.github.plume.oss.util.ExtractorConst.TRUE_TARGET
+import io.shiftleft.codepropertygraph.generated.nodes.*
 import org.apache.logging.log4j.LogManager
 import soot.Unit
 import soot.jimple.*
@@ -51,7 +47,7 @@ class CFGBuilder(private val driver: IDriver) : IGraphBuilder {
             startingUnit?.let {
                 getSootAssociation(it)?.firstOrNull()?.let { succVert ->
                     val mtdV = getSootAssociation(mtd)
-                    val bodyVertex = mtdV?.first { mtdVertices -> mtdVertices is BlockVertex }!!
+                    val bodyVertex = mtdV?.first { mtdVertices -> mtdVertices is NewBlockBuilder }!!
                     mtdV.firstOrNull()?.let { mtdVertex -> driver.addEdge(mtdVertex, bodyVertex, EdgeLabel.CFG) }
                     runCatching {
                         driver.addEdge(bodyVertex, succVert, EdgeLabel.CFG)
@@ -92,7 +88,7 @@ class CFGBuilder(private val driver: IDriver) : IGraphBuilder {
 
     private fun projectTableSwitch(unit: TableSwitchStmt) {
         val switchVertices = getSootAssociation(unit)!!
-        val switchVertex = switchVertices.first { it is ControlStructureVertex } as ControlStructureVertex
+        val switchVertex = switchVertices.first { it is NewControlStructureBuilder } as NewControlStructureBuilder
         // Handle default target jump
         projectSwitchDefault(unit, switchVertices, switchVertex)
         // Handle case jumps
@@ -103,7 +99,7 @@ class CFGBuilder(private val driver: IDriver) : IGraphBuilder {
 
     private fun projectLookupSwitch(unit: LookupSwitchStmt) {
         val lookupVertices = getSootAssociation(unit)!!
-        val lookupVertex = lookupVertices.first { it is ControlStructureVertex } as ControlStructureVertex
+        val lookupVertex = lookupVertices.first { it is NewControlStructureBuilder } as NewControlStructureBuilder
         // Handle default target jump
         projectSwitchDefault(unit, lookupVertices, lookupVertex)
         // Handle case jumps
@@ -115,29 +111,29 @@ class CFGBuilder(private val driver: IDriver) : IGraphBuilder {
     }
 
     private fun projectSwitchTarget(
-        lookupVertices: List<PlumeVertex>,
+        lookupVertices: List<NewNodeBuilder>,
         lookupValue: Int,
-        lookupVertex: ControlStructureVertex,
+        lookupVertex: NewControlStructureBuilder,
         tgt: Unit
     ) {
-        val tgtV = lookupVertices.first { it is JumpTargetVertex && it.argumentIndex == lookupValue }
+        val tgtV = lookupVertices.first { it is NewJumpTargetBuilder && it.build().argumentIndex() == lookupValue }
         projectTargetPath(lookupVertex, tgtV, tgt)
     }
 
     private fun projectSwitchDefault(
         unit: SwitchStmt,
-        switchVertices: List<PlumeVertex>,
-        switchVertex: ControlStructureVertex
+        switchVertices: List<NewNodeBuilder>,
+        switchVertex: NewControlStructureBuilder
     ) {
         unit.defaultTarget.let { defaultUnit ->
-            val tgtV = switchVertices.first { it is JumpTargetVertex && it.name == "DEFAULT" }
+            val tgtV = switchVertices.first { it is NewJumpTargetBuilder && it.build().name() == "DEFAULT" }
             projectTargetPath(switchVertex, tgtV, defaultUnit)
         }
     }
 
     private fun projectTargetPath(
-        lookupVertex: ControlStructureVertex,
-        tgtV: PlumeVertex,
+        lookupVertex: NewControlStructureBuilder,
+        tgtV: NewNodeBuilder,
         tgt: Unit
     ) {
         runCatching {
@@ -154,9 +150,9 @@ class CFGBuilder(private val driver: IDriver) : IGraphBuilder {
         val ifVertices = getSootAssociation(unit)!!
         graph.getSuccsOf(unit).forEach {
             val srcVertex = if (it == unit.target) {
-                ifVertices.first { vert -> vert is JumpTargetVertex && vert.name == FALSE_TARGET }
+                ifVertices.first { vert -> vert is NewJumpTargetBuilder && vert.build().name() == FALSE_TARGET }
             } else {
-                ifVertices.first { vert -> vert is JumpTargetVertex && vert.name == TRUE_TARGET }
+                ifVertices.first { vert -> vert is NewJumpTargetBuilder && vert.build().name() == TRUE_TARGET }
             }
             val tgtVertices = if (it is GotoStmt) getSootAssociation(it.target)
             else getSootAssociation(it)
@@ -173,11 +169,12 @@ class CFGBuilder(private val driver: IDriver) : IGraphBuilder {
 
     private fun projectReturnEdge(unit: Stmt) {
         getSootAssociation(unit)?.firstOrNull()?.let { src ->
-            getSootAssociation(graph.body.method)?.filterIsInstance<MethodReturnVertex>()?.firstOrNull()?.let { tgt ->
-                runCatching {
-                    driver.addEdge(src, tgt, EdgeLabel.CFG)
-                }.onFailure { e -> logger.warn(e.message) }
-            }
+            getSootAssociation(graph.body.method)?.filterIsInstance<NewMethodReturnBuilder>()?.firstOrNull()
+                ?.let { tgt ->
+                    runCatching {
+                        driver.addEdge(src, tgt, EdgeLabel.CFG)
+                    }.onFailure { e -> logger.warn(e.message) }
+                }
         }
     }
 }

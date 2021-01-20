@@ -17,11 +17,11 @@ package io.github.plume.oss.graph
 
 import io.github.plume.oss.Extractor.Companion.getSootAssociation
 import io.github.plume.oss.domain.enums.EdgeLabel
-import io.github.plume.oss.domain.models.vertices.CallVertex
-import io.github.plume.oss.domain.models.vertices.IdentifierVertex
-import io.github.plume.oss.domain.models.vertices.LocalVertex
-import io.github.plume.oss.domain.models.vertices.MethodParameterInVertex
 import io.github.plume.oss.drivers.IDriver
+import io.shiftleft.codepropertygraph.generated.nodes.NewCallBuilder
+import io.shiftleft.codepropertygraph.generated.nodes.NewIdentifierBuilder
+import io.shiftleft.codepropertygraph.generated.nodes.NewLocalBuilder
+import io.shiftleft.codepropertygraph.generated.nodes.NewMethodParameterInBuilder
 import org.apache.logging.log4j.LogManager
 import soot.Local
 import soot.jimple.*
@@ -60,7 +60,7 @@ class PDGBuilder(private val driver: IDriver) : IGraphBuilder {
     }
 
     private fun projectCallArg(value: Any) {
-        getSootAssociation(value)?.firstOrNull { it is CallVertex }?.let { src ->
+        getSootAssociation(value)?.firstOrNull { it is NewCallBuilder }?.let { src ->
             getSootAssociation(value)?.filter { it != src }?.forEach {
                 runCatching {
                     driver.addEdge(src, it, EdgeLabel.ARGUMENT)
@@ -71,8 +71,8 @@ class PDGBuilder(private val driver: IDriver) : IGraphBuilder {
 
     private fun projectLocalVariable(local: Local) {
         getSootAssociation(local)?.let { assocVertices ->
-            assocVertices.filterIsInstance<IdentifierVertex>().forEach { identifierV ->
-                assocVertices.firstOrNull { it is LocalVertex || it is MethodParameterInVertex }?.let { src ->
+            assocVertices.filterIsInstance<NewIdentifierBuilder>().forEach { identifierV ->
+                assocVertices.firstOrNull { it is NewLocalBuilder || it is NewMethodParameterInBuilder }?.let { src ->
                     runCatching {
                         driver.addEdge(identifierV, src, EdgeLabel.REF)
                     }.onFailure { e -> logger.warn(e.message) }
