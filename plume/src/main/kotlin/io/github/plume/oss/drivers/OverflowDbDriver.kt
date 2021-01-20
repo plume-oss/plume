@@ -206,6 +206,10 @@ class OverflowDbDriver : IDriver {
         Traversals.deleteMethod(graph, fullName, signature)
     }
 
+    override fun getVertexIds(lowerBound: Long, upperBound: Long): Set<Long> {
+        TODO("Not yet implemented")
+    }
+
     override fun close() {
         require(connected) { "Cannot close a graph that is not already connected!" }
         try {

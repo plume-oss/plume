@@ -6,6 +6,7 @@ import io.github.plume.oss.domain.mappers.VertexMapper
 import io.github.plume.oss.domain.mappers.VertexMapper.checkSchemaConstraints
 import io.github.plume.oss.domain.mappers.VertexMapper.vertexToMap
 import io.github.plume.oss.domain.models.PlumeGraph
+import io.github.plume.oss.util.PlumeKeyProvider
 import io.shiftleft.codepropertygraph.generated.nodes.*
 import org.apache.commons.configuration.BaseConfiguration
 import org.apache.logging.log4j.LogManager
@@ -182,7 +183,7 @@ abstract class GremlinDriver : IDriver {
             if (!transactionOpen) openTx()
             val propertyMap: MutableMap<String, Any> = vertexToMap(v).apply { remove("label") }
             // Get the implementing classes fields and values
-            g.graph.addVertex(T.label, v.build().label(), T.id, v.id()).apply {
+            g.graph.addVertex(T.label, v.build().label(), T.id, PlumeKeyProvider.getNewId(this)).apply {
                 propertyMap.forEach { (key: String, value: Any) -> this.property(key, value) }
             }
         } finally {
@@ -317,5 +318,9 @@ abstract class GremlinDriver : IDriver {
                 plumeGraph.addEdge(plumeSrc, plumeTgt, edgeLabel)
             }
         return plumeGraph
+    }
+
+    override fun getVertexIds(lowerBound: Long, upperBound: Long): Set<Long> {
+        TODO("Not yet implemented")
     }
 }

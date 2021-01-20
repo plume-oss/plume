@@ -8,6 +8,7 @@ import org.apache.tinkerpop.gremlin.structure.Transaction
 import org.apache.tinkerpop.gremlin.structure.Vertex
 import io.github.plume.oss.domain.exceptions.PlumeTransactionException
 import io.github.plume.oss.domain.mappers.VertexMapper.vertexToMap
+import io.github.plume.oss.util.PlumeKeyProvider
 import io.shiftleft.codepropertygraph.generated.nodes.NewNode
 import io.shiftleft.codepropertygraph.generated.nodes.NewNodeBuilder
 import java.lang.IllegalArgumentException
@@ -130,7 +131,7 @@ class JanusGraphDriver : GremlinDriver() {
     override fun createVertex(v: NewNodeBuilder): Vertex {
         val propertyMap = vertexToMap(v).apply { remove("label") }
         // Get the implementing classes fields and values
-        var traversalPointer = g.addV(v.build().label()).property("id", v.id())
+        var traversalPointer = g.addV(v.build().label()).property("id", PlumeKeyProvider.getNewId(this))
         for ((key, value) in propertyMap) traversalPointer = traversalPointer.property(key, value)
         return traversalPointer.next()
     }

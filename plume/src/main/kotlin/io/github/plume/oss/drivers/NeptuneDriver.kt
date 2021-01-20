@@ -1,6 +1,7 @@
 package io.github.plume.oss.drivers
 
 import io.github.plume.oss.domain.mappers.VertexMapper.vertexToMap
+import io.github.plume.oss.util.PlumeKeyProvider
 import io.shiftleft.codepropertygraph.generated.nodes.NewNodeBuilder
 import org.apache.logging.log4j.LogManager
 import org.apache.tinkerpop.gremlin.driver.Cluster
@@ -91,7 +92,7 @@ class NeptuneDriver : GremlinDriver() {
         // TODO could use NewNode.properties() here
         val propertyMap = vertexToMap(v).apply { remove("label") }
         // Get the implementing classes fields and values
-        var traversalPointer = g.addV(v.build().label()).property("id", v.id())
+        var traversalPointer = g.addV(v.build().label()).property("id", PlumeKeyProvider.getNewId(this))
         for ((key, value) in propertyMap) traversalPointer = traversalPointer.property(key, value)
         return traversalPointer.next()
     }

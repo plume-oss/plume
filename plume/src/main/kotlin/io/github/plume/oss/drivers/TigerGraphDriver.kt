@@ -6,6 +6,7 @@ import io.github.plume.oss.domain.exceptions.PlumeTransactionException
 import io.github.plume.oss.domain.mappers.VertexMapper
 import io.github.plume.oss.domain.mappers.VertexMapper.checkSchemaConstraints
 import io.github.plume.oss.domain.models.PlumeGraph
+import io.github.plume.oss.util.PlumeKeyProvider
 import io.shiftleft.codepropertygraph.generated.nodes.NewMetaDataBuilder
 import io.shiftleft.codepropertygraph.generated.nodes.NewNodeBuilder
 import org.apache.logging.log4j.LogManager
@@ -165,7 +166,7 @@ class TigerGraphDriver : IDriver {
         val vertexType = if (plumeVertex is NewMetaDataBuilder) "META_DATA_VERT" else "CPG_VERT"
         return mapOf(
             vertexType to mapOf<String, Any>(
-                plumeVertex.id().toString() to extractAttributesFromMap(propertyMap)
+                PlumeKeyProvider.getNewId(this).toString() to extractAttributesFromMap(propertyMap)
             )
         )
     }
@@ -250,6 +251,10 @@ class TigerGraphDriver : IDriver {
         } catch (e: PlumeTransactionException) {
             logger.warn("${e.message}. This may be a result of the method not being present in the graph.")
         }
+    }
+
+    override fun getVertexIds(lowerBound: Long, upperBound: Long): Set<Long> {
+        TODO("Not yet implemented")
     }
 
     private fun graphPayloadToPlumeGraph(a: JSONArray): PlumeGraph {

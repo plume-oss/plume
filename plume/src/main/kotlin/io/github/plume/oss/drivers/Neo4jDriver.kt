@@ -4,6 +4,7 @@ import com.steelbridgelabs.oss.neo4j.structure.Neo4JGraph
 import com.steelbridgelabs.oss.neo4j.structure.providers.Neo4JNativeElementIdProvider
 import io.github.plume.oss.domain.exceptions.PlumeTransactionException
 import io.github.plume.oss.domain.mappers.VertexMapper
+import io.github.plume.oss.util.PlumeKeyProvider
 import io.shiftleft.codepropertygraph.generated.nodes.NewNodeBuilder
 import org.apache.logging.log4j.LogManager
 import org.apache.tinkerpop.gremlin.process.traversal.Order
@@ -160,7 +161,7 @@ class Neo4jDriver : GremlinDriver() {
             if (!transactionOpen) openTx()
             val propertyMap = VertexMapper.vertexToMap(v).apply { remove("label") }
             // Get the implementing classes fields and values
-            g.graph.addVertex(T.label, v.build().label(), "id", v.id()).apply {
+            g.graph.addVertex(T.label, v.build().label(), "id", PlumeKeyProvider.getNewId(this)).apply {
                 propertyMap.forEach { (key: String?, value: Any?) ->
                     this.property(
                         key,
