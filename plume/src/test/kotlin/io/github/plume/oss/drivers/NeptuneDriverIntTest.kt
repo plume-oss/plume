@@ -72,8 +72,8 @@ class NeptuneDriverIntTest {
     inner class VertexAddAndExistsTests {
         @Test
         fun findAstVertex() {
-            val v1 = NewArrayInitializerBuilder().order(INT_1).build()
-            val v2 = NewArrayInitializerBuilder().order(INT_2).build()
+            val v1 = NewArrayInitializerBuilder().order(INT_1)
+            val v2 = NewArrayInitializerBuilder().order(INT_2)
             assertFalse(driver.exists(v1))
             assertFalse(driver.exists(v2))
             driver.addVertex(v1)
@@ -86,8 +86,8 @@ class NeptuneDriverIntTest {
 
         @Test
         fun findBindingVertex() {
-            val v1 = NewBindingBuilder().name(STRING_1).signature(STRING_2).build()
-            val v2 = NewBindingBuilder().name(STRING_2).signature(STRING_1).build()
+            val v1 = NewBindingBuilder().name(STRING_1).signature(STRING_2)
+            val v2 = NewBindingBuilder().name(STRING_2).signature(STRING_1)
             assertFalse(driver.exists(v1))
             assertFalse(driver.exists(v2))
             driver.addVertex(v1)
@@ -101,9 +101,9 @@ class NeptuneDriverIntTest {
         @Test
         fun findFieldIdentifierVertex() {
             val v1 = NewFieldIdentifierBuilder().canonicalname(STRING_1).code(STRING_2).argumentindex(INT_1)
-                .order(INT_1).linenumber(Option.apply(INT_1)).columnnumber(Option.apply(INT_1)).build()
+                .order(INT_1).linenumber(Option.apply(INT_1)).columnnumber(Option.apply(INT_1))
             val v2 = NewFieldIdentifierBuilder().canonicalname(STRING_2).code(STRING_1).argumentindex(INT_1)
-                .order(INT_1).linenumber(Option.apply(INT_1)).columnnumber(Option.apply(INT_1)).build()
+                .order(INT_1).linenumber(Option.apply(INT_1)).columnnumber(Option.apply(INT_1))
             assertFalse(driver.exists(v1))
             assertFalse(driver.exists(v2))
             driver.addVertex(v1)
@@ -116,8 +116,8 @@ class NeptuneDriverIntTest {
 
         @Test
         fun findMetaDataVertex() {
-            val v1 = NewMetaDataBuilder().language(STRING_1).version(STRING_2).build()
-            val v2 = NewMetaDataBuilder().language(STRING_2).version(STRING_1).build()
+            val v1 = NewMetaDataBuilder().language(STRING_1).version(STRING_2)
+            val v2 = NewMetaDataBuilder().language(STRING_2).version(STRING_1)
             assertFalse(driver.exists(v1))
             assertFalse(driver.exists(v2))
             driver.addVertex(v1)
@@ -132,10 +132,10 @@ class NeptuneDriverIntTest {
         fun findMethodRefVertex() {
             val v1 = NewMethodRefBuilder().methodinstfullname(Option.apply(STRING_1)).methodfullname(STRING_2)
                 .code(STRING_1).order(INT_1).argumentindex(INT_1).linenumber(Option.apply(INT_1))
-                .columnnumber(Option.apply(INT_1)).build()
+                .columnnumber(Option.apply(INT_1))
             val v2 = NewMethodRefBuilder().methodinstfullname(Option.apply(STRING_2)).methodfullname(STRING_1)
                 .code(STRING_1).order(INT_1).argumentindex(INT_1).linenumber(Option.apply(INT_1))
-                .columnnumber(Option.apply(INT_1)).build()
+                .columnnumber(Option.apply(INT_1))
             assertFalse(driver.exists(v1))
             assertFalse(driver.exists(v2))
             driver.addVertex(v1)
@@ -148,8 +148,8 @@ class NeptuneDriverIntTest {
 
         @Test
         fun findTypeVertex() {
-            val v1 = NewTypeBuilder().name(STRING_1).fullname(STRING_2).typedeclfullname(STRING_2).build()
-            val v2 = NewTypeBuilder().name(STRING_2).fullname(STRING_1).typedeclfullname(STRING_2).build()
+            val v1 = NewTypeBuilder().name(STRING_1).fullname(STRING_2).typedeclfullname(STRING_2)
+            val v2 = NewTypeBuilder().name(STRING_2).fullname(STRING_1).typedeclfullname(STRING_2)
             assertFalse(driver.exists(v1))
             assertFalse(driver.exists(v2))
             driver.addVertex(v1)
@@ -163,17 +163,13 @@ class NeptuneDriverIntTest {
         @Test
         fun findTypeRefVertex() {
             val v1 = NewTypeRefBuilder().typefullname(STRING_1).dynamictypehintfullname(
-                SootToPlumeUtil.createSingleItemScalaList(
-                    STRING_2
-                ) as scala.collection.immutable.List<String>
+                SootToPlumeUtil.createSingleItemScalaList(STRING_2)
             ).code(STRING_1).argumentindex(INT_1).order(INT_1).linenumber(Option.apply(INT_1))
-                .columnnumber(Option.apply(INT_1)).build()
+                .columnnumber(Option.apply(INT_1))
             val v2 = NewTypeRefBuilder().typefullname(STRING_2).dynamictypehintfullname(
-                SootToPlumeUtil.createSingleItemScalaList(
-                    STRING_1
-                ) as scala.collection.immutable.List<String>
+                SootToPlumeUtil.createSingleItemScalaList(STRING_1)
             ).code(STRING_1).argumentindex(INT_1).order(INT_1).linenumber(Option.apply(INT_1))
-                .columnnumber(Option.apply(INT_1)).build()
+                .columnnumber(Option.apply(INT_1))
             assertFalse(driver.exists(v1))
             assertFalse(driver.exists(v2))
             driver.addVertex(v1)
@@ -187,9 +183,9 @@ class NeptuneDriverIntTest {
         @Test
         fun findUnknownVertex() {
             val v1 = NewUnknownBuilder().typefullname(STRING_1).code(STRING_2).order(INT_1).argumentindex(INT_1)
-                .linenumber(Option.apply(INT_1)).columnnumber(Option.apply(INT_1)).build()
+                .linenumber(Option.apply(INT_1)).columnnumber(Option.apply(INT_1))
             val v2 = NewUnknownBuilder().typefullname(STRING_2).code(STRING_1).order(INT_1).argumentindex(INT_1)
-                .linenumber(Option.apply(INT_1)).columnnumber(Option.apply(INT_1)).build()
+                .linenumber(Option.apply(INT_1)).columnnumber(Option.apply(INT_1))
             assertFalse(driver.exists(v1))
             assertFalse(driver.exists(v2))
             driver.addVertex(v1)
@@ -347,15 +343,15 @@ class NeptuneDriverIntTest {
 
         @Test
         fun testMaxOrderOnGraphWithOneVertex() {
-            val v1 = NewArrayInitializerBuilder().order(INT_2).build()
+            val v1 = NewArrayInitializerBuilder().order(INT_2)
             driver.addVertex(v1)
             assertEquals(INT_2, driver.maxOrder())
         }
 
         @Test
         fun testMaxOrderOnGraphWithMoreThanOneVertex() {
-            val v1 = NewArrayInitializerBuilder().order(INT_2).build()
-            val v2 = NewMetaDataBuilder().language(STRING_1).version(STRING_2).build()
+            val v1 = NewArrayInitializerBuilder().order(INT_2)
+            val v2 = NewMetaDataBuilder().language(STRING_1).version(STRING_2)
             driver.addVertex(v1)
             driver.addVertex(v2)
             assertEquals(INT_2, driver.maxOrder())
@@ -363,8 +359,8 @@ class NeptuneDriverIntTest {
 
         @Test
         fun testMaxOrderOnGraphWithNoAstVertex() {
-            val v1 = NewBindingBuilder().name(STRING_1).signature(STRING_2).build()
-            val v2 = NewMetaDataBuilder().language(STRING_1).version(STRING_2).build()
+            val v1 = NewBindingBuilder().name(STRING_1).signature(STRING_2)
+            val v2 = NewMetaDataBuilder().language(STRING_1).version(STRING_2)
             driver.addVertex(v1)
             driver.addVertex(v2)
             assertEquals(0, driver.maxOrder())
@@ -448,7 +444,7 @@ class NeptuneDriverIntTest {
         @Test
         fun testGetEmptyMethodBody() {
             driver.clearGraph()
-            val plumeGraph = driver.getMethod(methodVertex.fullName(), methodVertex.signature())
+            val plumeGraph = driver.getMethod(methodVertex.build().fullName(), methodVertex.build().signature())
             assertEquals("PlumeGraph(vertices:0, edges:0)", plumeGraph.toString())
             val graphVertices = plumeGraph.vertices()
             assertEquals(0, graphVertices.size)
@@ -456,7 +452,7 @@ class NeptuneDriverIntTest {
 
         @Test
         fun testGetMethodHeadOnly() {
-            val plumeGraph = driver.getMethod(methodVertex.fullName(), methodVertex.signature(), false)
+            val plumeGraph = driver.getMethod(methodVertex.build().fullName(), methodVertex.build().signature(), false)
             assertEquals("PlumeGraph(vertices:6, edges:5)", plumeGraph.toString())
             val graphVertices = plumeGraph.vertices()
             assertEquals(6, graphVertices.size)
@@ -481,7 +477,7 @@ class NeptuneDriverIntTest {
 
         @Test
         fun testGetMethodBody() {
-            val plumeGraph = driver.getMethod(methodVertex.fullName(), methodVertex.signature(), true)
+            val plumeGraph = driver.getMethod(methodVertex.build().fullName(), methodVertex.build().signature(), true)
             assertEquals("PlumeGraph(vertices:15, edges:26)", plumeGraph.toString())
             val graphVertices = plumeGraph.vertices()
             assertEquals(15, graphVertices.size)
@@ -607,7 +603,7 @@ class NeptuneDriverIntTest {
         @Test
         fun testMethodDelete() {
             assertTrue(driver.exists(methodVertex))
-            driver.deleteMethod(methodVertex.fullName(), methodVertex.signature())
+            driver.deleteMethod(methodVertex.build().fullName(), methodVertex.build().signature())
             assertFalse(driver.exists(methodVertex))
             assertFalse(driver.exists(literalVertex))
             assertFalse(driver.exists(returnVertex))
@@ -616,7 +612,7 @@ class NeptuneDriverIntTest {
             assertFalse(driver.exists(blockVertex))
             assertFalse(driver.exists(callVertex))
             // Check that deleting a method doesn't throw any error
-            driver.deleteMethod(methodVertex.fullName(), methodVertex.signature())
+            driver.deleteMethod(methodVertex.build().fullName(), methodVertex.build().signature())
         }
     }
 }
