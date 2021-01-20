@@ -3,7 +3,7 @@ package io.github.plume.oss.graphio
 import io.github.plume.oss.domain.enums.EdgeLabel
 import io.github.plume.oss.domain.mappers.VertexMapper
 import io.github.plume.oss.domain.models.PlumeGraph
-import io.github.plume.oss.domain.models.PlumeVertex
+import io.shiftleft.codepropertygraph.generated.nodes.NewNodeBuilder
 import java.io.OutputStreamWriter
 import java.util.*
 
@@ -31,7 +31,7 @@ object GraphSONWriter {
         }
     }
 
-    private fun vertexToJSON(v: PlumeVertex, graph: PlumeGraph): String {
+    private fun vertexToJSON(v: NewNodeBuilder, graph: PlumeGraph): String {
         val sb = StringBuilder()
         val properties = VertexMapper.vertexToMap(v)
         sb.append("{")
@@ -44,7 +44,7 @@ object GraphSONWriter {
         return sb.toString()
     }
 
-    private fun edgesToJSON(edgesOut: HashMap<EdgeLabel, HashSet<PlumeVertex>>, tgtDirection: String): String {
+    private fun edgesToJSON(edgesOut: HashMap<EdgeLabel, HashSet<NewNodeBuilder>>, tgtDirection: String): String {
         val sb = StringBuilder()
         sb.append("{")
         var i = 0
