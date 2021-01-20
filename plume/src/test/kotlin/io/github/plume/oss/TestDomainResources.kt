@@ -48,11 +48,9 @@ class TestDomainResources {
             NewMemberBuilder().code(STRING_1).name(STRING_1).typefullname(STRING_1).order(INT_1),
             NewMetaDataBuilder().language(STRING_1).version(STRING_1),
             NewMethodParameterInBuilder().code(STRING_1).evaluationstrategy(EVAL_1.name).typefullname(STRING_1)
-                .name(STRING_1).order(INT_1).linenumber(Option.apply(INT_1)).columnnumber(Option.apply(INT_1))
-                ,
+                .name(STRING_1).order(INT_1).linenumber(Option.apply(INT_1)).columnnumber(Option.apply(INT_1)),
             NewMethodRefBuilder().methodinstfullname(Option.apply(STRING_1)).methodfullname(STRING_1).code(STRING_1)
-                .order(INT_1).argumentindex(INT_1).linenumber(Option.apply(INT_1)).columnnumber(Option.apply(INT_1))
-                ,
+                .order(INT_1).argumentindex(INT_1).linenumber(Option.apply(INT_1)).columnnumber(Option.apply(INT_1)),
             NewMethodReturnBuilder().typefullname(STRING_1).evaluationstrategy(EVAL_1.name).code(STRING_1)
                 .order(INT_1).linenumber(Option.apply(INT_1)).columnnumber(Option.apply(INT_1)),
             NewMethodBuilder().name(STRING_1).fullname(STRING_1).signature(STRING_1).code(STRING_1).order(INT_1)
@@ -78,7 +76,7 @@ class TestDomainResources {
         val methodParameterInVertex: NewMethodParameterInBuilder =
             NewMethodParameterInBuilder().code(STRING_1).evaluationstrategy(EVAL_1.name).typefullname(STRING_1)
                 .name(STRING_1).order(INT_1).linenumber(Option.apply(INT_1)).columnnumber(Option.apply(INT_1))
-                
+
         val blockVertex: NewBlockBuilder =
             NewBlockBuilder().typefullname(STRING_1).code(STRING_1).order(INT_1).argumentindex(INT_1)
                 .linenumber(Option.apply(INT_1)).columnnumber(Option.apply(INT_1))
@@ -88,8 +86,9 @@ class TestDomainResources {
                 .dynamictypehintfullname(createScalaList(STRING_1))
                 .name(STRING_1).signature(STRING_1).code(STRING_1).order(INT_1).linenumber(Option.apply(INT_1))
                 .columnnumber(Option.apply(INT_1))
-        val localVertex: NewLocalBuilder = NewLocalBuilder().code(STRING_1).typefullname(STRING_1).name(STRING_1).order(INT_1)
-            .linenumber(Option.apply(INT_1)).columnnumber(Option.apply(INT_1))
+        val localVertex: NewLocalBuilder =
+            NewLocalBuilder().code(STRING_1).typefullname(STRING_1).name(STRING_1).order(INT_1)
+                .linenumber(Option.apply(INT_1)).columnnumber(Option.apply(INT_1))
         val identifierVertex: NewIdentifierBuilder =
             NewIdentifierBuilder().name(STRING_1).typefullname(STRING_1).code(STRING_1).order(INT_1)
                 .argumentindex(INT_1).linenumber(Option.apply(INT_1)).columnnumber(Option.apply(INT_1))
