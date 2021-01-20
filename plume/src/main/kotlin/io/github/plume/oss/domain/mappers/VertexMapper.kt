@@ -48,7 +48,7 @@ object VertexMapper {
                 properties["lineNumber"] = node.lineNumber().get()
                 properties["dispatchType"] = node.dispatchType()
                 properties["dynamicTypeHintFullName"] =
-                    SootToPlumeUtil.createSingleItemScalaList(node.dynamicTypeHintFullName()) as scala.collection.immutable.List<String>
+                    SootToPlumeUtil.createSingleItemScalaList(node.dynamicTypeHintFullName())
                 properties["methodFullName"] = node.methodFullName()
                 properties["signature"] = node.signature()
                 properties["name"] = node.name()
