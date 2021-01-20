@@ -24,6 +24,7 @@ import io.github.plume.oss.util.SootParserUtil.determineEvaluationStrategy
 import io.shiftleft.codepropertygraph.generated.nodes.*
 import scala.Option
 import scala.collection.immutable.*
+import scala.jdk.CollectionConverters
 import soot.*
 import soot.jimple.ArrayRef
 import soot.jimple.Constant
@@ -362,9 +363,8 @@ object SootToPlumeUtil {
             .columnnumber(Option.apply(currentCol))
             .order(ASTBuilder.incOrder())
 
-    fun createSingleItemScalaList(item: Any): scala.collection.immutable.List<String> {
-        val nil = `Nil$`.`MODULE$`
-        val one = `$colon$colon$`.`MODULE$`.apply(item.toString(), nil)
-        return one.next() as scala.collection.immutable.List<String>
+    fun <T> createScalaList(vararg item: T): scala.collection.immutable.List<T> {
+        val list = listOf(*item)
+        return CollectionConverters.ListHasAsScala(list).asScala().toList() as scala.collection.immutable.List<T>
     }
 }

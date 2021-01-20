@@ -28,7 +28,7 @@ import io.github.plume.oss.util.ExtractorConst.FALSE_TARGET
 import io.github.plume.oss.util.ExtractorConst.TRUE_TARGET
 import io.github.plume.oss.util.SootParserUtil
 import io.github.plume.oss.util.SootToPlumeUtil
-import io.github.plume.oss.util.SootToPlumeUtil.createSingleItemScalaList
+import io.github.plume.oss.util.SootToPlumeUtil.createScalaList
 import io.shiftleft.codepropertygraph.generated.nodes.*
 import org.apache.logging.log4j.LogManager
 import scala.Option
@@ -462,7 +462,7 @@ class ASTBuilder(private val driver: IDriver) : IGraphBuilder {
             .typefullname(expr.type.toQuotedString())
             .linenumber(Option.apply(currentLine))
             .columnnumber(Option.apply(currentCol))
-            .dynamictypehintfullname(createSingleItemScalaList(expr.op2.type))
+            .dynamictypehintfullname(createScalaList(expr.op2.type.toQuotedString()))
             .apply { conditionVertices.add(this) }
         projectOp(expr.op1, 0)?.let {
             runCatching {

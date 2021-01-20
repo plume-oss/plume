@@ -164,11 +164,11 @@ class TigerGraphDriverIntTest {
         @Test
         fun findTypeRefVertex() {
             val v1 = NewTypeRefBuilder().typefullname(STRING_1).dynamictypehintfullname(
-                SootToPlumeUtil.createSingleItemScalaList(STRING_2)
+                SootToPlumeUtil.createScalaList(STRING_2)
             ).code(STRING_1).argumentindex(INT_1).order(INT_1).linenumber(Option.apply(INT_1))
                 .columnnumber(Option.apply(INT_1))
             val v2 = NewTypeRefBuilder().typefullname(STRING_2).dynamictypehintfullname(
-                SootToPlumeUtil.createSingleItemScalaList(STRING_1)
+                SootToPlumeUtil.createScalaList(STRING_1)
             ).code(STRING_1).argumentindex(INT_1).order(INT_1).linenumber(Option.apply(INT_1))
                 .columnnumber(Option.apply(INT_1))
             assertFalse(driver.exists(v1))

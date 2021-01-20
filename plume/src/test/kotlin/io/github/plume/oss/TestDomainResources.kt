@@ -5,7 +5,7 @@ import io.github.plume.oss.domain.enums.EdgeLabel
 import io.github.plume.oss.domain.enums.EvaluationStrategy
 import io.github.plume.oss.domain.enums.ModifierType
 import io.github.plume.oss.drivers.IDriver
-import io.github.plume.oss.util.SootToPlumeUtil.createSingleItemScalaList
+import io.github.plume.oss.util.SootToPlumeUtil.createScalaList
 import io.shiftleft.codepropertygraph.generated.nodes.*
 import scala.Option
 
@@ -29,7 +29,7 @@ class TestDomainResources {
                 .linenumber(Option.apply(INT_1)).columnnumber(Option.apply(INT_1)),
             NewCallBuilder().methodfullname(STRING_1).argumentindex(INT_1).dispatchtype(DISPATCH_1.name)
                 .typefullname(STRING_1)
-                .dynamictypehintfullname(createSingleItemScalaList(STRING_1))
+                .dynamictypehintfullname(createScalaList(STRING_1))
                 .name(STRING_1).signature(STRING_1).code(STRING_1).order(INT_1).linenumber(Option.apply(INT_1))
                 .columnnumber(Option.apply(INT_1)),
             NewControlStructureBuilder().code(STRING_1).linenumber(Option.apply(INT_1))
@@ -65,7 +65,7 @@ class TestDomainResources {
             NewTypeDeclBuilder().name(STRING_1).fullname(STRING_1).order(INT_1),
             NewTypeParameterBuilder().name(STRING_1).order(INT_1),
             NewTypeRefBuilder().typefullname(STRING_1)
-                .dynamictypehintfullname(createSingleItemScalaList(STRING_1))
+                .dynamictypehintfullname(createScalaList(STRING_1))
                 .code(STRING_1).argumentindex(INT_1).order(INT_1).linenumber(Option.apply(INT_1))
                 .columnnumber(Option.apply(INT_1)),
             NewTypeBuilder().name(STRING_1).fullname(STRING_1).typedeclfullname(STRING_1),
@@ -85,7 +85,7 @@ class TestDomainResources {
         val callVertex: NewCallBuilder =
             NewCallBuilder().methodfullname(STRING_1).argumentindex(INT_1).dispatchtype(DISPATCH_1.name)
                 .typefullname(STRING_1)
-                .dynamictypehintfullname(createSingleItemScalaList(STRING_1))
+                .dynamictypehintfullname(createScalaList(STRING_1))
                 .name(STRING_1).signature(STRING_1).code(STRING_1).order(INT_1).linenumber(Option.apply(INT_1))
                 .columnnumber(Option.apply(INT_1))
         val localVertex: NewLocalBuilder = NewLocalBuilder().code(STRING_1).typefullname(STRING_1).name(STRING_1).order(INT_1)
@@ -125,7 +125,7 @@ class TestDomainResources {
             NewMethodRefBuilder().methodinstfullname(Option.apply(STRING_1)).methodfullname(STRING_1).code(STRING_1)
                 .order(INT_1).argumentindex(INT_1).linenumber(Option.apply(INT_1)).columnnumber(Option.apply(INT_1))
         val typeRefVertex: NewTypeRefBuilder = NewTypeRefBuilder().typefullname(STRING_1)
-            .dynamictypehintfullname(createSingleItemScalaList(STRING_1))
+            .dynamictypehintfullname(createScalaList(STRING_1))
             .code(STRING_1).argumentindex(INT_1).order(INT_1).linenumber(Option.apply(INT_1))
             .columnnumber(Option.apply(INT_1))
         val unknownVertex: NewUnknownBuilder =
