@@ -225,8 +225,13 @@ class MapperTest {
     @Test
     fun mapToVertexTest() {
         vertices.forEach { v ->
+            // Only check properties currently used by Plume
             val map = VertexMapper.vertexToMap(v)
-            assertEquals(v, VertexMapper.mapToVertex(map))
+            val expectedProperties = v.build().properties()
+            val actualProperties = VertexMapper.mapToVertex(map).build().properties()
+            val excludedKeys = expectedProperties.keySet().diff(actualProperties.keySet())
+            excludedKeys.foreach { expectedProperties.`$minus`(it) }
+            assertEquals(expectedProperties, actualProperties)
         }
     }
 

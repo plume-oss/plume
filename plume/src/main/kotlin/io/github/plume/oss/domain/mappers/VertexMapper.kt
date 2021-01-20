@@ -3,9 +3,10 @@ package io.github.plume.oss.domain.mappers
 import io.github.plume.oss.domain.enums.EdgeLabel
 import io.github.plume.oss.domain.enums.VertexLabel
 import io.github.plume.oss.domain.enums.VertexLabel.*
-import io.github.plume.oss.util.SootToPlumeUtil
+import io.github.plume.oss.util.SootToPlumeUtil.createScalaList
 import io.shiftleft.codepropertygraph.generated.nodes.*
 import scala.Option
+import scala.Some
 
 /**
  * Responsible for marshalling and unmarshalling vertex properties to and from [NewNode] objects to [Map] objects.
@@ -47,8 +48,7 @@ object VertexMapper {
                 properties["columnNumber"] = node.columnNumber().get()
                 properties["lineNumber"] = node.lineNumber().get()
                 properties["dispatchType"] = node.dispatchType()
-                properties["dynamicTypeHintFullName"] =
-                    SootToPlumeUtil.createScalaList(node.dynamicTypeHintFullName())
+                properties["dynamicTypeHintFullName"] = node.dynamicTypeHintFullName()
                 properties["methodFullName"] = node.methodFullName()
                 properties["signature"] = node.signature()
                 properties["name"] = node.name()
@@ -192,7 +192,6 @@ object VertexMapper {
                 properties["order"] = node.order()
                 properties["name"] = node.name()
                 properties["fullName"] = node.fullName()
-//                properties["typeDeclFullName"] = v.typeDeclFullName
             }
             is NewTypeParameter -> {
                 properties["label"] = TypeParameter.Label()
@@ -207,7 +206,7 @@ object VertexMapper {
                 properties["code"] = node.code()
                 properties["columnNumber"] = node.columnNumber().get()
                 properties["lineNumber"] = node.lineNumber().get()
-//                properties["dynamicTypeFullName"] = v.dynamicTypeFullName
+                properties["dynamicTypeHintFullName"] = node.dynamicTypeHintFullName()
             }
             is NewType -> {
                 properties["label"] = Type.Label()
@@ -307,7 +306,7 @@ object VertexMapper {
                 .order(map["order"] as Int)
                 .id(map["id"] as Long)
             MEMBER -> NewMemberBuilder()
-                .typefullname(map["fullName"] as String)
+                .typefullname(map["typeFullName"] as String)
                 .code(map["code"] as String)
                 .name(map["name"] as String)
                 .order(map["order"] as Int)
@@ -318,7 +317,7 @@ object VertexMapper {
                 .order(map["order"] as Int)
                 .id(map["id"] as Long)
             LITERAL -> NewLiteralBuilder()
-                .typefullname(map["fullName"] as String)
+                .typefullname(map["typeFullName"] as String)
                 .code(map["code"] as String)
                 .order(map["order"] as Int)
                 .linenumber(Option.apply(map["lineNumber"] as Int))
@@ -326,7 +325,7 @@ object VertexMapper {
                 .argumentindex(map["argumentIndex"] as Int)
                 .id(map["id"] as Long)
             CALL -> NewCallBuilder()
-                .typefullname(map["fullName"] as String)
+                .typefullname(map["typeFullName"] as String)
                 .code(map["code"] as String)
                 .name(map["name"] as String)
                 .order(map["order"] as Int)
@@ -336,9 +335,15 @@ object VertexMapper {
                 .signature(map["signature"] as String)
                 .dispatchtype(map["dispatchType"] as String)
                 .methodfullname(map["methodFullName"] as String)
+                .dynamictypehintfullname(
+                    createScalaList(
+                        (map["dynamicTypeHintFullName"] as scala.collection.immutable.`$colon$colon`<*>).head()
+                            .toString()
+                    )
+                )
                 .id(map["id"] as Long)
             LOCAL -> NewLocalBuilder()
-                .typefullname(map["fullName"] as String)
+                .typefullname(map["typeFullName"] as String)
                 .code(map["code"] as String)
                 .name(map["name"] as String)
                 .order(map["order"] as Int)
@@ -346,7 +351,7 @@ object VertexMapper {
                 .columnnumber(Option.apply(map["columnNumber"] as Int))
                 .id(map["id"] as Long)
             IDENTIFIER -> NewIdentifierBuilder()
-                .typefullname(map["fullName"] as String)
+                .typefullname(map["typeFullName"] as String)
                 .code(map["code"] as String)
                 .name(map["name"] as String)
                 .order(map["order"] as Int)
@@ -370,7 +375,7 @@ object VertexMapper {
                 .argumentindex(map["argumentIndex"] as Int)
                 .id(map["id"] as Long)
             BLOCK -> NewBlockBuilder()
-                .typefullname(map["fullName"] as String)
+                .typefullname(map["typeFullName"] as String)
                 .code(map["code"] as String)
                 .order(map["order"] as Int)
                 .linenumber(Option.apply(map["lineNumber"] as Int))
@@ -381,13 +386,19 @@ object VertexMapper {
                 .code(map["code"] as String)
                 .order(map["order"] as Int)
                 .methodfullname(map["methodFullName"] as String)
-                .methodinstfullname(Option.apply(map["methodInstFullName"] as String))
+                .methodinstfullname(Option.apply((map["methodInstFullName"] as Some<*>).get() as String))
                 .linenumber(Option.apply(map["lineNumber"] as Int))
                 .columnnumber(Option.apply(map["columnNumber"] as Int))
                 .argumentindex(map["argumentIndex"] as Int)
                 .id(map["id"] as Long)
             TYPE_REF -> NewTypeRefBuilder()
-                .typefullname(map["fullName"] as String)
+                .typefullname(map["typeFullName"] as String)
+                .dynamictypehintfullname(
+                    createScalaList(
+                        (map["dynamicTypeHintFullName"] as scala.collection.immutable.`$colon$colon`<*>).head()
+                            .toString()
+                    )
+                )
                 .code(map["code"] as String)
                 .order(map["order"] as Int)
                 .linenumber(Option.apply(map["lineNumber"] as Int))
@@ -412,6 +423,7 @@ object VertexMapper {
             UNKNOWN -> NewUnknownBuilder()
                 .code(map["code"] as String)
                 .order(map["order"] as Int)
+                .argumentindex(map["argumentIndex"] as Int)
                 .typefullname(map["typeFullName"] as String)
                 .linenumber(Option.apply(map["lineNumber"] as Int))
                 .columnnumber(Option.apply(map["columnNumber"] as Int))
