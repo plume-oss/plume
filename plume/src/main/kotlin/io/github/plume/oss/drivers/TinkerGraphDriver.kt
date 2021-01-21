@@ -1,6 +1,8 @@
 package io.github.plume.oss.drivers
 
 import org.apache.commons.configuration.BaseConfiguration
+import org.apache.tinkerpop.gremlin.structure.io.GraphReader
+import org.apache.tinkerpop.gremlin.structure.io.graphml.GraphMLReader
 import java.io.File
 
 /**
