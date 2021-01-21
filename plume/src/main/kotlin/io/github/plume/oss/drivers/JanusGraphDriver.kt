@@ -129,9 +129,10 @@ class JanusGraphDriver : GremlinDriver() {
      * @return the newly created [Vertex].
      */
     override fun createVertex(v: NewNodeBuilder): Vertex {
-        val propertyMap = vertexToMap(v).apply { remove("label") }
+        val propertyMap: Map<String, Any> = vertexToMap(v).apply { remove("label"); remove("id"); toMap() }
         // Get the implementing classes fields and values
-        var traversalPointer = g.addV(v.build().label()).property("id", PlumeKeyProvider.getNewId(this))
+        if (v.id() < 0L) v.id(PlumeKeyProvider.getNewId(this))
+        var traversalPointer = g.addV(v.build().label()).property("id", v.id())
         for ((key, value) in propertyMap) traversalPointer = traversalPointer.property(key, value)
         return traversalPointer.next()
     }

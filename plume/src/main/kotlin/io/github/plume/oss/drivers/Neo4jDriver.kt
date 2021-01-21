@@ -159,9 +159,11 @@ class Neo4jDriver : GremlinDriver() {
         try {
             // TODO could use NewNode.properties() here
             if (!transactionOpen) openTx()
-            val propertyMap = VertexMapper.vertexToMap(v).apply { remove("label") }
+            val propertyMap: Map<String, Any> =
+                VertexMapper.vertexToMap(v).apply { remove("label"); remove("id"); toMap() }
             // Get the implementing classes fields and values
-            g.graph.addVertex(T.label, v.build().label(), "id", PlumeKeyProvider.getNewId(this)).apply {
+            if (v.id() < 0L) v.id(PlumeKeyProvider.getNewId(this))
+            g.graph.addVertex(T.label, v.build().label(), "id", v.id()).apply {
                 propertyMap.forEach { (key: String?, value: Any?) ->
                     this.property(
                         key,

@@ -92,7 +92,8 @@ class NeptuneDriver : GremlinDriver() {
         // TODO could use NewNode.properties() here
         val propertyMap = vertexToMap(v).apply { remove("label") }
         // Get the implementing classes fields and values
-        var traversalPointer = g.addV(v.build().label()).property("id", PlumeKeyProvider.getNewId(this))
+        val id = if (v.id() >= 0L) v.id() else PlumeKeyProvider.getNewId(this)
+        var traversalPointer = g.addV(v.build().label()).property("id", id)
         for ((key, value) in propertyMap) traversalPointer = traversalPointer.property(key, value)
         return traversalPointer.next()
     }

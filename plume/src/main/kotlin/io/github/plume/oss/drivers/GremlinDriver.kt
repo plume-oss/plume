@@ -181,9 +181,10 @@ abstract class GremlinDriver : IDriver {
         try {
             // TODO could use NewNode.properties() here
             if (!transactionOpen) openTx()
-            val propertyMap: MutableMap<String, Any> = vertexToMap(v).apply { remove("label") }
+            val propertyMap: Map<String, Any> = vertexToMap(v).apply { remove("label"); remove("id"); toMap() }
             // Get the implementing classes fields and values
-            g.graph.addVertex(T.label, v.build().label(), T.id, PlumeKeyProvider.getNewId(this)).apply {
+            if (v.id() < 0L) v.id(PlumeKeyProvider.getNewId(this))
+            g.graph.addVertex(T.label, v.build().label(), T.id, v.id()).apply {
                 propertyMap.forEach { (key: String, value: Any) -> this.property(key, value) }
             }
         } finally {
@@ -321,6 +322,9 @@ abstract class GremlinDriver : IDriver {
     }
 
     override fun getVertexIds(lowerBound: Long, upperBound: Long): Set<Long> {
-        TODO("Not yet implemented")
+        if (!transactionOpen) openTx()
+        val idSet = g.V().map { it.get().id() as Long }.filter { it.get() in lowerBound..upperBound }.toSet().toSet()
+        if (transactionOpen) closeTx()
+        return idSet
     }
 }

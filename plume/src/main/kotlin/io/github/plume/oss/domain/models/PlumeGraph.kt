@@ -29,18 +29,18 @@ class PlumeGraph {
      *
      * @param v A [NewNodeBuilder] instance to add.
      */
-    fun addVertex(v: NewNodeBuilder) = vertices.add(v)
+    fun addVertex(v: NewNodeBuilder) { if (vertices.none { it.id() == v.id() }) vertices.add(v) }
 
     /**
      * Creates an edge between two [NewNodeBuilder]s in the graph.
      *
      * @param fromV The from [NewNodeBuilder].
-     * @param toV   The CPG edge label.
-     * @param edge  The to [NewNodeBuilder].
+     * @param toV   The to [NewNodeBuilder].
+     * @param edge  The CPG edge label.
      */
     fun addEdge(fromV: NewNodeBuilder, toV: NewNodeBuilder, edge: EdgeLabel) {
-        vertices.add(fromV)
-        vertices.add(toV)
+        if (vertices.none { it.id() == fromV.id() }) vertices.add(fromV)
+        if (vertices.none { it.id() == toV.id() }) vertices.add(toV)
         val edgeMap = edges[edge]!!
         if (edgeMap[fromV].isNullOrEmpty()) edgeMap[fromV] = HashSet<NewNodeBuilder>().apply { this.add(toV) }
         else edgeMap[fromV]!!.add(toV)
@@ -55,8 +55,8 @@ class PlumeGraph {
     fun edgesOut(v: NewNodeBuilder): HashMap<EdgeLabel, HashSet<NewNodeBuilder>> {
         val outMap = HashMap<EdgeLabel, HashSet<NewNodeBuilder>>()
         edges.keys.filter { !edges[it].isNullOrEmpty() && edges[it]?.containsKey(v) ?: false }
-                .map { Pair(it, edges[it]) }
-                .forEach { outMap[it.first] = it.second?.get(v)!!.toHashSet() }
+            .map { Pair(it, edges[it]) }
+            .forEach { outMap[it.first] = it.second?.get(v)!!.toHashSet() }
         return outMap
     }
 
@@ -80,7 +80,9 @@ class PlumeGraph {
     }
 
     override fun toString(): String {
-        return "PlumeGraph(vertices:${vertices.size}, edges:${edges.values.map { it.values }.flatten().flatten().count()})"
+        return "PlumeGraph(vertices:${vertices.size}, edges:${
+            edges.values.map { it.values }.flatten().flatten().count()
+        })"
     }
 
     override fun equals(other: Any?): Boolean {

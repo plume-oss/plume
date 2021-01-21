@@ -161,12 +161,13 @@ class TigerGraphDriver : IDriver {
 
     override fun maxOrder() = (get("query/$GRAPH_NAME/maxOrder").first() as JSONObject)["@@maxAstOrder"] as Int
 
-    private fun createVertexPayload(plumeVertex: NewNodeBuilder): Map<String, Any> {
-        val propertyMap = VertexMapper.vertexToMap(plumeVertex)
-        val vertexType = if (plumeVertex is NewMetaDataBuilder) "META_DATA_VERT" else "CPG_VERT"
+    private fun createVertexPayload(v: NewNodeBuilder): Map<String, Any> {
+        val propertyMap = VertexMapper.vertexToMap(v)
+        val vertexType = if (v is NewMetaDataBuilder) "META_DATA_VERT" else "CPG_VERT"
+        val id = if (v.id() >= 0L) v.id() else PlumeKeyProvider.getNewId(this)
         return mapOf(
             vertexType to mapOf<String, Any>(
-                PlumeKeyProvider.getNewId(this).toString() to extractAttributesFromMap(propertyMap)
+                id.toString() to extractAttributesFromMap(propertyMap)
             )
         )
     }
