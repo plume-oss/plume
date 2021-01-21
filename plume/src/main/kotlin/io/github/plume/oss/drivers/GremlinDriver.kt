@@ -11,13 +11,12 @@ import io.shiftleft.codepropertygraph.generated.nodes.*
 import org.apache.commons.configuration.BaseConfiguration
 import org.apache.logging.log4j.LogManager
 import org.apache.tinkerpop.gremlin.process.traversal.Order
+import org.apache.tinkerpop.gremlin.process.traversal.P
+import org.apache.tinkerpop.gremlin.process.traversal.Scope
 import org.apache.tinkerpop.gremlin.process.traversal.dsl.graph.GraphTraversal
 import org.apache.tinkerpop.gremlin.process.traversal.dsl.graph.GraphTraversalSource
 import org.apache.tinkerpop.gremlin.process.traversal.step.util.WithOptions
-import org.apache.tinkerpop.gremlin.structure.Edge
-import org.apache.tinkerpop.gremlin.structure.Graph
-import org.apache.tinkerpop.gremlin.structure.T
-import org.apache.tinkerpop.gremlin.structure.Vertex
+import org.apache.tinkerpop.gremlin.structure.*
 import org.apache.tinkerpop.gremlin.tinkergraph.structure.TinkerGraph
 import org.apache.tinkerpop.gremlin.process.traversal.dsl.graph.`__` as un
 
@@ -329,7 +328,7 @@ abstract class GremlinDriver : IDriver {
 
     override fun getVertexIds(lowerBound: Long, upperBound: Long): Set<Long> {
         if (!transactionOpen) openTx()
-        val idSet = g.V().map { it.get().id() as Long }.filter { it.get() in lowerBound..upperBound }.toSet().toSet()
+        val idSet = g.V().id().`is`(P.inside(lowerBound - 1, upperBound + 1)).toSet().map { it as Long }.toSet()
         if (transactionOpen) closeTx()
         return idSet
     }

@@ -1,17 +1,14 @@
 package io.github.plume.oss.drivers
 
+import io.github.plume.oss.domain.exceptions.PlumeTransactionException
+import io.shiftleft.codepropertygraph.generated.nodes.NewNodeBuilder
 import org.apache.logging.log4j.LogManager
 import org.apache.tinkerpop.gremlin.process.traversal.AnonymousTraversalSource
+import org.apache.tinkerpop.gremlin.process.traversal.P
 import org.apache.tinkerpop.gremlin.process.traversal.dsl.graph.GraphTraversal
 import org.apache.tinkerpop.gremlin.structure.Graph
 import org.apache.tinkerpop.gremlin.structure.Transaction
 import org.apache.tinkerpop.gremlin.structure.Vertex
-import io.github.plume.oss.domain.exceptions.PlumeTransactionException
-import io.github.plume.oss.domain.mappers.VertexMapper.vertexToMap
-import io.github.plume.oss.util.PlumeKeyProvider
-import io.shiftleft.codepropertygraph.generated.nodes.NewNode
-import io.shiftleft.codepropertygraph.generated.nodes.NewNodeBuilder
-import java.lang.IllegalArgumentException
 
 /**
  * The driver used to connect to a remote JanusGraph instance.
@@ -67,7 +64,9 @@ class JanusGraphDriver : GremlinDriver() {
         if (supportsTransactions && !tx.isOpen) {
             logger.debug("Creating new tx")
             try {
-                super.setTraversalSource(AnonymousTraversalSource.traversal().withRemote(config.getString(REMOTE_CONFIG)))
+                super.setTraversalSource(
+                    AnonymousTraversalSource.traversal().withRemote(config.getString(REMOTE_CONFIG))
+                )
                 tx = super.g.tx()
                 transactionOpen = true
             } catch (e: Exception) {
@@ -75,7 +74,9 @@ class JanusGraphDriver : GremlinDriver() {
             }
         } else {
             try {
-                super.setTraversalSource(AnonymousTraversalSource.traversal().withRemote(config.getString(REMOTE_CONFIG)))
+                super.setTraversalSource(
+                    AnonymousTraversalSource.traversal().withRemote(config.getString(REMOTE_CONFIG))
+                )
                 transactionOpen = true
             } catch (e: Exception) {
                 throw PlumeTransactionException("Unable to create JanusGraph transaction!")
@@ -119,7 +120,7 @@ class JanusGraphDriver : GremlinDriver() {
     }
 
     override fun findVertexTraversal(v: NewNodeBuilder): GraphTraversal<Vertex, Vertex> =
-            g.V().has(v.build().label(), "id", v.id())
+        g.V().has(v.build().label(), "id", v.id())
 
     /**
      * Given a [NewNodeBuilder], creates a [Vertex] and translates the object's field properties to key-value
@@ -129,11 +130,18 @@ class JanusGraphDriver : GremlinDriver() {
      * @return the newly created [Vertex].
      */
     override fun createVertex(v: NewNodeBuilder): Vertex {
-        val propertyMap: Map<String, Any> = vertexToMap(v).apply { remove("label"); remove("id"); toMap() }
-        // Get the implementing classes fields and values
-        if (v.id() < 0L) v.id(PlumeKeyProvider.getNewId(this))
+        val propertyMap = prepareVertexProperties(v)
         var traversalPointer = g.addV(v.build().label()).property("id", v.id())
         for ((key, value) in propertyMap) traversalPointer = traversalPointer.property(key, value)
         return traversalPointer.next()
+    }
+
+    override fun getVertexIds(lowerBound: Long, upperBound: Long): Set<Long> {
+        if (!transactionOpen) openTx()
+        val idSet =
+            g.V().values<Long>("id").`is`(P.inside(lowerBound - 1, upperBound + 1)).toSet()
+                .map { it as Long }.toSet()
+        if (transactionOpen) closeTx()
+        return idSet
     }
 }
