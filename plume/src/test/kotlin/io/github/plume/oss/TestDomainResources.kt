@@ -73,7 +73,7 @@ class TestDomainResources {
 
         val methodVertex: NewMethodBuilder =
             NewMethodBuilder().code(STRING_1).name(STRING_1).fullname(STRING_1).order(INT_1)
-                .linenumber(Option.apply(INT_1)).columnnumber(Option.apply(INT_1))
+                .linenumber(Option.apply(INT_1)).columnnumber(Option.apply(INT_1)).signature(STRING_2)
         val methodParameterInVertex: NewMethodParameterInBuilder =
             NewMethodParameterInBuilder().code(STRING_1).evaluationstrategy(EVAL_1.name).typefullname(STRING_1)
                 .name(STRING_1).order(INT_1).linenumber(Option.apply(INT_1)).columnnumber(Option.apply(INT_1))

@@ -48,7 +48,7 @@ object VertexMapper {
                 properties["columnNumber"] = node.columnNumber().get()
                 properties["lineNumber"] = node.lineNumber().get()
                 properties["dispatchType"] = node.dispatchType()
-                properties["dynamicTypeHintFullName"] = node.dynamicTypeHintFullName()
+                properties["dynamicTypeHintFullName"] = node.dynamicTypeHintFullName().head()
                 properties["methodFullName"] = node.methodFullName()
                 properties["signature"] = node.signature()
                 properties["name"] = node.name()
@@ -143,7 +143,7 @@ object VertexMapper {
                 properties["columnNumber"] = node.columnNumber().get()
                 properties["lineNumber"] = node.lineNumber().get()
                 properties["methodFullName"] = node.methodFullName()
-                properties["methodInstFullName"] = node.methodInstFullName()
+                properties["methodInstFullName"] = node.methodInstFullName().get()
             }
             is NewMethodReturn -> {
                 properties["label"] = MethodReturn.Label()
@@ -206,7 +206,7 @@ object VertexMapper {
                 properties["code"] = node.code()
                 properties["columnNumber"] = node.columnNumber().get()
                 properties["lineNumber"] = node.lineNumber().get()
-                properties["dynamicTypeHintFullName"] = node.dynamicTypeHintFullName()
+                properties["dynamicTypeHintFullName"] = node.dynamicTypeHintFullName().head()
             }
             is NewType -> {
                 properties["label"] = Type.Label()
@@ -237,10 +237,11 @@ object VertexMapper {
         val map = HashMap<String, Any>()
         mapToConvert.keys.forEach {
             when (val value = mapToConvert[it]) {
-                is Long -> map[it] = if (it == "id") value.toLong() else value.toInt()
+                is Long -> map[it] = value.toInt()
                 else -> map[it] = value as Any
             }
         }
+        map.computeIfPresent("id") { _, v -> v.toString().toLong() }
         return when (valueOf(map["label"] as String)) {
             ARRAY_INITIALIZER -> NewArrayInitializerBuilder()
                 .order(map["order"] as Int)
@@ -335,12 +336,7 @@ object VertexMapper {
                 .signature(map["signature"] as String)
                 .dispatchtype(map["dispatchType"] as String)
                 .methodfullname(map["methodFullName"] as String)
-                .dynamictypehintfullname(
-                    createScalaList(
-                        (map["dynamicTypeHintFullName"] as scala.collection.immutable.`$colon$colon`<*>).head()
-                            .toString()
-                    )
-                )
+                .dynamictypehintfullname(createScalaList((map["dynamicTypeHintFullName"] as String)))
                 .id(map["id"] as Long)
             LOCAL -> NewLocalBuilder()
                 .typefullname(map["typeFullName"] as String)
@@ -386,19 +382,14 @@ object VertexMapper {
                 .code(map["code"] as String)
                 .order(map["order"] as Int)
                 .methodfullname(map["methodFullName"] as String)
-                .methodinstfullname(Option.apply((map["methodInstFullName"] as Some<*>).get() as String))
+                .methodinstfullname(Option.apply(map["methodInstFullName"] as  String))
                 .linenumber(Option.apply(map["lineNumber"] as Int))
                 .columnnumber(Option.apply(map["columnNumber"] as Int))
                 .argumentindex(map["argumentIndex"] as Int)
                 .id(map["id"] as Long)
             TYPE_REF -> NewTypeRefBuilder()
                 .typefullname(map["typeFullName"] as String)
-                .dynamictypehintfullname(
-                    createScalaList(
-                        (map["dynamicTypeHintFullName"] as scala.collection.immutable.`$colon$colon`<*>).head()
-                            .toString()
-                    )
-                )
+                .dynamictypehintfullname(createScalaList((map["dynamicTypeHintFullName"] as String)))
                 .code(map["code"] as String)
                 .order(map["order"] as Int)
                 .linenumber(Option.apply(map["lineNumber"] as Int))

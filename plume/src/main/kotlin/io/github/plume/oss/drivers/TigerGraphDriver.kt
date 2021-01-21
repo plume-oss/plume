@@ -13,6 +13,7 @@ import org.apache.logging.log4j.LogManager
 import org.apache.tinkerpop.shaded.jackson.databind.ObjectMapper
 import org.json.JSONArray
 import org.json.JSONObject
+import scala.collection.immutable.`$colon$colon`
 import java.io.IOException
 import java.lang.Thread.sleep
 
@@ -162,12 +163,12 @@ class TigerGraphDriver : IDriver {
     override fun maxOrder() = (get("query/$GRAPH_NAME/maxOrder").first() as JSONObject)["@@maxAstOrder"] as Int
 
     private fun createVertexPayload(v: NewNodeBuilder): Map<String, Any> {
-        val propertyMap = VertexMapper.vertexToMap(v)
+        val propertyMap = VertexMapper.vertexToMap(v).apply { remove("id") }
         val vertexType = if (v is NewMetaDataBuilder) "META_DATA_VERT" else "CPG_VERT"
-        val id = if (v.id() >= 0L) v.id() else PlumeKeyProvider.getNewId(this)
+        if (v.id() < 0L) v.id(PlumeKeyProvider.getNewId(this))
         return mapOf(
             vertexType to mapOf<String, Any>(
-                id.toString() to extractAttributesFromMap(propertyMap)
+                v.id().toString() to extractAttributesFromMap(propertyMap)
             )
         )
     }
@@ -206,26 +207,14 @@ class TigerGraphDriver : IDriver {
     }
 
     override fun getMethod(fullName: String, signature: String, includeBody: Boolean): PlumeGraph {
-        if (includeBody) return getMethod(fullName, signature)
-        var methodHash = fullName.hashCode()
-        methodHash = 31 * methodHash + signature.hashCode()
-        return getMethod(methodHash, "getMethodHead")
-    }
-
-    override fun getMethod(fullName: String, signature: String): PlumeGraph {
-        var methodHash = fullName.hashCode()
-        methodHash = 31 * methodHash + signature.hashCode()
-        return getMethod(methodHash, "getMethod")
-    }
-
-    private fun getMethod(methodHash: Int, path: String): PlumeGraph {
-        try {
-            val result = get("query/$GRAPH_NAME/$path", mapOf("methodHash" to methodHash.toString()))
-            return graphPayloadToPlumeGraph(result)
+        val path = if (!includeBody) "getMethodHead" else "getMethod"
+        return try {
+            val result = get("query/$GRAPH_NAME/$path", mapOf("fullName" to fullName, "signature" to signature))
+            graphPayloadToPlumeGraph(result)
         } catch (e: PlumeTransactionException) {
             logger.warn("${e.message}. This may be a result of the method not being present in the graph.")
+            PlumeGraph()
         }
-        return PlumeGraph()
     }
 
     override fun getProgramStructure(): PlumeGraph {
@@ -245,17 +234,19 @@ class TigerGraphDriver : IDriver {
     }
 
     override fun deleteMethod(fullName: String, signature: String) {
-        var methodHash = fullName.hashCode()
-        methodHash = 31 * methodHash + signature.hashCode()
         try {
-            get("query/$GRAPH_NAME/deleteMethod", mapOf("methodHash" to methodHash.toString()))
+            get("query/$GRAPH_NAME/deleteMethod", mapOf("fullName" to fullName, "signature" to signature))
         } catch (e: PlumeTransactionException) {
             logger.warn("${e.message}. This may be a result of the method not being present in the graph.")
         }
     }
 
     override fun getVertexIds(lowerBound: Long, upperBound: Long): Set<Long> {
-        TODO("Not yet implemented")
+        val result = (get(
+            endpoint = "query/$GRAPH_NAME/getVertexIds",
+            params = mapOf("lowerBound" to lowerBound.toString(), "upperBound" to upperBound.toString())
+        ).first() as JSONObject)["@@ids"] as JSONArray
+        return result.map { (it as Int).toLong() }.toSet()
     }
 
     private fun graphPayloadToPlumeGraph(a: JSONArray): PlumeGraph {

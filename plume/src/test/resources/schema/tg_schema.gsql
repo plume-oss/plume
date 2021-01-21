@@ -4,7 +4,7 @@ DROP ALL
 
 ## Basic CPG vertex
 CREATE VERTEX CPG_VERT (
-    PRIMARY_ID id STRING,
+    PRIMARY_ID id UINT,
     label STRING DEFAULT "UNKNOWN",
     argumentIndex INT DEFAULT -1,
     dispatchType STRING DEFAULT "STATIC_DISPATCH",
@@ -25,14 +25,14 @@ CREATE VERTEX CPG_VERT (
     astOrder INT DEFAULT -1,
     signature STRING DEFAULT "()",
     hash STRING DEFAULT "null"
-)
+) WITH primary_id_as_attribute="true"
 ## Language Dependent
 CREATE VERTEX META_DATA_VERT (
-    PRIMARY_ID id INT,
+    PRIMARY_ID id UINT,
     label STRING DEFAULT "META_DATA",
     language STRING DEFAULT "JAVA",
     version STRING DEFAULT "1.8"
-)
+) WITH primary_id_as_attribute="true"
 
 # Edges
 
@@ -73,8 +73,11 @@ CREATE QUERY showAll() FOR GRAPH cpg {
 
 CREATE QUERY getMethodHead(VERTEX<CPG_VERT> methodHash) FOR GRAPH cpg {
   SetAccum<EDGE> @@edges;
-  start = {methodHash};
-  allVert = {methodHash};
+  allV = {ANY};
+  start = SELECT src
+          FROM allV:src
+          WHERE src.fullName == fullName AND src.signature == signature;
+  allVert = start;
 
   start = SELECT t
           FROM start:s -(AST:e)-> :t
@@ -154,8 +157,11 @@ CREATE QUERY getNeighbours(VERTEX<CPG_VERT> source) FOR GRAPH cpg {
 CREATE QUERY deleteMethod(VERTEX<CPG_VERT> methodHash) FOR GRAPH cpg {
   SetAccum<EDGE> @@edges;
   OrAccum @visited;
-  start = {methodHash};
-  allVert = {methodHash};
+  allV = {ANY};
+  start = SELECT src
+          FROM allV:src
+          WHERE src.fullName == fullName AND src.signature == signature;
+  allVert = start;
 
   WHILE start.size() > 0 DO
 	  start = SELECT t
@@ -166,6 +172,16 @@ CREATE QUERY deleteMethod(VERTEX<CPG_VERT> methodHash) FOR GRAPH cpg {
 	END;
 
   DELETE s FROM allVert:s;
+}
+
+CREATE QUERY getVertexIds(INT lowerBound, INT upperBound) FOR GRAPH cpg {
+  SetAccum<INT> @@ids;
+  start = {ANY};
+  result = SELECT src
+      FROM start:src
+      WHERE src.id >= lowerBound AND src.id <= upperBound
+      ACCUM @@ids += src.id;
+  PRINT @@ids;
 }
 
 CREATE QUERY maxOrder() FOR GRAPH cpg {
