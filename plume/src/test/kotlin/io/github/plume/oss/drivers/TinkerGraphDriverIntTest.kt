@@ -1,6 +1,5 @@
 package io.github.plume.oss.drivers
 
-import io.github.plume.oss.TestDomainResources
 import io.github.plume.oss.TestDomainResources.Companion.INT_1
 import io.github.plume.oss.TestDomainResources.Companion.INT_2
 import io.github.plume.oss.TestDomainResources.Companion.STRING_1
@@ -693,7 +692,7 @@ class TinkerGraphDriverIntTest {
         fun testGetIdOutsideRange() {
             driver.addVertex(NewArrayInitializerBuilder().order(INT_1).id(11L))
             val ids1 = driver.getVertexIds(0, 10)
-            assertEquals(setOf(1L), ids1)
+            assertEquals(emptySet<Long>(), ids1)
         }
 
         @Test

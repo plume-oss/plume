@@ -50,6 +50,7 @@ abstract class GremlinDriver : IDriver {
 
     init {
         config.setProperty("gremlin.graph", "org.apache.tinkerpop.gremlin.tinkergraph.structure.TinkerGraph")
+        config.setProperty("gremlin.tinkergraph.vertexIdManager", "LONG")
     }
 
     /**
@@ -181,15 +182,20 @@ abstract class GremlinDriver : IDriver {
         try {
             // TODO could use NewNode.properties() here
             if (!transactionOpen) openTx()
-            val propertyMap: Map<String, Any> = vertexToMap(v).apply { remove("label"); remove("id"); toMap() }
-            // Get the implementing classes fields and values
-            if (v.id() < 0L) v.id(PlumeKeyProvider.getNewId(this))
+            val propertyMap = prepareVertexProperties(v)
             g.graph.addVertex(T.label, v.build().label(), T.id, v.id()).apply {
                 propertyMap.forEach { (key: String, value: Any) -> this.property(key, value) }
             }
         } finally {
             if (transactionOpen) closeTx()
         }
+
+    protected fun prepareVertexProperties(v: NewNodeBuilder): Map<String, Any> {
+        val propertyMap: Map<String, Any> = vertexToMap(v).apply { remove("label"); remove("id"); toMap() }
+        // Get the implementing classes fields and values
+        if (v.id() < 0L) v.id(PlumeKeyProvider.getNewId(this))
+        return propertyMap
+    }
 
     /**
      * Wrapper method for creating an edge between two vertices. This wrapper method assigns a random UUID as the ID
@@ -211,7 +217,7 @@ abstract class GremlinDriver : IDriver {
     }
 
     override fun getMethod(fullName: String, signature: String, includeBody: Boolean): PlumeGraph {
-        if (includeBody) return getMethod(fullName, signature)
+        if (includeBody) return getMethodWithBody(fullName, signature)
         if (!transactionOpen) openTx()
         val methodSubgraph = g.V().hasLabel(Method.Label())
             .has("fullName", fullName).has("signature", signature)
@@ -224,7 +230,7 @@ abstract class GremlinDriver : IDriver {
         return result
     }
 
-    override fun getMethod(fullName: String, signature: String): PlumeGraph {
+    private fun getMethodWithBody(fullName: String, signature: String): PlumeGraph {
         if (!transactionOpen) openTx()
         val methodSubgraph = g.V().hasLabel(Method.Label())
             .has("fullName", fullName).has("signature", signature)
