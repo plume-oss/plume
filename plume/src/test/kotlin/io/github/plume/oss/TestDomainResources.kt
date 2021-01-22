@@ -139,7 +139,7 @@ class TestDomainResources {
             driver.addEdge(fileVertex, namespaceBlockVertex1, EdgeLabel.AST)
             driver.addEdge(namespaceBlockVertex1, namespaceBlockVertex2, EdgeLabel.AST)
             // Create method head
-            driver.addEdge(typeDeclVertex, methodVertex, EdgeLabel.AST)
+            driver.addEdge(typeDeclVertex, modifierVertex, EdgeLabel.AST)
             driver.addEdge(methodVertex, fileVertex, EdgeLabel.SOURCE_FILE)
             driver.addEdge(methodVertex, methodParameterInVertex, EdgeLabel.AST)
             driver.addEdge(methodVertex, localVertex, EdgeLabel.AST)

@@ -37,7 +37,7 @@ object PlumeKeyProvider {
         val freeIds = mutableSetOf<Long>()
         while (freeIds.size < keyPoolSize) {
             // Choose a lower bound, the max among the pools or the max among the free IDs found
-            val currentSetMax = freeIds.maxOrNull() ?: -1L
+            val currentSetMax = (freeIds.maxOrNull() ?: -1L) + 1
             val lowerBound = if (currentMax > currentSetMax) currentMax else currentSetMax
             val upperBound = lowerBound + keyPoolSize
             // Take the difference of the range and taken IDs to add available IDs
