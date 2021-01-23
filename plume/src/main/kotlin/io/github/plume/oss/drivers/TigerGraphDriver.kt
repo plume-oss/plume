@@ -289,6 +289,7 @@ class TigerGraphDriver : IDriver {
     override fun clearGraph() = apply {
         delete("graph/$GRAPH_NAME/delete_by_type/vertices/META_DATA_VERT")
         delete("graph/$GRAPH_NAME/delete_by_type/vertices/CPG_VERT")
+        PlumeKeyProvider.clearKeyPools()
     }
 
     private fun headers(): Map<String, String> = if (authKey == null) {

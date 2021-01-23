@@ -3,12 +3,9 @@ package io.github.plume.oss.drivers
 import com.steelbridgelabs.oss.neo4j.structure.Neo4JGraph
 import com.steelbridgelabs.oss.neo4j.structure.providers.Neo4JNativeElementIdProvider
 import io.github.plume.oss.domain.exceptions.PlumeTransactionException
-import io.github.plume.oss.domain.mappers.VertexMapper
-import io.github.plume.oss.util.PlumeKeyProvider
 import io.shiftleft.codepropertygraph.generated.nodes.NewNodeBuilder
 import org.apache.logging.log4j.LogManager
 import org.apache.tinkerpop.gremlin.process.traversal.Order
-import org.apache.tinkerpop.gremlin.process.traversal.dsl.graph.GraphTraversal
 import org.apache.tinkerpop.gremlin.structure.T
 import org.apache.tinkerpop.gremlin.structure.Transaction
 import org.apache.tinkerpop.gremlin.structure.Vertex
@@ -20,7 +17,7 @@ import org.neo4j.driver.GraphDatabase
 /**
  * The driver used to connect to a remote Neo4j instance.
  */
-class Neo4jDriver : GremlinDriver() {
+class Neo4jDriver : GremlinWithImmutableIDDriver() {
     private val logger = LogManager.getLogger(Neo4jDriver::class.java)
 
     private lateinit var tx: Transaction
@@ -120,7 +117,7 @@ class Neo4jDriver : GremlinDriver() {
         super.openTx()
         try {
             logger.debug("Creating new tx")
-            super.setTraversalSource(graph.traversal())
+            super.g = graph.traversal()
             tx = g.tx()
         } catch (e: Exception) {
             transactionOpen = false
@@ -141,9 +138,6 @@ class Neo4jDriver : GremlinDriver() {
         }
     }
 
-    override fun findVertexTraversal(v: NewNodeBuilder): GraphTraversal<Vertex, Vertex> =
-        g.V().has(v.build().label(), "id", v.id())
-
     override fun maxOrder(): Int =
         try {
             if (!transactionOpen) openTx()
@@ -155,25 +149,11 @@ class Neo4jDriver : GremlinDriver() {
             if (transactionOpen) closeTx()
         }
 
-    override fun createVertex(v: NewNodeBuilder): Vertex =
-        try {
-            // TODO could use NewNode.properties() here
-            if (!transactionOpen) openTx()
-            val propertyMap: Map<String, Any> =
-                VertexMapper.vertexToMap(v).apply { remove("label"); remove("id"); toMap() }
-            // Get the implementing classes fields and values
-            if (v.id() < 0L) v.id(PlumeKeyProvider.getNewId(this))
-            g.graph.addVertex(T.label, v.build().label(), "id", v.id()).apply {
-                propertyMap.forEach { (key: String?, value: Any?) ->
-                    this.property(
-                        key,
-                        if (value is Int) value.toLong() else value
-                    )
-                }
-            }
-        } finally {
-            if (transactionOpen) closeTx()
-        }
+    override fun prepareVertexProperties(v: NewNodeBuilder): Map<String, Any> {
+        val map = super.prepareVertexProperties(v).toMutableMap()
+        map.entries.forEach { e -> if (e.value is Int) map[e.key] = (e.value as Int).toLong() }
+        return map.toMap()
+    }
 
     companion object {
         /**

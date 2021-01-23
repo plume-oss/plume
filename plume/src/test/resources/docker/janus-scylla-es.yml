@@ -2,7 +2,7 @@ version: "2.4"
 
 services:
   janusgraph:
-    image: janusgraph/janusgraph:0.5.1
+    image: janusgraph/janusgraph:0.5.3
     container_name: janusgraph-plume
     environment:
       JANUS_PROPS_TEMPLATE: cql-es

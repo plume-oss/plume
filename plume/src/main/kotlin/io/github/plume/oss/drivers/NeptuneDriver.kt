@@ -58,7 +58,7 @@ class NeptuneDriver : GremlinDriver() {
     override fun connect() {
         require(!connected) { "Please close the graph before trying to make another connection." }
         cluster = builder.create()
-        super.setTraversalSource(traversal().withRemote(DriverRemoteConnection.using(cluster)))
+        super.g = traversal().withRemote(DriverRemoteConnection.using(cluster))
         graph = g.graph
         connected = true
     }
@@ -90,10 +90,8 @@ class NeptuneDriver : GremlinDriver() {
      */
     override fun createVertex(v: NewNodeBuilder): Vertex {
         // TODO could use NewNode.properties() here
-        val propertyMap = vertexToMap(v).apply { remove("label") }
-        // Get the implementing classes fields and values
-        val id = if (v.id() >= 0L) v.id() else PlumeKeyProvider.getNewId(this)
-        var traversalPointer = g.addV(v.build().label()).property("id", id)
+        val propertyMap = prepareVertexProperties(v)
+        var traversalPointer = g.addV(v.build().label()).property("id", v.id())
         for ((key, value) in propertyMap) traversalPointer = traversalPointer.property(key, value)
         return traversalPointer.next()
     }

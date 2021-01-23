@@ -49,4 +49,9 @@ object PlumeKeyProvider {
         return freeIds.toMutableList()
     }
 
+    /**
+     * In the case key pools need to be regenerated they can be cleared here.
+     */
+    fun clearKeyPools() = keyPoolMap.clear()
+
 }

@@ -1,5 +1,6 @@
 package io.github.plume.oss.drivers
 
+import io.github.plume.oss.TestDomainResources
 import io.github.plume.oss.TestDomainResources.Companion.INT_1
 import io.github.plume.oss.TestDomainResources.Companion.INT_2
 import io.github.plume.oss.TestDomainResources.Companion.STRING_1
@@ -33,6 +34,7 @@ import io.github.plume.oss.domain.enums.EdgeLabel
 import io.github.plume.oss.domain.exceptions.PlumeSchemaViolationException
 import io.github.plume.oss.util.SootToPlumeUtil
 import io.shiftleft.codepropertygraph.generated.nodes.*
+import org.apache.logging.log4j.LogManager
 import org.junit.jupiter.api.*
 import org.junit.jupiter.api.Assertions.*
 import scala.Option
@@ -41,6 +43,7 @@ import kotlin.properties.Delegates
 class JanusGraphDriverIntTest {
 
     companion object {
+        private val logger = LogManager.getLogger(OverflowDbDriverIntTest::class.java)
         lateinit var driver: JanusGraphDriver
         private var testStartTime by Delegates.notNull<Long>()
 
@@ -62,7 +65,12 @@ class JanusGraphDriverIntTest {
     }
 
     @AfterEach
-    fun tearDown() = driver.clearGraph().close()
+    fun tearDown() {
+        TestDomainResources.simpleCpgVertices.forEach { it.id(-1) }
+        runCatching {
+            driver.clearGraph().close()
+        }.onFailure { e -> logger.debug(logger.warn("Could not clear test resources.", e)) }
+    }
 
     @Nested
     @DisplayName("Test driver vertex find and exist methods")
@@ -594,8 +602,11 @@ class JanusGraphDriverIntTest {
 
         @Test
         fun testMethodDelete() {
+            println("Starting test")
             assertTrue(driver.exists(methodVertex))
+            println("Deleting method body $methodVertex")
             driver.deleteMethod(methodVertex.build().fullName(), methodVertex.build().signature())
+            println("after del $methodVertex")
             assertFalse(driver.exists(methodVertex))
             assertFalse(driver.exists(literalVertex))
             assertFalse(driver.exists(returnVertex))
@@ -604,6 +615,7 @@ class JanusGraphDriverIntTest {
             assertFalse(driver.exists(blockVertex))
             assertFalse(driver.exists(callVertex))
             // Check that deleting a method doesn't throw any error
+            println("Deleting method body again $methodVertex")
             driver.deleteMethod(methodVertex.build().fullName(), methodVertex.build().signature())
         }
     }

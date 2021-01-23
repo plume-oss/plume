@@ -1,5 +1,6 @@
 package io.github.plume.oss.drivers
 
+import io.github.plume.oss.TestDomainResources
 import io.github.plume.oss.TestDomainResources.Companion.INT_1
 import io.github.plume.oss.TestDomainResources.Companion.INT_2
 import io.github.plume.oss.TestDomainResources.Companion.STRING_1
@@ -66,7 +67,10 @@ class TigerGraphDriverIntTest {
     }
 
     @AfterEach
-    fun tearDown() = driver.clearGraph().close()
+    fun tearDown() {
+        TestDomainResources.simpleCpgVertices.forEach { it.id(-1) }
+        driver.clearGraph().close()
+    }
 
     @Nested
     @DisplayName("Test driver vertex find and exist methods")

@@ -82,13 +82,7 @@ abstract class GremlinDriver : IDriver {
      */
     protected open fun closeTx() {
         require(transactionOpen) { "There is no transaction currently open!" }
-        try {
-            if (supportsTransactions) g.close()
-        } catch (e: Exception) {
-            logger.warn("Unable to close existing transaction! Object will be orphaned and a new traversal will continue.")
-        } finally {
-            transactionOpen = false
-        }
+        transactionOpen = false
     }
 
     /**
@@ -160,14 +154,11 @@ abstract class GremlinDriver : IDriver {
             if (transactionOpen) closeTx()
         }
 
-    protected fun setTraversalSource(g: GraphTraversalSource) {
-        this.g = g
-    }
-
     override fun clearGraph() = apply {
         if (!transactionOpen) openTx()
         g.V().drop().iterate()
         if (transactionOpen) closeTx()
+        PlumeKeyProvider.clearKeyPools()
     }
 
     /**
@@ -189,7 +180,7 @@ abstract class GremlinDriver : IDriver {
             if (transactionOpen) closeTx()
         }
 
-    protected fun prepareVertexProperties(v: NewNodeBuilder): Map<String, Any> {
+    protected open fun prepareVertexProperties(v: NewNodeBuilder): Map<String, Any> {
         val propertyMap: Map<String, Any> = vertexToMap(v).apply { remove("label"); remove("id"); toMap() }
         // Get the implementing classes fields and values
         if (v.id() < 0L) v.id(PlumeKeyProvider.getNewId(this))

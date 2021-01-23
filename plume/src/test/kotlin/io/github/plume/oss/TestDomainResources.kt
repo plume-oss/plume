@@ -77,7 +77,6 @@ class TestDomainResources {
         val methodParameterInVertex: NewMethodParameterInBuilder =
             NewMethodParameterInBuilder().code(STRING_1).evaluationstrategy(EVAL_1.name).typefullname(STRING_1)
                 .name(STRING_1).order(INT_1).linenumber(Option.apply(INT_1)).columnnumber(Option.apply(INT_1))
-
         val blockVertex: NewBlockBuilder =
             NewBlockBuilder().typefullname(STRING_1).code(STRING_1).order(INT_1).argumentindex(INT_1)
                 .linenumber(Option.apply(INT_1)).columnnumber(Option.apply(INT_1))
@@ -133,13 +132,40 @@ class TestDomainResources {
                 .linenumber(Option.apply(INT_1)).columnnumber(Option.apply(INT_1))
         val modifierVertex: NewModifierBuilder = NewModifierBuilder().modifiertype(MOD_1.name).order(INT_1)
 
+        val simpleCpgVertices = listOf(
+            methodVertex,
+            methodParameterInVertex,
+            blockVertex,
+            callVertex,
+            localVertex,
+            identifierVertex,
+            typeDeclVertex,
+            literalVertex,
+            returnVertex,
+            methodReturnVertex,
+            fileVertex,
+            namespaceBlockVertex1,
+            namespaceBlockVertex2,
+            metaDataVertex,
+            controlStructureVertex,
+            jumpTargetVertex,
+            bindingVertex,
+            typeArgumentVertex,
+            typeParameterVertex,
+            fieldIdentifierVertex,
+            methodRefVertex,
+            typeRefVertex,
+            unknownVertex,
+            modifierVertex
+        )
+
         fun generateSimpleCPG(driver: IDriver) {
             // Create program data
             driver.addVertex(metaDataVertex)
             driver.addEdge(fileVertex, namespaceBlockVertex1, EdgeLabel.AST)
             driver.addEdge(namespaceBlockVertex1, namespaceBlockVertex2, EdgeLabel.AST)
             // Create method head
-            driver.addEdge(typeDeclVertex, modifierVertex, EdgeLabel.AST)
+            driver.addEdge(typeDeclVertex, methodVertex, EdgeLabel.AST)
             driver.addEdge(methodVertex, fileVertex, EdgeLabel.SOURCE_FILE)
             driver.addEdge(methodVertex, methodParameterInVertex, EdgeLabel.AST)
             driver.addEdge(methodVertex, localVertex, EdgeLabel.AST)

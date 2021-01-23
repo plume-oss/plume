@@ -1,5 +1,6 @@
 package io.github.plume.oss.drivers
 
+import io.github.plume.oss.TestDomainResources
 import io.github.plume.oss.TestDomainResources.Companion.INT_1
 import io.github.plume.oss.TestDomainResources.Companion.INT_2
 import io.github.plume.oss.TestDomainResources.Companion.STRING_1
@@ -72,7 +73,10 @@ class Neo4jDriverIntTest {
     }
 
     @AfterEach
-    fun tearDown() = driver.clearGraph().close()
+    fun tearDown() {
+        TestDomainResources.simpleCpgVertices.forEach { it.id(-1) }
+        driver.clearGraph().close()
+    }
 
     @Nested
     @DisplayName("Test driver vertex find and exist methods")
@@ -617,4 +621,34 @@ class Neo4jDriverIntTest {
             driver.deleteMethod(methodVertex.build().fullName(), methodVertex.build().signature())
         }
     }
+
+    @Nested
+    @DisplayName("ID retrieval tests")
+    inner class VertexIdTests {
+
+        @Test
+        fun testGetIdInsideRange() {
+            val ids1 = driver.getVertexIds(0, 10)
+            assertTrue(ids1.isEmpty())
+            driver.addVertex(NewArrayInitializerBuilder().order(INT_1).id(1L))
+            val ids2 = driver.getVertexIds(0, 10)
+            assertEquals(setOf(1L), ids2)
+        }
+
+        @Test
+        fun testGetIdOutsideRange() {
+            driver.addVertex(NewArrayInitializerBuilder().order(INT_1).id(11L))
+            val ids1 = driver.getVertexIds(0, 10)
+            assertEquals(emptySet<Long>(), ids1)
+        }
+
+        @Test
+        fun testGetIdOnExistingGraph() {
+            generateSimpleCPG(driver)
+            val ids = driver.getVertexIds(0, 100)
+            assertEquals(21, ids.size)
+        }
+
+    }
 }
+

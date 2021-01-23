@@ -1,5 +1,6 @@
 package io.github.plume.oss.drivers
 
+import io.github.plume.oss.TestDomainResources
 import io.github.plume.oss.TestDomainResources.Companion.INT_1
 import io.github.plume.oss.TestDomainResources.Companion.INT_2
 import io.github.plume.oss.TestDomainResources.Companion.STRING_1
@@ -79,12 +80,11 @@ class OverflowDbDriverIntTest {
 
     @AfterEach
     fun tearDown() {
-        driver.close()
-        try {
+        TestDomainResources.simpleCpgVertices.forEach { it.id(-1) }
+        driver.clearGraph().close()
+        runCatching {
             if (!File(storageLocation).delete()) logger.warn("Could not clear test resources.")
-        } catch (e: Exception) {
-            logger.warn("Could not clear test resources.", e)
-        }
+        }.onFailure { e -> logger.warn("Could not clear test resources.", e) }
     }
 
     @Nested
@@ -283,23 +283,6 @@ class OverflowDbDriverIntTest {
         }
 
         @Test
-        fun testCapturedByEdgeCreation() {
-            // TODO CAPTURED_BY edges from Local to Binding are not permited. Commenting
-            // out this test for now
-//            assertFalse(
-//                    driver.exists(
-//                            v5,
-//                            v17,
-//                            EdgeLabel.CAPTURED_BY
-//                    )
-//            )
-//            driver.addEdge(v5, v17, EdgeLabel.CAPTURED_BY)
-//            assertTrue(driver.exists(v17))
-//            assertTrue(driver.exists(v5))
-//            assertTrue(driver.exists(v5, v17, EdgeLabel.CAPTURED_BY))
-        }
-
-        @Test
         fun testBindsToEdgeCreation() {
             assertFalse(driver.exists(typeArgumentVertex, typeParameterVertex, EdgeLabel.BINDS_TO))
             driver.addEdge(typeArgumentVertex, typeParameterVertex, EdgeLabel.BINDS_TO)
@@ -311,7 +294,9 @@ class OverflowDbDriverIntTest {
         @Test
         fun testRefEdgeCreation() {
             assertFalse(driver.exists(bindingVertex, methodVertex, EdgeLabel.REF))
+            println("$bindingVertex -> $methodVertex")
             driver.addEdge(bindingVertex, methodVertex, EdgeLabel.REF)
+            println("$bindingVertex -> $methodVertex")
             assertTrue(driver.exists(bindingVertex))
             assertTrue(driver.exists(methodVertex))
             assertTrue(driver.exists(bindingVertex, methodVertex, EdgeLabel.REF))

@@ -1,16 +1,15 @@
 package io.github.plume.oss.drivers
 
-import io.github.plume.oss.CpgDomainObjCreator.*
 import io.github.plume.oss.Traversals
 import io.github.plume.oss.domain.enums.EdgeLabel
 import io.github.plume.oss.domain.exceptions.PlumeSchemaViolationException
 import io.github.plume.oss.domain.mappers.VertexMapper
 import io.github.plume.oss.domain.models.PlumeGraph
+import io.github.plume.oss.util.PlumeKeyProvider
 import io.shiftleft.codepropertygraph.generated.nodes.*
 import org.apache.logging.log4j.LogManager
 import overflowdb.*
 import scala.Tuple2
-import scala.collection.immutable.`$colon$colon`
 import io.shiftleft.codepropertygraph.generated.edges.Factories as EdgeFactories
 import io.shiftleft.codepropertygraph.generated.nodes.Factories as NodeFactories
 
@@ -52,18 +51,18 @@ class OverflowDbDriver : IDriver {
     fun connect() {
         require(!connected) { "Please close the graph before trying to make another connection." }
         val odbConfig = Config.withDefaults()
-                .apply {
-                    if (this@OverflowDbDriver.storageLocation.isNotBlank())
-                        this.withStorageLocation(this@OverflowDbDriver.storageLocation)
-                }
-                .apply { if (!overflow) this.disableOverflow() }
-                .apply { if (serializationStatsEnabled) this.withSerializationStatsEnabled() }
-                .withHeapPercentageThreshold(heapPercentageThreshold)
+            .apply {
+                if (this@OverflowDbDriver.storageLocation.isNotBlank())
+                    this.withStorageLocation(this@OverflowDbDriver.storageLocation)
+            }
+            .apply { if (!overflow) this.disableOverflow() }
+            .apply { if (serializationStatsEnabled) this.withSerializationStatsEnabled() }
+            .withHeapPercentageThreshold(heapPercentageThreshold)
 
         graph = Graph.open(
-                odbConfig,
-                NodeFactories.allAsJava(),
-                EdgeFactories.allAsJava()
+            odbConfig,
+            NodeFactories.allAsJava(),
+            EdgeFactories.allAsJava()
         )
         connected = true
     }
@@ -90,9 +89,9 @@ class OverflowDbDriver : IDriver {
 
     override fun addEdge(fromV: NewNodeBuilder, toV: NewNodeBuilder, edge: EdgeLabel) {
         if (!VertexMapper.checkSchemaConstraints(fromV, toV, edge)) throw PlumeSchemaViolationException(
-                fromV,
-                toV,
-                edge
+            fromV,
+            toV,
+            edge
         )
         var srcNode = graph.node(fromV.hashCode().toLong())
         if (srcNode == null) {
@@ -117,9 +116,9 @@ class OverflowDbDriver : IDriver {
         return Traversals.maxOrder(graph)
     }
 
-    override fun clearGraph(): IDriver {
+    override fun clearGraph(): IDriver = apply {
         Traversals.clearGraph(graph)
-        return this
+        PlumeKeyProvider.clearKeyPools()
     }
 
     override fun getWholeGraph(): PlumeGraph {
@@ -134,19 +133,17 @@ class OverflowDbDriver : IDriver {
     private fun nodesWithEdgesToPlumeGraph(nodesWithEdges: List<Tuple2<StoredNode, List<Edge>>>): PlumeGraph {
         val plumeGraph = PlumeGraph()
         val plumeVertices = nodesWithEdges
-                .map { x -> x._1 }
-                .distinct()
-                .map { node -> Pair(node.id(), node) }
-                .toMap()
+            .map { x -> x._1 }
+            .distinct()
+            .map { node -> Pair(node.id(), node) }
+            .toMap()
 
-        // TODO Should check if this properties hold label or id
         val vertices = plumeVertices.values.map { v ->
-            val propMap = v.propertyMap().mapKeys { k -> toCamelCase(k.key) }.toMap()
             VertexMapper.mapToVertex(
-                    propMap + mapOf<String, Any>(
-                            "label" to v.label(),
-                            "id" to v.id()
-                    )
+                preProcessPropertyMap(v.propertyMap()) + mapOf<String, Any>(
+                    "label" to v.label(),
+                    "id" to v.id()
+                )
             )
         }.toList().onEach { v -> v.let { x -> plumeGraph.addVertex(x) } }
         val edges = nodesWithEdges.flatMap { x -> x._2 }
@@ -157,35 +154,42 @@ class OverflowDbDriver : IDriver {
     private fun edgeListToPlumeGraph(edges: List<Edge>): PlumeGraph {
         val plumeGraph = PlumeGraph()
         val plumeVertices = edges.flatMap { edge -> listOf(edge.inNode(), edge.outNode()) }
-                .distinct()
-                .map { node -> Pair(node.id(), node) }
-                .toMap()
+            .distinct()
+            .map { node -> Pair(node.id(), node) }
+            .toMap()
 
         val vertices = plumeVertices.values.map { v: NodeRef<NodeDb> ->
-            val propMap = v.propertyMap().mapKeys { k -> toCamelCase(k.key) }.toMap() + mapOf<String, Any>(
-                    "label" to v.label(),
-                    "id" to v.id()
+            val propMap = preProcessPropertyMap(v.propertyMap()) + mapOf<String, Any>(
+                "label" to v.label(),
+                "id" to v.id()
             )
-            println(propMap)
-//            propMap.computeIfPresent("dynamicTypeHintFullName") { _, x -> (x as `$colon$colon`<*>).head() }
-            VertexMapper.mapToVertex(
-                    propMap
-            )
+            VertexMapper.mapToVertex(propMap)
         }.toList().onEach { v -> v.let { x -> plumeGraph.addVertex(x) } }
         serializePlumeEdges(edges, vertices.map { Pair(it.id(), it) }.toMap(), plumeGraph)
         return plumeGraph
     }
 
+    private fun preProcessPropertyMap(props: Map<String, Any>): Map<String, Any> {
+        val propMap = props.mapKeys { k -> toCamelCase(k.key) }.toMutableMap()
+        propMap.computeIfPresent("dynamicTypeHintFullName") { _, v ->
+            when (v) {
+                is scala.collection.immutable.`$colon$colon`<*> -> v.head()
+                else -> ""
+            }
+        }
+        return propMap.toMap()
+    }
+
     private fun toCamelCase(s: String): String =
-            s.toLowerCase()
-                    .split('_')
-                    .mapIndexed { index, x -> if (index > 0) x[0].toUpperCase() + x.slice(1 until x.length) else x }
-                    .joinToString(separator = "")
+        s.toLowerCase()
+            .split('_')
+            .mapIndexed { index, x -> if (index > 0) x[0].toUpperCase() + x.slice(1 until x.length) else x }
+            .joinToString(separator = "")
 
     private fun serializePlumeEdges(
-            edges: List<Edge>,
-            plumeVertices: Map<Long, NewNodeBuilder>,
-            plumeGraph: PlumeGraph
+        edges: List<Edge>,
+        plumeVertices: Map<Long, NewNodeBuilder>,
+        plumeGraph: PlumeGraph
     ) {
         edges.forEach { edge ->
             val srcNode = plumeVertices[edge.outNode().id()]
@@ -216,7 +220,7 @@ class OverflowDbDriver : IDriver {
     }
 
     override fun getVertexIds(lowerBound: Long, upperBound: Long): Set<Long> =
-            Traversals.getVertexIds(graph, lowerBound, upperBound).map { it as Long }.toSet()
+        Traversals.getVertexIds(graph, lowerBound, upperBound).map { it as Long }.toSet()
 
 
     override fun close() {
