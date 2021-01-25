@@ -128,7 +128,7 @@ class TestDomainResources {
             .code(STRING_1).argumentindex(INT_1).order(INT_1).linenumber(Option.apply(INT_1))
             .columnnumber(Option.apply(INT_1))
         val unknownVertex: NewUnknownBuilder =
-            NewUnknownBuilder().typefullname(STRING_1).code(STRING_1).order(INT_1).argumentindex(INT_1)
+            NewUnknownBuilder().typefullname("brug").code(STRING_1).order(INT_1).argumentindex(INT_1)
                 .linenumber(Option.apply(INT_1)).columnnumber(Option.apply(INT_1))
         val modifierVertex: NewModifierBuilder = NewModifierBuilder().modifiertype(MOD_1.name).order(INT_1)
 

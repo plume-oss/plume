@@ -1,6 +1,7 @@
 package io.github.plume.oss.util
 
-import io.github.plume.oss.drivers.IDriver
+import io.github.plume.oss.drivers.GremlinOverriddenIdDriver
+import io.github.plume.oss.drivers.IOverridenIdDriver
 import java.util.concurrent.ConcurrentHashMap
 
 object PlumeKeyProvider {
@@ -24,14 +25,14 @@ object PlumeKeyProvider {
      *  @param d The driver to check for available IDs with.
      * @return a new ID.
      */
-    fun getNewId(d: IDriver): Long {
+    fun getNewId(d: IOverridenIdDriver): Long {
         val t = Thread.currentThread()
         keyPoolMap.computeIfAbsent(t) { generateNewIdPool(d) }
         if (keyPoolMap[t]!!.isEmpty()) keyPoolMap[t] = generateNewIdPool(d)
         return keyPoolMap[t]?.removeFirstOrNull() ?: 1L
     }
 
-    private fun generateNewIdPool(d: IDriver): MutableList<Long> {
+    private fun generateNewIdPool(d: IOverridenIdDriver): MutableList<Long> {
         // Find the max ID among the pools
         val currentMax = keyPoolMap.values.flatten().maxOrNull() ?: 0
         val freeIds = mutableSetOf<Long>()

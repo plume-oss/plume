@@ -4,6 +4,7 @@ import io.github.plume.oss.domain.enums.EdgeLabel
 import io.github.plume.oss.domain.mappers.VertexMapper
 import io.github.plume.oss.domain.models.PlumeGraph
 import io.shiftleft.codepropertygraph.generated.nodes.NewNodeBuilder
+import scala.jdk.CollectionConverters
 import java.io.OutputStreamWriter
 import java.util.*
 
@@ -33,10 +34,11 @@ object GraphSONWriter {
 
     private fun vertexToJSON(v: NewNodeBuilder, graph: PlumeGraph): String {
         val sb = StringBuilder()
-        val properties = VertexMapper.vertexToMap(v)
+        val builtNode = v.build()
+        val properties = CollectionConverters.MapHasAsJava(builtNode.properties()).asJava()
         sb.append("{")
         sb.append("\"id\":\"${v.hashCode()}\",")
-        sb.append("\"label\":\"${properties.remove("label")}\",")
+        sb.append("\"label\":\"${builtNode.label()}\",")
         graph.edgesOut(v).let { if (it.isNotEmpty()) sb.append("\"outE\":${edgesToJSON(it, "in")},") }
         graph.edgesIn(v).let { if (it.isNotEmpty()) sb.append("\"inE\":${edgesToJSON(it, "out")},") }
         properties.let { if (it.isNotEmpty()) sb.append("\"properties\":${propertiesToJSON(it)}") }

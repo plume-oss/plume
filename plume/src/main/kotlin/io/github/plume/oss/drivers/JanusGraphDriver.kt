@@ -3,15 +3,13 @@ package io.github.plume.oss.drivers
 import io.shiftleft.codepropertygraph.generated.nodes.NewNodeBuilder
 import org.apache.logging.log4j.LogManager
 import org.apache.tinkerpop.gremlin.process.traversal.AnonymousTraversalSource
-import org.apache.tinkerpop.gremlin.process.traversal.P
-import org.apache.tinkerpop.gremlin.process.traversal.dsl.graph.GraphTraversal
 import org.apache.tinkerpop.gremlin.structure.Graph
 import org.apache.tinkerpop.gremlin.structure.Vertex
 
 /**
  * The driver used to connect to a remote JanusGraph instance.
  */
-class JanusGraphDriver : GremlinWithImmutableIDDriver() {
+class JanusGraphDriver : GremlinDriver() {
     private val logger = LogManager.getLogger(JanusGraphDriver::class.java)
 
     companion object {
@@ -69,8 +67,8 @@ class JanusGraphDriver : GremlinWithImmutableIDDriver() {
      */
     override fun createVertex(v: NewNodeBuilder): Vertex {
         val propertyMap = prepareVertexProperties(v)
-        var traversalPointer = g.addV(v.build().label()).property("id", v.id())
+        var traversalPointer = g.addV(v.build().label())
         for ((key, value) in propertyMap) traversalPointer = traversalPointer.property(key, value)
-        return traversalPointer.next()
+        return traversalPointer.next().apply { v.id(this.id() as Long) }
     }
 }

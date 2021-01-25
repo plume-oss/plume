@@ -1,6 +1,7 @@
 package io.github.plume.oss.drivers
 
 import com.steelbridgelabs.oss.neo4j.structure.Neo4JGraph
+import com.steelbridgelabs.oss.neo4j.structure.providers.DatabaseSequenceElementIdProvider
 import com.steelbridgelabs.oss.neo4j.structure.providers.Neo4JNativeElementIdProvider
 import io.github.plume.oss.domain.exceptions.PlumeTransactionException
 import io.shiftleft.codepropertygraph.generated.nodes.NewNodeBuilder
@@ -17,7 +18,7 @@ import org.neo4j.driver.GraphDatabase
 /**
  * The driver used to connect to a remote Neo4j instance.
  */
-class Neo4jDriver : GremlinWithImmutableIDDriver() {
+class Neo4jDriver : GremlinDriver() {
     private val logger = LogManager.getLogger(Neo4jDriver::class.java)
 
     private lateinit var tx: Transaction

@@ -679,32 +679,4 @@ class TinkerGraphDriverIntTest {
         }
     }
 
-    @Nested
-    @DisplayName("ID retrieval tests")
-    inner class VertexIdTests {
-
-        @Test
-        fun testGetIdInsideRange() {
-            val ids1 = driver.getVertexIds(0, 10)
-            assertTrue(ids1.isEmpty())
-            driver.addVertex(NewArrayInitializerBuilder().order(INT_1).id(1L))
-            val ids2 = driver.getVertexIds(0, 10)
-            assertEquals(setOf(1L), ids2)
-        }
-
-        @Test
-        fun testGetIdOutsideRange() {
-            driver.addVertex(NewArrayInitializerBuilder().order(INT_1).id(11L))
-            val ids1 = driver.getVertexIds(0, 10)
-            assertEquals(emptySet<Long>(), ids1)
-        }
-
-        @Test
-        fun testGetIdOnExistingGraph() {
-            generateSimpleCPG(driver)
-            val ids = driver.getVertexIds(0, 100)
-            assertEquals(21, ids.size)
-        }
-
-    }
 }

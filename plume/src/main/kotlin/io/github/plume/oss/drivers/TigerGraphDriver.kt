@@ -9,18 +9,21 @@ import io.github.plume.oss.domain.models.PlumeGraph
 import io.github.plume.oss.util.PlumeKeyProvider
 import io.shiftleft.codepropertygraph.generated.nodes.NewMetaDataBuilder
 import io.shiftleft.codepropertygraph.generated.nodes.NewNodeBuilder
+import io.shiftleft.codepropertygraph.generated.nodes.NewUnknownBuilder
 import org.apache.logging.log4j.LogManager
 import org.apache.tinkerpop.shaded.jackson.databind.ObjectMapper
 import org.json.JSONArray
 import org.json.JSONObject
-import scala.collection.immutable.`$colon$colon`
+import scala.jdk.CollectionConverters
 import java.io.IOException
 import java.lang.Thread.sleep
+import java.util.*
+import kotlin.collections.HashMap
 
 /**
  * The driver used to connect to a remote TigerGraph instance.
  */
-class TigerGraphDriver : IDriver {
+class TigerGraphDriver : IOverridenIdDriver {
 
     private val logger = LogManager.getLogger(TigerGraphDriver::class.java)
     private val objectMapper = ObjectMapper()
@@ -118,9 +121,9 @@ class TigerGraphDriver : IDriver {
             val response = get(
                 "query/$GRAPH_NAME/areVerticesJoinedByEdge",
                 mapOf(
-                    "vFrom" to fromV.id().toString(),
-                    "vTo" to toV.id().toString(),
-                    "edgeLabel" to edge.name
+                    "V_FROM" to fromV.id().toString(),
+                    "V_TO" to toV.id().toString(),
+                    "EDGE_LABEL" to edge.name
                 )
             ).firstOrNull()
             return if (response == null) {
@@ -163,8 +166,9 @@ class TigerGraphDriver : IDriver {
     override fun maxOrder() = (get("query/$GRAPH_NAME/maxOrder").first() as JSONObject)["@@maxAstOrder"] as Int
 
     private fun createVertexPayload(v: NewNodeBuilder): Map<String, Any> {
-        val propertyMap = VertexMapper.vertexToMap(v).apply { remove("id") }
+        val propertyMap = CollectionConverters.MapHasAsJava(v.build().properties()).asJava().toMutableMap()
         val vertexType = if (v is NewMetaDataBuilder) "META_DATA_VERT" else "CPG_VERT"
+        propertyMap["label"] = v.build().label()
         if (v.id() < 0L) v.id(PlumeKeyProvider.getNewId(this))
         return mapOf(
             vertexType to mapOf<String, Any>(
@@ -175,9 +179,23 @@ class TigerGraphDriver : IDriver {
 
     private fun extractAttributesFromMap(propertyMap: MutableMap<String, Any>): MutableMap<String, Any> {
         val attributes = mutableMapOf<String, Any>()
+        propertyMap.computeIfPresent("DYNAMIC_TYPE_HINT_FULL_NAME") { _, value ->
+            when (value) {
+                is scala.collection.immutable.`$colon$colon`<*> -> value.head()
+                else -> value
+            }
+        }
         propertyMap.forEach {
-            val key = if (it.key == "order") "astOrder" else it.key
-            attributes[key] = mapOf("value" to it.value)
+            val key: Optional<String> = when (it.key) {
+                "ORDER" -> Optional.of("AST_ORDER")
+                "PARSER_TYPE_NAME" -> Optional.empty()
+                "AST_PARENT_TYPE" -> Optional.empty()
+                "AST_PARENT_FULL_NAME" -> Optional.empty()
+                "FILENAME" -> Optional.empty()
+                "IS_EXTERNAL" -> Optional.empty()
+                else -> Optional.of(it.key)
+            }
+            if (key.isPresent) attributes[key.get()] = mapOf("value" to it.value)
         }
         return attributes
     }
@@ -209,7 +227,7 @@ class TigerGraphDriver : IDriver {
     override fun getMethod(fullName: String, signature: String, includeBody: Boolean): PlumeGraph {
         val path = if (!includeBody) "getMethodHead" else "getMethod"
         return try {
-            val result = get("query/$GRAPH_NAME/$path", mapOf("fullName" to fullName, "signature" to signature))
+            val result = get("query/$GRAPH_NAME/$path", mapOf("FULL_NAME" to fullName, "SIGNATURE" to signature))
             graphPayloadToPlumeGraph(result)
         } catch (e: PlumeTransactionException) {
             logger.warn("${e.message}. This may be a result of the method not being present in the graph.")
@@ -224,7 +242,7 @@ class TigerGraphDriver : IDriver {
 
     override fun getNeighbours(v: NewNodeBuilder): PlumeGraph {
         if (v is NewMetaDataBuilder) return PlumeGraph().apply { addVertex(v) }
-        val result = get("query/$GRAPH_NAME/getNeighbours", mapOf("source" to v.id().toString()))
+        val result = get("query/$GRAPH_NAME/getNeighbours", mapOf("SOURCE" to v.id().toString()))
         return graphPayloadToPlumeGraph(result)
     }
 
@@ -235,7 +253,7 @@ class TigerGraphDriver : IDriver {
 
     override fun deleteMethod(fullName: String, signature: String) {
         try {
-            get("query/$GRAPH_NAME/deleteMethod", mapOf("fullName" to fullName, "signature" to signature))
+            get("query/$GRAPH_NAME/deleteMethod", mapOf("FULL_NAME" to fullName, "SIGNATURE" to signature))
         } catch (e: PlumeTransactionException) {
             logger.warn("${e.message}. This may be a result of the method not being present in the graph.")
         }
@@ -244,7 +262,7 @@ class TigerGraphDriver : IDriver {
     override fun getVertexIds(lowerBound: Long, upperBound: Long): Set<Long> {
         val result = (get(
             endpoint = "query/$GRAPH_NAME/getVertexIds",
-            params = mapOf("lowerBound" to lowerBound.toString(), "upperBound" to upperBound.toString())
+            params = mapOf("LOWER_BOUND" to lowerBound.toString(), "UPPER_BOUND" to upperBound.toString())
         ).first() as JSONObject)["@@ids"] as JSONArray
         return result.map { (it as Int).toLong() }.toSet()
     }
@@ -277,7 +295,7 @@ class TigerGraphDriver : IDriver {
         val attributes = o["attributes"] as JSONObject
         val vertexMap = HashMap<String, Any>()
         attributes.keySet().filter { attributes[it] != "" }
-            .map { Pair(if (it == "astOrder") "order" else it, attributes[it]) }
+            .map { Pair(if (it == "AST_ORDER") "ORDER" else it, attributes[it]) }
             .forEach { vertexMap[it.first] = it.second }
         return VertexMapper.mapToVertex(vertexMap)
     }
@@ -393,6 +411,16 @@ class TigerGraphDriver : IDriver {
                 response.statusCode == 200 -> return
                 tryCount >= MAX_RETRY -> throw IOException("Could not complete delete request due to status code ${response.statusCode} at $api/$endpoint")
                 else -> sleep(500)
+            }
+        }
+    }
+
+    private fun removeUnsupportedKeys(v: NewNodeBuilder) {
+        val propertyMap = CollectionConverters.MapHasAsJava(v.build().properties()).asJava().toMutableMap()
+        propertyMap.computeIfPresent("DYNAMIC_TYPE_HINT_FULL_NAME") { _, value ->
+            when (value) {
+                is scala.collection.immutable.`$colon$colon`<*> -> value.head()
+                else -> value
             }
         }
     }

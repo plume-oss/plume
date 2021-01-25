@@ -274,8 +274,8 @@ object SootToPlumeUtil {
      */
     fun connectMethodToTypeDecls(mtd: SootMethod, driver: IDriver) {
         Extractor.getSootAssociation(mtd.declaringClass)?.let { classVertices ->
-            val typeDeclVertex = classVertices.first { it is NewTypeDecl }
-            val clsVertex = classVertices.first { it is NewFile }
+            val typeDeclVertex = classVertices.first { it is NewTypeDeclBuilder }
+            val clsVertex = classVertices.first { it is NewFileBuilder }
             val methodVertex = Extractor.getSootAssociation(mtd)?.first { it is NewMethodBuilder } as NewMethodBuilder
             // Connect method to type declaration
             driver.addEdge(typeDeclVertex, methodVertex, EdgeLabel.AST)

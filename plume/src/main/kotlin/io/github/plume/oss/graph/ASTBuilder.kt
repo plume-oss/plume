@@ -159,6 +159,7 @@ class ASTBuilder(private val driver: IDriver) : IGraphBuilder {
             .signature(unit.methodRef.signature)
             .code(unit.methodRef.subSignature.toString())
             .order(order++)
+            .dynamictypehintfullname(createScalaList(unit.methodRef.returnType.toQuotedString()))
             .linenumber(Option.apply(currentLine))
             .columnnumber(Option.apply(currentCol))
             .methodfullname(unit.methodRef.toString().removeSurrounding("<", ">"))
@@ -188,10 +189,10 @@ class ASTBuilder(private val driver: IDriver) : IGraphBuilder {
                 addSootToPlumeAssociation(it.value, this)
                 runCatching {
                     driver.addEdge(callVertex, this, EdgeLabel.RECEIVER)
-                }.onFailure { e -> logger.warn(e.message) }
+                }.onFailure { e -> logger.warn(e.message, e) }
                 runCatching {
                     driver.addEdge(callVertex, this, EdgeLabel.AST)
-                }.onFailure { e -> logger.warn(e.message) }
+                }.onFailure { e -> logger.warn(e.message, e) }
             }
         }
         return callVertex
@@ -363,6 +364,7 @@ class ASTBuilder(private val driver: IDriver) : IGraphBuilder {
             .signature("${leftOp.type} = ${rightOp.type}")
             .methodfullname("=")
             .dispatchtype(DispatchType.STATIC_DISPATCH.name)
+            .dynamictypehintfullname(createScalaList(unit.rightOp.type.toQuotedString()))
             .order(order++)
             .argumentindex(childIdx)
             .typefullname(leftOp.type.toQuotedString())
@@ -422,6 +424,7 @@ class ASTBuilder(private val driver: IDriver) : IGraphBuilder {
             .signature("${expr.op1.type.toQuotedString()}${expr.symbol}${expr.op2.type.toQuotedString()}")
             .methodfullname(expr.symbol.trim())
             .dispatchtype(DispatchType.STATIC_DISPATCH.name)
+            .dynamictypehintfullname(createScalaList(expr.op2.type.toQuotedString()))
             .order(order++)
             .argumentindex(childIdx)
             .typefullname(expr.type.toQuotedString())
@@ -490,6 +493,7 @@ class ASTBuilder(private val driver: IDriver) : IGraphBuilder {
             .signature("(${expr.castType.toQuotedString()}) ${expr.op.type.toQuotedString()}")
             .methodfullname("(${expr.castType.toQuotedString()})")
             .dispatchtype(DispatchType.STATIC_DISPATCH.name)
+            .dynamictypehintfullname(createScalaList(expr.op.type.toQuotedString()))
             .order(order++)
             .argumentindex(childIdx)
             .typefullname(expr.type.toQuotedString())

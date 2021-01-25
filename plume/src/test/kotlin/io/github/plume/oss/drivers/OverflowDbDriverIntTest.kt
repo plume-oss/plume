@@ -294,9 +294,7 @@ class OverflowDbDriverIntTest {
         @Test
         fun testRefEdgeCreation() {
             assertFalse(driver.exists(bindingVertex, methodVertex, EdgeLabel.REF))
-            println("$bindingVertex -> $methodVertex")
             driver.addEdge(bindingVertex, methodVertex, EdgeLabel.REF)
-            println("$bindingVertex -> $methodVertex")
             assertTrue(driver.exists(bindingVertex))
             assertTrue(driver.exists(methodVertex))
             assertTrue(driver.exists(bindingVertex, methodVertex, EdgeLabel.REF))

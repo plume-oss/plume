@@ -4,20 +4,21 @@ import io.github.plume.oss.domain.enums.EdgeLabel
 import io.github.plume.oss.domain.exceptions.PlumeSchemaViolationException
 import io.github.plume.oss.domain.mappers.VertexMapper
 import io.github.plume.oss.domain.mappers.VertexMapper.checkSchemaConstraints
-import io.github.plume.oss.domain.mappers.VertexMapper.vertexToMap
 import io.github.plume.oss.domain.models.PlumeGraph
 import io.github.plume.oss.util.PlumeKeyProvider
 import io.shiftleft.codepropertygraph.generated.nodes.*
 import org.apache.commons.configuration.BaseConfiguration
 import org.apache.logging.log4j.LogManager
 import org.apache.tinkerpop.gremlin.process.traversal.Order
-import org.apache.tinkerpop.gremlin.process.traversal.P
-import org.apache.tinkerpop.gremlin.process.traversal.Scope
 import org.apache.tinkerpop.gremlin.process.traversal.dsl.graph.GraphTraversal
 import org.apache.tinkerpop.gremlin.process.traversal.dsl.graph.GraphTraversalSource
 import org.apache.tinkerpop.gremlin.process.traversal.step.util.WithOptions
-import org.apache.tinkerpop.gremlin.structure.*
+import org.apache.tinkerpop.gremlin.structure.Edge
+import org.apache.tinkerpop.gremlin.structure.Graph
+import org.apache.tinkerpop.gremlin.structure.T
+import org.apache.tinkerpop.gremlin.structure.Vertex
 import org.apache.tinkerpop.gremlin.tinkergraph.structure.TinkerGraph
+import scala.jdk.CollectionConverters
 import org.apache.tinkerpop.gremlin.process.traversal.dsl.graph.`__` as un
 
 /**
@@ -147,8 +148,8 @@ abstract class GremlinDriver : IDriver {
     override fun maxOrder(): Int =
         try {
             if (!transactionOpen) openTx()
-            if (g.V().has("order").hasNext())
-                g.V().has("order").order().by("order", Order.desc).limit(1).values<Any>("order").next() as Int
+            if (g.V().has("ORDER").hasNext())
+                g.V().has("ORDER").order().by("ORDER", Order.desc).limit(1).values<Any>("ORDER").next() as Int
             else 0
         } finally {
             if (transactionOpen) closeTx()
@@ -158,7 +159,6 @@ abstract class GremlinDriver : IDriver {
         if (!transactionOpen) openTx()
         g.V().drop().iterate()
         if (transactionOpen) closeTx()
-        PlumeKeyProvider.clearKeyPools()
     }
 
     /**
@@ -170,20 +170,26 @@ abstract class GremlinDriver : IDriver {
      */
     protected open fun createVertex(v: NewNodeBuilder): Vertex =
         try {
-            // TODO could use NewNode.properties() here
             if (!transactionOpen) openTx()
             val propertyMap = prepareVertexProperties(v)
-            g.graph.addVertex(T.label, v.build().label(), T.id, v.id()).apply {
-                propertyMap.forEach { (key: String, value: Any) -> this.property(key, value) }
-            }
+            g.graph
+                .addVertex(T.label, v.build().label())
+                .apply {
+                    propertyMap.forEach { (k, v) -> this.property(k, v) }
+                    v.id(this.id() as Long)
+                }
         } finally {
             if (transactionOpen) closeTx()
         }
 
     protected open fun prepareVertexProperties(v: NewNodeBuilder): Map<String, Any> {
-        val propertyMap: Map<String, Any> = vertexToMap(v).apply { remove("label"); remove("id"); toMap() }
-        // Get the implementing classes fields and values
-        if (v.id() < 0L) v.id(PlumeKeyProvider.getNewId(this))
+        val propertyMap = CollectionConverters.MapHasAsJava(v.build().properties()).asJava().toMutableMap()
+        propertyMap.computeIfPresent("DYNAMIC_TYPE_HINT_FULL_NAME") { _, value ->
+            when (value) {
+                is scala.collection.immutable.`$colon$colon`<*> -> value.head()
+                else -> value
+            }
+        }
         return propertyMap
     }
 
@@ -210,7 +216,7 @@ abstract class GremlinDriver : IDriver {
         if (includeBody) return getMethodWithBody(fullName, signature)
         if (!transactionOpen) openTx()
         val methodSubgraph = g.V().hasLabel(Method.Label())
-            .has("fullName", fullName).has("signature", signature)
+            .has("FULL_NAME", fullName).has("SIGNATURE", signature)
             .outE(EdgeLabel.AST.name)
             .subgraph("sg")
             .cap<Graph>("sg")
@@ -223,7 +229,7 @@ abstract class GremlinDriver : IDriver {
     private fun getMethodWithBody(fullName: String, signature: String): PlumeGraph {
         if (!transactionOpen) openTx()
         val methodSubgraph = g.V().hasLabel(Method.Label())
-            .has("fullName", fullName).has("signature", signature)
+            .has("FULL_NAME", fullName).has("SIGNATURE", signature)
             .repeat(un.outE(EdgeLabel.AST.name).inV()).emit()
             .inE()
             .subgraph("sg")
@@ -272,7 +278,7 @@ abstract class GremlinDriver : IDriver {
     override fun deleteMethod(fullName: String, signature: String) {
         if (!transactionOpen) openTx()
         val methodV = g.V().hasLabel(Method.Label())
-            .has("fullName", fullName).has("signature", signature)
+            .has("FULL_NAME", fullName).has("SIGNATURE", signature)
             .tryNext()
         if (methodV.isPresent) {
             g.V(methodV.get()).aggregate("x")
@@ -317,10 +323,4 @@ abstract class GremlinDriver : IDriver {
         return plumeGraph
     }
 
-    override fun getVertexIds(lowerBound: Long, upperBound: Long): Set<Long> {
-        if (!transactionOpen) openTx()
-        val idSet = g.V().id().`is`(P.inside(lowerBound - 1, upperBound + 1)).toSet().map { it as Long }.toSet()
-        if (transactionOpen) closeTx()
-        return idSet
-    }
 }

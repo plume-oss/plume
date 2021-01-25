@@ -118,7 +118,6 @@ class OverflowDbDriver : IDriver {
 
     override fun clearGraph(): IDriver = apply {
         Traversals.clearGraph(graph)
-        PlumeKeyProvider.clearKeyPools()
     }
 
     override fun getWholeGraph(): PlumeGraph {
@@ -170,21 +169,15 @@ class OverflowDbDriver : IDriver {
     }
 
     private fun preProcessPropertyMap(props: Map<String, Any>): Map<String, Any> {
-        val propMap = props.mapKeys { k -> toCamelCase(k.key) }.toMutableMap()
-        propMap.computeIfPresent("dynamicTypeHintFullName") { _, v ->
-            when (v) {
-                is scala.collection.immutable.`$colon$colon`<*> -> v.head()
-                else -> ""
+        val propertyMap = props.toMutableMap()
+        propertyMap.computeIfPresent("DYNAMIC_TYPE_HINT_FULL_NAME") { _, value ->
+            when (value) {
+                is scala.collection.immutable.`$colon$colon`<*> -> value.head()
+                else -> value
             }
         }
-        return propMap.toMap()
+        return propertyMap
     }
-
-    private fun toCamelCase(s: String): String =
-        s.toLowerCase()
-            .split('_')
-            .mapIndexed { index, x -> if (index > 0) x[0].toUpperCase() + x.slice(1 until x.length) else x }
-            .joinToString(separator = "")
 
     private fun serializePlumeEdges(
         edges: List<Edge>,
@@ -209,19 +202,12 @@ class OverflowDbDriver : IDriver {
     }
 
     override fun deleteVertex(v: NewNodeBuilder) {
-        val node = graph.node(v.id())
-        if (node != null) {
-            graph.remove(node)
-        }
+        graph.node(v.id())?.let { graph.remove(it) }
     }
 
     override fun deleteMethod(fullName: String, signature: String) {
         Traversals.deleteMethod(graph, fullName, signature)
     }
-
-    override fun getVertexIds(lowerBound: Long, upperBound: Long): Set<Long> =
-        Traversals.getVertexIds(graph, lowerBound, upperBound).map { it as Long }.toSet()
-
 
     override fun close() {
         require(connected) { "Cannot close a graph that is not already connected!" }
