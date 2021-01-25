@@ -31,3 +31,7 @@ sourceSets {
     main.java.srcDirs = []
     main.scala.srcDirs = ["src/main/scala"]
 }
+tasks.withType(Test) {
+    maxParallelForks = 1
+}
+
