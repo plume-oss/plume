@@ -47,7 +47,22 @@ class Neo4jDriverIntTest {
 
         @JvmStatic
         @BeforeAll
-        fun setUpAll() = run { testStartTime = System.nanoTime() }
+        fun setUpAll() = run {
+            testStartTime = System.nanoTime()
+            driver = (DriverFactory(GraphDatabase.NEO4J) as Neo4jDriver).apply {
+                this.hostname("localhost")
+                    .port(7687)
+                    .username("neo4j")
+                    .password("neo4j123")
+                    .database("neo4j")
+                    .connect()
+            }
+            assertEquals("localhost", driver.hostname)
+            assertEquals(7687, driver.port)
+            assertEquals("neo4j", driver.username)
+            assertEquals("neo4j123", driver.password)
+            assertEquals("neo4j", driver.database)
+        }
 
         @JvmStatic
         @AfterAll
@@ -55,27 +70,10 @@ class Neo4jDriverIntTest {
             println("${Neo4jDriverIntTest::class.java.simpleName} completed in ${(System.nanoTime() - testStartTime) / 1e6} ms")
     }
 
-    @BeforeEach
-    fun setUp() {
-        driver = (DriverFactory(GraphDatabase.NEO4J) as Neo4jDriver).apply {
-            this.hostname("localhost")
-                .port(7687)
-                .username("neo4j")
-                .password("neo4j123")
-                .database("neo4j")
-                .connect()
-        }
-        assertEquals("localhost", driver.hostname)
-        assertEquals(7687, driver.port)
-        assertEquals("neo4j", driver.username)
-        assertEquals("neo4j123", driver.password)
-        assertEquals("neo4j", driver.database)
-    }
-
     @AfterEach
     fun tearDown() {
         TestDomainResources.simpleCpgVertices.forEach { it.id(-1) }
-        driver.clearGraph().close()
+        driver.clearGraph()
     }
 
     @Nested

@@ -43,7 +43,7 @@ dependencies {
     implementation "org.apache.tinkerpop:tinkergraph-gremlin:$gremlinVersion"
     implementation "org.apache.tinkerpop:gremlin-driver:$gremlinVersion"
     implementation "org.janusgraph:janusgraph-driver:$jgVersion"
-    implementation "com.steelbridgelabs.oss:neo4j-gremlin-bolt:$neo4jGremlinVersion"
+    implementation "org.neo4j.driver:neo4j-java-driver:$neo4jDriverVersion"
     implementation "khttp:khttp:$khttpVersion"
     implementation "com.fasterxml.jackson.core:jackson-databind:$jacksonVersion"
     implementation "io.shiftleft:codepropertygraph_2.13:$shiftleftVersion"
@@ -91,7 +91,7 @@ task allTests(
 
 test {
     useJUnitPlatform()
-    exclude "**/*IntTest*", "**/extractor/**"
+//    exclude "**/*IntTest*", "**/extractor/**"
     testLogging { events "FAILED", "SKIPPED" }
 }
 

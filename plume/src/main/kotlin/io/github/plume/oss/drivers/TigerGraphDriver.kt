@@ -166,9 +166,10 @@ class TigerGraphDriver : IOverridenIdDriver {
     override fun maxOrder() = (get("query/$GRAPH_NAME/maxOrder").first() as JSONObject)["@@maxAstOrder"] as Int
 
     private fun createVertexPayload(v: NewNodeBuilder): Map<String, Any> {
-        val propertyMap = CollectionConverters.MapHasAsJava(v.build().properties()).asJava().toMutableMap()
+        val node = v.build()
+        val propertyMap = CollectionConverters.MapHasAsJava(node.properties()).asJava().toMutableMap()
+        propertyMap["label"] = node.label()
         val vertexType = if (v is NewMetaDataBuilder) "META_DATA_VERT" else "CPG_VERT"
-        propertyMap["label"] = v.build().label()
         if (v.id() < 0L) v.id(PlumeKeyProvider.getNewId(this))
         return mapOf(
             vertexType to mapOf<String, Any>(
@@ -411,16 +412,6 @@ class TigerGraphDriver : IOverridenIdDriver {
                 response.statusCode == 200 -> return
                 tryCount >= MAX_RETRY -> throw IOException("Could not complete delete request due to status code ${response.statusCode} at $api/$endpoint")
                 else -> sleep(500)
-            }
-        }
-    }
-
-    private fun removeUnsupportedKeys(v: NewNodeBuilder) {
-        val propertyMap = CollectionConverters.MapHasAsJava(v.build().properties()).asJava().toMutableMap()
-        propertyMap.computeIfPresent("DYNAMIC_TYPE_HINT_FULL_NAME") { _, value ->
-            when (value) {
-                is scala.collection.immutable.`$colon$colon`<*> -> value.head()
-                else -> value
             }
         }
     }

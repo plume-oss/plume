@@ -1,27 +1,25 @@
 package io.github.plume.oss.drivers
 
-import com.steelbridgelabs.oss.neo4j.structure.Neo4JGraph
-import com.steelbridgelabs.oss.neo4j.structure.providers.DatabaseSequenceElementIdProvider
-import com.steelbridgelabs.oss.neo4j.structure.providers.Neo4JNativeElementIdProvider
-import io.github.plume.oss.domain.exceptions.PlumeTransactionException
+import io.github.plume.oss.domain.enums.EdgeLabel
+import io.github.plume.oss.domain.models.PlumeGraph
 import io.shiftleft.codepropertygraph.generated.nodes.NewNodeBuilder
 import org.apache.logging.log4j.LogManager
-import org.apache.tinkerpop.gremlin.process.traversal.Order
-import org.apache.tinkerpop.gremlin.structure.T
-import org.apache.tinkerpop.gremlin.structure.Transaction
-import org.apache.tinkerpop.gremlin.structure.Vertex
+import org.apache.tinkerpop.shaded.jackson.databind.ObjectMapper
 import org.neo4j.driver.AuthTokens
 import org.neo4j.driver.Driver
 import org.neo4j.driver.GraphDatabase
+import scala.jdk.CollectionConverters
+import java.util.*
 
 
 /**
  * The driver used to connect to a remote Neo4j instance.
  */
-class Neo4jDriver : GremlinDriver() {
-    private val logger = LogManager.getLogger(Neo4jDriver::class.java)
+class Neo4jDriver : IDriver {
 
-    private lateinit var tx: Transaction
+    private val logger = LogManager.getLogger(Neo4jDriver::class.java)
+    private val objectMapper = ObjectMapper()
+    private var connected = false
     private lateinit var driver: Driver
 
     /**
@@ -94,12 +92,9 @@ class Neo4jDriver : GremlinDriver() {
      */
     fun port(value: Int) = apply { port = value }
 
-    override fun connect() {
+    fun connect() {
         require(!connected) { "Please close the graph before trying to make another connection." }
         driver = GraphDatabase.driver("bolt://$hostname:$port", AuthTokens.basic(username, password))
-        val vertexIdProvider = Neo4JNativeElementIdProvider()
-        val edgeIdProvider = Neo4JNativeElementIdProvider()
-        graph = Neo4JGraph(driver, database, vertexIdProvider, edgeIdProvider)
         connected = true
     }
 
@@ -107,53 +102,153 @@ class Neo4jDriver : GremlinDriver() {
         require(connected) { "Cannot close a graph that is not already connected!" }
         try {
             driver.close()
-            super.close()
             connected = false
         } catch (e: Exception) {
             logger.warn("Exception thrown while attempting to close graph.", e)
         }
     }
 
-    override fun openTx() {
-        super.openTx()
-        try {
-            logger.debug("Creating new tx")
-            super.g = graph.traversal()
-            tx = g.tx()
-        } catch (e: Exception) {
-            transactionOpen = false
-            logger.error(e)
-            throw PlumeTransactionException("Unable to create Neo4j transaction!")
+    private fun extractAttributesFromMap(propertyMap: MutableMap<String, Any>): MutableMap<String, Any> {
+        val attributes = mutableMapOf<String, Any>()
+        propertyMap.computeIfPresent("DYNAMIC_TYPE_HINT_FULL_NAME") { _, value ->
+            when (value) {
+                is scala.collection.immutable.`$colon$colon`<*> -> value.head()
+                else -> value
+            }
+        }
+        propertyMap.forEach {
+            val key: Optional<String> = when (it.key) {
+                "PARSER_TYPE_NAME" -> Optional.empty()
+                "AST_PARENT_TYPE" -> Optional.empty()
+                "AST_PARENT_FULL_NAME" -> Optional.empty()
+                "FILENAME" -> Optional.empty()
+                "IS_EXTERNAL" -> Optional.empty()
+                else -> Optional.of(it.key)
+            }
+            if (key.isPresent) attributes[key.get()] = if (it.value is Int) (it.value as Int).toLong() else it.value
+        }
+        return attributes
+    }
+
+    override fun addVertex(v: NewNodeBuilder) {
+        val node = v.build()
+        val propertyMap = CollectionConverters.MapHasAsJava(node.properties()).asJava().toMutableMap()
+        propertyMap["label"] = node.label()
+        driver.session().use { session ->
+            val payload = StringBuilder("{")
+            val attributeList = extractAttributesFromMap(propertyMap).toList()
+            attributeList.forEachIndexed { i: Int, e: Pair<String, Any> ->
+                payload.append("${e.first}:")
+                if (e.second is String) payload.append("\"${e.second}\"") else payload.append(e.second)
+                if (i < attributeList.size - 1) payload.append(",")
+            }
+            payload.append("}")
+            session.writeTransaction { tx ->
+                val result = tx.run(
+                    """
+                    CREATE (n:${node.label()} $payload)
+                    RETURN ID(n) as id
+                    """.trimIndent()
+                )
+                v.id(result.next()["id"].toString().toLong())
+            }
+
         }
     }
 
-    override fun closeTx() {
-        try {
-            tx.commit()
-            tx.close()
-        } catch (e: Exception) {
-            logger.error(e)
-            throw PlumeTransactionException("Unable to close Neo4j transaction!")
-        } finally {
-            transactionOpen = false
+    override fun exists(v: NewNodeBuilder): Boolean {
+        val node = v.build()
+        driver.session().use { session ->
+            return session.writeTransaction { tx ->
+                val result = tx.run(
+                    """
+                    MATCH (n:${node.label()})
+                    WHERE id(n) = ${v.id()}
+                    RETURN n
+                    """.trimIndent()
+                )
+                result.list().isNotEmpty()
+            }
+        }
+    }
+
+    override fun exists(fromV: NewNodeBuilder, toV: NewNodeBuilder, edge: EdgeLabel): Boolean {
+        if (!exists(fromV) || !exists(toV)) return false
+        val src = fromV.build()
+        val tgt = toV.build()
+        driver.session().use { session ->
+            return session.writeTransaction { tx ->
+                val result = tx.run(
+                    """
+                    MATCH (a:${src.label()}), (b:${tgt.label()})
+                    WHERE id(a) = ${fromV.id()} AND id(b) = ${toV.id()}
+                    RETURN EXISTS ((a)-[:$edge]->(b)) as edge_exists
+                    """.trimIndent()
+                )
+                result.next()["edge_exists"].toString() == "TRUE"
+            }
+        }
+    }
+
+    override fun addEdge(fromV: NewNodeBuilder, toV: NewNodeBuilder, edge: EdgeLabel) {
+        if (!exists(fromV)) addVertex(fromV)
+        if (!exists(toV)) addVertex(toV)
+        val src = fromV.build()
+        val tgt = toV.build()
+        driver.session().use { session ->
+            return session.writeTransaction { tx ->
+                val result = tx.run(
+                    """
+                    MATCH (a:${src.label()}), (b:${tgt.label()})
+                    WHERE id(a) = ${fromV.id()} AND id(b) = ${toV.id()}
+                    CREATE (a)-[r:$edge]->(b)
+                    RETURN r
+                    """.trimIndent()
+                )
+                result.list().isNotEmpty()
+            }
         }
     }
 
     override fun maxOrder(): Int =
-        try {
-            if (!transactionOpen) openTx()
-            if (g.V().has("order").hasNext())
-                (g.V().has("order").order().by("order", Order.desc).limit(1).values<Any>("order")
-                    .next() as Long).toInt()
-            else 0
-        } finally {
-            if (transactionOpen) closeTx()
-        }
+        TODO("Not yet implemented")
 
-    override fun prepareVertexProperties(v: NewNodeBuilder): Map<String, Any> {
-        val map = super.prepareVertexProperties(v).toMutableMap()
-        map.entries.forEach { e -> if (e.value is Int) map[e.key] = (e.value as Int).toLong() }
-        return map.toMap()
+    override fun clearGraph(): IDriver {
+        driver.session().use { session ->
+            session.writeTransaction { tx ->
+                tx.run(
+                    """
+                    MATCH (n)
+                    DETACH DELETE n
+                    """.trimIndent()
+                )
+            }
+        }
+        return this
+    }
+
+    override fun getWholeGraph(): PlumeGraph {
+        TODO("Not yet implemented")
+    }
+
+    override fun getMethod(fullName: String, signature: String, includeBody: Boolean): PlumeGraph {
+        TODO("Not yet implemented")
+    }
+
+    override fun getProgramStructure(): PlumeGraph {
+        TODO("Not yet implemented")
+    }
+
+    override fun getNeighbours(v: NewNodeBuilder): PlumeGraph {
+        TODO("Not yet implemented")
+    }
+
+    override fun deleteVertex(v: NewNodeBuilder) {
+        TODO("Not yet implemented")
+    }
+
+    override fun deleteMethod(fullName: String, signature: String) {
+        TODO("Not yet implemented")
     }
 
     companion object {
