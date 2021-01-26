@@ -16,11 +16,10 @@ dependencies {
     implementation "io.shiftleft:semanticcpg_2.13:$shiftleftVersion"
 
     testImplementation project(":plume")
-    testImplementation "io.shiftleft:semanticcpg-tests_2.13:$shiftleftVersion:tests"
     testImplementation "org.scalatest:scalatest_2.13:3.1.1"
+    testImplementation "io.shiftleft:semanticcpg-tests_2.13:$shiftleftVersion:tests"
     testRuntime 'com.vladsch.flexmark:flexmark-all:0.35.10'
-
-    implementation("org.scala-lang:scala-library:2.13.3")
+    implementation("org.scala-lang:scala-library:2.13.4")
 
 }
 
@@ -34,4 +33,3 @@ sourceSets {
 tasks.withType(Test) {
     maxParallelForks = 1
 }
-
