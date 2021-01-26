@@ -1,18 +1,22 @@
 package io.github.plume.oss.drivers
 
 import io.github.plume.oss.domain.enums.EdgeLabel
+import io.github.plume.oss.domain.enums.VertexLabel
+import io.github.plume.oss.domain.exceptions.PlumeSchemaViolationException
+import io.github.plume.oss.domain.mappers.VertexMapper.checkSchemaConstraints
 import io.github.plume.oss.domain.mappers.VertexMapper.mapToVertex
 import io.github.plume.oss.domain.models.PlumeGraph
-import io.github.plume.oss.graphio.GraphMLWriter
+import io.shiftleft.codepropertygraph.generated.EdgeTypes.AST
+import io.shiftleft.codepropertygraph.generated.NodeTypes.FILE
+import io.shiftleft.codepropertygraph.generated.NodeTypes.METHOD
 import io.shiftleft.codepropertygraph.generated.nodes.NewNodeBuilder
 import org.apache.logging.log4j.LogManager
 import org.apache.tinkerpop.shaded.jackson.databind.ObjectMapper
 import org.neo4j.driver.AuthTokens
 import org.neo4j.driver.Driver
 import org.neo4j.driver.GraphDatabase
-import org.neo4j.driver.internal.value.StringValue
+import org.neo4j.driver.Value
 import scala.jdk.CollectionConverters
-import java.io.FileWriter
 import java.util.*
 
 
@@ -195,6 +199,7 @@ class Neo4jDriver : IDriver {
     }
 
     override fun addEdge(fromV: NewNodeBuilder, toV: NewNodeBuilder, edge: EdgeLabel) {
+        if (!checkSchemaConstraints(fromV, toV, edge)) throw PlumeSchemaViolationException(fromV, toV, edge)
         if (!exists(fromV)) addVertex(fromV)
         if (!exists(toV)) addVertex(toV)
         val src = fromV.build()
@@ -250,31 +255,30 @@ class Neo4jDriver : IDriver {
                 tx.run(
                     """
                     MATCH (n)-[r]->(m)
-                    RETURN n AS src, m AS tgt, type(r) AS edge 
+                    RETURN n AS src, m AS tgt, type(r) AS rel 
                     """.trimIndent()
                 ).list()
             }
-            edgeResult.map { Triple(it["src"].asNode(), it["tgt"].asNode(), it["edge"] as StringValue) }
+            edgeResult.map { r -> Triple(r["src"].asNode(), r["tgt"].asNode(), r["rel"].asString()) }
                 .map {
                     Triple(
                         mapToVertex(it.first.asMap() + mapOf("id" to it.first.id())),
                         mapToVertex(it.second.asMap() + mapOf("id" to it.second.id())),
-                        EdgeLabel.valueOf(it.third.asString())
+                        it.third
                     )
-                }
-                .forEach { plumeGraph.addEdge(it.first, it.second, it.third) }
+                }.forEach { plumeGraph.addEdge(it.first, it.second, EdgeLabel.valueOf(it.third)) }
         }
         return plumeGraph
     }
 
     override fun getMethod(fullName: String, signature: String, includeBody: Boolean): PlumeGraph {
         val queryHead = if (!includeBody) """
-            MATCH (root:METHOD {FULL_NAME:'$fullName', SIGNATURE:'$signature'})-[r1:AST]->(child)
+            MATCH (root:$METHOD {FULL_NAME:'$fullName', SIGNATURE:'$signature'})-[r1:$AST]->(child)
                     WITH DISTINCT r1 AS coll
         """.trimIndent()
         else
             """
-            MATCH (root:METHOD {FULL_NAME:'$fullName', SIGNATURE:'$signature'})-[r1:AST*0..]->(child)-[r2]->(n1) 
+            MATCH (root:$METHOD {FULL_NAME:'$fullName', SIGNATURE:'$signature'})-[r1:$AST*0..]->(child)-[r2]->(n1) 
                 WHERE NOT (child)-[:SOURCE_FILE]-(n1)
             OPTIONAL MATCH (root)-[r3]->(n2) WHERE NOT (root)-[:SOURCE_FILE]-(n2)  
             WITH DISTINCT (r1 + r2 + r3) AS coll
@@ -291,26 +295,68 @@ class Neo4jDriver : IDriver {
                     UNWIND e2 as x
                     RETURN x
                     """.trimIndent()
-                ).list()
-                result.map { it["x"] }.map { r -> Triple(r["src"].asNode(), r["tgt"].asNode(), r["rel"].asString()) }
-                    .map { p ->
-                        Triple(
-                            mapToVertex(p.first.asMap() + mapOf("id" to p.first.id())),
-                            mapToVertex(p.second.asMap() + mapOf("id" to p.second.id())),
-                            p.third
-                        )
-                    }.forEach { plumeGraph.addEdge(it.first, it.second, EdgeLabel.valueOf(it.third)) }
+                ).list().map { it["x"] }
+                neo4jToPlumeGraph(result, plumeGraph)
             }
         }
         return plumeGraph
     }
 
     override fun getProgramStructure(): PlumeGraph {
-        TODO("Not yet implemented")
+        val plumeGraph = PlumeGraph()
+        driver.session().use { session ->
+            val result = session.writeTransaction { tx ->
+                tx.run(
+                    """
+                    MATCH (n:$FILE)-[r1:$AST*0..]->(m)-[r2]->(o) 
+                    WITH DISTINCT (r1 + r2) AS coll
+                    UNWIND coll AS e1
+                    WITH DISTINCT e1
+                    WITH [r in collect(e1) | {rel: type(r), src: startNode(r), tgt: endNode(r)} ] as e2
+                    UNWIND e2 as x
+                    RETURN x
+                    """.trimIndent()
+                ).list().map { it["x"] }
+            }
+            neo4jToPlumeGraph(result, plumeGraph)
+        }
+        return plumeGraph
     }
 
     override fun getNeighbours(v: NewNodeBuilder): PlumeGraph {
-        TODO("Not yet implemented")
+        val plumeGraph = PlumeGraph()
+        driver.session().use { session ->
+            val result = session.writeTransaction { tx ->
+                tx.run(
+                    """
+                    MATCH (n:${v.build().label()})-[r1]-(m)
+                    WHERE ID(n) = ${v.id()}
+                    WITH DISTINCT r1 AS coll
+                    UNWIND coll AS e1
+                    WITH DISTINCT e1
+                    WITH [r in collect(e1) | {rel: type(r), src: startNode(r), tgt: endNode(r)} ] as e2
+                    UNWIND e2 as x
+                    RETURN x
+                    """.trimIndent()
+                ).list().map { it["x"] }
+            }
+            neo4jToPlumeGraph(result, plumeGraph)
+        }
+        return plumeGraph
+    }
+
+    private fun neo4jToPlumeGraph(
+        result: List<Value>,
+        plumeGraph: PlumeGraph
+    ) {
+        result.map { r -> Triple(r["src"].asNode(), r["tgt"].asNode(), r["rel"].asString()) }
+            .map { p ->
+                Triple(
+                    mapToVertex(p.first.asMap() + mapOf("id" to p.first.id())),
+                    mapToVertex(p.second.asMap() + mapOf("id" to p.second.id())),
+                    p.third
+                )
+            }.forEach { plumeGraph.addEdge(it.first, it.second, EdgeLabel.valueOf(it.third)) }
     }
 
     override fun deleteVertex(v: NewNodeBuilder) {
@@ -319,7 +365,7 @@ class Neo4jDriver : IDriver {
                 tx.run(
                     """
                     MATCH (n)
-                    WHERE id(n) = ${v.id()}
+                    WHERE ID(n) = ${v.id()}
                     DETACH DELETE n
                     """.trimIndent()
                 )
@@ -332,10 +378,10 @@ class Neo4jDriver : IDriver {
             session.writeTransaction { tx ->
                 tx.run(
                     """
-                    MATCH (a)<-[r:AST*]-(t)
+                    MATCH (a)-[r:${AST}*]->(t)
                     WHERE a.FULL_NAME = "$fullName" AND a.SIGNATURE = "$signature"
                     FOREACH (x IN r | DELETE x)
-                    DELETE a, t
+                    DETACH DELETE a, t
                     """.trimIndent()
                 )
             }
