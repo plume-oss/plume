@@ -1,14 +1,18 @@
 package io.github.plume.oss.drivers
 
 import io.github.plume.oss.domain.enums.EdgeLabel
+import io.github.plume.oss.domain.mappers.VertexMapper.mapToVertex
 import io.github.plume.oss.domain.models.PlumeGraph
+import io.github.plume.oss.graphio.GraphMLWriter
 import io.shiftleft.codepropertygraph.generated.nodes.NewNodeBuilder
 import org.apache.logging.log4j.LogManager
 import org.apache.tinkerpop.shaded.jackson.databind.ObjectMapper
 import org.neo4j.driver.AuthTokens
 import org.neo4j.driver.Driver
 import org.neo4j.driver.GraphDatabase
+import org.neo4j.driver.internal.value.StringValue
 import scala.jdk.CollectionConverters
+import java.io.FileWriter
 import java.util.*
 
 
@@ -228,11 +232,77 @@ class Neo4jDriver : IDriver {
     }
 
     override fun getWholeGraph(): PlumeGraph {
-        TODO("Not yet implemented")
+        val plumeGraph = PlumeGraph()
+        driver.session().use { session ->
+            val orphanVertices = session.writeTransaction { tx ->
+                tx.run(
+                    """
+                    MATCH (n)
+                    WHERE NOT (n)-[]-()
+                    RETURN n
+                    """.trimIndent()
+                ).list()
+            }
+            orphanVertices.map { it["n"].asNode() }
+                .map { mapToVertex(it.asMap() + mapOf("id" to it.id())) }
+                .forEach { plumeGraph.addVertex(it) }
+            val edgeResult = session.writeTransaction { tx ->
+                tx.run(
+                    """
+                    MATCH (n)-[r]->(m)
+                    RETURN n AS src, m AS tgt, type(r) AS edge 
+                    """.trimIndent()
+                ).list()
+            }
+            edgeResult.map { Triple(it["src"].asNode(), it["tgt"].asNode(), it["edge"] as StringValue) }
+                .map {
+                    Triple(
+                        mapToVertex(it.first.asMap() + mapOf("id" to it.first.id())),
+                        mapToVertex(it.second.asMap() + mapOf("id" to it.second.id())),
+                        EdgeLabel.valueOf(it.third.asString())
+                    )
+                }
+                .forEach { plumeGraph.addEdge(it.first, it.second, it.third) }
+        }
+        return plumeGraph
     }
 
     override fun getMethod(fullName: String, signature: String, includeBody: Boolean): PlumeGraph {
-        TODO("Not yet implemented")
+        val queryHead = if (!includeBody) """
+            MATCH (root:METHOD {FULL_NAME:'$fullName', SIGNATURE:'$signature'})-[r1:AST]->(child)
+                    WITH DISTINCT r1 AS coll
+        """.trimIndent()
+        else
+            """
+            MATCH (root:METHOD {FULL_NAME:'$fullName', SIGNATURE:'$signature'})-[r1:AST*0..]->(child)-[r2]->(n1) 
+                WHERE NOT (child)-[:SOURCE_FILE]-(n1)
+            OPTIONAL MATCH (root)-[r3]->(n2) WHERE NOT (root)-[:SOURCE_FILE]-(n2)  
+            WITH DISTINCT (r1 + r2 + r3) AS coll
+            """.trimIndent()
+        val plumeGraph = PlumeGraph()
+        driver.session().use { session ->
+            session.writeTransaction { tx ->
+                val result = tx.run(
+                    """
+                    $queryHead
+                    UNWIND coll AS e1
+                    WITH DISTINCT e1
+                    WITH [r in collect(e1) | {rel: type(r), src: startNode(r), tgt: endNode(r)} ] as e2
+                    UNWIND e2 as x
+                    RETURN x
+                    """.trimIndent()
+                ).list()
+                result.map { it["x"] }.map { r -> Triple(r["src"].asNode(), r["tgt"].asNode(), r["rel"].asString()) }
+                    .map { p ->
+                        Triple(
+                            mapToVertex(p.first.asMap() + mapOf("id" to p.first.id())),
+                            mapToVertex(p.second.asMap() + mapOf("id" to p.second.id())),
+                            p.third
+                        )
+                    }.forEach { plumeGraph.addEdge(it.first, it.second, EdgeLabel.valueOf(it.third)) }
+            }
+        }
+        return plumeGraph
     }
 
     override fun getProgramStructure(): PlumeGraph {
@@ -244,11 +314,32 @@ class Neo4jDriver : IDriver {
     }
 
     override fun deleteVertex(v: NewNodeBuilder) {
-        TODO("Not yet implemented")
+        driver.session().use { session ->
+            session.writeTransaction { tx ->
+                tx.run(
+                    """
+                    MATCH (n)
+                    WHERE id(n) = ${v.id()}
+                    DETACH DELETE n
+                    """.trimIndent()
+                )
+            }
+        }
     }
 
     override fun deleteMethod(fullName: String, signature: String) {
-        TODO("Not yet implemented")
+        driver.session().use { session ->
+            session.writeTransaction { tx ->
+                tx.run(
+                    """
+                    MATCH (a)<-[r:AST*]-(t)
+                    WHERE a.FULL_NAME = "$fullName" AND a.SIGNATURE = "$signature"
+                    FOREACH (x IN r | DELETE x)
+                    DELETE a, t
+                    """.trimIndent()
+                )
+            }
+        }
     }
 
     companion object {
