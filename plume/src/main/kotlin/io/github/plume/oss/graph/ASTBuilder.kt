@@ -51,25 +51,6 @@ class ASTBuilder(private val driver: IDriver) : IGraphBuilder {
     private var currentCol = -1
     private lateinit var graph: BriefUnitGraph
 
-    init {
-        order = driver.maxOrder()
-    }
-
-    companion object {
-        /**
-         * General ordering property, such that the children of each AST-node are typically numbered from 1, ..., N
-         * (this is not enforced). The ordering has no technical meaning, but is used for pretty printing and OUGHT TO
-         * reflect order in the source code.
-         */
-        var order = 0
-            private set
-
-        /**
-         * Returns the current order and increments it.
-         */
-        fun incOrder() = order++
-    }
-
     override fun buildMethodBody(graph: BriefUnitGraph) {
         val mtd = graph.body.method
         this.graph = graph
@@ -87,7 +68,7 @@ class ASTBuilder(private val driver: IDriver) : IGraphBuilder {
                     ?.let {
                         runCatching {
                             driver.addEdge(
-                                fromV = getSootAssociation(mtd)!!.first { v -> v is NewBlock },
+                                fromV = getSootAssociation(mtd)!!.first { v -> v is NewBlockBuilder },
                                 toV = it,
                                 edge = EdgeLabel.AST
                             )
@@ -99,9 +80,9 @@ class ASTBuilder(private val driver: IDriver) : IGraphBuilder {
     private fun buildLocals(graph: BriefUnitGraph, mtdVertex: NewMethodBuilder): MutableList<NewNodeBuilder> {
         val localVertices = mutableListOf<NewNodeBuilder>()
         graph.body.parameterLocals
-            .map {
-                SootToPlumeUtil.projectMethodParameterIn(it, currentLine, currentCol)
-                    .apply { addSootToPlumeAssociation(it, this) }
+            .mapIndexed { i, local ->
+                SootToPlumeUtil.projectMethodParameterIn(local, currentLine, currentCol, i)
+                    .apply { addSootToPlumeAssociation(local, this) }
             }
             .forEach {
                 runCatching {
@@ -110,9 +91,9 @@ class ASTBuilder(private val driver: IDriver) : IGraphBuilder {
             }
         graph.body.locals
             .filter { !graph.body.parameterLocals.contains(it) }
-            .map {
-                SootToPlumeUtil.projectLocalVariable(it, currentLine, currentCol)
-                    .apply { addSootToPlumeAssociation(it, this) }
+            .mapIndexed { i, local ->
+                SootToPlumeUtil.projectLocalVariable(local, currentLine, currentCol, i)
+                    .apply { addSootToPlumeAssociation(local, this) }
             }
             .forEach {
                 runCatching {
@@ -158,7 +139,7 @@ class ASTBuilder(private val driver: IDriver) : IGraphBuilder {
             .name(unit.methodRef.name)
             .signature(unit.methodRef.signature)
             .code(unit.methodRef.subSignature.toString())
-            .order(order++)
+            .order(childIdx)
             .dynamictypehintfullname(createScalaList(unit.methodRef.returnType.toQuotedString()))
             .linenumber(Option.apply(currentLine))
             .columnnumber(Option.apply(currentCol))
@@ -209,7 +190,7 @@ class ASTBuilder(private val driver: IDriver) : IGraphBuilder {
             .code(ExtractorConst.TABLE_SWITCH)
             .linenumber(Option.apply(currentLine))
             .columnnumber(Option.apply(currentCol))
-            .order(order++)
+            .order(childIdx)
             .argumentindex(childIdx)
         projectSwitchDefault(unit, switchVertex)
         // Handle case jumps
@@ -221,7 +202,7 @@ class ASTBuilder(private val driver: IDriver) : IGraphBuilder {
                     .linenumber(Option.apply(tgt.javaSourceStartLineNumber))
                     .columnnumber(Option.apply(tgt.javaSourceStartColumnNumber))
                     .code(tgt.toString())
-                    .order(order++)
+                    .order(childIdx)
                 runCatching {
                     driver.addEdge(switchVertex, tgtV, EdgeLabel.AST)
                 }.onFailure { e -> logger.warn(e.message) }
@@ -242,7 +223,7 @@ class ASTBuilder(private val driver: IDriver) : IGraphBuilder {
             .code(ExtractorConst.LOOKUP_ROOT)
             .linenumber(Option.apply(unit.javaSourceStartLineNumber))
             .columnnumber(Option.apply(unit.javaSourceStartColumnNumber))
-            .order(order++)
+            .order(childIdx)
             .argumentindex(childIdx)
         projectSwitchDefault(unit, switchVertex)
         // Handle case jumps
@@ -256,7 +237,7 @@ class ASTBuilder(private val driver: IDriver) : IGraphBuilder {
                     .linenumber(Option.apply(tgt.javaSourceStartLineNumber))
                     .columnnumber(Option.apply(tgt.javaSourceStartColumnNumber))
                     .code(tgt.toString())
-                    .order(order++)
+                    .order(childIdx)
                 runCatching {
                     driver.addEdge(switchVertex, tgtV, EdgeLabel.AST)
                 }.onFailure { e -> logger.warn(e.message) }
@@ -283,7 +264,7 @@ class ASTBuilder(private val driver: IDriver) : IGraphBuilder {
                 .linenumber(Option.apply(it.javaSourceStartLineNumber))
                 .columnnumber(Option.apply(it.javaSourceStartColumnNumber))
                 .code(it.toString())
-                .order(order++)
+                .order(totalTgts + 2)
             runCatching {
                 driver.addEdge(switchVertex, tgtV, EdgeLabel.AST)
             }.onFailure { e -> logger.warn(e.message) }
@@ -307,7 +288,7 @@ class ASTBuilder(private val driver: IDriver) : IGraphBuilder {
                     .linenumber(Option.apply(it.javaSourceStartLineNumber))
                     .columnnumber(Option.apply(it.javaSourceStartColumnNumber))
                     .code("ELSE_BODY")
-                    .order(order++)
+                    .order(childIdx)
             } else {
                 NewJumpTargetBuilder()
                     .name(TRUE_TARGET)
@@ -315,7 +296,7 @@ class ASTBuilder(private val driver: IDriver) : IGraphBuilder {
                     .linenumber(Option.apply(it.javaSourceStartLineNumber))
                     .columnnumber(Option.apply(it.javaSourceStartColumnNumber))
                     .code("IF_BODY")
-                    .order(order++)
+                    .order(childIdx)
             }
             runCatching {
                 driver.addEdge(ifRootVertex, condBody, EdgeLabel.AST)
@@ -336,7 +317,7 @@ class ASTBuilder(private val driver: IDriver) : IGraphBuilder {
             .code(ExtractorConst.IF_ROOT)
             .linenumber(Option.apply(unit.javaSourceStartLineNumber))
             .columnnumber(Option.apply(unit.javaSourceStartColumnNumber))
-            .order(order++)
+            .order(childIdx)
             .argumentindex(childIdx)
         driver.addVertex(ifRootVertex)
         val condition = unit.condition as ConditionExpr
@@ -365,7 +346,7 @@ class ASTBuilder(private val driver: IDriver) : IGraphBuilder {
             .methodfullname("=")
             .dispatchtype(DispatchType.STATIC_DISPATCH.name)
             .dynamictypehintfullname(createScalaList(unit.rightOp.type.toQuotedString()))
-            .order(order++)
+            .order(childIdx)
             .argumentindex(childIdx)
             .typefullname(leftOp.type.toQuotedString())
             .linenumber(Option.apply(unit.javaSourceStartLineNumber))
@@ -425,7 +406,7 @@ class ASTBuilder(private val driver: IDriver) : IGraphBuilder {
             .methodfullname(expr.symbol.trim())
             .dispatchtype(DispatchType.STATIC_DISPATCH.name)
             .dynamictypehintfullname(createScalaList(expr.op2.type.toQuotedString()))
-            .order(order++)
+            .order(childIdx)
             .argumentindex(childIdx)
             .typefullname(expr.type.toQuotedString())
             .linenumber(Option.apply(currentLine))
@@ -460,7 +441,7 @@ class ASTBuilder(private val driver: IDriver) : IGraphBuilder {
             .signature("${expr.op1.type} $symbol ${expr.op2.type}")
             .methodfullname(symbol)
             .dispatchtype(DispatchType.STATIC_DISPATCH.name)
-            .order(order++)
+            .order(2)
             .argumentindex(2) // under an if-condition, the condition child will be after the two paths
             .typefullname(expr.type.toQuotedString())
             .linenumber(Option.apply(currentLine))
@@ -494,7 +475,7 @@ class ASTBuilder(private val driver: IDriver) : IGraphBuilder {
             .methodfullname("(${expr.castType.toQuotedString()})")
             .dispatchtype(DispatchType.STATIC_DISPATCH.name)
             .dynamictypehintfullname(createScalaList(expr.op.type.toQuotedString()))
-            .order(order++)
+            .order(childIdx)
             .argumentindex(childIdx)
             .typefullname(expr.type.toQuotedString())
             .linenumber(Option.apply(currentLine))
@@ -537,18 +518,18 @@ class ASTBuilder(private val driver: IDriver) : IGraphBuilder {
         }
     }
 
-    private fun createNewArrayExpr(expr: NewArrayExpr, argumentIndex: Int = 0): NewTypeRefBuilder {
+    private fun createNewArrayExpr(expr: NewArrayExpr, childIdx: Int = 0): NewTypeRefBuilder {
         val newArrayExprVertices = mutableListOf<NewNodeBuilder>()
         val typeRef = NewTypeRefBuilder()
             .typefullname(expr.type.toQuotedString())
             .code(expr.toString())
-            .argumentindex(argumentIndex)
-            .order(order++)
+            .argumentindex(childIdx)
+            .order(childIdx)
             .linenumber(Option.apply(currentLine))
             .columnnumber(Option.apply(currentCol))
             .apply { addSootToPlumeAssociation(expr, this) }
         NewArrayInitializerBuilder()
-            .order(order++)
+            .order(childIdx)
             .let {
                 runCatching {
                     driver.addEdge(typeRef, it, EdgeLabel.AST)
@@ -565,10 +546,10 @@ class ASTBuilder(private val driver: IDriver) : IGraphBuilder {
             .argumentindex(childIdx)
             .linenumber(Option.apply(ret.javaSourceStartLineNumber))
             .columnnumber(Option.apply(ret.javaSourceStartColumnNumber))
-            .order(order++)
+            .order(childIdx)
         projectOp(ret.op, childIdx + 1)?.let { driver.addEdge(retV, it, EdgeLabel.AST) }
         runCatching {
-            driver.addEdge(getSootAssociation(graph.body.method)?.first { it is NewBlock }!!, retV, EdgeLabel.AST)
+            driver.addEdge(getSootAssociation(graph.body.method)?.first { it is NewBlockBuilder }!!, retV, EdgeLabel.AST)
         }.onFailure { e -> logger.warn(e.message) }
         return retV
     }
@@ -579,9 +560,9 @@ class ASTBuilder(private val driver: IDriver) : IGraphBuilder {
             .argumentindex(childIdx)
             .linenumber(Option.apply(ret.javaSourceStartLineNumber))
             .columnnumber(Option.apply(ret.javaSourceStartColumnNumber))
-            .order(order++)
+            .order(childIdx)
         runCatching {
-            driver.addEdge(getSootAssociation(graph.body.method)?.first { it is NewBlock }!!, retV, EdgeLabel.AST)
+            driver.addEdge(getSootAssociation(graph.body.method)?.first { it is NewBlockBuilder }!!, retV, EdgeLabel.AST)
         }.onFailure { e -> logger.warn(e.message) }
         return retV
     }

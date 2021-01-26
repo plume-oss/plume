@@ -12,10 +12,6 @@ import scala.jdk.CollectionConverters._
 
 object Traversals {
 
-  def maxOrder(graph: Graph): Integer = {
-    Cpg(graph).all.collect { case x: HasOrder => x.order }.maxOption.getOrElse(0)
-  }
-
   def deleteMethod(graph: Graph, fullName: String, signature: String): Unit = {
     val nodesToDelete = Cpg(graph).method.fullNameExact(fullName).signatureExact(signature).ast.l
     nodesToDelete.foreach(v => graph.remove(v))

@@ -340,38 +340,6 @@ class NeptuneDriverIntTest {
     }
 
     @Nested
-    @DisplayName("Max order tests")
-    inner class MaxOrderTests {
-        @Test
-        fun testMaxOrderOnEmptyGraph() = assertEquals(0, driver.maxOrder())
-
-        @Test
-        fun testMaxOrderOnGraphWithOneVertex() {
-            val v1 = NewArrayInitializerBuilder().order(INT_2)
-            driver.addVertex(v1)
-            assertEquals(INT_2, driver.maxOrder())
-        }
-
-        @Test
-        fun testMaxOrderOnGraphWithMoreThanOneVertex() {
-            val v1 = NewArrayInitializerBuilder().order(INT_2)
-            val v2 = NewMetaDataBuilder().language(STRING_1).version(STRING_2)
-            driver.addVertex(v1)
-            driver.addVertex(v2)
-            assertEquals(INT_2, driver.maxOrder())
-        }
-
-        @Test
-        fun testMaxOrderOnGraphWithNoAstVertex() {
-            val v1 = NewBindingBuilder().name(STRING_1).signature(STRING_2)
-            val v2 = NewMetaDataBuilder().language(STRING_1).version(STRING_2)
-            driver.addVertex(v1)
-            driver.addVertex(v2)
-            assertEquals(0, driver.maxOrder())
-        }
-    }
-
-    @Nested
     @DisplayName("Any PlumeGraph related tests based off of a test CPG")
     inner class PlumeGraphTests {
 

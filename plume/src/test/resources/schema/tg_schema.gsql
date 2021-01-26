@@ -187,14 +187,9 @@ CREATE QUERY getVertexIds(INT LOWER_BOUND, INT UPPER_BOUND) FOR GRAPH cpg {
   PRINT @@ids;
 }
 
-CREATE QUERY maxOrder() FOR GRAPH cpg {
-  MaxAccum<INT> @@maxAstOrder;
-  @@maxAstOrder += 0;
-  start = {ANY};
-  result = SELECT s
-           FROM start:s
-           ACCUM @@maxAstOrder += s.AST_ORDER;
-  PRINT @@maxAstOrder;
+CREATE QUERY status() FOR GRAPH cpg {
+  INT status = 0;
+  RETURN status;
 }
 
 INSTALL QUERY ALL

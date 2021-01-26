@@ -163,8 +163,6 @@ class TigerGraphDriver : IOverridenIdDriver {
         post("graph/$GRAPH_NAME", payload)
     }
 
-    override fun maxOrder() = (get("query/$GRAPH_NAME/maxOrder").first() as JSONObject)["@@maxAstOrder"] as Int
-
     private fun createVertexPayload(v: NewNodeBuilder): Map<String, Any> {
         val node = v.build()
         val propertyMap = CollectionConverters.MapHasAsJava(node.properties()).asJava().toMutableMap()

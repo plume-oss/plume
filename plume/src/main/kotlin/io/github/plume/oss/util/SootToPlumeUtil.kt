@@ -19,7 +19,6 @@ import io.github.plume.oss.Extractor
 import io.github.plume.oss.Extractor.Companion.addSootToPlumeAssociation
 import io.github.plume.oss.domain.enums.EdgeLabel
 import io.github.plume.oss.drivers.IDriver
-import io.github.plume.oss.graph.ASTBuilder
 import io.github.plume.oss.util.SootParserUtil.determineEvaluationStrategy
 import io.shiftleft.codepropertygraph.generated.nodes.*
 import scala.Option
@@ -42,12 +41,12 @@ object SootToPlumeUtil {
      *
      * @param field The [SootField] from which the class member information is constructed from.
      */
-    private fun projectMember(field: SootField): NewMemberBuilder =
+    private fun projectMember(field: SootField, childIdx: Int): NewMemberBuilder =
         NewMemberBuilder()
             .name(field.name)
             .code(field.declaration)
             .typefullname(field.type.toQuotedString())
-            .order(ASTBuilder.incOrder())
+            .order(childIdx)
 
     /**
      * Given an [soot.Local], will construct method parameter information in the graph.
@@ -55,7 +54,12 @@ object SootToPlumeUtil {
      * @param local The [soot.Local] from which a [NewMethodParameterInBuilder] will be constructed.
      * @return the constructed vertex.
      */
-    fun projectMethodParameterIn(local: soot.Local, currentLine: Int, currentCol: Int): NewMethodParameterInBuilder =
+    fun projectMethodParameterIn(
+        local: soot.Local,
+        currentLine: Int,
+        currentCol: Int,
+        childIdx: Int
+    ): NewMethodParameterInBuilder =
         NewMethodParameterInBuilder()
             .name(local.name)
             .code("${local.type} ${local.name}")
@@ -63,7 +67,7 @@ object SootToPlumeUtil {
             .typefullname(local.type.toString())
             .linenumber(Option.apply(currentLine))
             .columnnumber(Option.apply(currentCol))
-            .order(ASTBuilder.incOrder())
+            .order(childIdx)
 
     /**
      * Given an [soot.Local], will construct local variable information in the graph.
@@ -71,14 +75,14 @@ object SootToPlumeUtil {
      * @param local The [soot.Local] from which a [NewLocal] will be constructed.
      * @return the constructed vertex.
      */
-    fun projectLocalVariable(local: soot.Local, currentLine: Int, currentCol: Int): NewLocalBuilder =
+    fun projectLocalVariable(local: soot.Local, currentLine: Int, currentCol: Int, childIdx: Int): NewLocalBuilder =
         NewLocalBuilder()
             .name(local.name)
             .code("${local.type} ${local.name}")
             .typefullname(local.type.toString())
             .linenumber(Option.apply(currentLine))
             .columnnumber(Option.apply(currentCol))
-            .order(ASTBuilder.incOrder())
+            .order(childIdx)
 
     /**
      * Creates the [NewMethodBuilder] and its children vertices [NewMethodParameterInBuilder] for parameters,
@@ -89,9 +93,9 @@ object SootToPlumeUtil {
      * @param driver The [IDriver] to which the method head is built.
      */
     fun buildMethodHead(mtd: SootMethod, driver: IDriver): NewMethodBuilder {
-        val methodHeadChildren = mutableListOf<NewNodeBuilder>()
         val currentLine = mtd.javaSourceStartLineNumber
         val currentCol = mtd.javaSourceStartColumnNumber
+        var childIdx = 0
         // Method vertex
         val mtdVertex = NewMethodBuilder()
             .name(mtd.name)
@@ -100,26 +104,24 @@ object SootToPlumeUtil {
             .code(mtd.declaration)
             .linenumber(Option.apply(currentLine))
             .columnnumber(Option.apply(currentCol))
-            .order(ASTBuilder.incOrder())
-        methodHeadChildren.add(mtdVertex)
-        // Store return type
-        projectMethodReturnVertex(mtd.returnType, currentLine, currentCol)
-            .apply { driver.addEdge(mtdVertex, this, EdgeLabel.AST); methodHeadChildren.add(this) }
-        // Modifier vertices
-        SootParserUtil.determineModifiers(mtd.modifiers, mtd.name)
-            .map { NewModifierBuilder().modifiertype(it.name).order(ASTBuilder.incOrder()) }
-            .forEach { driver.addEdge(mtdVertex, it, EdgeLabel.AST); methodHeadChildren.add(it) }
+            .order(childIdx++)
+        addSootToPlumeAssociation(mtd, mtdVertex)
         // Store method vertex
         NewBlockBuilder()
             .typefullname(mtd.returnType.toQuotedString())
             .code(ExtractorConst.ENTRYPOINT)
-            .order(ASTBuilder.incOrder())
+            .order(childIdx++)
             .argumentindex(0)
             .linenumber(Option.apply(currentLine))
             .columnnumber(Option.apply(currentCol))
-            .apply { driver.addEdge(mtdVertex, this, EdgeLabel.AST); methodHeadChildren.add(this) }
-        // Associate all head vertices to the SootMethod
-        addSootToPlumeAssociation(mtd, methodHeadChildren)
+            .apply { driver.addEdge(mtdVertex, this, EdgeLabel.AST); addSootToPlumeAssociation(mtd, this) }
+        // Store return type
+        projectMethodReturnVertex(mtd.returnType, currentLine, currentCol, childIdx++)
+            .apply { driver.addEdge(mtdVertex, this, EdgeLabel.AST); addSootToPlumeAssociation(mtd, this) }
+        // Modifier vertices
+        SootParserUtil.determineModifiers(mtd.modifiers, mtd.name)
+            .map { NewModifierBuilder().modifiertype(it.name).order(childIdx++) }
+            .forEach { driver.addEdge(mtdVertex, it, EdgeLabel.AST); addSootToPlumeAssociation(mtd, it) }
         return mtdVertex
     }
 
@@ -136,7 +138,14 @@ object SootToPlumeUtil {
         val currentLine = mtd.javaSourceStartLineNumber
         val currentCol = mtd.javaSourceStartColumnNumber
         // Connect and create parameters with placeholder names
-        connectCallToReturn(mtd, driver, mtdVertex, currentLine, currentCol)
+        connectCallToReturn(
+            mtd,
+            driver,
+            mtdVertex,
+            currentLine,
+            currentCol,
+            (Extractor.getSootAssociation(mtd)?.size ?: 0) + 1
+        )
         // Create program structure
         buildClassStructure(mtd.declaringClass, driver)
         buildTypeDeclaration(mtd.declaringClass, driver)
@@ -150,8 +159,9 @@ object SootToPlumeUtil {
         mtdVertex: NewMethodBuilder,
         currentLine: Int,
         currentCol: Int,
-        argumentIndex: Int = 0
+        initialChildIdx: Int = 0
     ) {
+        var childIdx = initialChildIdx
         mtd.parameterTypes.forEachIndexed { i, type ->
             NewMethodParameterInBuilder()
                 .code("$type param$i")
@@ -159,7 +169,7 @@ object SootToPlumeUtil {
                 .evaluationstrategy(determineEvaluationStrategy(type.toString(), isMethodReturn = false).name)
                 .typefullname(type.toString())
                 .linenumber(Option.apply(mtd.javaSourceStartLineNumber))
-                .order(ASTBuilder.incOrder())
+                .order(childIdx++)
                 .apply { driver.addEdge(mtdVertex, this, EdgeLabel.AST); addSootToPlumeAssociation(mtd, this) }
         }
         // Connect a call to return
@@ -168,8 +178,8 @@ object SootToPlumeUtil {
         NewReturnBuilder()
             .linenumber(Option.apply(currentLine))
             .columnnumber(Option.apply(currentCol))
-            .order(ASTBuilder.incOrder())
-            .argumentindex(argumentIndex)
+            .order(childIdx++)
+            .argumentindex(initialChildIdx)
             .code("return ${mtd.returnType.toQuotedString()}")
             .apply {
                 driver.addEdge(entryPoint!!, this, EdgeLabel.CFG)
@@ -182,7 +192,7 @@ object SootToPlumeUtil {
             .typefullname(expr.baseType.toQuotedString())
             .code(expr.toString())
             .argumentindex(childIdx)
-            .order(ASTBuilder.incOrder())
+            .order(childIdx)
             .linenumber(Option.apply(currentLine))
             .columnnumber(Option.apply(currentCol))
             .apply { addSootToPlumeAssociation(expr, this) }
@@ -202,10 +212,11 @@ object SootToPlumeUtil {
             val namespaceList = cls.packageName.split(".").toTypedArray()
             if (namespaceList.isNotEmpty()) nbv = populateNamespaceChain(namespaceList, driver)
         }
+        val order = if (nbv != null) driver.getNeighbours(nbv).edgesOut(nbv).size else 0
         return NewFileBuilder()
             .name(cls.name)
             .hash(Option.apply(fileHash.toString()))
-            .order(ASTBuilder.incOrder())
+            .order(order + 1)
             .apply {
                 // Join FILE and NAMESPACE_BLOCK if namespace is present
                 if (nbv != null) {
@@ -226,17 +237,18 @@ object SootToPlumeUtil {
         var prevNamespaceBlock = NewNamespaceBlockBuilder()
             .name(namespaceList[0])
             .fullname(namespaceList[0])
-            .order(ASTBuilder.incOrder())
+            .order(0)
         if (namespaceList.size == 1) return prevNamespaceBlock
 
         var currNamespaceBlock: NewNamespaceBlockBuilder? = null
         val namespaceBuilder = StringBuilder(namespaceList[0])
         for (i in 1 until namespaceList.size) {
             namespaceBuilder.append("." + namespaceList[i])
+            val order = driver.getNeighbours(prevNamespaceBlock).edgesOut(prevNamespaceBlock).size
             currNamespaceBlock = NewNamespaceBlockBuilder()
                 .name(namespaceList[i])
                 .fullname(namespaceBuilder.toString())
-                .order(ASTBuilder.incOrder())
+                .order(order)
             driver.addEdge(currNamespaceBlock, prevNamespaceBlock, EdgeLabel.AST)
             prevNamespaceBlock = currNamespaceBlock
         }
@@ -254,11 +266,11 @@ object SootToPlumeUtil {
         NewTypeDeclBuilder()
             .name(cls.shortName)
             .fullname(cls.name)
-            .order(ASTBuilder.incOrder())
+            .order(0)
             .apply {
                 // Attach fields to the TypeDecl
-                cls.fields.forEach { field ->
-                    projectMember(field).let { memberVertex ->
+                cls.fields.forEachIndexed { i, field ->
+                    projectMember(field, i).let { memberVertex ->
                         driver.addEdge(this, memberVertex, EdgeLabel.AST)
                         addSootToPlumeAssociation(field, memberVertex)
                     }
@@ -284,14 +296,19 @@ object SootToPlumeUtil {
         }
     }
 
-    private fun projectMethodReturnVertex(type: soot.Type, currentLine: Int, currentCol: Int): NewMethodReturnBuilder =
+    private fun projectMethodReturnVertex(
+        type: soot.Type,
+        currentLine: Int,
+        currentCol: Int,
+        childIdx: Int = 0
+    ): NewMethodReturnBuilder =
         NewMethodReturnBuilder()
             .code("return ${type.toQuotedString()}")
             .evaluationstrategy(determineEvaluationStrategy(type.toQuotedString(), true).name)
             .typefullname(type.toQuotedString())
             .linenumber(Option.apply(currentLine))
             .columnnumber(Option.apply(currentCol))
-            .order(ASTBuilder.incOrder())
+            .order(childIdx)
 
     /**
      * Creates a [NewLiteral] from a [Constant].
@@ -300,12 +317,12 @@ object SootToPlumeUtil {
         constant: Constant,
         currentLine: Int,
         currentCol: Int,
-        argumentIndex: Int = 0
+        childIdx: Int = 0
     ): NewLiteralBuilder =
         NewLiteralBuilder()
             .code(constant.toString())
-            .order(ASTBuilder.incOrder())
-            .argumentindex(argumentIndex)
+            .order(childIdx)
+            .argumentindex(childIdx)
             .typefullname(constant.type.toQuotedString())
             .linenumber(Option.apply(currentLine))
             .columnnumber(Option.apply(currentCol))
@@ -317,13 +334,13 @@ object SootToPlumeUtil {
         local: Value,
         currentLine: Int,
         currentCol: Int,
-        argumentIndex: Int = 0
+        childIdx: Int = 0
     ): NewIdentifierBuilder =
         NewIdentifierBuilder()
             .code(local.toString())
             .name(local.toString())
-            .order(ASTBuilder.incOrder())
-            .argumentindex(argumentIndex)
+            .order(childIdx)
+            .argumentindex(childIdx)
             .typefullname(local.type.toQuotedString())
             .linenumber(Option.apply(currentLine))
             .columnnumber(Option.apply(currentCol))
@@ -335,13 +352,13 @@ object SootToPlumeUtil {
         arrRef: ArrayRef,
         currentLine: Int,
         currentCol: Int,
-        argumentIndex: Int = 0
+        childIdx: Int = 0
     ): NewIdentifierBuilder =
         NewIdentifierBuilder()
             .code(arrRef.toString())
             .name(arrRef.toString())
-            .order(ASTBuilder.incOrder())
-            .argumentindex(arrRef.index.toString().toIntOrNull() ?: argumentIndex)
+            .order(childIdx)
+            .argumentindex(arrRef.index.toString().toIntOrNull() ?: childIdx)
             .typefullname(arrRef.type.toQuotedString())
             .linenumber(Option.apply(currentLine))
             .columnnumber(Option.apply(currentCol))
@@ -353,15 +370,15 @@ object SootToPlumeUtil {
         field: FieldRef,
         currentLine: Int,
         currentCol: Int,
-        argumentIndex: Int = 0
+        childIdx: Int = 0
     ): NewFieldIdentifierBuilder =
         NewFieldIdentifierBuilder()
             .canonicalname(field.field.signature)
             .code(field.field.declaration)
-            .argumentindex(argumentIndex)
+            .argumentindex(childIdx)
             .linenumber(Option.apply(currentLine))
             .columnnumber(Option.apply(currentCol))
-            .order(ASTBuilder.incOrder())
+            .order(childIdx)
 
     fun <T> createScalaList(vararg item: T): scala.collection.immutable.List<T> {
         val list = listOf(*item)

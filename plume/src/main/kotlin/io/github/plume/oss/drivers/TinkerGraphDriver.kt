@@ -30,9 +30,7 @@ class TinkerGraphDriver : GremlinDriver() {
             "Unsupported graph extension! Supported types are GraphML," +
                     " GraphSON, and Gryo."
         }
-        openTx()
         g.io<Any>(filePath).write().iterate()
-        closeTx()
     }
 
     /**
@@ -47,9 +45,7 @@ class TinkerGraphDriver : GremlinDriver() {
                     " GraphSON, and Gryo."
         }
         require(File(filePath).exists()) { "No existing serialized graph file was found at $filePath" }
-        openTx()
         g.io<Any>(filePath).read().iterate()
-        closeTx()
     }
 
     /**

@@ -5,11 +5,9 @@ import io.github.plume.oss.domain.exceptions.PlumeSchemaViolationException
 import io.github.plume.oss.domain.mappers.VertexMapper
 import io.github.plume.oss.domain.mappers.VertexMapper.checkSchemaConstraints
 import io.github.plume.oss.domain.models.PlumeGraph
-import io.github.plume.oss.util.PlumeKeyProvider
 import io.shiftleft.codepropertygraph.generated.nodes.*
 import org.apache.commons.configuration.BaseConfiguration
 import org.apache.logging.log4j.LogManager
-import org.apache.tinkerpop.gremlin.process.traversal.Order
 import org.apache.tinkerpop.gremlin.process.traversal.dsl.graph.GraphTraversal
 import org.apache.tinkerpop.gremlin.process.traversal.dsl.graph.GraphTraversalSource
 import org.apache.tinkerpop.gremlin.process.traversal.step.util.WithOptions
@@ -29,7 +27,6 @@ abstract class GremlinDriver : IDriver {
 
     protected lateinit var graph: Graph
     protected lateinit var g: GraphTraversalSource
-    protected var supportsTransactions: Boolean = false
 
     /**
      * The key-value configuration object used in creating the connection to the Gremlin server.
@@ -40,12 +37,6 @@ abstract class GremlinDriver : IDriver {
      * Indicates whether the driver is connected to the graph database or not.
      */
     var connected = false
-        protected set
-
-    /**
-     * Indicates if there is currently a transaction open or not.
-     */
-    var transactionOpen = false
         protected set
 
     init {
@@ -61,30 +52,10 @@ abstract class GremlinDriver : IDriver {
     open fun connect() {
         require(!connected) { "Please close the graph before trying to make another connection." }
         graph = TinkerGraph.open(config)
-        supportsTransactions = graph.features().graph().supportsTransactions()
-        if (!supportsTransactions) g = graph.traversal()
+        g = graph.traversal()
         connected = true
     }
 
-    /**
-     * Starts a new traversal and opens a transaction if the database supports transactions.
-     *
-     * @throws IllegalArgumentException if there is an already open transaction.
-     */
-    protected open fun openTx() {
-        require(!transactionOpen) { "Please close the current transaction before creating a new one." }
-        transactionOpen = true
-    }
-
-    /**
-     * Closes the current traversal and ends the current transaction if the database supports transactions.
-     *
-     * @throws IllegalArgumentException if the transaction is already closed.
-     */
-    protected open fun closeTx() {
-        require(transactionOpen) { "There is no transaction currently open!" }
-        transactionOpen = false
-    }
 
     /**
      * Attempts to close the graph database connection and resources.
@@ -106,60 +77,28 @@ abstract class GremlinDriver : IDriver {
         if (!exists(v)) createVertex(v)
     }
 
-    override fun exists(v: NewNodeBuilder): Boolean =
-        try {
-            if (!transactionOpen) openTx()
-            findVertexTraversal(v).hasNext()
-        } finally {
-            if (transactionOpen) closeTx()
-        }
+    override fun exists(v: NewNodeBuilder): Boolean = findVertexTraversal(v).hasNext()
 
     protected open fun findVertexTraversal(v: NewNodeBuilder): GraphTraversal<Vertex, Vertex> = g.V(v.id())
 
     override fun exists(fromV: NewNodeBuilder, toV: NewNodeBuilder, edge: EdgeLabel): Boolean {
-        try {
-            if (!transactionOpen) openTx()
-            if (!findVertexTraversal(fromV).hasNext() || !findVertexTraversal(toV).hasNext()) return false
-            val a = findVertexTraversal(fromV).next()
-            val b = findVertexTraversal(toV).next()
-            return g.V(a).outE(edge.name).filter(un.inV().`is`(b)).hasLabel(edge.name).hasNext()
-        } finally {
-            if (transactionOpen) closeTx()
-        }
+        if (!findVertexTraversal(fromV).hasNext() || !findVertexTraversal(toV).hasNext()) return false
+        val a = findVertexTraversal(fromV).next()
+        val b = findVertexTraversal(toV).next()
+        return g.V(a).outE(edge.name).filter(un.inV().`is`(b)).hasLabel(edge.name).hasNext()
     }
 
     override fun addEdge(fromV: NewNodeBuilder, toV: NewNodeBuilder, edge: EdgeLabel) {
         if (!checkSchemaConstraints(fromV, toV, edge)) throw PlumeSchemaViolationException(fromV, toV, edge)
         if (exists(fromV, toV, edge)) return
-        if (!transactionOpen) openTx()
         val source = if (findVertexTraversal(fromV).hasNext()) findVertexTraversal(fromV).next()
         else createVertex(fromV)
-        if (!transactionOpen) openTx()
         val target = if (findVertexTraversal(toV).hasNext()) findVertexTraversal(toV).next()
         else createVertex(toV)
-        if (!transactionOpen) openTx()
-        try {
-            createEdge(source, edge, target)
-        } finally {
-            if (transactionOpen) closeTx()
-        }
+        createEdge(source, edge, target)
     }
 
-    override fun maxOrder(): Int =
-        try {
-            if (!transactionOpen) openTx()
-            if (g.V().has("ORDER").hasNext())
-                g.V().has("ORDER").order().by("ORDER", Order.desc).limit(1).values<Any>("ORDER").next() as Int
-            else 0
-        } finally {
-            if (transactionOpen) closeTx()
-        }
-
-    override fun clearGraph() = apply {
-        if (!transactionOpen) openTx()
-        g.V().drop().iterate()
-        if (transactionOpen) closeTx()
-    }
+    override fun clearGraph() = apply { g.V().drop().iterate() }
 
     /**
      * Given a [NewNode], creates a [Vertex] and translates the object's field properties to key-value
@@ -168,19 +107,15 @@ abstract class GremlinDriver : IDriver {
      * @param v The [NewNode] to translate into a [Vertex].
      * @return The newly created [Vertex].
      */
-    protected open fun createVertex(v: NewNodeBuilder): Vertex =
-        try {
-            if (!transactionOpen) openTx()
-            val propertyMap = prepareVertexProperties(v)
-            g.graph
-                .addVertex(T.label, v.build().label())
-                .apply {
-                    propertyMap.forEach { (k, v) -> this.property(k, v) }
-                    v.id(this.id() as Long)
-                }
-        } finally {
-            if (transactionOpen) closeTx()
-        }
+    protected open fun createVertex(v: NewNodeBuilder): Vertex {
+        val propertyMap = prepareVertexProperties(v)
+        return g.graph
+            .addVertex(T.label, v.build().label())
+            .apply {
+                propertyMap.forEach { (k, v) -> this.property(k, v) }
+                v.id(this.id() as Long)
+            }
+    }
 
     protected open fun prepareVertexProperties(v: NewNodeBuilder): Map<String, Any> {
         val propertyMap = CollectionConverters.MapHasAsJava(v.build().properties()).asJava().toMutableMap()
@@ -205,16 +140,10 @@ abstract class GremlinDriver : IDriver {
     private fun createEdge(v1: Vertex, edgeLabel: EdgeLabel, v2: Vertex): Edge =
         g.V(v1.id()).addE(edgeLabel.name).to(g.V(v2.id())).next()
 
-    override fun getWholeGraph(): PlumeGraph {
-        if (!transactionOpen) openTx()
-        val plumeGraph = gremlinToPlume(g)
-        if (transactionOpen) closeTx()
-        return plumeGraph
-    }
+    override fun getWholeGraph(): PlumeGraph = gremlinToPlume(g)
 
     override fun getMethod(fullName: String, signature: String, includeBody: Boolean): PlumeGraph {
         if (includeBody) return getMethodWithBody(fullName, signature)
-        if (!transactionOpen) openTx()
         val methodSubgraph = g.V().hasLabel(Method.Label())
             .has("FULL_NAME", fullName).has("SIGNATURE", signature)
             .outE(EdgeLabel.AST.name)
@@ -222,12 +151,10 @@ abstract class GremlinDriver : IDriver {
             .cap<Graph>("sg")
             .next()
         val result = gremlinToPlume(methodSubgraph.traversal())
-        if (transactionOpen) closeTx()
         return result
     }
 
     private fun getMethodWithBody(fullName: String, signature: String): PlumeGraph {
-        if (!transactionOpen) openTx()
         val methodSubgraph = g.V().hasLabel(Method.Label())
             .has("FULL_NAME", fullName).has("SIGNATURE", signature)
             .repeat(un.outE(EdgeLabel.AST.name).inV()).emit()
@@ -235,27 +162,21 @@ abstract class GremlinDriver : IDriver {
             .subgraph("sg")
             .cap<Graph>("sg")
             .next()
-        val result = gremlinToPlume(methodSubgraph.traversal())
-        if (transactionOpen) closeTx()
-        return result
+        return gremlinToPlume(methodSubgraph.traversal())
     }
 
     override fun getProgramStructure(): PlumeGraph {
-        if (!transactionOpen) openTx()
         val programStructureSubGraph = g.V().hasLabel(File.Label())
             .repeat(un.outE(EdgeLabel.AST.name).inV()).emit()
             .inE()
             .subgraph("sg")
             .cap<Graph>("sg")
             .next()
-        val result = gremlinToPlume(programStructureSubGraph.traversal())
-        if (transactionOpen) closeTx()
-        return result
+        return gremlinToPlume(programStructureSubGraph.traversal())
     }
 
     override fun getNeighbours(v: NewNodeBuilder): PlumeGraph {
         if (v is NewMetaData) return PlumeGraph().apply { addVertex(v) }
-        if (!transactionOpen) openTx()
         val neighbourSubgraph = findVertexTraversal(v)
             .repeat(un.outE(EdgeLabel.AST.name).bothV())
             .times(1)
@@ -263,20 +184,15 @@ abstract class GremlinDriver : IDriver {
             .subgraph("sg")
             .cap<Graph>("sg")
             .next()
-        val result = gremlinToPlume(neighbourSubgraph.traversal())
-        if (transactionOpen) closeTx()
-        return result
+        return gremlinToPlume(neighbourSubgraph.traversal())
     }
 
     override fun deleteVertex(v: NewNodeBuilder) {
         if (!exists(v)) return
-        if (!transactionOpen) openTx()
         findVertexTraversal(v).drop().iterate()
-        if (transactionOpen) closeTx()
     }
 
     override fun deleteMethod(fullName: String, signature: String) {
-        if (!transactionOpen) openTx()
         val methodV = g.V().hasLabel(Method.Label())
             .has("FULL_NAME", fullName).has("SIGNATURE", signature)
             .tryNext()
@@ -288,7 +204,6 @@ abstract class GremlinDriver : IDriver {
                 .unfold<Vertex>()
                 .drop().iterate()
         }
-        if (transactionOpen) closeTx()
     }
 
     /**

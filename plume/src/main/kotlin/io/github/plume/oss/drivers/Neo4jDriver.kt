@@ -1,7 +1,6 @@
 package io.github.plume.oss.drivers
 
 import io.github.plume.oss.domain.enums.EdgeLabel
-import io.github.plume.oss.domain.enums.VertexLabel
 import io.github.plume.oss.domain.exceptions.PlumeSchemaViolationException
 import io.github.plume.oss.domain.mappers.VertexMapper.checkSchemaConstraints
 import io.github.plume.oss.domain.mappers.VertexMapper.mapToVertex
@@ -11,7 +10,6 @@ import io.shiftleft.codepropertygraph.generated.NodeTypes.FILE
 import io.shiftleft.codepropertygraph.generated.NodeTypes.METHOD
 import io.shiftleft.codepropertygraph.generated.nodes.NewNodeBuilder
 import org.apache.logging.log4j.LogManager
-import org.apache.tinkerpop.shaded.jackson.databind.ObjectMapper
 import org.neo4j.driver.AuthTokens
 import org.neo4j.driver.Driver
 import org.neo4j.driver.GraphDatabase
@@ -26,7 +24,6 @@ import java.util.*
 class Neo4jDriver : IDriver {
 
     private val logger = LogManager.getLogger(Neo4jDriver::class.java)
-    private val objectMapper = ObjectMapper()
     private var connected = false
     private lateinit var driver: Driver
 
@@ -218,9 +215,6 @@ class Neo4jDriver : IDriver {
             }
         }
     }
-
-    override fun maxOrder(): Int =
-        TODO("Not yet implemented")
 
     override fun clearGraph(): IDriver {
         driver.session().use { session ->

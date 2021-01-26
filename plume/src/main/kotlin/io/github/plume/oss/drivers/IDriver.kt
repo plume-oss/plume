@@ -51,13 +51,6 @@ interface IDriver : AutoCloseable {
     fun addEdge(fromV: NewNodeBuilder, toV: NewNodeBuilder, edge: EdgeLabel)
 
     /**
-     * Scans the AST vertices of the graph for the largest order property.
-     *
-     * @return the largest order value in the graph.
-     */
-    fun maxOrder(): Int
-
-    /**
      * Clears the graph of all vertices and edges.
      *
      * @return itself as so to be chained in method calls.

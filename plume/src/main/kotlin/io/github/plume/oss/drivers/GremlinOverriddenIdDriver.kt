@@ -7,10 +7,7 @@ import org.apache.tinkerpop.gremlin.process.traversal.P
 abstract class GremlinOverriddenIdDriver : GremlinDriver(), IOverridenIdDriver {
 
     override fun getVertexIds(lowerBound: Long, upperBound: Long): Set<Long> {
-        if (!transactionOpen) openTx()
-        val idSet = g.V().id().`is`(P.inside(lowerBound - 1, upperBound + 1)).toSet().map { it as Long }.toSet()
-        if (transactionOpen) closeTx()
-        return idSet
+        return g.V().id().`is`(P.inside(lowerBound - 1, upperBound + 1)).toSet().map { it as Long }.toSet()
     }
 
     override fun prepareVertexProperties(v: NewNodeBuilder): Map<String, Any> {

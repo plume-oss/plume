@@ -93,16 +93,10 @@ class OverflowDbDriver : IDriver {
             toV,
             edge
         )
-        var srcNode = graph.node(fromV.hashCode().toLong())
-        if (srcNode == null) {
-            addVertex(fromV)
-            srcNode = graph.node(fromV.hashCode().toLong())
-        }
-        var dstNode = graph.node(toV.hashCode().toLong())
-        if (dstNode == null) {
-            addVertex(toV)
-            dstNode = graph.node(toV.hashCode().toLong())
-        }
+        if (!exists(fromV)) addVertex(fromV)
+        if (!exists(toV)) addVertex(toV)
+        val srcNode = graph.node(fromV.id())
+        val dstNode = graph.node(toV.id())
 
         try {
             srcNode.addEdge(edge.name, dstNode)
@@ -110,10 +104,6 @@ class OverflowDbDriver : IDriver {
             logger.error(exc.message, exc)
             throw PlumeSchemaViolationException(fromV, toV, edge)
         }
-    }
-
-    override fun maxOrder(): Int {
-        return Traversals.maxOrder(graph)
     }
 
     override fun clearGraph(): IDriver = apply {
