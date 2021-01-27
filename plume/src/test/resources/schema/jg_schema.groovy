@@ -59,10 +59,10 @@ mgmt.containsPropertyKey('METHOD_FULL_NAME') ?: mgmt.makePropertyKey('METHOD_FUL
 mgmt.containsPropertyKey('TYPE_DECL_FULL_NAME') ?: mgmt.makePropertyKey('TYPE_DECL_FULL_NAME').dataType(String.class).cardinality(Cardinality.SINGLE).make()
 mgmt.containsPropertyKey('HASH') ?: mgmt.makePropertyKey('HASH').dataType(String.class).cardinality(Cardinality.SINGLE).make()
 // Indexes
-mgmt.getGraphIndex("byASTOrder") != null ?: mgmt.buildIndex("byASTOrder", Vertex.class).addKey(mgmt.getPropertyKey("order")).buildCompositeIndex()
-mgmt.getGraphIndex("byName") != null ?: mgmt.buildIndex("byName", Vertex.class).addKey(mgmt.getPropertyKey("name")).buildCompositeIndex()
-mgmt.getGraphIndex("byFullName") != null ?: mgmt.buildIndex("byFullName", Vertex.class).addKey(mgmt.getPropertyKey("fullName")).buildCompositeIndex()
-mgmt.getGraphIndex("bySignature") != null ?: mgmt.buildIndex("bySignature", Vertex.class).addKey(mgmt.getPropertyKey("signature")).buildCompositeIndex()
-mgmt.getGraphIndex("byHash") != null ?: mgmt.buildIndex("byHash", Vertex.class).addKey(mgmt.getPropertyKey("hash")).buildCompositeIndex()
+mgmt.getGraphIndex("byASTOrder") != null ?: mgmt.buildIndex("byASTOrder", Vertex.class).addKey(mgmt.getPropertyKey("ORDER")).buildCompositeIndex()
+mgmt.getGraphIndex("byName") != null ?: mgmt.buildIndex("byName", Vertex.class).addKey(mgmt.getPropertyKey("NAME")).buildCompositeIndex()
+mgmt.getGraphIndex("byFullName") != null ?: mgmt.buildIndex("byFullName", Vertex.class).addKey(mgmt.getPropertyKey("FULL_NAME")).buildCompositeIndex()
+mgmt.getGraphIndex("bySignature") != null ?: mgmt.buildIndex("bySignature", Vertex.class).addKey(mgmt.getPropertyKey("SIGNATURE")).buildCompositeIndex()
+mgmt.getGraphIndex("byHash") != null ?: mgmt.buildIndex("byHash", Vertex.class).addKey(mgmt.getPropertyKey("HASH")).buildCompositeIndex()
 
 mgmt.commit()
