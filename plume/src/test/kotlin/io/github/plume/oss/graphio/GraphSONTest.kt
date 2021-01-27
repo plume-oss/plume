@@ -39,7 +39,7 @@ class GraphSONTest {
         @JvmStatic
         @AfterAll
         fun tearDownAll() {
-            File(testGraphSON).delete()
+//            File(testGraphSON).delete()
         }
     }
 

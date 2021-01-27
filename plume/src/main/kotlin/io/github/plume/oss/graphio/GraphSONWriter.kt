@@ -1,7 +1,7 @@
 package io.github.plume.oss.graphio
 
 import io.github.plume.oss.domain.enums.EdgeLabel
-import io.github.plume.oss.domain.mappers.VertexMapper
+import io.github.plume.oss.domain.mappers.VertexMapper.extractAttributesFromMap
 import io.github.plume.oss.domain.models.PlumeGraph
 import io.shiftleft.codepropertygraph.generated.nodes.NewNodeBuilder
 import scala.jdk.CollectionConverters
@@ -14,7 +14,8 @@ import java.util.*
  */
 object GraphSONWriter {
 
-    private var propertyId: Int = 0
+    private var propertyId: Long = 0
+    private var edgeId: Long = 0
 
     /**
      * Given a [PlumeGraph] object, serializes it to
@@ -35,9 +36,15 @@ object GraphSONWriter {
     private fun vertexToJSON(v: NewNodeBuilder, graph: PlumeGraph): String {
         val sb = StringBuilder()
         val builtNode = v.build()
-        val properties = CollectionConverters.MapHasAsJava(builtNode.properties()).asJava()
+        val properties = mutableMapOf<String, Any>()
+        extractAttributesFromMap(CollectionConverters.MapHasAsJava(builtNode.properties()).asJava().toMutableMap())
+            .map {
+                val value = it.value
+                properties[it.key] = (if (value is Map<*, *>) value["value"] else it) as Any
+            }
+
         sb.append("{")
-        sb.append("\"id\":\"${v.hashCode()}\",")
+        sb.append("\"id\":\"${v.id()}\",")
         sb.append("\"label\":\"${builtNode.label()}\",")
         graph.edgesOut(v).let { if (it.isNotEmpty()) sb.append("\"outE\":${edgesToJSON(it, "in")},") }
         graph.edgesIn(v).let { if (it.isNotEmpty()) sb.append("\"inE\":${edgesToJSON(it, "out")},") }
@@ -51,16 +58,15 @@ object GraphSONWriter {
         sb.append("{")
         var i = 0
         edgesOut.forEach { (edgeLabel, vertexList) ->
-            var j = 0
             sb.append("\"$edgeLabel\":[")
-            vertexList.forEach {
+            vertexList.forEachIndexed { i, v ->
                 sb.append("{")
                 sb.append("\"id\":{")
-                sb.append("\"@type\":\"g:UUID\",")
-                sb.append("\"@value\":\"${UUID.randomUUID()}\"")
-                sb.append("}, \"${tgtDirection}V\":\"${it.hashCode()}\"")
+                sb.append("\"@type\":\"g:Int64\",")
+                sb.append("\"@value\":\"${edgeId++}\"")
+                sb.append("}, \"${tgtDirection}V\":\"${v.id()}\"")
                 sb.append("}")
-                if (++j < vertexList.size) sb.append(",")
+                if (i < vertexList.size - 1) sb.append(",")
             }
             sb.append("]")
             if (++i < edgesOut.size) sb.append(",")
@@ -75,14 +81,12 @@ object GraphSONWriter {
         var i = 0
         properties.forEach { (k, v) ->
             sb.append("\"$k\":[{")
-            sb.append("\"id\":{\"@type\":\"g:Int64\",\"@value\":${propertyId++}},")
+            sb.append("\"id\":{\"@type\":\"g:Int64\",\"@value\":${propertyId++}}")
             when (v) {
-                is String -> {
-                    sb.append("\"value\":\"$v\"")
-                }
-                is Int -> {
-                    sb.append("\"value\":{\"@type\":\"g:Int32\",\"@value\":$v}")
-                }
+                is String -> sb.append(",\"value\":\"$v\"")
+                is Int -> sb.append(",\"value\":{\"@type\":\"g:Int32\",\"@value\":$v}")
+                is Long -> sb.append(",\"value\":{\"@type\":\"g:Int64\",\"@value\":$v}")
+                else -> println("Unsupported type $v ${v.javaClass}")
             }
             sb.append("}]")
             if (++i < properties.size) sb.append(",")
