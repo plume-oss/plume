@@ -9,6 +9,12 @@ and this project adheres to [Semantic Versioning](http://semver.org/).
 ### Added
 
 ### Changed
+
+### Fixed
+
+## [0.1.0] - 2021-01-27
+
+### Changed
 - Migrated to ShiftLeft's codepropertygraph domain classes
 - Migrated from Neo4j Gremlin Bolt to Neo4j Java Driver (Official Driver)
 
