@@ -1,22 +1,29 @@
 package io.github.plume.oss.graphio
 
+import io.github.plume.oss.TestDomainResources.Companion.blockVertex
+import io.github.plume.oss.TestDomainResources.Companion.callVertex
+import io.github.plume.oss.TestDomainResources.Companion.fileVertex
+import io.github.plume.oss.TestDomainResources.Companion.identifierVertex
+import io.github.plume.oss.TestDomainResources.Companion.literalVertex
+import io.github.plume.oss.TestDomainResources.Companion.localVertex
+import io.github.plume.oss.TestDomainResources.Companion.metaDataVertex
+import io.github.plume.oss.TestDomainResources.Companion.methodParameterInVertex
+import io.github.plume.oss.TestDomainResources.Companion.methodReturnVertex
+import io.github.plume.oss.TestDomainResources.Companion.methodVertex
+import io.github.plume.oss.TestDomainResources.Companion.namespaceBlockVertex1
+import io.github.plume.oss.TestDomainResources.Companion.namespaceBlockVertex2
+import io.github.plume.oss.TestDomainResources.Companion.returnVertex
+import io.github.plume.oss.TestDomainResources.Companion.typeDeclVertex
+import io.github.plume.oss.domain.enums.EdgeLabel
+import io.github.plume.oss.domain.models.PlumeGraph
+import io.github.plume.oss.drivers.DriverFactory
+import io.github.plume.oss.drivers.GraphDatabase
+import io.github.plume.oss.drivers.TinkerGraphDriver
 import org.junit.jupiter.api.AfterAll
 import org.junit.jupiter.api.AfterEach
 import org.junit.jupiter.api.Assertions.assertEquals
 import org.junit.jupiter.api.BeforeEach
 import org.junit.jupiter.api.Test
-import io.github.plume.oss.TestDomainResources.Companion.DISPATCH_1
-import io.github.plume.oss.TestDomainResources.Companion.EVAL_1
-import io.github.plume.oss.TestDomainResources.Companion.INT_1
-import io.github.plume.oss.TestDomainResources.Companion.INT_2
-import io.github.plume.oss.TestDomainResources.Companion.STRING_1
-import io.github.plume.oss.TestDomainResources.Companion.STRING_2
-import io.github.plume.oss.domain.enums.EdgeLabel
-import io.github.plume.oss.domain.models.PlumeGraph
-import io.github.plume.oss.domain.models.vertices.*
-import io.github.plume.oss.drivers.DriverFactory
-import io.github.plume.oss.drivers.GraphDatabase
-import io.github.plume.oss.drivers.TinkerGraphDriver
 import java.io.File
 import java.io.FileWriter
 
@@ -24,20 +31,6 @@ class GraphSONTest {
 
     companion object {
         val driver = (DriverFactory.invoke(GraphDatabase.TINKER_GRAPH) as TinkerGraphDriver).apply { connect() }
-        private val v1 = MethodVertex(STRING_1, STRING_1, STRING_2, STRING_1, INT_1, INT_2, INT_1)
-        private val v2 = MethodParameterInVertex(STRING_1, EVAL_1, STRING_1, INT_1, STRING_2, INT_2)
-        private val v3 = BlockVertex(STRING_1, STRING_1, INT_1, INT_2, INT_2, INT_1)
-        private val v4 = CallVertex(STRING_1, INT_1, DISPATCH_1, STRING_1, STRING_1, STRING_2, STRING_2, STRING_2, INT_1, INT_1, INT_1)
-        private val v5 = LocalVertex(STRING_1, STRING_2, INT_1, INT_1, STRING_1, INT_1)
-        private val v6 = IdentifierVertex(STRING_1, STRING_1, STRING_1, INT_1, INT_1, INT_1, INT_1)
-        private val v7 = TypeDeclVertex(STRING_1, STRING_2, STRING_1, INT_1)
-        private val v8 = LiteralVertex(STRING_2, STRING_2, INT_1, INT_1, INT_1, INT_1)
-        private val v9 = ReturnVertex(INT_1, INT_1, INT_1, INT_1, STRING_1)
-        private val v10 = MethodReturnVertex(STRING_1, EVAL_1, STRING_1, INT_1, INT_1, INT_1)
-        private val v11 = FileVertex(STRING_1, STRING_2, INT_1)
-        private val v12 = NamespaceBlockVertex(STRING_1, STRING_1, INT_1)
-        private val v13 = NamespaceBlockVertex(STRING_2, STRING_2, INT_1)
-        private val v14 = MetaDataVertex(STRING_1, STRING_2)
 
         private lateinit var graph: PlumeGraph
         private val tempDir = System.getProperty("java.io.tmpdir")
@@ -46,36 +39,36 @@ class GraphSONTest {
         @JvmStatic
         @AfterAll
         fun tearDownAll() {
-            File(testGraphSON).delete()
+//            File(testGraphSON).delete()
         }
     }
 
     @BeforeEach
     fun setUp() {
         // Create program data
-        driver.addVertex(v14)
-        driver.addEdge(v11, v12, EdgeLabel.AST)
-        driver.addEdge(v12, v13, EdgeLabel.AST)
+        driver.addVertex(metaDataVertex)
+        driver.addEdge(fileVertex, namespaceBlockVertex1, EdgeLabel.AST)
+        driver.addEdge(namespaceBlockVertex1, namespaceBlockVertex2, EdgeLabel.AST)
         // Create method head
-        driver.addEdge(v7, v1, EdgeLabel.AST)
-        driver.addEdge(v1, v11, EdgeLabel.SOURCE_FILE)
-        driver.addEdge(v1, v2, EdgeLabel.AST)
-        driver.addEdge(v1, v5, EdgeLabel.AST)
-        driver.addEdge(v1, v3, EdgeLabel.AST)
-        driver.addEdge(v1, v3, EdgeLabel.CFG)
+        driver.addEdge(typeDeclVertex, methodVertex, EdgeLabel.AST)
+        driver.addEdge(methodVertex, fileVertex, EdgeLabel.SOURCE_FILE)
+        driver.addEdge(methodVertex, methodParameterInVertex, EdgeLabel.AST)
+        driver.addEdge(methodVertex, localVertex, EdgeLabel.AST)
+        driver.addEdge(methodVertex, blockVertex, EdgeLabel.AST)
+        driver.addEdge(methodVertex, blockVertex, EdgeLabel.CFG)
         // Create method body
-        driver.addEdge(v3, v4, EdgeLabel.AST)
-        driver.addEdge(v3, v4, EdgeLabel.CFG)
-        driver.addEdge(v4, v6, EdgeLabel.AST)
-        driver.addEdge(v4, v8, EdgeLabel.AST)
-        driver.addEdge(v4, v6, EdgeLabel.ARGUMENT)
-        driver.addEdge(v4, v8, EdgeLabel.ARGUMENT)
-        driver.addEdge(v3, v9, EdgeLabel.AST)
-        driver.addEdge(v4, v9, EdgeLabel.CFG)
-        driver.addEdge(v1, v10, EdgeLabel.AST)
-        driver.addEdge(v9, v10, EdgeLabel.CFG)
+        driver.addEdge(blockVertex, callVertex, EdgeLabel.AST)
+        driver.addEdge(blockVertex, callVertex, EdgeLabel.CFG)
+        driver.addEdge(callVertex, identifierVertex, EdgeLabel.AST)
+        driver.addEdge(callVertex, literalVertex, EdgeLabel.AST)
+        driver.addEdge(callVertex, identifierVertex, EdgeLabel.ARGUMENT)
+        driver.addEdge(callVertex, literalVertex, EdgeLabel.ARGUMENT)
+        driver.addEdge(blockVertex, returnVertex, EdgeLabel.AST)
+        driver.addEdge(callVertex, returnVertex, EdgeLabel.CFG)
+        driver.addEdge(methodVertex, methodReturnVertex, EdgeLabel.AST)
+        driver.addEdge(returnVertex, methodReturnVertex, EdgeLabel.CFG)
         // Link dependencies
-        driver.addEdge(v6, v5, EdgeLabel.REF)
+        driver.addEdge(identifierVertex, localVertex, EdgeLabel.REF)
 
         graph = driver.getWholeGraph()
     }

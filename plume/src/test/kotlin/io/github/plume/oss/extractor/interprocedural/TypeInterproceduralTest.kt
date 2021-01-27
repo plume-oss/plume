@@ -1,14 +1,17 @@
 package io.github.plume.oss.extractor.interprocedural
 
-import org.junit.jupiter.api.*
-import org.junit.jupiter.api.Assertions.assertEquals
-import org.junit.jupiter.api.Assertions.assertNotNull
 import io.github.plume.oss.Extractor
 import io.github.plume.oss.domain.models.PlumeGraph
-import io.github.plume.oss.domain.models.vertices.*
 import io.github.plume.oss.drivers.DriverFactory
 import io.github.plume.oss.drivers.GraphDatabase
 import io.github.plume.oss.drivers.TinkerGraphDriver
+import io.shiftleft.codepropertygraph.generated.nodes.*
+import org.junit.jupiter.api.AfterEach
+import org.junit.jupiter.api.Assertions.assertEquals
+import org.junit.jupiter.api.Assertions.assertNotNull
+import org.junit.jupiter.api.BeforeEach
+import org.junit.jupiter.api.Test
+import org.junit.jupiter.api.TestInfo
 import java.io.File
 import java.io.IOException
 
@@ -22,7 +25,7 @@ class TypeInterproceduralTest {
 
         init {
             val testFileUrl = TypeInterproceduralTest::class.java.classLoader.getResource(TEST_PATH)
-                    ?: throw NullPointerException("Unable to obtain test resource")
+                ?: throw NullPointerException("Unable to obtain test resource")
             PATH = File(testFileUrl.file)
         }
     }
@@ -49,34 +52,52 @@ class TypeInterproceduralTest {
     @Test
     fun type1Test() {
         val vertices = graph.vertices()
-        vertices.filterIsInstance<LocalVertex>().let { localList ->
-            assertNotNull(localList.firstOrNull { it.name == "intList" && it.typeFullName == "java.util.LinkedList" })
-            assertNotNull(localList.firstOrNull { it.name == "stringList" && it.typeFullName == "java.util.LinkedList" })
-            assertNotNull(localList.firstOrNull { it.name == "\$stack3" && it.typeFullName == "java.util.LinkedList" })
-            assertNotNull(localList.firstOrNull { it.name == "\$stack4" && it.typeFullName == "java.util.LinkedList" })
+        vertices.filterIsInstance<NewLocalBuilder>().let { localList ->
+            assertNotNull(localList.firstOrNull {
+                it.build().name() == "intList" && it.build().typeFullName() == "java.util.LinkedList"
+            })
+            assertNotNull(localList.firstOrNull {
+                it.build().name() == "stringList" && it.build().typeFullName() == "java.util.LinkedList"
+            })
+            assertNotNull(localList.firstOrNull {
+                it.build().name() == "\$stack3" && it.build().typeFullName() == "java.util.LinkedList"
+            })
+            assertNotNull(localList.firstOrNull {
+                it.build().name() == "\$stack4" && it.build().typeFullName() == "java.util.LinkedList"
+            })
         }
-        vertices.filterIsInstance<CallVertex>().filter { it.name == "<init>" }.let { callList ->
-            assertNotNull(callList.firstOrNull { it.methodFullName == "java.util.LinkedList: void <init>()" })
-            assertNotNull(callList.firstOrNull { it.methodFullName == "java.lang.Object: void <init>()" })
+        vertices.filterIsInstance<NewCallBuilder>().filter { it.build().name() == "<init>" }.let { callList ->
+            assertNotNull(callList.firstOrNull { it.build().methodFullName() == "java.util.LinkedList: void <init>()" })
+            assertNotNull(callList.firstOrNull { it.build().methodFullName() == "java.lang.Object: void <init>()" })
         }
-        vertices.filterIsInstance<TypeRefVertex>().filter { it.typeFullName == "java.util.LinkedList" }
-                .let { typeRefs -> assertEquals(2, typeRefs.size) }
+        vertices.filterIsInstance<NewTypeRefBuilder>().filter { it.build().typeFullName() == "java.util.LinkedList" }
+            .let { typeRefs -> assertEquals(2, typeRefs.size) }
     }
 
     @Test
     fun type2Test() {
         val vertices = graph.vertices()
-        assertNotNull(vertices.filterIsInstance<LocalVertex>().firstOrNull { it.name == "intArray" && it.typeFullName == "int[]" })
-        vertices.filterIsInstance<IdentifierVertex>().filter { it.name.contains("intArray") }.let { callList ->
-            assertNotNull(callList.firstOrNull { it.argumentIndex == 0 })
-            assertNotNull(callList.firstOrNull { it.argumentIndex == 4 })
-        }
+        assertNotNull(
+            vertices.filterIsInstance<NewLocalBuilder>()
+                .firstOrNull { it.build().name() == "intArray" && it.build().typeFullName() == "int[]" })
+        vertices.filterIsInstance<NewIdentifierBuilder>().filter { it.build().name().contains("intArray") }
+            .let { callList ->
+                assertNotNull(callList.firstOrNull { it.build().argumentIndex() == 0 })
+                assertNotNull(callList.firstOrNull { it.build().argumentIndex() == 4 })
+            }
     }
 
     @Test
     fun type3Test() {
         val vertices = graph.vertices()
-        assertNotNull(vertices.filterIsInstance<LocalVertex>().firstOrNull { it.name == "cls" && it.typeFullName == "java.lang.Class" })
-        assertNotNull(vertices.filterIsInstance<LiteralVertex>().firstOrNull { it.code == "class \"Lintraprocedural/type/Type3;\"" && it.typeFullName == "java.lang.Class" })
+        assertNotNull(
+            vertices.filterIsInstance<NewLocalBuilder>()
+                .firstOrNull { it.build().name() == "cls" && it.build().typeFullName() == "java.lang.Class" })
+        assertNotNull(
+            vertices.filterIsInstance<NewLiteralBuilder>()
+                .firstOrNull {
+                    it.build().code() == "class \"Lintraprocedural/type/Type3;\"" && it.build()
+                        .typeFullName() == "java.lang.Class"
+                })
     }
 }

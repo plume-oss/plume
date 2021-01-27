@@ -19,11 +19,6 @@ import io.github.plume.oss.domain.enums.EdgeLabel
 import io.github.plume.oss.domain.exceptions.PlumeCompileException
 import io.github.plume.oss.domain.files.*
 import io.github.plume.oss.domain.models.PlumeGraph
-import io.github.plume.oss.domain.models.PlumeVertex
-import io.github.plume.oss.domain.models.vertices.CallVertex
-import io.github.plume.oss.domain.models.vertices.FileVertex
-import io.github.plume.oss.domain.models.vertices.MetaDataVertex
-import io.github.plume.oss.domain.models.vertices.MethodVertex
 import io.github.plume.oss.drivers.GremlinDriver
 import io.github.plume.oss.drivers.IDriver
 import io.github.plume.oss.drivers.OverflowDbDriver
@@ -37,6 +32,7 @@ import io.github.plume.oss.util.ResourceCompilationUtil.compileJavaFiles
 import io.github.plume.oss.util.ResourceCompilationUtil.deleteClassFiles
 import io.github.plume.oss.util.ResourceCompilationUtil.moveClassFiles
 import io.github.plume.oss.util.SootToPlumeUtil
+import io.shiftleft.codepropertygraph.generated.nodes.*
 import org.apache.logging.log4j.LogManager
 import org.apache.logging.log4j.Logger
 import soot.*
@@ -80,42 +76,42 @@ class Extractor(val driver: IDriver) {
      * The companion object of this class holds the state of the current extraction
      */
     companion object {
-        private val sootToPlume = mutableMapOf<Any, MutableList<PlumeVertex>>()
+        private val sootToPlume = mutableMapOf<Any, MutableList<NewNodeBuilder>>()
         private val classToFileHash = mutableMapOf<SootClass, String>()
-        private val savedCallGraphEdges = mutableMapOf<MethodVertex, MutableList<CallVertex>>()
+        private val savedCallGraphEdges = mutableMapOf<NewMethodBuilder, MutableList<NewCallBuilder>>()
 
         /**
-         * Associates the given Soot object to the given [PlumeVertex].
+         * Associates the given Soot object to the given [NewNode].
          *
          * @param sootObject The object from a Soot [BriefUnitGraph] to associate from.
-         * @param plumeVertex The [PlumeVertex] to associate to.
-         * @param index The index to place the associated [PlumeVertex] at.
+         * @param node The [NewNode] to associate to.
+         * @param index The index to place the associated [NewNode] at.
          */
-        fun addSootToPlumeAssociation(sootObject: Any, plumeVertex: PlumeVertex, index: Int = -1) {
-            if (!sootToPlume.containsKey(sootObject)) sootToPlume[sootObject] = mutableListOf(plumeVertex)
-            else if (index <= -1) sootToPlume[sootObject]?.add(plumeVertex)
-            else sootToPlume[sootObject]?.add(index, plumeVertex)
+        fun addSootToPlumeAssociation(sootObject: Any, node: NewNodeBuilder, index: Int = -1) {
+            if (!sootToPlume.containsKey(sootObject)) sootToPlume[sootObject] = mutableListOf(node)
+            else if (index <= -1) sootToPlume[sootObject]?.add(node)
+            else sootToPlume[sootObject]?.add(index, node)
         }
 
         /**
-         * Associates the given Soot object to the given list of [PlumeVertex]s.
+         * Associates the given Soot object to the given list of [NewNode]s.
          *
          * @param sootObject The object from a Soot [BriefUnitGraph] to associate from.
-         * @param plumeVertices The list of [PlumeVertex]s to associate to.
+         * @param nodes The list of [NewNode]s to associate to.
          * @param index The index to place the associated [PlumeVertex](s) at.
          */
-        fun addSootToPlumeAssociation(sootObject: Any, plumeVertices: MutableList<PlumeVertex>, index: Int = -1) {
-            if (!sootToPlume.containsKey(sootObject)) sootToPlume[sootObject] = plumeVertices
-            else if (index <= -1) sootToPlume[sootObject]?.addAll(plumeVertices)
-            else sootToPlume[sootObject]?.addAll(index, plumeVertices)
+        fun addSootToPlumeAssociation(sootObject: Any, nodes: MutableList<NewNodeBuilder>, index: Int = -1) {
+            if (!sootToPlume.containsKey(sootObject)) sootToPlume[sootObject] = nodes
+            else if (index <= -1) sootToPlume[sootObject]?.addAll(nodes)
+            else sootToPlume[sootObject]?.addAll(index, nodes)
         }
 
         /**
-         * Retrieves the list of [PlumeVertex] associations to the given Soot object.
+         * Retrieves the list of [NewNode] associations to the given Soot object.
          *
          * @param sootObject The object from a Soot [BriefUnitGraph] to get associations from.
          */
-        fun getSootAssociation(sootObject: Any): List<PlumeVertex>? = sootToPlume[sootObject]
+        fun getSootAssociation(sootObject: Any): List<NewNodeBuilder>? = sootToPlume[sootObject]
 
         /**
          * Associates the given [SootClass] with its source file's hash.
@@ -135,22 +131,22 @@ class Extractor(val driver: IDriver) {
         fun getFileHashPair(cls: SootClass) = classToFileHash[cls]
 
         /**
-         * Saves call graph edges to the [MethodVertex] from the [CallVertex].
+         * Saves call graph edges to the [NewMethod] from the [NewCall].
          *
-         * @param mtd The target [MethodVertex].
-         * @param call The source [CallVertex].
+         * @param mtd The target [NewMethod].
+         * @param call The source [NewCall].
          */
-        fun saveCallGraphEdge(mtd: MethodVertex, call: CallVertex) {
+        fun saveCallGraphEdge(mtd: NewMethodBuilder, call: NewCallBuilder) {
             if (!savedCallGraphEdges.containsKey(mtd)) savedCallGraphEdges[mtd] = mutableListOf(call)
             else savedCallGraphEdges[mtd]?.add(call)
         }
 
         /**
-         * Retrieves all the incoming [CallVertex]s from the given [MethodVertex].
+         * Retrieves all the incoming [NewCall]s from the given [NewMethod].
          *
-         * @param mtd [MethodVertex] to retrieve call graph edges for.
+         * @param mtd [NewMethod] to retrieve call graph edges for.
          */
-        fun getIncomingCallGraphEdges(mtd: MethodVertex) = savedCallGraphEdges[mtd]
+        fun getIncomingCallGraphEdges(mtd: NewMethodBuilder) = savedCallGraphEdges[mtd]
     }
 
     /**
@@ -215,14 +211,18 @@ class Extractor(val driver: IDriver) {
                 SupportedFile.JAVA ->
                     compileJavaFiles(filesToCompile)
                         .apply {
-                            if (this.isNotEmpty()) driver.addVertex(MetaDataVertex("Java",
-                                System.getProperty("java.runtime.version")))
+                            if (this.isNotEmpty()) driver.addVertex(
+                                NewMetaDataBuilder().language("Java")
+                                    .version(System.getProperty("java.runtime.version"))
+                            )
                         }
                 SupportedFile.JVM_CLASS ->
                     moveClassFiles(filesToCompile.map { f -> f as JVMClassFile }.toList())
                         .apply {
-                            if (this.isNotEmpty()) driver.addVertex(MetaDataVertex("Java",
-                                System.getProperty("java.runtime.version")))
+                            if (this.isNotEmpty()) driver.addVertex(
+                                NewMetaDataBuilder().language("Java")
+                                    .version(System.getProperty("java.runtime.version"))
+                            )
                         }
             }
         }.asSequence().flatten().toHashSet()
@@ -284,7 +284,7 @@ class Extractor(val driver: IDriver) {
      * @param cls The [SootClass] containing the information to build program structure information from.
      */
     private fun constructStructure(cls: SootClass) {
-        if (programStructure.vertices().filterIsInstance<FileVertex>().none { it.name == cls.name }) {
+        if (programStructure.vertices().filterIsInstance<NewFile>().none { it.name() == cls.name }) {
             logger.debug("Building file, namespace, and type declaration for ${cls.name}")
             SootToPlumeUtil.buildClassStructure(cls, driver)
             SootToPlumeUtil.buildTypeDeclaration(cls, driver)
@@ -300,8 +300,8 @@ class Extractor(val driver: IDriver) {
     private fun constructCPG(graph: BriefUnitGraph): BriefUnitGraph {
         // If file does not exists then rebuild, else update
         val cls = graph.body.method.declaringClass
-        val files = programStructure.vertices().filterIsInstance<FileVertex>()
-        if (files.none { it.name == cls.name }) {
+        val files = programStructure.vertices().filterIsInstance<NewFile>()
+        if (files.none { it.name() == cls.name }) {
             logger.debug("Projecting ${graph.body.method}")
             // Build head
             SootToPlumeUtil.buildMethodHead(graph.body.method, driver)
@@ -317,23 +317,26 @@ class Extractor(val driver: IDriver) {
 
     private fun analyseExistingCPGs(cls: SootClass) {
         val currentFileHash = getFileHashPair(cls)
-        val files = programStructure.vertices().filterIsInstance<FileVertex>()
+        val files = programStructure.vertices().filterIsInstance<NewFileBuilder>()
         logger.debug("Looking for existing file vertex for ${cls.name} from given file hash $currentFileHash")
-        files.firstOrNull { it.name == cls.name }?.let { fileV ->
-            if (fileV.hash != currentFileHash) {
+        files.firstOrNull { it.build().name() == cls.name }?.let { fileV ->
+            if (fileV.build().hash().get() != currentFileHash) {
                 logger.debug("Existing class was found and file hashes do not match, marking for rebuild.")
                 // Rebuild
-                driver.getNeighbours(fileV).vertices().filterIsInstance<MethodVertex>().forEach { mtdV ->
-                    logger.debug("Deleting method and saving incoming call graph edges for " +
-                            "${mtdV.fullName} ${mtdV.signature}")
-                    driver.getMethod(mtdV.fullName, mtdV.signature, false).let { g ->
-                        g.vertices().filterIsInstance<MethodVertex>().firstOrNull()?.let { mtdV ->
+                driver.getNeighbours(fileV).vertices().filterIsInstance<NewMethodBuilder>().forEach { mtdV ->
+                    val mtd = mtdV.build()
+                    logger.debug(
+                        "Deleting method and saving incoming call graph edges for " +
+                                "${mtd.fullName()} ${mtd.signature()}"
+                    )
+                    driver.getMethod(mtd.fullName(), mtd.signature(), false).let { g ->
+                        g.vertices().filterIsInstance<NewMethodBuilder>().firstOrNull()?.let { mtdV ->
                             driver.getNeighbours(mtdV).edgesIn(mtdV)[EdgeLabel.CALL]
-                                ?.filterIsInstance<CallVertex>()
+                                ?.filterIsInstance<NewCallBuilder>()
                                 ?.forEach { saveCallGraphEdge(mtdV, it) }
                         }
                     }
-                    driver.deleteMethod(mtdV.fullName, mtdV.signature)
+                    driver.deleteMethod(mtd.fullName(), mtd.signature())
                 }
                 logger.debug("Deleting $fileV")
                 driver.deleteVertex(fileV)

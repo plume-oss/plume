@@ -1,40 +1,43 @@
 package io.github.plume.oss.drivers
 
-import org.junit.jupiter.api.*
-import org.junit.jupiter.api.Assertions.*
+import io.github.plume.oss.TestDomainResources
 import io.github.plume.oss.TestDomainResources.Companion.INT_1
 import io.github.plume.oss.TestDomainResources.Companion.INT_2
 import io.github.plume.oss.TestDomainResources.Companion.STRING_1
 import io.github.plume.oss.TestDomainResources.Companion.STRING_2
-import io.github.plume.oss.TestDomainResources.Companion.generateSimpleCPG
-import io.github.plume.oss.domain.enums.EdgeLabel
-import io.github.plume.oss.domain.exceptions.PlumeSchemaViolationException
-import io.github.plume.oss.domain.models.vertices.*
-import kotlin.properties.Delegates
-import io.github.plume.oss.TestDomainResources.Companion.methodVertex
-import io.github.plume.oss.TestDomainResources.Companion.methodReturnVertex
-import io.github.plume.oss.TestDomainResources.Companion.fileVertex
-import io.github.plume.oss.TestDomainResources.Companion.namespaceBlockVertex1
-import io.github.plume.oss.TestDomainResources.Companion.namespaceBlockVertex2
-import io.github.plume.oss.TestDomainResources.Companion.metaDataVertex
-import io.github.plume.oss.TestDomainResources.Companion.controlStructureVertex
-import io.github.plume.oss.TestDomainResources.Companion.jumpTargetVertex
 import io.github.plume.oss.TestDomainResources.Companion.bindingVertex
-import io.github.plume.oss.TestDomainResources.Companion.typeArgumentVertex
-import io.github.plume.oss.TestDomainResources.Companion.typeParameterVertex
-import io.github.plume.oss.TestDomainResources.Companion.methodParameterInVertex
-import io.github.plume.oss.TestDomainResources.Companion.fieldIdentifierVertex
-import io.github.plume.oss.TestDomainResources.Companion.methodRefVertex
-import io.github.plume.oss.TestDomainResources.Companion.typeRefVertex
-import io.github.plume.oss.TestDomainResources.Companion.unknownVertex
 import io.github.plume.oss.TestDomainResources.Companion.blockVertex
 import io.github.plume.oss.TestDomainResources.Companion.callVertex
-import io.github.plume.oss.TestDomainResources.Companion.localVertex
+import io.github.plume.oss.TestDomainResources.Companion.controlStructureVertex
+import io.github.plume.oss.TestDomainResources.Companion.fieldIdentifierVertex
+import io.github.plume.oss.TestDomainResources.Companion.fileVertex
+import io.github.plume.oss.TestDomainResources.Companion.generateSimpleCPG
 import io.github.plume.oss.TestDomainResources.Companion.identifierVertex
-import io.github.plume.oss.TestDomainResources.Companion.typeDeclVertex
+import io.github.plume.oss.TestDomainResources.Companion.jumpTargetVertex
 import io.github.plume.oss.TestDomainResources.Companion.literalVertex
+import io.github.plume.oss.TestDomainResources.Companion.localVertex
+import io.github.plume.oss.TestDomainResources.Companion.metaDataVertex
+import io.github.plume.oss.TestDomainResources.Companion.methodParameterInVertex
+import io.github.plume.oss.TestDomainResources.Companion.methodRefVertex
+import io.github.plume.oss.TestDomainResources.Companion.methodReturnVertex
+import io.github.plume.oss.TestDomainResources.Companion.methodVertex
 import io.github.plume.oss.TestDomainResources.Companion.modifierVertex
+import io.github.plume.oss.TestDomainResources.Companion.namespaceBlockVertex1
+import io.github.plume.oss.TestDomainResources.Companion.namespaceBlockVertex2
 import io.github.plume.oss.TestDomainResources.Companion.returnVertex
+import io.github.plume.oss.TestDomainResources.Companion.typeArgumentVertex
+import io.github.plume.oss.TestDomainResources.Companion.typeDeclVertex
+import io.github.plume.oss.TestDomainResources.Companion.typeParameterVertex
+import io.github.plume.oss.TestDomainResources.Companion.typeRefVertex
+import io.github.plume.oss.TestDomainResources.Companion.unknownVertex
+import io.github.plume.oss.domain.enums.EdgeLabel
+import io.github.plume.oss.domain.exceptions.PlumeSchemaViolationException
+import io.github.plume.oss.util.SootToPlumeUtil
+import io.shiftleft.codepropertygraph.generated.nodes.*
+import org.junit.jupiter.api.*
+import org.junit.jupiter.api.Assertions.*
+import scala.Option
+import kotlin.properties.Delegates
 
 class TigerGraphDriverIntTest {
 
@@ -48,30 +51,34 @@ class TigerGraphDriverIntTest {
 
         @JvmStatic
         @AfterAll
-        fun tearDownAll() = println("${TigerGraphDriverIntTest::class.java.simpleName} completed in ${(System.nanoTime() - testStartTime) / 1e6} ms")
+        fun tearDownAll() =
+            println("${TigerGraphDriverIntTest::class.java.simpleName} completed in ${(System.nanoTime() - testStartTime) / 1e6} ms")
     }
 
     @BeforeEach
     fun setUp() {
         driver = (DriverFactory(GraphDatabase.TIGER_GRAPH) as TigerGraphDriver)
-                .hostname("127.0.0.1")
-                .port(9000)
-                .secure(false)
+            .hostname("127.0.0.1")
+            .port(9000)
+            .secure(false)
         assertEquals("127.0.0.1", driver.hostname)
         assertEquals(9000, driver.port)
         assertEquals(false, driver.secure)
     }
 
     @AfterEach
-    fun tearDown() = driver.clearGraph().close()
+    fun tearDown() {
+        TestDomainResources.simpleCpgVertices.forEach { it.id(-1) }
+        driver.clearGraph().close()
+    }
 
     @Nested
     @DisplayName("Test driver vertex find and exist methods")
     inner class VertexAddAndExistsTests {
         @Test
         fun findAstVertex() {
-            val v1 = ArrayInitializerVertex(INT_1)
-            val v2 = ArrayInitializerVertex(INT_2)
+            val v1 = NewArrayInitializerBuilder().order(INT_1)
+            val v2 = NewArrayInitializerBuilder().order(INT_2)
             assertFalse(driver.exists(v1))
             assertFalse(driver.exists(v2))
             driver.addVertex(v1)
@@ -84,8 +91,24 @@ class TigerGraphDriverIntTest {
 
         @Test
         fun findBindingVertex() {
-            val v1 = BindingVertex(STRING_1, STRING_2)
-            val v2 = BindingVertex(STRING_2, STRING_1)
+            val v1 = NewBindingBuilder().name(STRING_1).signature(STRING_2)
+            val v2 = NewBindingBuilder().name(STRING_2).signature(STRING_1)
+            assertFalse(driver.exists(v1))
+            assertFalse(driver.exists(v2))
+            driver.addVertex(v1)
+            assertTrue(driver.exists(v1))
+            assertFalse(driver.exists(v2))
+            driver.addVertex(v2)
+            assertTrue(driver.exists(v1))
+            assertTrue(driver.exists(v2))
+        }
+
+        @Test
+        fun findFieldIdentifierVertex() {
+            val v1 = NewFieldIdentifierBuilder().canonicalname(STRING_1).code(STRING_2).argumentindex(INT_1)
+                .order(INT_1).linenumber(Option.apply(INT_1)).columnnumber(Option.apply(INT_1))
+            val v2 = NewFieldIdentifierBuilder().canonicalname(STRING_2).code(STRING_1).argumentindex(INT_1)
+                .order(INT_1).linenumber(Option.apply(INT_1)).columnnumber(Option.apply(INT_1))
             assertFalse(driver.exists(v1))
             assertFalse(driver.exists(v2))
             driver.addVertex(v1)
@@ -98,8 +121,26 @@ class TigerGraphDriverIntTest {
 
         @Test
         fun findMetaDataVertex() {
-            val v1 = MetaDataVertex(STRING_1, STRING_2)
-            val v2 = MetaDataVertex(STRING_2, STRING_1)
+            val v1 = NewMetaDataBuilder().language(STRING_1).version(STRING_2)
+            val v2 = NewMetaDataBuilder().language(STRING_2).version(STRING_1)
+            assertFalse(driver.exists(v1))
+            assertFalse(driver.exists(v2))
+            driver.addVertex(v1)
+            assertTrue(driver.exists(v1))
+            assertFalse(driver.exists(v2))
+            driver.addVertex(v2)
+            assertTrue(driver.exists(v1))
+            assertTrue(driver.exists(v2))
+        }
+
+        @Test
+        fun findMethodRefVertex() {
+            val v1 = NewMethodRefBuilder().methodinstfullname(Option.apply(STRING_1)).methodfullname(STRING_2)
+                .code(STRING_1).order(INT_1).argumentindex(INT_1).linenumber(Option.apply(INT_1))
+                .columnnumber(Option.apply(INT_1))
+            val v2 = NewMethodRefBuilder().methodinstfullname(Option.apply(STRING_2)).methodfullname(STRING_1)
+                .code(STRING_1).order(INT_1).argumentindex(INT_1).linenumber(Option.apply(INT_1))
+                .columnnumber(Option.apply(INT_1))
             assertFalse(driver.exists(v1))
             assertFalse(driver.exists(v2))
             driver.addVertex(v1)
@@ -112,8 +153,44 @@ class TigerGraphDriverIntTest {
 
         @Test
         fun findTypeVertex() {
-            val v1 = TypeVertex(STRING_1, STRING_2, STRING_2)
-            val v2 = TypeVertex(STRING_2, STRING_1, STRING_2)
+            val v1 = NewTypeBuilder().name(STRING_1).fullname(STRING_2).typedeclfullname(STRING_2)
+            val v2 = NewTypeBuilder().name(STRING_2).fullname(STRING_1).typedeclfullname(STRING_2)
+            assertFalse(driver.exists(v1))
+            assertFalse(driver.exists(v2))
+            driver.addVertex(v1)
+            assertTrue(driver.exists(v1))
+            assertFalse(driver.exists(v2))
+            driver.addVertex(v2)
+            assertTrue(driver.exists(v1))
+            assertTrue(driver.exists(v2))
+        }
+
+        @Test
+        fun findTypeRefVertex() {
+            val v1 = NewTypeRefBuilder().typefullname(STRING_1).dynamictypehintfullname(
+                SootToPlumeUtil.createScalaList(STRING_2)
+            ).code(STRING_1).argumentindex(INT_1).order(INT_1).linenumber(Option.apply(INT_1))
+                .columnnumber(Option.apply(INT_1))
+            val v2 = NewTypeRefBuilder().typefullname(STRING_2).dynamictypehintfullname(
+                SootToPlumeUtil.createScalaList(STRING_1)
+            ).code(STRING_1).argumentindex(INT_1).order(INT_1).linenumber(Option.apply(INT_1))
+                .columnnumber(Option.apply(INT_1))
+            assertFalse(driver.exists(v1))
+            assertFalse(driver.exists(v2))
+            driver.addVertex(v1)
+            assertTrue(driver.exists(v1))
+            assertFalse(driver.exists(v2))
+            driver.addVertex(v2)
+            assertTrue(driver.exists(v1))
+            assertTrue(driver.exists(v2))
+        }
+
+        @Test
+        fun findUnknownVertex() {
+            val v1 = NewUnknownBuilder().typefullname(STRING_1).code(STRING_2).order(INT_1).argumentindex(INT_1)
+                .linenumber(Option.apply(INT_1)).columnnumber(Option.apply(INT_1))
+            val v2 = NewUnknownBuilder().typefullname(STRING_2).code(STRING_1).order(INT_1).argumentindex(INT_1)
+                .linenumber(Option.apply(INT_1)).columnnumber(Option.apply(INT_1))
             assertFalse(driver.exists(v1))
             assertFalse(driver.exists(v2))
             driver.addVertex(v1)
@@ -152,7 +229,13 @@ class TigerGraphDriverIntTest {
             assertTrue(driver.exists(literalVertex))
             assertTrue(driver.exists(identifierVertex))
             assertFalse(driver.exists(literalVertex, identifierVertex, EdgeLabel.AST))
-            assertThrows(PlumeSchemaViolationException::class.java) { driver.addEdge(literalVertex, identifierVertex, EdgeLabel.AST) }
+            assertThrows(PlumeSchemaViolationException::class.java) {
+                driver.addEdge(
+                    literalVertex,
+                    identifierVertex,
+                    EdgeLabel.AST
+                )
+            }
         }
 
         @Test
@@ -258,38 +341,6 @@ class TigerGraphDriverIntTest {
     }
 
     @Nested
-    @DisplayName("Max order tests")
-    inner class MaxOrderTests {
-        @Test
-        fun testMaxOrderOnEmptyGraph() = assertEquals(0, driver.maxOrder())
-
-        @Test
-        fun testMaxOrderOnGraphWithOneVertex() {
-            val v1 = ArrayInitializerVertex(INT_2)
-            driver.addVertex(v1)
-            assertEquals(INT_2, driver.maxOrder())
-        }
-
-        @Test
-        fun testMaxOrderOnGraphWithMoreThanOneVertex() {
-            val v1 = ArrayInitializerVertex(INT_2)
-            val v2 = MetaDataVertex(STRING_1, STRING_2)
-            driver.addVertex(v1)
-            driver.addVertex(v2)
-            assertEquals(INT_2, driver.maxOrder())
-        }
-
-        @Test
-        fun testMaxOrderOnGraphWithNoAstVertex() {
-            val v1 = BindingVertex(STRING_1, STRING_2)
-            val v2 = MetaDataVertex(STRING_1, STRING_2)
-            driver.addVertex(v1)
-            driver.addVertex(v2)
-            assertEquals(0, driver.maxOrder())
-        }
-    }
-
-    @Nested
     @DisplayName("Any PlumeGraph related tests based off of a test CPG")
     inner class PlumeGraphTests {
 
@@ -306,10 +357,14 @@ class TigerGraphDriverIntTest {
             assertEquals(21, graphVertices.size)
             // Check program structure
             assertTrue(plumeGraph.edgesOut(fileVertex)[EdgeLabel.AST]?.contains(namespaceBlockVertex1) ?: false)
-            assertTrue(plumeGraph.edgesOut(namespaceBlockVertex1)[EdgeLabel.AST]?.contains(namespaceBlockVertex2) ?: false)
+            assertTrue(
+                plumeGraph.edgesOut(namespaceBlockVertex1)[EdgeLabel.AST]?.contains(namespaceBlockVertex2) ?: false
+            )
 
             assertTrue(plumeGraph.edgesIn(namespaceBlockVertex1)[EdgeLabel.AST]?.contains(fileVertex) ?: false)
-            assertTrue(plumeGraph.edgesIn(namespaceBlockVertex2)[EdgeLabel.AST]?.contains(namespaceBlockVertex1) ?: false)
+            assertTrue(
+                plumeGraph.edgesIn(namespaceBlockVertex2)[EdgeLabel.AST]?.contains(namespaceBlockVertex1) ?: false
+            )
             // Check method head
             assertTrue(plumeGraph.edgesOut(methodVertex)[EdgeLabel.AST]?.contains(methodParameterInVertex) ?: false)
             assertTrue(plumeGraph.edgesOut(methodVertex)[EdgeLabel.AST]?.contains(localVertex) ?: false)
@@ -362,7 +417,7 @@ class TigerGraphDriverIntTest {
         @Test
         fun testGetEmptyMethodBody() {
             driver.clearGraph()
-            val plumeGraph = driver.getMethod(methodVertex.fullName, methodVertex.signature)
+            val plumeGraph = driver.getMethod(methodVertex.build().fullName(), methodVertex.build().signature())
             assertEquals("PlumeGraph(vertices:0, edges:0)", plumeGraph.toString())
             val graphVertices = plumeGraph.vertices()
             assertEquals(0, graphVertices.size)
@@ -370,7 +425,7 @@ class TigerGraphDriverIntTest {
 
         @Test
         fun testGetMethodHeadOnly() {
-            val plumeGraph = driver.getMethod(methodVertex.fullName, methodVertex.signature, false)
+            val plumeGraph = driver.getMethod(methodVertex.build().fullName(), methodVertex.build().signature(), false)
             assertEquals("PlumeGraph(vertices:6, edges:5)", plumeGraph.toString())
             val graphVertices = plumeGraph.vertices()
             assertEquals(6, graphVertices.size)
@@ -395,7 +450,7 @@ class TigerGraphDriverIntTest {
 
         @Test
         fun testGetMethodBody() {
-            val plumeGraph = driver.getMethod(methodVertex.fullName, methodVertex.signature, true)
+            val plumeGraph = driver.getMethod(methodVertex.build().fullName(), methodVertex.build().signature(), true)
             assertEquals("PlumeGraph(vertices:15, edges:26)", plumeGraph.toString())
             val graphVertices = plumeGraph.vertices()
             assertEquals(15, graphVertices.size)
@@ -465,10 +520,14 @@ class TigerGraphDriverIntTest {
             assertTrue(graphVertices.contains(fileVertex))
             // Check that vertices are connected by AST edges
             assertTrue(plumeGraph.edgesOut(fileVertex)[EdgeLabel.AST]?.contains(namespaceBlockVertex1) ?: false)
-            assertTrue(plumeGraph.edgesOut(namespaceBlockVertex1)[EdgeLabel.AST]?.contains(namespaceBlockVertex2) ?: false)
+            assertTrue(
+                plumeGraph.edgesOut(namespaceBlockVertex1)[EdgeLabel.AST]?.contains(namespaceBlockVertex2) ?: false
+            )
 
             assertTrue(plumeGraph.edgesIn(namespaceBlockVertex1)[EdgeLabel.AST]?.contains(fileVertex) ?: false)
-            assertTrue(plumeGraph.edgesIn(namespaceBlockVertex2)[EdgeLabel.AST]?.contains(namespaceBlockVertex1) ?: false)
+            assertTrue(
+                plumeGraph.edgesIn(namespaceBlockVertex2)[EdgeLabel.AST]?.contains(namespaceBlockVertex1) ?: false
+            )
         }
 
         @Test
@@ -512,7 +571,7 @@ class TigerGraphDriverIntTest {
         @Test
         fun testMethodDelete() {
             assertTrue(driver.exists(methodVertex))
-            driver.deleteMethod(methodVertex.fullName, methodVertex.signature)
+            driver.deleteMethod(methodVertex.build().fullName(), methodVertex.build().signature())
             assertFalse(driver.exists(methodVertex))
             assertFalse(driver.exists(literalVertex))
             assertFalse(driver.exists(returnVertex))
@@ -521,7 +580,36 @@ class TigerGraphDriverIntTest {
             assertFalse(driver.exists(blockVertex))
             assertFalse(driver.exists(callVertex))
             // Check that deleting a method doesn't throw any error
-            driver.deleteMethod(methodVertex.fullName, methodVertex.signature)
+            driver.deleteMethod(methodVertex.build().fullName(), methodVertex.build().signature())
         }
+    }
+
+    @Nested
+    @DisplayName("ID retrieval tests")
+    inner class VertexIdTests {
+
+        @Test
+        fun testGetIdInsideRange() {
+            val ids1 = driver.getVertexIds(0, 10)
+            assertTrue(ids1.isEmpty())
+            driver.addVertex(NewArrayInitializerBuilder().order(INT_1).id(1L))
+            val ids2 = driver.getVertexIds(0, 10)
+            assertEquals(setOf(1L), ids2)
+        }
+
+        @Test
+        fun testGetIdOutsideRange() {
+            driver.addVertex(NewArrayInitializerBuilder().order(INT_1).id(11L))
+            val ids1 = driver.getVertexIds(0, 10)
+            assertEquals(emptySet<Long>(), ids1)
+        }
+
+        @Test
+        fun testGetIdOnExistingGraph() {
+            generateSimpleCPG(driver)
+            val ids = driver.getVertexIds(0, 100)
+            assertEquals(21, ids.size)
+        }
+
     }
 }

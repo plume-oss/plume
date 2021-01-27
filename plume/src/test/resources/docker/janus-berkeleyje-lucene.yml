@@ -2,7 +2,7 @@ version: "3"
 
 services:
   janusgraph:
-    image: janusgraph/janusgraph:latest
+    image: janusgraph/janusgraph:0.5.3
     container_name: janusgraph-plume
     volumes:
       - "../conf/jg-server-conf:/etc/opt/janusgraph/:ro"

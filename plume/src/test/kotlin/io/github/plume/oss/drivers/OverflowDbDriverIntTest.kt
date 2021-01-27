@@ -1,5 +1,6 @@
 package io.github.plume.oss.drivers
 
+import io.github.plume.oss.TestDomainResources
 import io.github.plume.oss.TestDomainResources.Companion.INT_1
 import io.github.plume.oss.TestDomainResources.Companion.INT_2
 import io.github.plume.oss.TestDomainResources.Companion.STRING_1
@@ -31,10 +32,12 @@ import io.github.plume.oss.TestDomainResources.Companion.typeRefVertex
 import io.github.plume.oss.TestDomainResources.Companion.unknownVertex
 import io.github.plume.oss.domain.enums.EdgeLabel
 import io.github.plume.oss.domain.exceptions.PlumeSchemaViolationException
-import io.github.plume.oss.domain.models.vertices.*
+import io.github.plume.oss.util.SootToPlumeUtil
+import io.shiftleft.codepropertygraph.generated.nodes.*
 import org.apache.logging.log4j.LogManager
 import org.junit.jupiter.api.*
 import org.junit.jupiter.api.Assertions.*
+import scala.Option
 import java.io.File
 import kotlin.properties.Delegates
 
@@ -53,8 +56,10 @@ class OverflowDbDriverIntTest {
         @AfterAll
         @JvmStatic
         fun tearDownAll() {
-            println("${OverflowDbDriverIntTest::class.java.simpleName} completed in " +
-                    "${(System.nanoTime() - testStartTime) / 1e6} ms")
+            println(
+                "${OverflowDbDriverIntTest::class.java.simpleName} completed in " +
+                        "${(System.nanoTime() - testStartTime) / 1e6} ms"
+            )
         }
     }
 
@@ -75,12 +80,11 @@ class OverflowDbDriverIntTest {
 
     @AfterEach
     fun tearDown() {
-        driver.close()
-        try {
+        TestDomainResources.simpleCpgVertices.forEach { it.id(-1) }
+        driver.clearGraph().close()
+        runCatching {
             if (!File(storageLocation).delete()) logger.warn("Could not clear test resources.")
-        } catch (e: Exception) {
-            logger.warn("Could not clear test resources.", e)
-        }
+        }.onFailure { e -> logger.warn("Could not clear test resources.", e) }
     }
 
     @Nested
@@ -88,8 +92,8 @@ class OverflowDbDriverIntTest {
     inner class VertexAddAndExistsTests {
         @Test
         fun findAstVertex() {
-            val v1 = ArrayInitializerVertex(INT_1)
-            val v2 = ArrayInitializerVertex(INT_2)
+            val v1 = NewArrayInitializerBuilder().order(INT_1)
+            val v2 = NewArrayInitializerBuilder().order(INT_2)
             assertFalse(driver.exists(v1))
             assertFalse(driver.exists(v2))
             driver.addVertex(v1)
@@ -102,8 +106,8 @@ class OverflowDbDriverIntTest {
 
         @Test
         fun findBindingVertex() {
-            val v1 = BindingVertex(STRING_1, STRING_2)
-            val v2 = BindingVertex(STRING_2, STRING_1)
+            val v1 = NewBindingBuilder().name(STRING_1).signature(STRING_2)
+            val v2 = NewBindingBuilder().name(STRING_2).signature(STRING_1)
             assertFalse(driver.exists(v1))
             assertFalse(driver.exists(v2))
             driver.addVertex(v1)
@@ -116,8 +120,10 @@ class OverflowDbDriverIntTest {
 
         @Test
         fun findFieldIdentifierVertex() {
-            val v1 = FieldIdentifierVertex(STRING_1, STRING_2, INT_1, INT_1, INT_1, INT_1)
-            val v2 = FieldIdentifierVertex(STRING_2, STRING_1, INT_1, INT_1, INT_1, INT_1)
+            val v1 = NewFieldIdentifierBuilder().canonicalname(STRING_1).code(STRING_2).argumentindex(INT_1)
+                .order(INT_1).linenumber(Option.apply(INT_1)).columnnumber(Option.apply(INT_1))
+            val v2 = NewFieldIdentifierBuilder().canonicalname(STRING_2).code(STRING_1).argumentindex(INT_1)
+                .order(INT_1).linenumber(Option.apply(INT_1)).columnnumber(Option.apply(INT_1))
             assertFalse(driver.exists(v1))
             assertFalse(driver.exists(v2))
             driver.addVertex(v1)
@@ -130,8 +136,8 @@ class OverflowDbDriverIntTest {
 
         @Test
         fun findMetaDataVertex() {
-            val v1 = MetaDataVertex(STRING_1, STRING_2)
-            val v2 = MetaDataVertex(STRING_2, STRING_1)
+            val v1 = NewMetaDataBuilder().language(STRING_1).version(STRING_2)
+            val v2 = NewMetaDataBuilder().language(STRING_2).version(STRING_1)
             assertFalse(driver.exists(v1))
             assertFalse(driver.exists(v2))
             driver.addVertex(v1)
@@ -144,8 +150,12 @@ class OverflowDbDriverIntTest {
 
         @Test
         fun findMethodRefVertex() {
-            val v1 = MethodRefVertex(STRING_1, STRING_2, STRING_1, INT_1, INT_1, INT_1, INT_1)
-            val v2 = MethodRefVertex(STRING_2, STRING_1, STRING_1, INT_1, INT_1, INT_1, INT_1)
+            val v1 = NewMethodRefBuilder().methodinstfullname(Option.apply(STRING_1)).methodfullname(STRING_2)
+                .code(STRING_1).order(INT_1).argumentindex(INT_1).linenumber(Option.apply(INT_1))
+                .columnnumber(Option.apply(INT_1))
+            val v2 = NewMethodRefBuilder().methodinstfullname(Option.apply(STRING_2)).methodfullname(STRING_1)
+                .code(STRING_1).order(INT_1).argumentindex(INT_1).linenumber(Option.apply(INT_1))
+                .columnnumber(Option.apply(INT_1))
             assertFalse(driver.exists(v1))
             assertFalse(driver.exists(v2))
             driver.addVertex(v1)
@@ -158,10 +168,8 @@ class OverflowDbDriverIntTest {
 
         @Test
         fun findTypeVertex() {
-            val v1 =
-                TypeVertex(STRING_1, STRING_2, STRING_2)
-            val v2 =
-                TypeVertex(STRING_2, STRING_1, STRING_2)
+            val v1 = NewTypeBuilder().name(STRING_1).fullname(STRING_2).typedeclfullname(STRING_2)
+            val v2 = NewTypeBuilder().name(STRING_2).fullname(STRING_1).typedeclfullname(STRING_2)
             assertFalse(driver.exists(v1))
             assertFalse(driver.exists(v2))
             driver.addVertex(v1)
@@ -174,8 +182,14 @@ class OverflowDbDriverIntTest {
 
         @Test
         fun findTypeRefVertex() {
-            val v1 = TypeRefVertex(STRING_1, STRING_2, STRING_1, INT_1, INT_1, INT_1, INT_1)
-            val v2 = TypeRefVertex(STRING_2, STRING_1, STRING_1, INT_1, INT_1, INT_1, INT_1)
+            val v1 = NewTypeRefBuilder().typefullname(STRING_1).dynamictypehintfullname(
+                SootToPlumeUtil.createScalaList(STRING_2)
+            ).code(STRING_1).argumentindex(INT_1).order(INT_1).linenumber(Option.apply(INT_1))
+                .columnnumber(Option.apply(INT_1))
+            val v2 = NewTypeRefBuilder().typefullname(STRING_2).dynamictypehintfullname(
+                SootToPlumeUtil.createScalaList(STRING_1)
+            ).code(STRING_1).argumentindex(INT_1).order(INT_1).linenumber(Option.apply(INT_1))
+                .columnnumber(Option.apply(INT_1))
             assertFalse(driver.exists(v1))
             assertFalse(driver.exists(v2))
             driver.addVertex(v1)
@@ -188,8 +202,10 @@ class OverflowDbDriverIntTest {
 
         @Test
         fun findUnknownVertex() {
-            val v1 = UnknownVertex(STRING_1, STRING_2, INT_1, INT_1, INT_1, INT_1)
-            val v2 = UnknownVertex(STRING_2, STRING_1, INT_1, INT_1, INT_1, INT_1)
+            val v1 = NewUnknownBuilder().typefullname(STRING_1).code(STRING_2).order(INT_1).argumentindex(INT_1)
+                .linenumber(Option.apply(INT_1)).columnnumber(Option.apply(INT_1))
+            val v2 = NewUnknownBuilder().typefullname(STRING_2).code(STRING_1).order(INT_1).argumentindex(INT_1)
+                .linenumber(Option.apply(INT_1)).columnnumber(Option.apply(INT_1))
             assertFalse(driver.exists(v1))
             assertFalse(driver.exists(v2))
             driver.addVertex(v1)
@@ -267,23 +283,6 @@ class OverflowDbDriverIntTest {
         }
 
         @Test
-        fun testCapturedByEdgeCreation() {
-            // TODO CAPTURED_BY edges from Local to Binding are not permited. Commenting
-            // out this test for now
-//            assertFalse(
-//                    driver.exists(
-//                            v5,
-//                            v17,
-//                            EdgeLabel.CAPTURED_BY
-//                    )
-//            )
-//            driver.addEdge(v5, v17, EdgeLabel.CAPTURED_BY)
-//            assertTrue(driver.exists(v17))
-//            assertTrue(driver.exists(v5))
-//            assertTrue(driver.exists(v5, v17, EdgeLabel.CAPTURED_BY))
-        }
-
-        @Test
         fun testBindsToEdgeCreation() {
             assertFalse(driver.exists(typeArgumentVertex, typeParameterVertex, EdgeLabel.BINDS_TO))
             driver.addEdge(typeArgumentVertex, typeParameterVertex, EdgeLabel.BINDS_TO)
@@ -350,38 +349,6 @@ class OverflowDbDriverIntTest {
             assertTrue(driver.exists(methodVertex))
             assertTrue(driver.exists(fileVertex))
             assertTrue(driver.exists(methodVertex, fileVertex, EdgeLabel.SOURCE_FILE))
-        }
-    }
-
-    @Nested
-    @DisplayName("Max order tests")
-    inner class MaxOrderTests {
-        @Test
-        fun testMaxOrderOnEmptyGraph() = assertEquals(0, driver.maxOrder())
-
-        @Test
-        fun testMaxOrderOnGraphWithOneVertex() {
-            val v1 = ArrayInitializerVertex(INT_2)
-            driver.addVertex(v1)
-            assertEquals(INT_2, driver.maxOrder())
-        }
-
-        @Test
-        fun testMaxOrderOnGraphWithMoreThanOneVertex() {
-            val v1 = ArrayInitializerVertex(INT_2)
-            val v2 = MetaDataVertex(STRING_1, STRING_2)
-            driver.addVertex(v1)
-            driver.addVertex(v2)
-            assertEquals(INT_2, driver.maxOrder())
-        }
-
-        @Test
-        fun testMaxOrderOnGraphWithNoAstVertex() {
-            val v1 = BindingVertex(STRING_1, STRING_2)
-            val v2 = MetaDataVertex(STRING_1, STRING_2)
-            driver.addVertex(v1)
-            driver.addVertex(v2)
-            assertEquals(0, driver.maxOrder())
         }
     }
 
@@ -462,7 +429,7 @@ class OverflowDbDriverIntTest {
         @Test
         fun testGetEmptyMethodBody() {
             driver.clearGraph()
-            val plumeGraph = driver.getMethod(methodVertex.fullName, methodVertex.signature)
+            val plumeGraph = driver.getMethod(methodVertex.build().fullName(), methodVertex.build().signature())
             assertEquals("PlumeGraph(vertices:0, edges:0)", plumeGraph.toString())
             val graphVertices = plumeGraph.vertices()
             assertEquals(0, graphVertices.size)
@@ -470,7 +437,7 @@ class OverflowDbDriverIntTest {
 
         @Test
         fun testGetMethodHeadOnly() {
-            val plumeGraph = driver.getMethod(methodVertex.fullName, methodVertex.signature, false)
+            val plumeGraph = driver.getMethod(methodVertex.build().fullName(), methodVertex.build().signature(), false)
             assertEquals("PlumeGraph(vertices:6, edges:5)", plumeGraph.toString())
             val graphVertices = plumeGraph.vertices()
             assertEquals(6, graphVertices.size)
@@ -495,7 +462,7 @@ class OverflowDbDriverIntTest {
 
         @Test
         fun testGetMethodBody() {
-            val plumeGraph = driver.getMethod(methodVertex.fullName, methodVertex.signature, true)
+            val plumeGraph = driver.getMethod(methodVertex.build().fullName(), methodVertex.build().signature(), true)
             assertEquals("PlumeGraph(vertices:15, edges:26)", plumeGraph.toString())
             val graphVertices = plumeGraph.vertices()
             assertEquals(15, graphVertices.size)
@@ -616,7 +583,7 @@ class OverflowDbDriverIntTest {
         @Test
         fun testMethodDelete() {
             assertTrue(driver.exists(methodVertex))
-            driver.deleteMethod(methodVertex.fullName, methodVertex.signature)
+            driver.deleteMethod(methodVertex.build().fullName(), methodVertex.build().signature())
             assertFalse(driver.exists(methodVertex))
             assertFalse(driver.exists(literalVertex))
             assertFalse(driver.exists(returnVertex))
@@ -625,7 +592,7 @@ class OverflowDbDriverIntTest {
             assertFalse(driver.exists(blockVertex))
             assertFalse(driver.exists(callVertex))
             // Check that deleting a method doesn't throw any error
-            driver.deleteMethod(methodVertex.fullName, methodVertex.signature)
+            driver.deleteMethod(methodVertex.build().fullName(), methodVertex.build().signature())
         }
     }
 }

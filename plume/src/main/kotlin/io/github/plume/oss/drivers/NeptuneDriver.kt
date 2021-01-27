@@ -1,20 +1,19 @@
 package io.github.plume.oss.drivers
 
+import io.shiftleft.codepropertygraph.generated.nodes.NewNodeBuilder
 import org.apache.logging.log4j.LogManager
 import org.apache.tinkerpop.gremlin.driver.Cluster
 import org.apache.tinkerpop.gremlin.driver.remote.DriverRemoteConnection
 import org.apache.tinkerpop.gremlin.process.traversal.AnonymousTraversalSource.traversal
-import org.apache.tinkerpop.gremlin.process.traversal.dsl.graph.GraphTraversal
 import org.apache.tinkerpop.gremlin.structure.Graph
+import org.apache.tinkerpop.gremlin.structure.T
 import org.apache.tinkerpop.gremlin.structure.Vertex
-import io.github.plume.oss.domain.mappers.VertexMapper.vertexToMap
-import io.github.plume.oss.domain.models.PlumeVertex
 
 
 /**
  * The driver used to connect to a remote Amazon Neptune instance.
  */
-class NeptuneDriver : GremlinDriver() {
+class NeptuneDriver : GremlinOverriddenIdDriver() {
     private val logger = LogManager.getLogger(NeptuneDriver::class.java)
 
     private val builder: Cluster.Builder = Cluster.build()
@@ -57,7 +56,7 @@ class NeptuneDriver : GremlinDriver() {
     override fun connect() {
         require(!connected) { "Please close the graph before trying to make another connection." }
         cluster = builder.create()
-        super.setTraversalSource(traversal().withRemote(DriverRemoteConnection.using(cluster)))
+        super.g = traversal().withRemote(DriverRemoteConnection.using(cluster))
         graph = g.graph
         connected = true
     }
@@ -77,22 +76,16 @@ class NeptuneDriver : GremlinDriver() {
         }
     }
 
-    override fun findVertexTraversal(v: PlumeVertex): GraphTraversal<Vertex, Vertex> =
-            g.V().has(v.javaClass.getDeclaredField("LABEL").get(v).toString(), "id", v.hashCode().toString())
-
     /**
-     * Given a [PlumeVertex], creates a [Vertex] and translates the object's field properties to key-value
+     * Given a [NewNodeBuilder], creates a [Vertex] and translates the object's field properties to key-value
      * pairs on the [Vertex] object. This is then added to this driver's [Graph].
      *
-     * @param v the [PlumeVertex] to translate into a [Vertex].
+     * @param v the [NewNodeBuilder] to translate into a [Vertex].
      * @return the newly created [Vertex].
      */
-    override fun createVertex(v: PlumeVertex): Vertex {
-        val propertyMap = vertexToMap(v)
-        // Get the implementing class label parameter
-        val label = propertyMap.remove("label") as String?
-        // Get the implementing classes fields and values
-        var traversalPointer = g.addV(label).property("id", v.hashCode().toString())
+    override fun createVertex(v: NewNodeBuilder): Vertex {
+        val propertyMap = prepareVertexProperties(v)
+        var traversalPointer = g.addV(v.build().label()).property(T.id, v.id())
         for ((key, value) in propertyMap) traversalPointer = traversalPointer.property(key, value)
         return traversalPointer.next()
     }

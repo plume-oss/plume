@@ -19,3 +19,6 @@ gradle-app.setting
 .classpath
 /src/test/resources/conf/SFSRootCAG2.pem
 /sootOutput/
+/plume/build/
+/plume/sootOutput/
+/testing/build/

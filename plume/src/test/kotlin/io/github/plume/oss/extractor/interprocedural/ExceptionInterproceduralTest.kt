@@ -1,19 +1,24 @@
 package io.github.plume.oss.extractor.interprocedural
 
-import org.junit.jupiter.api.*
-import org.junit.jupiter.api.Assertions.assertEquals
-import org.junit.jupiter.api.Assertions.assertNotNull
 import io.github.plume.oss.Extractor
 import io.github.plume.oss.domain.enums.EdgeLabel
 import io.github.plume.oss.domain.models.PlumeGraph
-import io.github.plume.oss.domain.models.vertices.BlockVertex
-import io.github.plume.oss.domain.models.vertices.CallVertex
-import io.github.plume.oss.domain.models.vertices.LiteralVertex
-import io.github.plume.oss.domain.models.vertices.LocalVertex
 import io.github.plume.oss.drivers.DriverFactory
 import io.github.plume.oss.drivers.GraphDatabase
 import io.github.plume.oss.drivers.TinkerGraphDriver
+import io.github.plume.oss.graphio.GraphMLWriter
+import io.shiftleft.codepropertygraph.generated.nodes.NewBlockBuilder
+import io.shiftleft.codepropertygraph.generated.nodes.NewCallBuilder
+import io.shiftleft.codepropertygraph.generated.nodes.NewLiteralBuilder
+import io.shiftleft.codepropertygraph.generated.nodes.NewLocalBuilder
+import org.junit.jupiter.api.AfterEach
+import org.junit.jupiter.api.Assertions.assertEquals
+import org.junit.jupiter.api.Assertions.assertNotNull
+import org.junit.jupiter.api.BeforeEach
+import org.junit.jupiter.api.Test
+import org.junit.jupiter.api.TestInfo
 import java.io.File
+import java.io.FileWriter
 import java.io.IOException
 
 class ExceptionInterproceduralTest {
@@ -25,7 +30,7 @@ class ExceptionInterproceduralTest {
 
         init {
             val testFileUrl = ExceptionInterproceduralTest::class.java.classLoader.getResource(TEST_PATH)
-                    ?: throw NullPointerException("Unable to obtain test resource")
+                ?: throw NullPointerException("Unable to obtain test resource")
             PATH = File(testFileUrl.file)
         }
     }
@@ -41,7 +46,11 @@ class ExceptionInterproceduralTest {
         val f = File(resourceDir)
         extractor.load(f)
         extractor.project()
-        graph = driver.getMethod("intraprocedural.exception.Exception$currentTestNumber.main", "void main(java.lang.String[])")
+        graph = driver.getMethod(
+            "intraprocedural.exception.Exception$currentTestNumber.main",
+            "void main(java.lang.String[])",
+            includeBody = true
+        )
     }
 
     @AfterEach
@@ -52,38 +61,47 @@ class ExceptionInterproceduralTest {
     @Test
     fun exception1Test() {
         val vertices = graph.vertices()
-        val localV = vertices.filterIsInstance<LocalVertex>()
-
-        val mtdV = vertices.filterIsInstance<BlockVertex>().firstOrNull()?.apply { assertNotNull(this) }
-        assertNotNull(localV.firstOrNull { it.name == "e" && it.typeFullName == "java.lang.Exception" })
-        assertNotNull(localV.firstOrNull { it.name == "a" && it.typeFullName == "int" })
-        assertNotNull(localV.firstOrNull { it.name == "\$stack4" && it.typeFullName == "java.lang.Exception" })
-        assertNotNull(localV.firstOrNull { it.name == "e#3" && it.typeFullName == "int" })
+        val localV = vertices.filterIsInstance<NewLocalBuilder>()
+        val mtdV = vertices.filterIsInstance<NewBlockBuilder>().firstOrNull()?.apply { assertNotNull(this) }
+        assertNotNull(localV.firstOrNull {
+            it.build().name() == "e" && it.build().typeFullName() == "java.lang.Exception"
+        })
+        assertNotNull(localV.firstOrNull { it.build().name() == "a" && it.build().typeFullName() == "int" })
+        assertNotNull(localV.firstOrNull {
+            it.build().name() == "\$stack4" && it.build().typeFullName() == "java.lang.Exception"
+        })
+        assertNotNull(localV.firstOrNull { it.build().name() == "e#3" && it.build().typeFullName() == "int" })
         assertEquals(2, graph.edgesOut(mtdV!!)[EdgeLabel.CFG]?.size)
 
-        val parseIntCall = vertices.filterIsInstance<CallVertex>().filter { it.name == "parseInt" }
-                .apply { assertEquals(1, this.size) }.firstOrNull().apply { assertNotNull(this) }
+        val parseIntCall = vertices.filterIsInstance<NewCallBuilder>().filter { it.build().name() == "parseInt" }
+            .apply { assertEquals(1, this.size) }.firstOrNull().apply { assertNotNull(this) }
         parseIntCall!!
-        graph.edgesOut(parseIntCall)[EdgeLabel.AST]?.filterIsInstance<LiteralVertex>()?.firstOrNull()?.let { assertEquals("\"2\"", it.code) }
+        graph.edgesOut(parseIntCall)[EdgeLabel.AST]?.filterIsInstance<NewLiteralBuilder>()?.firstOrNull()
+            ?.let { assertEquals("\"2\"", it.build().code()) }
     }
 
     @Test
     fun exception2Test() {
         val vertices = graph.vertices()
-        val localV = vertices.filterIsInstance<LocalVertex>()
+        val localV = vertices.filterIsInstance<NewLocalBuilder>()
 
-        val mtdV = vertices.filterIsInstance<BlockVertex>().firstOrNull()?.apply { assertNotNull(this) }
-        assertNotNull(localV.firstOrNull { it.name == "e" && it.typeFullName == "java.lang.Exception" })
-        assertNotNull(localV.firstOrNull { it.name == "a" && it.typeFullName == "int" })
-        assertNotNull(localV.firstOrNull { it.name == "\$stack5" && it.typeFullName == "java.lang.Exception" })
-        assertNotNull(localV.firstOrNull { it.name == "e#3" && it.typeFullName == "int" })
-        assertNotNull(localV.firstOrNull { it.name == "b" && it.typeFullName == "byte" })
+        val mtdV = vertices.filterIsInstance<NewBlockBuilder>().firstOrNull()?.apply { assertNotNull(this) }
+        assertNotNull(localV.firstOrNull {
+            it.build().name() == "e" && it.build().typeFullName() == "java.lang.Exception"
+        })
+        assertNotNull(localV.firstOrNull { it.build().name() == "a" && it.build().typeFullName() == "int" })
+        assertNotNull(localV.firstOrNull {
+            it.build().name() == "\$stack5" && it.build().typeFullName() == "java.lang.Exception"
+        })
+        assertNotNull(localV.firstOrNull { it.build().name() == "e#3" && it.build().typeFullName() == "int" })
+        assertNotNull(localV.firstOrNull { it.build().name() == "b" && it.build().typeFullName() == "byte" })
         assertEquals(2, graph.edgesOut(mtdV!!)[EdgeLabel.CFG]?.size)
 
-        val parseIntCall = vertices.filterIsInstance<CallVertex>().filter { it.name == "parseInt" }
-                .apply { assertEquals(1, this.size) }.firstOrNull().apply { assertNotNull(this) }
+        val parseIntCall = vertices.filterIsInstance<NewCallBuilder>().filter { it.build().name() == "parseInt" }
+            .apply { assertEquals(1, this.size) }.firstOrNull().apply { assertNotNull(this) }
         parseIntCall!!
-        graph.edgesOut(parseIntCall)[EdgeLabel.AST]?.filterIsInstance<LiteralVertex>()?.firstOrNull()?.let { assertEquals("\"2\"", it.code) }
+        graph.edgesOut(parseIntCall)[EdgeLabel.AST]?.filterIsInstance<NewLiteralBuilder>()?.firstOrNull()
+            ?.let { assertEquals("\"2\"", it.build().code()) }
     }
 
 }

@@ -1,16 +1,16 @@
 package io.github.plume.oss.extractor
 
+import io.github.plume.oss.Extractor
+import io.github.plume.oss.drivers.DriverFactory
+import io.github.plume.oss.drivers.GraphDatabase
+import io.github.plume.oss.drivers.OverflowDbDriver
+import io.shiftleft.codepropertygraph.generated.nodes.*
 import org.junit.jupiter.api.AfterEach
 import org.junit.jupiter.api.Assertions
 import org.junit.jupiter.api.Assertions.assertEquals
 import org.junit.jupiter.api.Assertions.assertNotNull
 import org.junit.jupiter.api.BeforeAll
 import org.junit.jupiter.api.Test
-import io.github.plume.oss.Extractor
-import io.github.plume.oss.domain.models.vertices.*
-import io.github.plume.oss.drivers.DriverFactory
-import io.github.plume.oss.drivers.GraphDatabase
-import io.github.plume.oss.drivers.OverflowDbDriver
 import java.io.File
 
 class BasicExtractorTest {
@@ -51,16 +51,18 @@ class BasicExtractorTest {
         extractor.project()
         val graph = driver.getWholeGraph()
         val vertices = graph.vertices()
-        assertNotNull(vertices.filterIsInstance<NamespaceBlockVertex>().find { it.name == "extractor_tests" })
-        vertices.filterIsInstance<FileVertex>().find { it.name == "extractor_tests.Test1" }.let { assertNotNull(it) }
-        vertices.filterIsInstance<MethodVertex>().find { it.name == "main" }.let { assertNotNull(it) }
-        vertices.filterIsInstance<LocalVertex>().find { it.name == "a" }
-            .let { assertNotNull(it); assertEquals("byte", it!!.typeFullName) }
-        vertices.filterIsInstance<LocalVertex>().find { it.name == "b" }
-            .let { assertNotNull(it); assertEquals("byte", it!!.typeFullName) }
-        vertices.filterIsInstance<LocalVertex>().find { it.name == "c" }
-            .let { assertNotNull(it); assertEquals("int", it!!.typeFullName) }
-        vertices.filterIsInstance<CallVertex>().find { it.name == "ADD" }.let { assertNotNull(it) }
+        assertNotNull(
+            vertices.filterIsInstance<NewNamespaceBlockBuilder>().find { it.build().name() == "extractor_tests" })
+        vertices.filterIsInstance<NewFileBuilder>().find { it.build().name() == "extractor_tests.Test1" }
+            .let { assertNotNull(it) }
+        vertices.filterIsInstance<NewMethodBuilder>().find { it.build().name() == "main" }.let { assertNotNull(it) }
+        vertices.filterIsInstance<NewLocalBuilder>().find { it.build().name() == "a" }
+            .let { assertNotNull(it); assertEquals("byte", it!!.build().typeFullName()) }
+        vertices.filterIsInstance<NewLocalBuilder>().find { it.build().name() == "b" }
+            .let { assertNotNull(it); assertEquals("byte", it!!.build().typeFullName()) }
+        vertices.filterIsInstance<NewLocalBuilder>().find { it.build().name() == "c" }
+            .let { assertNotNull(it); assertEquals("int", it!!.build().typeFullName()) }
+        vertices.filterIsInstance<NewCallBuilder>().find { it.build().name() == "ADD" }.let { assertNotNull(it) }
     }
 
     @Test
@@ -69,16 +71,18 @@ class BasicExtractorTest {
         extractor.project()
         val graph = driver.getWholeGraph()
         val vertices = graph.vertices()
-        assertNotNull(vertices.filterIsInstance<NamespaceBlockVertex>().find { it.name == "extractor_tests" })
-        vertices.filterIsInstance<FileVertex>().find { it.name == "extractor_tests.Test2" }.let { assertNotNull(it) }
-        vertices.filterIsInstance<MethodVertex>().find { it.name == "main" }.let { assertNotNull(it) }
-        vertices.filterIsInstance<LocalVertex>().find { it.name == "l1" }
-            .let { assertNotNull(it); assertEquals("byte", it!!.typeFullName) }
-        vertices.filterIsInstance<LocalVertex>().find { it.name == "l2" }
-            .let { assertNotNull(it); assertEquals("byte", it!!.typeFullName) }
-        vertices.filterIsInstance<LocalVertex>().find { it.name == "l3" }
-            .let { assertNotNull(it); assertEquals("int", it!!.typeFullName) }
-        vertices.filterIsInstance<CallVertex>().find { it.name == "ADD" }.let { assertNotNull(it) }
+        assertNotNull(
+            vertices.filterIsInstance<NewNamespaceBlockBuilder>().find { it.build().name() == "extractor_tests" })
+        vertices.filterIsInstance<NewFileBuilder>().find { it.build().name() == "extractor_tests.Test2" }
+            .let { assertNotNull(it) }
+        vertices.filterIsInstance<NewMethodBuilder>().find { it.build().name() == "main" }.let { assertNotNull(it) }
+        vertices.filterIsInstance<NewLocalBuilder>().find { it.build().name() == "l1" }
+            .let { assertNotNull(it); assertEquals("byte", it!!.build().typeFullName()) }
+        vertices.filterIsInstance<NewLocalBuilder>().find { it.build().name() == "l2" }
+            .let { assertNotNull(it); assertEquals("byte", it!!.build().typeFullName()) }
+        vertices.filterIsInstance<NewLocalBuilder>().find { it.build().name() == "l3" }
+            .let { assertNotNull(it); assertEquals("int", it!!.build().typeFullName()) }
+        vertices.filterIsInstance<NewCallBuilder>().find { it.build().name() == "ADD" }.let { assertNotNull(it) }
     }
 
     @Test
@@ -87,14 +91,14 @@ class BasicExtractorTest {
         extractor.project()
         val graph = driver.getProgramStructure()
         val vertices = graph.vertices()
-        vertices.filterIsInstance<FileVertex>().let { fileList ->
-            assertNotNull(fileList.firstOrNull { it.name == "extractor_tests.dir_test.Dir1" })
-            assertNotNull(fileList.firstOrNull { it.name == "extractor_tests.dir_test.pack.Dir2" })
+        vertices.filterIsInstance<NewFileBuilder>().let { fileList ->
+            assertNotNull(fileList.firstOrNull { it.build().name() == "extractor_tests.dir_test.Dir1" })
+            assertNotNull(fileList.firstOrNull { it.build().name() == "extractor_tests.dir_test.pack.Dir2" })
         }
-        vertices.filterIsInstance<NamespaceBlockVertex>().let { fileList ->
-            assertNotNull(fileList.firstOrNull { it.name == "dir_test" })
-            assertNotNull(fileList.firstOrNull { it.name == "extractor_tests" })
-            assertNotNull(fileList.firstOrNull { it.name == "pack" })
+        vertices.filterIsInstance<NewNamespaceBlockBuilder>().let { fileList ->
+            assertNotNull(fileList.firstOrNull { it.build().name() == "dir_test" })
+            assertNotNull(fileList.firstOrNull { it.build().name() == "extractor_tests" })
+            assertNotNull(fileList.firstOrNull { it.build().name() == "pack" })
         }
     }
 

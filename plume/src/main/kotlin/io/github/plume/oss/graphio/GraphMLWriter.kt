@@ -2,7 +2,8 @@ package io.github.plume.oss.graphio
 
 import io.github.plume.oss.domain.mappers.VertexMapper
 import io.github.plume.oss.domain.models.PlumeGraph
-import io.github.plume.oss.domain.models.PlumeVertex
+import io.shiftleft.codepropertygraph.generated.nodes.NewNodeBuilder
+import scala.jdk.CollectionConverters
 import java.io.OutputStreamWriter
 import java.util.*
 
@@ -44,11 +45,10 @@ object GraphMLWriter {
         }
     }
 
-    private fun writeKeys(fw: OutputStreamWriter, vertices: Set<PlumeVertex>) {
+    private fun writeKeys(fw: OutputStreamWriter, vertices: Set<NewNodeBuilder>) {
         val keySet = HashMap<String, String>()
         vertices.forEach { v ->
-            VertexMapper.vertexToMap(v)
-                .apply { this.remove("label") }
+            CollectionConverters.MapHasAsJava(v.build().properties()).asJava()
                 .forEach { (t, u) ->
                     when (u) {
                         is String -> keySet[t] = "string"
@@ -68,11 +68,12 @@ object GraphMLWriter {
         }
     }
 
-    private fun writeVertices(fw: OutputStreamWriter, vertices: Set<PlumeVertex>) {
+    private fun writeVertices(fw: OutputStreamWriter, vertices: Set<NewNodeBuilder>) {
         vertices.forEach { v ->
             fw.write("<node id=\"${v.hashCode()}\">")
-            VertexMapper.vertexToMap(v)
-                .apply { fw.write("<data key=\"labelV\">${this.remove("label")}</data>") }
+            val builtNode = v.build()
+            CollectionConverters.MapHasAsJava(builtNode.properties()).asJava()
+                .apply { fw.write("<data key=\"labelV\">${builtNode.label()}</data>") }
                 .forEach { (t, u) -> fw.write("<data key=\"$t\">${escape(u)}</data>") }
             fw.write("</node>")
         }

@@ -4,35 +4,35 @@ DROP ALL
 
 ## Basic CPG vertex
 CREATE VERTEX CPG_VERT (
-    PRIMARY_ID id STRING,
+    PRIMARY_ID id UINT,
     label STRING DEFAULT "UNKNOWN",
-    argumentIndex INT DEFAULT -1,
-    dispatchType STRING DEFAULT "STATIC_DISPATCH",
-    evaluationStrategy STRING DEFAULT "BY_REFERENCE",
-    methodFullName STRING DEFAULT "null",
-    methodInstFullName STRING DEFAULT "null",
-    modifierType STRING DEFAULT "null",
-    typeFullName STRING DEFAULT "null",
-    typeDeclFullName STRING DEFAULT "null",
-    dynamicTypeFullName STRING DEFAULT "null",
-    dynamicTypeHintFullName STRING DEFAULT "null",
-    code STRING DEFAULT "null",
-    columnNumber INT DEFAULT -1,
-    lineNumber INT DEFAULT -1,
-    name STRING DEFAULT "null",
-    fullName STRING DEFAULT "null",
-    canonicalName STRING DEFAULT "null",
-    astOrder INT DEFAULT -1,
-    signature STRING DEFAULT "()",
-    hash STRING DEFAULT "null"
-)
+    ARGUMENT_INDEX INT DEFAULT -1,
+    DISPATCH_TYPE STRING DEFAULT "STATIC_DISPATCH",
+    EVALUATION_STRATEGY STRING DEFAULT "BY_REFERENCE",
+    METHOD_FULL_NAME STRING DEFAULT "null",
+    METHOD_INST_FULL_NAME STRING DEFAULT "null",
+    MODIFIER_TYPE STRING DEFAULT "null",
+    TYPE_FULL_NAME STRING DEFAULT "null",
+    TYPE_DECL_FULL_NAME STRING DEFAULT "null", # watch this in type decls, no longer available
+    DYNAMIC_TYPE_FULL_NAME STRING DEFAULT "null", # watch this in type ref and calls
+    DYNAMIC_TYPE_HINT_FULL_NAME STRING DEFAULT "null",
+    CODE STRING DEFAULT "null",
+    COLUMN_NUMBER INT DEFAULT -1,
+    LINE_NUMBER INT DEFAULT -1,
+    NAME STRING DEFAULT "null",
+    FULL_NAME STRING DEFAULT "null",
+    CANONICAL_NAME STRING DEFAULT "null",
+    AST_ORDER INT DEFAULT -1,
+    SIGNATURE STRING DEFAULT "()",
+    HASH STRING DEFAULT "null"
+) WITH primary_id_as_attribute="true"
 ## Language Dependent
 CREATE VERTEX META_DATA_VERT (
-    PRIMARY_ID id INT,
+    PRIMARY_ID id UINT,
     label STRING DEFAULT "META_DATA",
-    language STRING DEFAULT "JAVA",
-    version STRING DEFAULT "1.8"
-)
+    LANGUAGE STRING DEFAULT "JAVA",
+    VERSION STRING DEFAULT "1.8"
+) WITH primary_id_as_attribute="true"
 
 # Edges
 
@@ -49,14 +49,14 @@ CREATE DIRECTED EDGE SOURCE_FILE (FROM CPG_VERT, TO CPG_VERT)
 
 CREATE GRAPH cpg (*)
 
-CREATE QUERY areVerticesJoinedByEdge(VERTEX<CPG_VERT> vFrom, VERTEX<CPG_VERT> vTo, STRING edgeLabel) FOR GRAPH cpg {
+CREATE QUERY areVerticesJoinedByEdge(VERTEX<CPG_VERT> V_FROM, VERTEX<CPG_VERT> V_TO, STRING EDGE_LABEL) FOR GRAPH cpg {
   bool result;
   setFrom = {ANY};
   temp = SELECT tgt
           FROM setFrom:src -(:e)- :tgt
-          WHERE src == vFrom
-            AND tgt == vTo
-            AND e.type == edgeLabel;
+          WHERE src == V_FROM
+            AND tgt == V_TO
+            AND e.type == EDGE_LABEL;
   result = (temp.size() > 0);
   PRINT result;
 }
@@ -71,10 +71,13 @@ CREATE QUERY showAll() FOR GRAPH cpg {
   PRINT @@edges;
 }
 
-CREATE QUERY getMethodHead(VERTEX<CPG_VERT> methodHash) FOR GRAPH cpg {
+CREATE QUERY getMethodHead(STRING FULL_NAME, STRING SIGNATURE) FOR GRAPH cpg {
   SetAccum<EDGE> @@edges;
-  start = {methodHash};
-  allVert = {methodHash};
+  allV = {ANY};
+  start = SELECT src
+          FROM allV:src
+          WHERE src.FULL_NAME == FULL_NAME AND src.SIGNATURE == SIGNATURE;
+  allVert = start;
 
   start = SELECT t
           FROM start:s -(AST:e)-> :t
@@ -85,11 +88,14 @@ CREATE QUERY getMethodHead(VERTEX<CPG_VERT> methodHash) FOR GRAPH cpg {
   PRINT @@edges;
 }
 
-CREATE QUERY getMethod(VERTEX<CPG_VERT> methodHash) FOR GRAPH cpg {
+CREATE QUERY getMethod(STRING FULL_NAME, STRING SIGNATURE) FOR GRAPH cpg {
   SetAccum<EDGE> @@edges;
   OrAccum @visited;
-  start = {methodHash};
-  allVert = {methodHash};
+  allV = {ANY};
+  start = SELECT src
+          FROM allV:src
+          WHERE src.FULL_NAME == FULL_NAME AND src.SIGNATURE == SIGNATURE;
+  allVert = start;
 
   WHILE start.size() > 0 DO
 	  start = SELECT t
@@ -132,17 +138,17 @@ CREATE QUERY getProgramStructure() FOR GRAPH cpg {
   PRINT @@edges;
 }
 
-CREATE QUERY getNeighbours(VERTEX<CPG_VERT> source) FOR GRAPH cpg {
+CREATE QUERY getNeighbours(VERTEX<CPG_VERT> SOURCE) FOR GRAPH cpg {
   SetAccum<EDGE> @@edges;
   seed = {CPG_VERT.*};
-  sourceSet = {source};
+  sourceSet = {SOURCE};
   outVert = SELECT tgt
             FROM seed:src -(:e)- CPG_VERT:tgt
-            WHERE src == source
+            WHERE src == SOURCE
             ACCUM @@edges += e;
   inVert = SELECT src
             FROM seed:src -(:e)- CPG_VERT:tgt
-            WHERE tgt == source
+            WHERE tgt == SOURCE
             ACCUM @@edges += e;
   allVert = inVert UNION outVert;
   allVert = allVert UNION sourceSet;
@@ -151,11 +157,14 @@ CREATE QUERY getNeighbours(VERTEX<CPG_VERT> source) FOR GRAPH cpg {
   PRINT @@edges;
 }
 
-CREATE QUERY deleteMethod(VERTEX<CPG_VERT> methodHash) FOR GRAPH cpg {
+CREATE QUERY deleteMethod(STRING FULL_NAME, STRING SIGNATURE) FOR GRAPH cpg {
   SetAccum<EDGE> @@edges;
   OrAccum @visited;
-  start = {methodHash};
-  allVert = {methodHash};
+  allV = {ANY};
+  start = SELECT src
+          FROM allV:src
+          WHERE src.FULL_NAME == FULL_NAME AND src.SIGNATURE == SIGNATURE;
+  allVert = start;
 
   WHILE start.size() > 0 DO
 	  start = SELECT t
@@ -168,14 +177,19 @@ CREATE QUERY deleteMethod(VERTEX<CPG_VERT> methodHash) FOR GRAPH cpg {
   DELETE s FROM allVert:s;
 }
 
-CREATE QUERY maxOrder() FOR GRAPH cpg {
-  MaxAccum<INT> @@maxAstOrder;
-  @@maxAstOrder += 0;
+CREATE QUERY getVertexIds(INT LOWER_BOUND, INT UPPER_BOUND) FOR GRAPH cpg {
+  SetAccum<INT> @@ids;
   start = {ANY};
-  result = SELECT s
-           FROM start:s
-           ACCUM @@maxAstOrder += s.astOrder;
-  PRINT @@maxAstOrder;
+  result = SELECT src
+      FROM start:src
+      WHERE src.id >= LOWER_BOUND AND src.id <= UPPER_BOUND
+      ACCUM @@ids += src.id;
+  PRINT @@ids;
+}
+
+CREATE QUERY status() FOR GRAPH cpg {
+  INT status = 0;
+  PRINT status;
 }
 
 INSTALL QUERY ALL
