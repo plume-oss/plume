@@ -20,3 +20,5 @@ gradle-app.setting
 /src/test/resources/conf/SFSRootCAG2.pem
 /sootOutput/
 /plume/build/
+/plume/sootOutput/
+/testing/sootOutput/

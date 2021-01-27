@@ -68,9 +68,9 @@ class ArithmeticTest {
         val div = vertices.filterIsInstance<NewCallBuilder>().find { it.build().name() == "DIV" }
             .apply { assertNotNull(this) }
         add!!; mul!!; sub!!; div!!
-        assertTrue(add.build().order() < sub.build().order())
-        assertTrue(sub.build().order() < mul.build().order())
-        assertTrue(mul.build().order() < div.build().order())
+        assertTrue(add.id() < sub.id())
+        assertTrue(sub.id() < mul.id())
+        assertTrue(mul.id() < div.id())
     }
 
     @Test
@@ -84,7 +84,7 @@ class ArithmeticTest {
         val mul = vertices.filterIsInstance<NewCallBuilder>().find { it.build().name() == "MUL" }
             .apply { assertNotNull(this) }
         add!!; mul!!
-        assertTrue(mul.build().order() < add.build().order())
+        assertTrue(mul.id() < add.id())
     }
 
     @Test
@@ -100,8 +100,8 @@ class ArithmeticTest {
         val sub = vertices.filterIsInstance<NewCallBuilder>().find { it.build().name() == "SUB" }
             .apply { assertNotNull(this) }
         add!!; mul!!; sub!!
-        assertTrue(mul.build().order() < add.build().order())
-        assertTrue(add.build().order() < sub.build().order())
+        assertTrue(mul.id() < add.id())
+        assertTrue(add.id() < sub.id())
     }
 
     @Test
@@ -137,10 +137,10 @@ class ArithmeticTest {
         val rem = vertices.filterIsInstance<NewCallBuilder>().find { it.build().name() == "REM" }
             .apply { assertNotNull(this) }
         and!!; or!!; shl!!; shr!!; rem!!
-        assertTrue(and.build().order() < or.build().order())
-        assertTrue(or.build().order() < shl.build().order())
-        assertTrue(shl.build().order() < shr.build().order())
-        assertTrue(shr.build().order() < rem.build().order())
+        assertTrue(and.id() < or.id())
+        assertTrue(or.id() < shl.id())
+        assertTrue(shl.id() < shr.id())
+        assertTrue(shr.id() < rem.id())
     }
 
     @Test
@@ -155,7 +155,7 @@ class ArithmeticTest {
         val ushr = vertices.filterIsInstance<NewCallBuilder>().find { it.build().name() == "USHR" }
             .apply { assertNotNull(this) }
         xor!!; ushr!!
-        assertTrue(xor.build().order() < ushr.build().order())
+        assertTrue(xor.id() < ushr.id())
     }
 
     @Test

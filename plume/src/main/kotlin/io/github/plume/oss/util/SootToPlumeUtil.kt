@@ -32,7 +32,7 @@ import soot.jimple.NewExpr
 import soot.toolkits.graph.BriefUnitGraph
 
 /**
- * A utility class of methods to convert Soot objects to [PlumeVertex] items and construct pieces of the CPG.
+ * A utility class of methods to convert Soot objects to [NewNodeBuilder] items and construct pieces of the CPG.
  */
 object SootToPlumeUtil {
 
@@ -169,6 +169,7 @@ object SootToPlumeUtil {
                 .evaluationstrategy(determineEvaluationStrategy(type.toString(), isMethodReturn = false).name)
                 .typefullname(type.toString())
                 .linenumber(Option.apply(mtd.javaSourceStartLineNumber))
+                .columnnumber(Option.apply(mtd.javaSourceStartColumnNumber))
                 .order(childIdx++)
                 .apply { driver.addEdge(mtdVertex, this, EdgeLabel.AST); addSootToPlumeAssociation(mtd, this) }
         }
@@ -234,10 +235,14 @@ object SootToPlumeUtil {
      * @return The final [NewNamespace] in the chain (the one associated with the file).
      */
     private fun populateNamespaceChain(namespaceList: Array<String>, driver: IDriver): NewNamespaceBlockBuilder {
-        var prevNamespaceBlock = NewNamespaceBlockBuilder()
-            .name(namespaceList[0])
-            .fullname(namespaceList[0])
-            .order(0)
+        val programStructure = driver.getProgramStructure()
+        var prevNamespaceBlock =
+            programStructure.vertices().filterIsInstance<NewNamespaceBlockBuilder>().map { Pair(it, it.build()) }
+                .firstOrNull { it.second.fullName() == namespaceList[0] && it.second.name() == namespaceList[0] }?.first
+                ?: NewNamespaceBlockBuilder()
+                    .name(namespaceList[0])
+                    .fullname(namespaceList[0])
+                    .order(0)
         if (namespaceList.size == 1) return prevNamespaceBlock
 
         var currNamespaceBlock: NewNamespaceBlockBuilder? = null
@@ -245,12 +250,17 @@ object SootToPlumeUtil {
         for (i in 1 until namespaceList.size) {
             namespaceBuilder.append("." + namespaceList[i])
             val order = driver.getNeighbours(prevNamespaceBlock).edgesOut(prevNamespaceBlock).size
-            currNamespaceBlock = NewNamespaceBlockBuilder()
-                .name(namespaceList[i])
-                .fullname(namespaceBuilder.toString())
-                .order(order)
-            driver.addEdge(currNamespaceBlock, prevNamespaceBlock, EdgeLabel.AST)
-            prevNamespaceBlock = currNamespaceBlock
+            currNamespaceBlock =
+                programStructure.vertices().filterIsInstance<NewNamespaceBlockBuilder>().map { Pair(it, it.build()) }
+                    .firstOrNull { it.second.fullName() == namespaceBuilder.toString() && it.second.name() == namespaceList[i] }?.first
+                    ?: NewNamespaceBlockBuilder()
+                        .name(namespaceList[i])
+                        .fullname(namespaceBuilder.toString())
+                        .order(order)
+            if (currNamespaceBlock != null) {
+                driver.addEdge(currNamespaceBlock, prevNamespaceBlock, EdgeLabel.AST)
+                prevNamespaceBlock = currNamespaceBlock
+            }
         }
         return currNamespaceBlock ?: prevNamespaceBlock
     }

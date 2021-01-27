@@ -6,6 +6,7 @@ import io.github.plume.oss.domain.models.PlumeGraph
 import io.github.plume.oss.drivers.DriverFactory
 import io.github.plume.oss.drivers.GraphDatabase
 import io.github.plume.oss.drivers.TinkerGraphDriver
+import io.github.plume.oss.graphio.GraphMLWriter
 import io.shiftleft.codepropertygraph.generated.nodes.NewBlockBuilder
 import io.shiftleft.codepropertygraph.generated.nodes.NewCallBuilder
 import io.shiftleft.codepropertygraph.generated.nodes.NewLiteralBuilder
@@ -17,6 +18,7 @@ import org.junit.jupiter.api.BeforeEach
 import org.junit.jupiter.api.Test
 import org.junit.jupiter.api.TestInfo
 import java.io.File
+import java.io.FileWriter
 import java.io.IOException
 
 class ExceptionInterproceduralTest {
@@ -46,7 +48,8 @@ class ExceptionInterproceduralTest {
         extractor.project()
         graph = driver.getMethod(
             "intraprocedural.exception.Exception$currentTestNumber.main",
-            "void main(java.lang.String[])"
+            "void main(java.lang.String[])",
+            includeBody = true
         )
     }
 
@@ -59,7 +62,6 @@ class ExceptionInterproceduralTest {
     fun exception1Test() {
         val vertices = graph.vertices()
         val localV = vertices.filterIsInstance<NewLocalBuilder>()
-
         val mtdV = vertices.filterIsInstance<NewBlockBuilder>().firstOrNull()?.apply { assertNotNull(this) }
         assertNotNull(localV.firstOrNull {
             it.build().name() == "e" && it.build().typeFullName() == "java.lang.Exception"

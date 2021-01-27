@@ -9,7 +9,6 @@ import io.github.plume.oss.domain.models.PlumeGraph
 import io.github.plume.oss.util.PlumeKeyProvider
 import io.shiftleft.codepropertygraph.generated.nodes.NewMetaDataBuilder
 import io.shiftleft.codepropertygraph.generated.nodes.NewNodeBuilder
-import io.shiftleft.codepropertygraph.generated.nodes.NewUnknownBuilder
 import org.apache.logging.log4j.LogManager
 import org.apache.tinkerpop.shaded.jackson.databind.ObjectMapper
 import org.json.JSONArray
@@ -17,8 +16,6 @@ import org.json.JSONObject
 import scala.jdk.CollectionConverters
 import java.io.IOException
 import java.lang.Thread.sleep
-import java.util.*
-import kotlin.collections.HashMap
 
 /**
  * The driver used to connect to a remote TigerGraph instance.
@@ -177,25 +174,9 @@ class TigerGraphDriver : IOverridenIdDriver {
     }
 
     private fun extractAttributesFromMap(propertyMap: MutableMap<String, Any>): MutableMap<String, Any> {
-        val attributes = mutableMapOf<String, Any>()
-        propertyMap.computeIfPresent("DYNAMIC_TYPE_HINT_FULL_NAME") { _, value ->
-            when (value) {
-                is scala.collection.immutable.`$colon$colon`<*> -> value.head()
-                else -> value
-            }
-        }
-        propertyMap.forEach {
-            val key: Optional<String> = when (it.key) {
-                "ORDER" -> Optional.of("AST_ORDER")
-                "PARSER_TYPE_NAME" -> Optional.empty()
-                "AST_PARENT_TYPE" -> Optional.empty()
-                "AST_PARENT_FULL_NAME" -> Optional.empty()
-                "FILENAME" -> Optional.empty()
-                "IS_EXTERNAL" -> Optional.empty()
-                else -> Optional.of(it.key)
-            }
-            if (key.isPresent) attributes[key.get()] = mapOf("value" to it.value)
-        }
+        val attributes = VertexMapper.extractAttributesFromMap(propertyMap)
+        if (attributes.containsKey("ORDER")) attributes["AST_ORDER"] = attributes.remove("ORDER") as Any
+        attributes.forEach { attributes[it.key] = mapOf("value" to it.value) }
         return attributes
     }
 

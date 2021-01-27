@@ -189,7 +189,7 @@ CREATE QUERY getVertexIds(INT LOWER_BOUND, INT UPPER_BOUND) FOR GRAPH cpg {
 
 CREATE QUERY status() FOR GRAPH cpg {
   INT status = 0;
-  RETURN status;
+  PRINT status;
 }
 
 INSTALL QUERY ALL

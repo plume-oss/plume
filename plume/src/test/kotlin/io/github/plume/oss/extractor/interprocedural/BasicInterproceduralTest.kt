@@ -119,6 +119,7 @@ class BasicInterproceduralTest {
     @Test
     fun basicCall4Test() {
         val vertices = graph.vertices()
+        driver.exportGraph("/tmp/plume/text.xml")
         vertices.filterIsInstance<NewTypeRefBuilder>()
             .find { it.build().typeFullName() == "interprocedural.basic.Basic4" }
             ?.let { trv ->
@@ -148,9 +149,9 @@ class BasicInterproceduralTest {
         graph.edgesOut(initMethod)[EdgeLabel.REF]?.filterIsInstance<NewMethodBuilder>()?.firstOrNull()
             ?.apply { assertNotNull(this); assertEquals(initMethod.build().name(), this.build().name()) }
         graph.edgesOut(fCall)[EdgeLabel.REF]?.contains(fMethod)?.let { assertTrue(it) }
-        graph.edgesOut(fCall)[EdgeLabel.ARGUMENT]?.filterIsInstance<NewLiteral>()?.let { lv ->
-            assertTrue(lv.any { it.code() == "5" })
-            assertTrue(lv.any { it.code() == "6" })
+        graph.edgesOut(fCall)[EdgeLabel.ARGUMENT]?.filterIsInstance<NewLiteralBuilder>()?.let { lv ->
+            assertTrue(lv.any { it.build().code() == "5" })
+            assertTrue(lv.any { it.build().code() == "6" })
         }
         graph.edgesOut(fMethod)[EdgeLabel.AST]?.filterIsInstance<NewMethodParameterInBuilder>()?.let { mpv ->
             assertTrue(mpv.any { it.build().name() == "i" })
@@ -190,9 +191,9 @@ class BasicInterproceduralTest {
         graph.edgesOut(initMethod)[EdgeLabel.REF]?.filterIsInstance<NewMethodBuilder>()?.firstOrNull()
             ?.apply { assertNotNull(this); assertEquals(initMethod.build().name(), this.build().name()) }
         graph.edgesOut(fCall)[EdgeLabel.REF]?.contains(fMethod)?.let { assertTrue(it) }
-        graph.edgesOut(fCall)[EdgeLabel.ARGUMENT]?.filterIsInstance<NewLiteral>()?.let { lv ->
-            assertTrue(lv.any { it.code() == "\"Test\"" })
-            assertTrue(lv.any { it.code() == "\"Case\"" })
+        graph.edgesOut(fCall)[EdgeLabel.ARGUMENT]?.filterIsInstance<NewLiteralBuilder>()?.let { lv ->
+            assertTrue(lv.any { it.build().code() == "\"Test\"" })
+            assertTrue(lv.any { it.build().code() == "\"Case\"" })
         }
         graph.edgesOut(fMethod)[EdgeLabel.AST]?.filterIsInstance<NewMethodParameterInBuilder>()?.let { mpv ->
             assertTrue(mpv.any { it.build().name() == "prefix" })

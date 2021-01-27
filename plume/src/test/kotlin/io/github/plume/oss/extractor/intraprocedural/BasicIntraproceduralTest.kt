@@ -144,7 +144,6 @@ class BasicIntraproceduralTest {
         extractor.load(f)
         extractor.project()
         graph = driver.getWholeGraph()
-
         val vertices = graph.vertices()
         vertices.filterIsInstance<NewNamespaceBlockBuilder>().let { nbv ->
             assertNotNull(nbv.find { it.build().name() == "basic" })

@@ -2,6 +2,7 @@ package io.github.plume.oss.drivers
 
 import io.github.plume.oss.domain.enums.EdgeLabel
 import io.github.plume.oss.domain.exceptions.PlumeSchemaViolationException
+import io.github.plume.oss.domain.mappers.VertexMapper
 import io.github.plume.oss.domain.mappers.VertexMapper.checkSchemaConstraints
 import io.github.plume.oss.domain.mappers.VertexMapper.mapToVertex
 import io.github.plume.oss.domain.models.PlumeGraph
@@ -15,7 +16,6 @@ import org.neo4j.driver.Driver
 import org.neo4j.driver.GraphDatabase
 import org.neo4j.driver.Value
 import scala.jdk.CollectionConverters
-import java.util.*
 
 
 /**
@@ -114,23 +114,9 @@ class Neo4jDriver : IDriver {
     }
 
     private fun extractAttributesFromMap(propertyMap: MutableMap<String, Any>): MutableMap<String, Any> {
-        val attributes = mutableMapOf<String, Any>()
-        propertyMap.computeIfPresent("DYNAMIC_TYPE_HINT_FULL_NAME") { _, value ->
-            when (value) {
-                is scala.collection.immutable.`$colon$colon`<*> -> value.head()
-                else -> value
-            }
-        }
-        propertyMap.forEach {
-            val key: Optional<String> = when (it.key) {
-                "PARSER_TYPE_NAME" -> Optional.empty()
-                "AST_PARENT_TYPE" -> Optional.empty()
-                "AST_PARENT_FULL_NAME" -> Optional.empty()
-                "FILENAME" -> Optional.empty()
-                "IS_EXTERNAL" -> Optional.empty()
-                else -> Optional.of(it.key)
-            }
-            if (key.isPresent) attributes[key.get()] = if (it.value is Int) (it.value as Int).toLong() else it.value
+        val attributes = VertexMapper.extractAttributesFromMap(propertyMap)
+        propertyMap.forEach { e ->
+            if (attributes[e.key] is Int) attributes[e.key] = (attributes[e.key] as Int).toLong()
         }
         return attributes
     }

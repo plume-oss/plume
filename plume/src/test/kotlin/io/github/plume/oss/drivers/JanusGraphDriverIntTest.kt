@@ -570,11 +570,8 @@ class JanusGraphDriverIntTest {
 
         @Test
         fun testMethodDelete() {
-            println("Starting test")
             assertTrue(driver.exists(methodVertex))
-            println("Deleting method body $methodVertex")
             driver.deleteMethod(methodVertex.build().fullName(), methodVertex.build().signature())
-            println("after del $methodVertex")
             assertFalse(driver.exists(methodVertex))
             assertFalse(driver.exists(literalVertex))
             assertFalse(driver.exists(returnVertex))
@@ -583,7 +580,6 @@ class JanusGraphDriverIntTest {
             assertFalse(driver.exists(blockVertex))
             assertFalse(driver.exists(callVertex))
             // Check that deleting a method doesn't throw any error
-            println("Deleting method body again $methodVertex")
             driver.deleteMethod(methodVertex.build().fullName(), methodVertex.build().signature())
         }
     }

@@ -150,8 +150,7 @@ abstract class GremlinDriver : IDriver {
             .subgraph("sg")
             .cap<Graph>("sg")
             .next()
-        val result = gremlinToPlume(methodSubgraph.traversal())
-        return result
+        return gremlinToPlume(methodSubgraph.traversal())
     }
 
     private fun getMethodWithBody(fullName: String, signature: String): PlumeGraph {

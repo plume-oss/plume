@@ -36,13 +36,7 @@ object GraphSONWriter {
     private fun vertexToJSON(v: NewNodeBuilder, graph: PlumeGraph): String {
         val sb = StringBuilder()
         val builtNode = v.build()
-        val properties = mutableMapOf<String, Any>()
-        extractAttributesFromMap(CollectionConverters.MapHasAsJava(builtNode.properties()).asJava().toMutableMap())
-            .map {
-                val value = it.value
-                properties[it.key] = (if (value is Map<*, *>) value["value"] else it) as Any
-            }
-
+        val properties = extractAttributesFromMap(CollectionConverters.MapHasAsJava(builtNode.properties()).asJava().toMutableMap())
         sb.append("{")
         sb.append("\"id\":\"${v.id()}\",")
         sb.append("\"label\":\"${builtNode.label()}\",")

@@ -91,7 +91,7 @@ task allTests(
 
 test {
     useJUnitPlatform()
-//    exclude "**/*IntTest*", "**/extractor/**"
+    exclude "**/*IntTest*", "**/extractor/**"
     testLogging { events "FAILED", "SKIPPED" }
 }
 

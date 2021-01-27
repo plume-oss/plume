@@ -7,6 +7,8 @@ import io.github.plume.oss.util.SootToPlumeUtil.createScalaList
 import io.shiftleft.codepropertygraph.generated.nodes.*
 import scala.Option
 import scala.collection.immutable.`$colon$colon`
+import java.util.*
+import kotlin.collections.HashMap
 
 
 /**
@@ -244,6 +246,7 @@ object VertexMapper {
      * @return true if the edge complies with the CPG schema, false if otherwise.
      */
     fun checkSchemaConstraints(fromLabel: VertexLabel, edge: EdgeLabel, toLabel: VertexLabel): Boolean {
+        // TODO: Check toLabel
         return when (fromLabel) {
             ARRAY_INITIALIZER -> ArrayInitializer.`Edges$`.`MODULE$`.Out().contains(edge.name)
             BINDING -> Binding.`Edges$`.`MODULE$`.Out().contains(edge.name)
@@ -272,5 +275,27 @@ object VertexMapper {
             CONTROL_STRUCTURE -> ControlStructure.`Edges$`.`MODULE$`.Out().contains(edge.name)
             UNKNOWN -> Unknown.`Edges$`.`MODULE$`.Out().contains(edge.name)
         }
+    }
+
+    fun extractAttributesFromMap(propertyMap: MutableMap<String, Any>): MutableMap<String, Any> {
+        val attributes = mutableMapOf<String, Any>()
+        propertyMap.computeIfPresent("DYNAMIC_TYPE_HINT_FULL_NAME") { _, value ->
+            when (value) {
+                is `$colon$colon`<*> -> value.head()
+                else -> value
+            }
+        }
+        propertyMap.forEach {
+            val key: Optional<String> = when (it.key) {
+                "PARSER_TYPE_NAME" -> Optional.empty()
+                "AST_PARENT_TYPE" -> Optional.empty()
+                "AST_PARENT_FULL_NAME" -> Optional.empty()
+                "FILENAME" -> Optional.empty()
+                "IS_EXTERNAL" -> Optional.empty()
+                else -> Optional.of(it.key)
+            }
+            if (key.isPresent) attributes[key.get()] = it.value
+        }
+        return attributes
     }
 }
