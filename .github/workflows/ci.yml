@@ -49,4 +49,4 @@ jobs:
         uses: codecov/codecov-action@v1
         with:
           token: ${{ secrets.CODECOV_TOKEN }}
-          directory: ./build/reports/jacoco
+          directory: ./plume/build/reports/jacoco
