@@ -1,29 +1,29 @@
 package io.github.plume.oss.graphio
 
 import io.github.plume.oss.domain.mappers.VertexMapper
-import io.github.plume.oss.domain.models.PlumeGraph
-import io.shiftleft.codepropertygraph.generated.nodes.NewNodeBuilder
-import scala.jdk.CollectionConverters
+import overflowdb.Graph
+import overflowdb.Node
 import java.io.OutputStreamWriter
 import java.util.*
 
 /**
- * Responsible for writing [PlumeGraph] objects to an [OutputStreamWriter] in GraphML format.
+ * Responsible for writing [Graph] objects to an [OutputStreamWriter] in GraphML format.
  */
 object GraphMLWriter {
 
     private const val DECLARATION = "<?xml version=\"1.0\" ?>"
+    private var edgeId: Long = 0
 
     /**
-     * Given a [PlumeGraph] object, serializes it to [GraphML](http://graphml.graphdrawing.org/specification/dtd.html)
+     * Given a [Graph] object, serializes it to [GraphML](http://graphml.graphdrawing.org/specification/dtd.html)
      * format to the given [OutputStreamWriter]. This format is supported by
      * [TinkerGraph](https://tinkerpop.apache.org/docs/current/reference/#graphml) and
      * [Cytoscape](http://manual.cytoscape.org/en/stable/Supported_Network_File_Formats.html#graphml).
      *
-     * @param graph The [PlumeGraph] to serialize.
+     * @param graph The [Graph] to serialize.
      * @param writer The stream to write the serialized graph to.
      */
-    fun write(graph: PlumeGraph, writer: OutputStreamWriter) {
+    fun write(graph: Graph, writer: OutputStreamWriter) {
         writer.use { w ->
             // Write header
             w.write(DECLARATION)
@@ -32,11 +32,11 @@ object GraphMLWriter {
             w.write("xmlns:xsi=\"http://www.w3.org/2001/XMLSchema-instance\" ")
             w.write("xsi:schemaLocation=\"http://graphml.graphdrawing.org/xmlns http://graphml.graphdrawing.org/xmlns/1.1/graphml.xsd\">")
             // Write keys
-            writeKeys(w, graph.vertices())
+            writeKeys(w, graph.nodes())
             // Write graph
             w.write("<graph id=\"G\" edgedefault=\"directed\">")
             // Write vertices
-            writeVertices(w, graph.vertices())
+            writeVertices(w, graph.nodes())
             // Write edges
             writeEdges(w, graph)
             // Close graph tags
@@ -45,16 +45,15 @@ object GraphMLWriter {
         }
     }
 
-    private fun writeKeys(fw: OutputStreamWriter, vertices: Set<NewNodeBuilder>) {
+    private fun writeKeys(fw: OutputStreamWriter, vertices: MutableIterator<Node>) {
         val keySet = HashMap<String, String>()
         vertices.forEach { v ->
-            CollectionConverters.MapHasAsJava(v.build().properties()).asJava()
-                .forEach { (t, u) ->
-                    when (u) {
-                        is String -> keySet[t] = "string"
-                        is Int -> keySet[t] = "int"
-                    }
+            v.propertyMap().forEach { (t, u) ->
+                when (u) {
+                    is String -> keySet[t] = "string"
+                    is Int -> keySet[t] = "int"
                 }
+            }
         }
         fw.write("<key id=\"labelV\" for=\"node\" attr.name=\"labelV\" attr.type=\"string\"></key>")
         fw.write("<key id=\"labelE\" for=\"edge\" attr.name=\"labelE\" attr.type=\"string\"></key>")
@@ -68,31 +67,35 @@ object GraphMLWriter {
         }
     }
 
-    private fun writeVertices(fw: OutputStreamWriter, vertices: Set<NewNodeBuilder>) {
+    private fun writeVertices(fw: OutputStreamWriter, vertices: MutableIterator<Node>) {
         vertices.forEach { v ->
             fw.write("<node id=\"${v.hashCode()}\">")
-            val builtNode = v.build()
-            CollectionConverters.MapHasAsJava(builtNode.properties()).asJava()
-                .apply { fw.write("<data key=\"labelV\">${builtNode.label()}</data>") }
+            VertexMapper.extractAttributesFromMap(v.propertyMap())
+                .apply { fw.write("<data key=\"labelV\">${v.label()}</data>") }
                 .forEach { (t, u) -> fw.write("<data key=\"$t\">${escape(u)}</data>") }
             fw.write("</node>")
         }
     }
 
-    private fun escape(o: Any) = if (o is String) o.replace("<", "&lt;").replace(">", "&gt;") else o.toString()
+    private fun escape(o: Any) =
+        if (o is String)
+            o.replace("<", "&lt;").replace(">", "&gt;")
+        else
+            o.toString()
 
-    private fun writeEdges(fw: OutputStreamWriter, graph: PlumeGraph) {
-        val vertices = graph.vertices()
+    private fun writeEdges(fw: OutputStreamWriter, graph: Graph) {
+        val vertices = graph.nodes()
         vertices.forEach { srcV ->
-            graph.edgesOut(srcV).forEach { (edgeLabel, vOut) ->
-                vOut.forEach { tgtV ->
-                    fw.write("<edge id=\"${UUID.randomUUID()}\" ")
-                    fw.write("source=\"${srcV.hashCode()}\" ")
-                    fw.write("target=\"${tgtV.hashCode()}\">")
-                    fw.write("<data key=\"labelE\">${edgeLabel}</data>")
-                    fw.write("</edge>")
+            graph.V(srcV.id()).next().outE().asSequence().map { Pair(it.label(), it.inNode().get()) }
+                .forEach { (edgeLabel, vOut) ->
+                    vOut.propertyMap().forEach { tgtV ->
+                        fw.write("<edge id=\"${edgeId++}\" ")
+                        fw.write("source=\"${srcV.hashCode()}\" ")
+                        fw.write("target=\"${tgtV.hashCode()}\">")
+                        fw.write("<data key=\"labelE\">${edgeLabel}</data>")
+                        fw.write("</edge>")
+                    }
                 }
-            }
         }
     }
 }
