@@ -409,7 +409,7 @@ class TigerGraphDriver : IOverridenIdDriver {
         }
     }
 
-    protected fun newOverflowGraph(): Graph = Graph.open(
+    private fun newOverflowGraph(): Graph = Graph.open(
         Config.withDefaults(),
         NodeFactories.allAsJava(),
         EdgeFactories.allAsJava()

@@ -5,6 +5,7 @@ import io.github.plume.oss.domain.enums.VertexLabel
 import io.github.plume.oss.domain.enums.VertexLabel.*
 import io.github.plume.oss.util.SootToPlumeUtil.createScalaList
 import io.shiftleft.codepropertygraph.generated.nodes.*
+import overflowdb.Node
 import scala.Option
 import scala.collection.immutable.`$colon$colon`
 import java.util.*
@@ -17,10 +18,21 @@ import kotlin.collections.HashMap
 object VertexMapper {
 
     /**
-     * Converts a [Map] containing vertex properties to its respective [NewNode] object.
+     * Converts a [Node] to its respective [NewNodeBuilder] object.
+     *
+     * @param v The [Node] to deserialize.
+     * @return a [NewNodeBuilder] represented by the information in the givennode.
+     */
+    fun mapToVertex(v: Node): NewNodeBuilder {
+        val map = v.propertyMap() + mapOf<String, Any>("id" to v.id(), "label" to v.label())
+        return mapToVertex(map)
+    }
+
+    /**
+     * Converts a [Map] containing vertex properties to its respective [NewNodeBuilder] object.
      *
      * @param mapToConvert The [Map] to deserialize.
-     * @return a [NewNode] represented by the information in the given map.
+     * @return a [NewNodeBuilder] represented by the information in the given map.
      */
     fun mapToVertex(mapToConvert: Map<String, Any>): NewNodeBuilder {
         val map = HashMap<String, Any>()
