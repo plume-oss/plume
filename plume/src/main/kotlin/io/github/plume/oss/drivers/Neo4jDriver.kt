@@ -5,7 +5,6 @@ import io.github.plume.oss.domain.exceptions.PlumeSchemaViolationException
 import io.github.plume.oss.domain.mappers.VertexMapper
 import io.github.plume.oss.domain.mappers.VertexMapper.checkSchemaConstraints
 import io.github.plume.oss.domain.mappers.VertexMapper.mapToVertex
-import io.github.plume.oss.domain.models.PlumeGraph
 import io.shiftleft.codepropertygraph.generated.EdgeTypes.AST
 import io.shiftleft.codepropertygraph.generated.NodeTypes.FILE
 import io.shiftleft.codepropertygraph.generated.NodeTypes.METHOD
@@ -15,8 +14,12 @@ import org.neo4j.driver.AuthTokens
 import org.neo4j.driver.Driver
 import org.neo4j.driver.GraphDatabase
 import org.neo4j.driver.Value
+import overflowdb.Config
+import overflowdb.Graph
+import overflowdb.Node
 import scala.jdk.CollectionConverters
-
+import io.shiftleft.codepropertygraph.generated.edges.Factories as EdgeFactories
+import io.shiftleft.codepropertygraph.generated.nodes.Factories as NodeFactories
 
 /**
  * The driver used to connect to a remote Neo4j instance.
@@ -216,8 +219,8 @@ class Neo4jDriver : IDriver {
         return this
     }
 
-    override fun getWholeGraph(): PlumeGraph {
-        val plumeGraph = PlumeGraph()
+    override fun getWholeGraph(): Graph {
+        val graph = newOverflowGraph()
         driver.session().use { session ->
             val orphanVertices = session.writeTransaction { tx ->
                 tx.run(
@@ -230,7 +233,7 @@ class Neo4jDriver : IDriver {
             }
             orphanVertices.map { it["n"].asNode() }
                 .map { mapToVertex(it.asMap() + mapOf("id" to it.id())) }
-                .forEach { plumeGraph.addVertex(it) }
+                .forEach { addNodeToGraph(graph, it) }
             val edgeResult = session.writeTransaction { tx ->
                 tx.run(
                     """
@@ -246,12 +249,23 @@ class Neo4jDriver : IDriver {
                         mapToVertex(it.second.asMap() + mapOf("id" to it.second.id())),
                         it.third
                     )
-                }.forEach { plumeGraph.addEdge(it.first, it.second, EdgeLabel.valueOf(it.third)) }
+                }.forEach {
+                    val src = addNodeToGraph(graph, it.first)
+                    val tgt = addNodeToGraph(graph, it.second)
+                    src.addEdge(it.third, tgt)
+                }
         }
-        return plumeGraph
+        return graph
     }
 
-    override fun getMethod(fullName: String, signature: String, includeBody: Boolean): PlumeGraph {
+    private fun addNodeToGraph(graph: Graph, v: NewNodeBuilder): Node {
+        val bNode = v.build()
+        val sNode = graph.addNode(bNode.label())
+        bNode.properties().foreachEntry { key, value -> sNode.setProperty(key, value) }
+        return sNode
+    }
+
+    override fun getMethod(fullName: String, signature: String, includeBody: Boolean): Graph {
         val queryHead = if (!includeBody) """
             MATCH (root:$METHOD {FULL_NAME:'$fullName', SIGNATURE:'$signature'})-[r1:$AST]->(child)
                     WITH DISTINCT r1 AS coll
@@ -263,7 +277,7 @@ class Neo4jDriver : IDriver {
             OPTIONAL MATCH (root)-[r3]->(n2) WHERE NOT (root)-[:SOURCE_FILE]-(n2)  
             WITH DISTINCT (r1 + r2 + r3) AS coll
             """.trimIndent()
-        val plumeGraph = PlumeGraph()
+        val plumeGraph = newOverflowGraph()
         driver.session().use { session ->
             session.writeTransaction { tx ->
                 val result = tx.run(
@@ -276,14 +290,14 @@ class Neo4jDriver : IDriver {
                     RETURN x
                     """.trimIndent()
                 ).list().map { it["x"] }
-                neo4jToPlumeGraph(result, plumeGraph)
+                neo4jToOverflowGraph(result, plumeGraph)
             }
         }
         return plumeGraph
     }
 
-    override fun getProgramStructure(): PlumeGraph {
-        val plumeGraph = PlumeGraph()
+    override fun getProgramStructure(): Graph {
+        val graph = newOverflowGraph()
         driver.session().use { session ->
             val result = session.writeTransaction { tx ->
                 tx.run(
@@ -298,13 +312,13 @@ class Neo4jDriver : IDriver {
                     """.trimIndent()
                 ).list().map { it["x"] }
             }
-            neo4jToPlumeGraph(result, plumeGraph)
+            neo4jToOverflowGraph(result, graph)
         }
-        return plumeGraph
+        return graph
     }
 
-    override fun getNeighbours(v: NewNodeBuilder): PlumeGraph {
-        val plumeGraph = PlumeGraph()
+    override fun getNeighbours(v: NewNodeBuilder): Graph {
+        val graph = newOverflowGraph()
         driver.session().use { session ->
             val result = session.writeTransaction { tx ->
                 tx.run(
@@ -320,14 +334,14 @@ class Neo4jDriver : IDriver {
                     """.trimIndent()
                 ).list().map { it["x"] }
             }
-            neo4jToPlumeGraph(result, plumeGraph)
+            neo4jToOverflowGraph(result, graph)
         }
-        return plumeGraph
+        return graph
     }
 
-    private fun neo4jToPlumeGraph(
+    private fun neo4jToOverflowGraph(
         result: List<Value>,
-        plumeGraph: PlumeGraph
+        graph: Graph
     ) {
         result.map { r -> Triple(r["src"].asNode(), r["tgt"].asNode(), r["rel"].asString()) }
             .map { p ->
@@ -336,7 +350,11 @@ class Neo4jDriver : IDriver {
                     mapToVertex(p.second.asMap() + mapOf("id" to p.second.id())),
                     p.third
                 )
-            }.forEach { plumeGraph.addEdge(it.first, it.second, EdgeLabel.valueOf(it.third)) }
+            }.forEach {
+                val src = addNodeToGraph(graph, it.first)
+                val tgt = addNodeToGraph(graph, it.second)
+                src.addEdge(it.third, tgt)
+            }
     }
 
     override fun deleteVertex(v: NewNodeBuilder) {
@@ -367,6 +385,12 @@ class Neo4jDriver : IDriver {
             }
         }
     }
+
+    private fun newOverflowGraph(): Graph = Graph.open(
+        Config.withDefaults(),
+        NodeFactories.allAsJava(),
+        EdgeFactories.allAsJava()
+    )
 
     companion object {
         /**
