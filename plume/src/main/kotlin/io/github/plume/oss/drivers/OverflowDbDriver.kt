@@ -102,30 +102,30 @@ class OverflowDbDriver : IDriver {
     }
 
     override fun getWholeGraph(): Graph {
-        return deepCopyGraph(Traversals.getWholeGraph(graph).map { Pair(it._1, it._2.toList()) })
+        return deepCopyGraph(Traversals.getWholeGraph(graph).flatMap {  it._2.toList() }.toList())
     }
 
     override fun getMethod(fullName: String, signature: String, includeBody: Boolean): Graph {
-        if (includeBody) return edgeListToPlumeGraph(Traversals.getMethod(graph, fullName, signature))
-        return edgeListToPlumeGraph(Traversals.getMethodStub(graph, fullName, signature))
+        if (includeBody) return deepCopyGraph(Traversals.getMethod(graph, fullName, signature))
+        return deepCopyGraph(Traversals.getMethodStub(graph, fullName, signature))
     }
 
-    private fun deepCopyGraph(nodesWithEdges: List<Pair<Node, List<Edge>>>): Graph {
+//    private fun deepCopyGraph(nodesWithEdges: List<Pair<Node, List<Edge>>>): Graph {
+//        val graph = newOverflowGraph()
+//        val vertices = deepCopyVertices(nodesWithEdges.map { it.second }.flatten())
+//        val edges = nodesWithEdges.flatMap { x -> x.second }
+//        deepCopyEdges(edges, vertices.map { Pair(it.id(), it) }.toMap())
+//        return graph
+//    }
+
+    private fun deepCopyGraph(edges: List<Edge>): Graph {
         val graph = newOverflowGraph()
-        val vertices = deepCopyVertices(nodesWithEdges.map { it.second }.flatten())
-        val edges = nodesWithEdges.flatMap { x -> x.second }
-        deepCopyVertices(edges, vertices.map { Pair(it.id(), it) }.toMap())
+        val vertices = deepCopyVertices(graph, edges)
+        deepCopyEdges(edges, vertices.map { Pair(it.id(), it) }.toMap())
         return graph
     }
 
-    private fun edgeListToPlumeGraph(edges: List<Edge>): Graph {
-        val graph = newOverflowGraph()
-        val vertices = deepCopyVertices(edges)
-        deepCopyVertices(edges, vertices.map { Pair(it.id(), it) }.toMap())
-        return graph
-    }
-
-    private fun deepCopyVertices(edges: List<Edge>): List<Node> {
+    private fun deepCopyVertices(graph: Graph, edges: List<Edge>): List<Node> {
         return edges.flatMap { edge -> listOf(edge.inNode().get(), edge.outNode().get()) }
             .distinct()
             .onEach { n ->
@@ -134,7 +134,7 @@ class OverflowDbDriver : IDriver {
             }
     }
 
-    private fun deepCopyVertices(edges: List<Edge>, vertices: Map<Long, Node>) {
+    private fun deepCopyEdges(edges: List<Edge>, vertices: Map<Long, Node>) {
         edges.forEach { edge ->
             val srcNode = vertices[edge.outNode().id()]
             val dstNode = vertices[edge.inNode().id()]
@@ -156,11 +156,11 @@ class OverflowDbDriver : IDriver {
     }
 
     override fun getProgramStructure(): Graph {
-        return edgeListToPlumeGraph(Traversals.getProgramStructure(graph))
+        return deepCopyGraph(Traversals.getProgramStructure(graph))
     }
 
     override fun getNeighbours(v: NewNodeBuilder): Graph {
-        return edgeListToPlumeGraph(Traversals.getNeighbours(graph, v.id()))
+        return deepCopyGraph(Traversals.getNeighbours(graph, v.id()))
     }
 
     override fun deleteVertex(v: NewNodeBuilder) {

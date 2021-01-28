@@ -219,7 +219,7 @@ abstract class GremlinDriver : IDriver {
      * @return The resulting [overflowdb.Graph].
      */
     private fun gremlinToPlume(g: GraphTraversalSource): overflowdb.Graph {
-        val plumeGraph = newOverflowGraph()
+        val overflowGraph = newOverflowGraph()
         val f = { gt: GraphTraversal<Edge, Vertex> ->
             gt.valueMap<String>()
                 .by(un.unfold<Any>())
@@ -232,7 +232,7 @@ abstract class GremlinDriver : IDriver {
             .by(un.unfold<Any>()).toStream()
             .map { props ->
                 val builtNode = VertexMapper.mapToVertex(props.mapKeys { it.key.toString() }).build()
-                val n = plumeGraph.addNode(builtNode.label())
+                val n = overflowGraph.addNode(builtNode.label())
                 builtNode.properties().foreachEntry { key, value -> n.setProperty(key, value) }
                 Pair(n.id(), n)
             }.toList().toMap()
@@ -245,7 +245,7 @@ abstract class GremlinDriver : IDriver {
                 val plumeTgt = vertices[VertexMapper.mapToVertex(f(g.E(it[T.id]).inV())).id()]
                 plumeSrc?.addEdge(edgeLabel, plumeTgt)
             }
-        return plumeGraph
+        return overflowGraph
     }
 
     protected fun newOverflowGraph(): overflowdb.Graph = overflowdb.Graph.open(
