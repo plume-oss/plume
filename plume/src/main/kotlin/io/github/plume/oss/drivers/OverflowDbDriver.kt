@@ -4,12 +4,9 @@ import io.github.plume.oss.Traversals
 import io.github.plume.oss.domain.enums.EdgeLabel
 import io.github.plume.oss.domain.exceptions.PlumeSchemaViolationException
 import io.github.plume.oss.domain.mappers.VertexMapper
-import io.github.plume.oss.domain.models.PlumeGraph
-import io.github.plume.oss.util.PlumeKeyProvider
 import io.shiftleft.codepropertygraph.generated.nodes.*
 import org.apache.logging.log4j.LogManager
 import overflowdb.*
-import scala.Tuple2
 import io.shiftleft.codepropertygraph.generated.edges.Factories as EdgeFactories
 import io.shiftleft.codepropertygraph.generated.nodes.Factories as NodeFactories
 
@@ -59,11 +56,7 @@ class OverflowDbDriver : IDriver {
             .apply { if (serializationStatsEnabled) this.withSerializationStatsEnabled() }
             .withHeapPercentageThreshold(heapPercentageThreshold)
 
-        graph = Graph.open(
-            odbConfig,
-            NodeFactories.allAsJava(),
-            EdgeFactories.allAsJava()
-        )
+        graph = newOverflowGraph(odbConfig)
         connected = true
     }
 
@@ -71,9 +64,7 @@ class OverflowDbDriver : IDriver {
         if (exists(v)) return
         val newNode = v.build()
         val node = graph.addNode(newNode.label())
-        newNode.properties().foreachEntry { key, value ->
-            node.setProperty(key, value)
-        }
+        newNode.properties().foreachEntry { key, value -> node.setProperty(key, value) }
         v.id(node.id())
     }
 
@@ -110,52 +101,47 @@ class OverflowDbDriver : IDriver {
         Traversals.clearGraph(graph)
     }
 
-    override fun getWholeGraph(): PlumeGraph {
-        return nodesWithEdgesToPlumeGraph(Traversals.getWholeGraph(graph))
+    override fun getWholeGraph(): Graph {
+        return deepCopyGraph(Traversals.getWholeGraph(graph).map { Pair(it._1, it._2.toList()) })
     }
 
-    override fun getMethod(fullName: String, signature: String, includeBody: Boolean): PlumeGraph {
+    override fun getMethod(fullName: String, signature: String, includeBody: Boolean): Graph {
         if (includeBody) return edgeListToPlumeGraph(Traversals.getMethod(graph, fullName, signature))
         return edgeListToPlumeGraph(Traversals.getMethodStub(graph, fullName, signature))
     }
 
-    private fun nodesWithEdgesToPlumeGraph(nodesWithEdges: List<Tuple2<StoredNode, List<Edge>>>): PlumeGraph {
-        val plumeGraph = PlumeGraph()
-        val plumeVertices = nodesWithEdges
-            .map { x -> x._1 }
-            .distinct()
-            .map { node -> Pair(node.id(), node) }
-            .toMap()
-
-        val vertices = plumeVertices.values.map { v ->
-            VertexMapper.mapToVertex(
-                preProcessPropertyMap(v.propertyMap()) + mapOf<String, Any>(
-                    "label" to v.label(),
-                    "id" to v.id()
-                )
-            )
-        }.toList().onEach { v -> v.let { x -> plumeGraph.addVertex(x) } }
-        val edges = nodesWithEdges.flatMap { x -> x._2 }
-        serializePlumeEdges(edges, vertices.map { Pair(it.id(), it) }.toMap(), plumeGraph)
-        return plumeGraph
+    private fun deepCopyGraph(nodesWithEdges: List<Pair<Node, List<Edge>>>): Graph {
+        val graph = newOverflowGraph()
+        val vertices = deepCopyVertices(nodesWithEdges.map { it.second }.flatten())
+        val edges = nodesWithEdges.flatMap { x -> x.second }
+        deepCopyVertices(edges, vertices.map { Pair(it.id(), it) }.toMap())
+        return graph
     }
 
-    private fun edgeListToPlumeGraph(edges: List<Edge>): PlumeGraph {
-        val plumeGraph = PlumeGraph()
-        val plumeVertices = edges.flatMap { edge -> listOf(edge.inNode(), edge.outNode()) }
-            .distinct()
-            .map { node -> Pair(node.id(), node) }
-            .toMap()
+    private fun edgeListToPlumeGraph(edges: List<Edge>): Graph {
+        val graph = newOverflowGraph()
+        val vertices = deepCopyVertices(edges)
+        deepCopyVertices(edges, vertices.map { Pair(it.id(), it) }.toMap())
+        return graph
+    }
 
-        val vertices = plumeVertices.values.map { v: NodeRef<NodeDb> ->
-            val propMap = preProcessPropertyMap(v.propertyMap()) + mapOf<String, Any>(
-                "label" to v.label(),
-                "id" to v.id()
-            )
-            VertexMapper.mapToVertex(propMap)
-        }.toList().onEach { v -> v.let { x -> plumeGraph.addVertex(x) } }
-        serializePlumeEdges(edges, vertices.map { Pair(it.id(), it) }.toMap(), plumeGraph)
-        return plumeGraph
+    private fun deepCopyVertices(edges: List<Edge>): List<Node> {
+        return edges.flatMap { edge -> listOf(edge.inNode().get(), edge.outNode().get()) }
+            .distinct()
+            .onEach { n ->
+                val node = graph.addNode(n.label())
+                n.propertyMap().forEach { (key, value) -> node.setProperty(key, value) }
+            }
+    }
+
+    private fun deepCopyVertices(edges: List<Edge>, vertices: Map<Long, Node>) {
+        edges.forEach { edge ->
+            val srcNode = vertices[edge.outNode().id()]
+            val dstNode = vertices[edge.inNode().id()]
+            if (srcNode != null && dstNode != null) {
+                srcNode.addEdge(edge.label(), dstNode)
+            }
+        }
     }
 
     private fun preProcessPropertyMap(props: Map<String, Any>): Map<String, Any> {
@@ -169,25 +155,11 @@ class OverflowDbDriver : IDriver {
         return propertyMap
     }
 
-    private fun serializePlumeEdges(
-        edges: List<Edge>,
-        plumeVertices: Map<Long, NewNodeBuilder>,
-        plumeGraph: PlumeGraph
-    ) {
-        edges.forEach { edge ->
-            val srcNode = plumeVertices[edge.outNode().id()]
-            val dstNode = plumeVertices[edge.inNode().id()]
-            if (srcNode != null && dstNode != null) {
-                plumeGraph.addEdge(srcNode, dstNode, EdgeLabel.valueOf(edge.label()))
-            }
-        }
-    }
-
-    override fun getProgramStructure(): PlumeGraph {
+    override fun getProgramStructure(): Graph {
         return edgeListToPlumeGraph(Traversals.getProgramStructure(graph))
     }
 
-    override fun getNeighbours(v: NewNodeBuilder): PlumeGraph {
+    override fun getNeighbours(v: NewNodeBuilder): Graph {
         return edgeListToPlumeGraph(Traversals.getNeighbours(graph, v.id()))
     }
 
@@ -209,5 +181,11 @@ class OverflowDbDriver : IDriver {
             connected = false
         }
     }
+
+    private fun newOverflowGraph(odbConfig: Config = Config.withDefaults()): Graph = Graph.open(
+        odbConfig,
+        NodeFactories.allAsJava(),
+        EdgeFactories.allAsJava()
+    )
 
 }
