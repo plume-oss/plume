@@ -9,7 +9,7 @@ import io.github.plume.oss.TestDomainResources.Companion.bindingVertex
 import io.github.plume.oss.TestDomainResources.Companion.blockVertex
 import io.github.plume.oss.TestDomainResources.Companion.callVertex
 import io.github.plume.oss.TestDomainResources.Companion.controlStructureVertex
-import io.github.plume.oss.TestDomainResources.Companion.fieldIdentifierVertex
+import io.github.plume.oss.TestDomainResources.Companion.fldIdentVertex
 import io.github.plume.oss.TestDomainResources.Companion.fileVertex
 import io.github.plume.oss.TestDomainResources.Companion.generateSimpleCPG
 import io.github.plume.oss.TestDomainResources.Companion.identifierVertex
@@ -17,9 +17,9 @@ import io.github.plume.oss.TestDomainResources.Companion.jumpTargetVertex
 import io.github.plume.oss.TestDomainResources.Companion.literalVertex
 import io.github.plume.oss.TestDomainResources.Companion.localVertex
 import io.github.plume.oss.TestDomainResources.Companion.metaDataVertex
-import io.github.plume.oss.TestDomainResources.Companion.methodParameterInVertex
+import io.github.plume.oss.TestDomainResources.Companion.mtdParamInVertex
 import io.github.plume.oss.TestDomainResources.Companion.methodRefVertex
-import io.github.plume.oss.TestDomainResources.Companion.methodReturnVertex
+import io.github.plume.oss.TestDomainResources.Companion.mtdRtnVertex
 import io.github.plume.oss.TestDomainResources.Companion.methodVertex
 import io.github.plume.oss.TestDomainResources.Companion.modifierVertex
 import io.github.plume.oss.TestDomainResources.Companion.namespaceBlockVertex1
@@ -33,6 +33,8 @@ import io.github.plume.oss.TestDomainResources.Companion.unknownVertex
 import io.github.plume.oss.domain.enums.EdgeLabel
 import io.github.plume.oss.domain.exceptions.PlumeSchemaViolationException
 import io.github.plume.oss.util.SootToPlumeUtil
+import io.shiftleft.codepropertygraph.generated.EdgeTypes
+import io.shiftleft.codepropertygraph.generated.EdgeTypes.*
 import io.shiftleft.codepropertygraph.generated.nodes.*
 import org.junit.jupiter.api.*
 import org.junit.jupiter.api.Assertions.*
@@ -47,28 +49,28 @@ class NeptuneDriverIntTest {
 
         @JvmStatic
         @BeforeAll
-        fun setUpAll() = run { testStartTime = System.nanoTime() }
+        fun setUpAll() {
+            testStartTime = System.nanoTime()
+            driver = (DriverFactory(GraphDatabase.NEPTUNE) as NeptuneDriver).apply {
+                this.addHostnames(System.getenv("NEPTUNE_HOSTNAME") ?: "localhost")
+                    .port(8182)
+                    .keyCertChainFile("src/test/resources/conf/SFSRootCAG2.pem")
+                    .connect()
+            }
+        }
 
         @JvmStatic
         @AfterAll
-        fun tearDownAll() =
+        fun tearDownAll() {
             println("${NeptuneDriverIntTest::class.java.simpleName} completed in ${(System.nanoTime() - testStartTime) / 1e6} ms")
-    }
-
-    @BeforeEach
-    fun setUp() {
-        driver = (DriverFactory(GraphDatabase.NEPTUNE) as NeptuneDriver).apply {
-            this.addHostnames(System.getenv("NEPTUNE_HOSTNAME") ?: "localhost")
-                .port(8182)
-                .keyCertChainFile("src/test/resources/conf/SFSRootCAG2.pem")
-                .connect()
+            driver.close()
         }
     }
 
     @AfterEach
     fun tearDown() {
         TestDomainResources.simpleCpgVertices.forEach { it.id(-1) }
-        driver.clearGraph().close()
+        driver.clearGraph()
     }
 
     @Nested
@@ -340,207 +342,197 @@ class NeptuneDriverIntTest {
     }
 
     @Nested
-    @DisplayName("Any PlumeGraph related tests based off of a test CPG")
+    @DisplayName("Any OverflowDb result related tests based off of a test CPG")
     inner class PlumeGraphTests {
 
         @BeforeEach
         fun setUp() {
-            generateSimpleCPG(driver)
+            generateSimpleCPG(TinkerGraphDriverIntTest.driver)
         }
 
         @Test
         fun testGetWholeGraph() {
-            val plumeGraph = driver.getWholeGraph()
-            assertEquals("PlumeGraph(vertices:21, edges:30)", plumeGraph.toString())
-            val graphVertices = plumeGraph.vertices()
-            assertEquals(21, graphVertices.size)
+            val g = TinkerGraphDriverIntTest.driver.getWholeGraph()
+            val ns = g.nodes().asSequence().toList()
+            val es = g.edges().asSequence().toList()
+            assertEquals(21, ns.size)
+            assertEquals(30, es.size)
+
+            val file = g.V(fileVertex.id()).next()
+            val ns1 = g.V(namespaceBlockVertex1.id()).next()
+            val mtd = g.V(methodVertex.id()).next()
+            val block = g.V(blockVertex.id()).next()
+            val call = g.V(callVertex.id()).next()
+            val rtn = g.V(returnVertex.id()).next()
+            val fldIdent = g.V(fldIdentVertex.id()).next()
+            val methodRef = g.V(methodRefVertex.id()).next()
+            val typeRef = g.V(typeRefVertex.id()).next()
+            val controlStructure = g.V(controlStructureVertex.id()).next()
+            val jumpTarget = g.V(jumpTargetVertex.id()).next()
+            val mtdRtn = g.V(mtdRtnVertex.id()).next()
+            val identifier = g.V(identifierVertex.id()).next()
             // Check program structure
-            assertTrue(plumeGraph.edgesOut(fileVertex)[EdgeLabel.AST]?.contains(namespaceBlockVertex1) ?: false)
-            assertTrue(
-                plumeGraph.edgesOut(namespaceBlockVertex1)[EdgeLabel.AST]?.contains(namespaceBlockVertex2) ?: false
-            )
-
-            assertTrue(plumeGraph.edgesIn(namespaceBlockVertex1)[EdgeLabel.AST]?.contains(fileVertex) ?: false)
-            assertTrue(
-                plumeGraph.edgesIn(namespaceBlockVertex2)[EdgeLabel.AST]?.contains(namespaceBlockVertex1) ?: false
-            )
+            assertTrue(file.out(AST).asSequence().any { it.id() == namespaceBlockVertex1.id() })
+            assertTrue(ns1.out(AST).asSequence().any { it.id() == namespaceBlockVertex2.id() })
             // Check method head
-            assertTrue(plumeGraph.edgesOut(methodVertex)[EdgeLabel.AST]?.contains(methodParameterInVertex) ?: false)
-            assertTrue(plumeGraph.edgesOut(methodVertex)[EdgeLabel.AST]?.contains(localVertex) ?: false)
-            assertTrue(plumeGraph.edgesOut(methodVertex)[EdgeLabel.AST]?.contains(blockVertex) ?: false)
-            assertTrue(plumeGraph.edgesOut(methodVertex)[EdgeLabel.AST]?.contains(methodReturnVertex) ?: false)
-            assertTrue(plumeGraph.edgesOut(methodVertex)[EdgeLabel.CFG]?.contains(blockVertex) ?: false)
-
-            assertTrue(plumeGraph.edgesIn(methodParameterInVertex)[EdgeLabel.AST]?.contains(methodVertex) ?: false)
-            assertTrue(plumeGraph.edgesIn(localVertex)[EdgeLabel.AST]?.contains(methodVertex) ?: false)
-            assertTrue(plumeGraph.edgesIn(blockVertex)[EdgeLabel.AST]?.contains(methodVertex) ?: false)
-            assertTrue(plumeGraph.edgesIn(methodReturnVertex)[EdgeLabel.AST]?.contains(methodVertex) ?: false)
-            assertTrue(plumeGraph.edgesIn(blockVertex)[EdgeLabel.CFG]?.contains(methodVertex) ?: false)
+            assertTrue(mtd.out(AST).asSequence().any { it.id() == mtdParamInVertex.id() })
+            assertTrue(mtd.out(AST).asSequence().any { it.id() == localVertex.id() })
+            assertTrue(mtd.out(AST).asSequence().any { it.id() == blockVertex.id() })
+            assertTrue(mtd.out(AST).asSequence().any { it.id() == mtdRtnVertex.id() })
+            assertTrue(mtd.out(CFG).asSequence().any { it.id() == blockVertex.id() })
             // Check method body AST
-            assertTrue(plumeGraph.edgesOut(blockVertex)[EdgeLabel.AST]?.contains(callVertex) ?: false)
-            assertTrue(plumeGraph.edgesOut(callVertex)[EdgeLabel.AST]?.contains(identifierVertex) ?: false)
-            assertTrue(plumeGraph.edgesOut(callVertex)[EdgeLabel.AST]?.contains(literalVertex) ?: false)
-            assertTrue(plumeGraph.edgesOut(blockVertex)[EdgeLabel.AST]?.contains(returnVertex) ?: false)
-            assertTrue(plumeGraph.edgesOut(methodVertex)[EdgeLabel.AST]?.contains(methodReturnVertex) ?: false)
-
-            assertTrue(plumeGraph.edgesIn(callVertex)[EdgeLabel.AST]?.contains(blockVertex) ?: false)
-            assertTrue(plumeGraph.edgesIn(identifierVertex)[EdgeLabel.AST]?.contains(callVertex) ?: false)
-            assertTrue(plumeGraph.edgesIn(literalVertex)[EdgeLabel.AST]?.contains(callVertex) ?: false)
-            assertTrue(plumeGraph.edgesIn(returnVertex)[EdgeLabel.AST]?.contains(blockVertex) ?: false)
-            assertTrue(plumeGraph.edgesIn(methodReturnVertex)[EdgeLabel.AST]?.contains(methodVertex) ?: false)
+            assertTrue(block.out(AST).asSequence().any { it.id() == callVertex.id() })
+            assertTrue(call.out(AST).asSequence().any { it.id() == identifierVertex.id() })
+            assertTrue(call.out(AST).asSequence().any { it.id() == literalVertex.id() })
+            assertTrue(block.out(AST).asSequence().any { it.id() == returnVertex.id() })
+            assertTrue(mtd.out(AST).asSequence().any { it.id() == mtdRtnVertex.id() })
             // Check method body CFG
-            assertTrue(plumeGraph.edgesOut(blockVertex)[EdgeLabel.CFG]?.contains(callVertex) ?: false)
-            assertTrue(plumeGraph.edgesOut(callVertex)[EdgeLabel.CFG]?.contains(fieldIdentifierVertex) ?: false)
-            assertTrue(plumeGraph.edgesOut(returnVertex)[EdgeLabel.CFG]?.contains(methodReturnVertex) ?: false)
-            assertTrue(plumeGraph.edgesOut(fieldIdentifierVertex)[EdgeLabel.CFG]?.contains(methodRefVertex) ?: false)
-            assertTrue(plumeGraph.edgesOut(methodRefVertex)[EdgeLabel.CFG]?.contains(typeRefVertex) ?: false)
-            assertTrue(plumeGraph.edgesOut(typeRefVertex)[EdgeLabel.CFG]?.contains(controlStructureVertex) ?: false)
-            assertTrue(plumeGraph.edgesOut(controlStructureVertex)[EdgeLabel.CFG]?.contains(jumpTargetVertex) ?: false)
-            assertTrue(plumeGraph.edgesOut(jumpTargetVertex)[EdgeLabel.CFG]?.contains(returnVertex) ?: false)
-            assertTrue(plumeGraph.edgesOut(returnVertex)[EdgeLabel.CFG]?.contains(methodReturnVertex) ?: false)
+            assertTrue(block.out(CFG).asSequence().any { it.id() == callVertex.id() })
+            assertTrue(call.out(CFG).asSequence().any { it.id() == fldIdentVertex.id() })
+            assertTrue(rtn.out(CFG).asSequence().any { it.id() == mtdRtnVertex.id() })
+            assertTrue(fldIdent.out(CFG).asSequence().any { it.id() == methodRefVertex.id() })
+            assertTrue(methodRef.out(CFG).asSequence().any { it.id() == typeRefVertex.id() })
+            assertTrue(typeRef.out(CFG).asSequence().any { it.id() == controlStructureVertex.id() })
+            assertTrue(controlStructure.out(CFG).asSequence().any { it.id() == jumpTargetVertex.id() })
+            assertTrue(jumpTarget.out(CFG).asSequence().any { it.id() == returnVertex.id() })
+            assertTrue(rtn.out(CFG).asSequence().any { it.id() == mtdRtnVertex.id() })
 
-            assertTrue(plumeGraph.edgesIn(callVertex)[EdgeLabel.CFG]?.contains(blockVertex) ?: false)
-            assertTrue(plumeGraph.edgesIn(returnVertex)[EdgeLabel.CFG]?.contains(jumpTargetVertex) ?: false)
-            assertTrue(plumeGraph.edgesIn(methodReturnVertex)[EdgeLabel.CFG]?.contains(returnVertex) ?: false)
+            assertTrue(call.`in`(CFG).asSequence().any { it.id() == blockVertex.id() })
+            assertTrue(rtn.`in`(CFG).asSequence().any { it.id() == jumpTargetVertex.id() })
+            assertTrue(mtdRtn.`in`(CFG).asSequence().any { it.id() == returnVertex.id() })
             // Check method body misc. edges
-            assertTrue(plumeGraph.edgesOut(callVertex)[EdgeLabel.ARGUMENT]?.contains(identifierVertex) ?: false)
-            assertTrue(plumeGraph.edgesOut(callVertex)[EdgeLabel.ARGUMENT]?.contains(literalVertex) ?: false)
-            assertTrue(plumeGraph.edgesOut(identifierVertex)[EdgeLabel.REF]?.contains(localVertex) ?: false)
+            assertTrue(call.out(ARGUMENT).asSequence().any { it.id() == identifierVertex.id() })
+            assertTrue(call.out(ARGUMENT).asSequence().any { it.id() == literalVertex.id() })
+            assertTrue(identifier.out(REF).asSequence().any { it.id() == localVertex.id() })
 
-            assertTrue(plumeGraph.edgesIn(identifierVertex)[EdgeLabel.ARGUMENT]?.contains(callVertex) ?: false)
-            assertTrue(plumeGraph.edgesIn(literalVertex)[EdgeLabel.ARGUMENT]?.contains(callVertex) ?: false)
-            assertTrue(plumeGraph.edgesIn(localVertex)[EdgeLabel.REF]?.contains(identifierVertex) ?: false)
-            assertTrue(plumeGraph.vertices().contains(unknownVertex))
+            assertTrue(g.nodes().asSequence().any { it.id() == unknownVertex.id() })
         }
 
         @Test
         fun testGetEmptyMethodBody() {
-            driver.clearGraph()
-            val plumeGraph = driver.getMethod(methodVertex.build().fullName(), methodVertex.build().signature())
-            assertEquals("PlumeGraph(vertices:0, edges:0)", plumeGraph.toString())
-            val graphVertices = plumeGraph.vertices()
-            assertEquals(0, graphVertices.size)
+            val g = TinkerGraphDriverIntTest.driver.getMethod(methodVertex.build().fullName(), methodVertex.build().signature())
+            val ns = g.nodes().asSequence().toList()
+            val es = g.edges().asSequence().toList()
+            assertEquals(0, ns.size)
+            assertEquals(0, es.size)
         }
 
         @Test
         fun testGetMethodHeadOnly() {
-            val plumeGraph = driver.getMethod(methodVertex.build().fullName(), methodVertex.build().signature(), false)
-            assertEquals("PlumeGraph(vertices:6, edges:5)", plumeGraph.toString())
-            val graphVertices = plumeGraph.vertices()
-            assertEquals(6, graphVertices.size)
+            val g = TinkerGraphDriverIntTest.driver.getMethod(methodVertex.build().fullName(), methodVertex.build().signature(), false)
+            val ns = g.nodes().asSequence().toList()
+            val es = g.edges().asSequence().toList()
+            assertEquals(6, ns.size)
+            assertEquals(5, es.size)
+
+            val mtd = g.V(methodVertex.id()).next()
             // Assert no program structure vertices part of the method body
-            assertFalse(graphVertices.contains(metaDataVertex))
-            assertFalse(graphVertices.contains(namespaceBlockVertex2))
-            assertFalse(graphVertices.contains(namespaceBlockVertex1))
-            assertFalse(graphVertices.contains(fileVertex))
+            assertFalse(ns.any { it.id() == metaDataVertex.id() })
+            assertFalse(ns.any { it.id() == namespaceBlockVertex2.id() })
+            assertFalse(ns.any { it.id() == namespaceBlockVertex1.id() })
+            assertFalse(ns.any { it.id() == fileVertex.id() })
             // Check method head
-            assertTrue(plumeGraph.edgesOut(methodVertex)[EdgeLabel.AST]?.contains(methodParameterInVertex) ?: false)
-            assertTrue(plumeGraph.edgesOut(methodVertex)[EdgeLabel.AST]?.contains(localVertex) ?: false)
-            assertTrue(plumeGraph.edgesOut(methodVertex)[EdgeLabel.AST]?.contains(blockVertex) ?: false)
-            assertTrue(plumeGraph.edgesOut(methodVertex)[EdgeLabel.AST]?.contains(methodReturnVertex) ?: false)
-            assertTrue(plumeGraph.edgesOut(methodVertex)[EdgeLabel.AST]?.contains(modifierVertex) ?: false)
+            assertTrue(mtd.out(AST).asSequence().any { it.id() == mtdParamInVertex.id() })
+            assertTrue(mtd.out(AST).asSequence().any { it.id() == localVertex.id() })
+            assertTrue(mtd.out(AST).asSequence().any { it.id() == blockVertex.id() })
+            assertTrue(mtd.out(AST).asSequence().any { it.id() == mtdRtnVertex.id() })
+            assertTrue(mtd.out(AST).asSequence().any { it.id() == modifierVertex.id() })
             // Check that none of the other vertices exist
-            assertFalse(graphVertices.contains(callVertex))
-            assertFalse(graphVertices.contains(identifierVertex))
-            assertFalse(graphVertices.contains(typeDeclVertex))
-            assertFalse(graphVertices.contains(literalVertex))
-            assertFalse(graphVertices.contains(returnVertex))
+            assertFalse(ns.any { it.id() == callVertex.id() })
+            assertFalse(ns.any { it.id() == identifierVertex.id() })
+            assertFalse(ns.any { it.id() == typeDeclVertex.id() })
+            assertFalse(ns.any { it.id() == literalVertex.id() })
+            assertFalse(ns.any { it.id() == returnVertex.id() })
         }
 
         @Test
         fun testGetMethodBody() {
-            val plumeGraph = driver.getMethod(methodVertex.build().fullName(), methodVertex.build().signature(), true)
-            assertEquals("PlumeGraph(vertices:15, edges:26)", plumeGraph.toString())
-            val graphVertices = plumeGraph.vertices()
-            assertEquals(15, graphVertices.size)
+            val g = TinkerGraphDriverIntTest.driver.getMethod(methodVertex.build().fullName(), methodVertex.build().signature(), true)
+            val ns = g.nodes().asSequence().toList()
+            val es = g.edges().asSequence().toList()
+            assertEquals(15, ns.size)
+            assertEquals(26, es.size)
+
+            val mtd = g.V(methodVertex.id()).next()
+            val block = g.V(blockVertex.id()).next()
+            val call = g.V(callVertex.id()).next()
+            val rtn = g.V(returnVertex.id()).next()
+            val fldIdent = g.V(fldIdentVertex.id()).next()
+            val methodRef = g.V(methodRefVertex.id()).next()
+            val typeRef = g.V(typeRefVertex.id()).next()
+            val controlStructure = g.V(controlStructureVertex.id()).next()
+            val jumpTarget = g.V(jumpTargetVertex.id()).next()
+            val mtdRtn = g.V(mtdRtnVertex.id()).next()
+            val identifier = g.V(identifierVertex.id()).next()
             // Assert no program structure vertices part of the method body
-            assertFalse(graphVertices.contains(metaDataVertex))
-            assertFalse(graphVertices.contains(namespaceBlockVertex2))
-            assertFalse(graphVertices.contains(namespaceBlockVertex1))
-            assertFalse(graphVertices.contains(fileVertex))
+            assertFalse(ns.any { it.id() == metaDataVertex.id() })
+            assertFalse(ns.any { it.id() == namespaceBlockVertex2.id() })
+            assertFalse(ns.any { it.id() == namespaceBlockVertex1.id() })
+            assertFalse(ns.any { it.id() == fileVertex.id() })
             // Check method head
-            assertTrue(plumeGraph.edgesOut(methodVertex)[EdgeLabel.AST]?.contains(methodParameterInVertex) ?: false)
-            assertTrue(plumeGraph.edgesOut(methodVertex)[EdgeLabel.AST]?.contains(localVertex) ?: false)
-            assertTrue(plumeGraph.edgesOut(methodVertex)[EdgeLabel.AST]?.contains(blockVertex) ?: false)
-            assertTrue(plumeGraph.edgesOut(methodVertex)[EdgeLabel.AST]?.contains(methodReturnVertex) ?: false)
-            assertTrue(plumeGraph.edgesOut(methodVertex)[EdgeLabel.CFG]?.contains(blockVertex) ?: false)
+            assertTrue(mtd.out(AST).asSequence().any { it.id() == mtdParamInVertex.id() })
+            assertTrue(mtd.out(AST).asSequence().any { it.id() == localVertex.id() })
+            assertTrue(mtd.out(AST).asSequence().any { it.id() == blockVertex.id() })
+            assertTrue(mtd.out(AST).asSequence().any { it.id() == mtdRtnVertex.id() })
+            assertTrue(mtd.out(AST).asSequence().any { it.id() == blockVertex.id() })
 
-            assertTrue(plumeGraph.edgesIn(methodParameterInVertex)[EdgeLabel.AST]?.contains(methodVertex) ?: false)
-            assertTrue(plumeGraph.edgesIn(localVertex)[EdgeLabel.AST]?.contains(methodVertex) ?: false)
-            assertTrue(plumeGraph.edgesIn(blockVertex)[EdgeLabel.AST]?.contains(methodVertex) ?: false)
-            assertTrue(plumeGraph.edgesIn(methodReturnVertex)[EdgeLabel.AST]?.contains(methodVertex) ?: false)
-            assertTrue(plumeGraph.edgesIn(blockVertex)[EdgeLabel.CFG]?.contains(methodVertex) ?: false)
-
-            assertTrue(plumeGraph.edgesOut(blockVertex)[EdgeLabel.AST]?.contains(callVertex) ?: false)
-            assertTrue(plumeGraph.edgesOut(callVertex)[EdgeLabel.AST]?.contains(identifierVertex) ?: false)
-
-            assertTrue(plumeGraph.edgesOut(callVertex)[EdgeLabel.AST]?.contains(literalVertex) ?: false)
-            assertTrue(plumeGraph.edgesOut(blockVertex)[EdgeLabel.AST]?.contains(returnVertex) ?: false)
-            assertTrue(plumeGraph.edgesOut(methodVertex)[EdgeLabel.AST]?.contains(methodReturnVertex) ?: false)
-
-            assertTrue(plumeGraph.edgesIn(callVertex)[EdgeLabel.AST]?.contains(blockVertex) ?: false)
-            assertTrue(plumeGraph.edgesIn(identifierVertex)[EdgeLabel.AST]?.contains(callVertex) ?: false)
-            assertTrue(plumeGraph.edgesIn(literalVertex)[EdgeLabel.AST]?.contains(callVertex) ?: false)
-            assertTrue(plumeGraph.edgesIn(returnVertex)[EdgeLabel.AST]?.contains(blockVertex) ?: false)
-            assertTrue(plumeGraph.edgesIn(methodReturnVertex)[EdgeLabel.AST]?.contains(methodVertex) ?: false)
+            assertTrue(block.out(AST).asSequence().any { it.id() == callVertex.id() })
+            assertTrue(call.out(AST).asSequence().any { it.id() == identifierVertex.id() })
+            assertTrue(call.out(AST).asSequence().any { it.id() == literalVertex.id() })
+            assertTrue(block.out(AST).asSequence().any { it.id() == returnVertex.id() })
+            assertTrue(mtd.out(AST).asSequence().any { it.id() == mtdRtnVertex.id() })
             // Check method body CFG
-            assertTrue(plumeGraph.edgesOut(blockVertex)[EdgeLabel.CFG]?.contains(callVertex) ?: false)
-            assertTrue(plumeGraph.edgesOut(callVertex)[EdgeLabel.CFG]?.contains(fieldIdentifierVertex) ?: false)
-            assertTrue(plumeGraph.edgesOut(returnVertex)[EdgeLabel.CFG]?.contains(methodReturnVertex) ?: false)
-            assertTrue(plumeGraph.edgesOut(fieldIdentifierVertex)[EdgeLabel.CFG]?.contains(methodRefVertex) ?: false)
-            assertTrue(plumeGraph.edgesOut(methodRefVertex)[EdgeLabel.CFG]?.contains(typeRefVertex) ?: false)
-            assertTrue(plumeGraph.edgesOut(typeRefVertex)[EdgeLabel.CFG]?.contains(controlStructureVertex) ?: false)
-            assertTrue(plumeGraph.edgesOut(controlStructureVertex)[EdgeLabel.CFG]?.contains(jumpTargetVertex) ?: false)
-            assertTrue(plumeGraph.edgesOut(jumpTargetVertex)[EdgeLabel.CFG]?.contains(returnVertex) ?: false)
-            assertTrue(plumeGraph.edgesOut(returnVertex)[EdgeLabel.CFG]?.contains(methodReturnVertex) ?: false)
+            assertTrue(block.out(CFG).asSequence().any { it.id() == callVertex.id() })
+            assertTrue(call.out(CFG).asSequence().any { it.id() == fldIdentVertex.id() })
+            assertTrue(rtn.out(CFG).asSequence().any { it.id() == mtdRtnVertex.id() })
+            assertTrue(fldIdent.out(CFG).asSequence().any { it.id() == methodRefVertex.id() })
+            assertTrue(methodRef.out(CFG).asSequence().any { it.id() == typeRefVertex.id() })
+            assertTrue(typeRef.out(CFG).asSequence().any { it.id() == controlStructureVertex.id() })
+            assertTrue(controlStructure.out(CFG).asSequence().any { it.id() == jumpTargetVertex.id() })
+            assertTrue(jumpTarget.out(CFG).asSequence().any { it.id() == returnVertex.id() })
+            assertTrue(rtn.out(CFG).asSequence().any { it.id() == mtdRtnVertex.id() })
 
-            assertTrue(plumeGraph.edgesIn(callVertex)[EdgeLabel.CFG]?.contains(blockVertex) ?: false)
-            assertTrue(plumeGraph.edgesIn(returnVertex)[EdgeLabel.CFG]?.contains(jumpTargetVertex) ?: false)
-            assertTrue(plumeGraph.edgesIn(methodReturnVertex)[EdgeLabel.CFG]?.contains(returnVertex) ?: false)
+            assertTrue(call.`in`(CFG).asSequence().any { it.id() == blockVertex.id() })
+            assertTrue(rtn.`in`(CFG).asSequence().any { it.id() == jumpTargetVertex.id() })
+            assertTrue(mtdRtn.`in`(CFG).asSequence().any { it.id() == returnVertex.id() })
             // Check method body misc. edges
-            assertTrue(plumeGraph.edgesOut(callVertex)[EdgeLabel.ARGUMENT]?.contains(identifierVertex) ?: false)
-            assertTrue(plumeGraph.edgesOut(callVertex)[EdgeLabel.ARGUMENT]?.contains(literalVertex) ?: false)
-            assertTrue(plumeGraph.edgesOut(identifierVertex)[EdgeLabel.REF]?.contains(localVertex) ?: false)
-
-            assertTrue(plumeGraph.edgesIn(identifierVertex)[EdgeLabel.ARGUMENT]?.contains(callVertex) ?: false)
-            assertTrue(plumeGraph.edgesIn(literalVertex)[EdgeLabel.ARGUMENT]?.contains(callVertex) ?: false)
-            assertTrue(plumeGraph.edgesIn(localVertex)[EdgeLabel.REF]?.contains(identifierVertex) ?: false)
+            assertTrue(call.out(ARGUMENT).asSequence().any { it.id() == identifierVertex.id() })
+            assertTrue(call.out(ARGUMENT).asSequence().any { it.id() == literalVertex.id() })
+            assertTrue(identifier.out(REF).asSequence().any { it.id() == localVertex.id() })
         }
 
         @Test
         fun testGetProgramStructure() {
-            val plumeGraph = driver.getProgramStructure()
-            assertEquals("PlumeGraph(vertices:3, edges:2)", plumeGraph.toString())
-            val graphVertices = plumeGraph.vertices()
-            assertEquals(3, graphVertices.size)
-            // Assert no program structure vertices part of the method body
-            assertTrue(graphVertices.contains(namespaceBlockVertex2))
-            assertTrue(graphVertices.contains(namespaceBlockVertex1))
-            assertTrue(graphVertices.contains(fileVertex))
-            // Check that vertices are connected by AST edges
-            assertTrue(plumeGraph.edgesOut(fileVertex)[EdgeLabel.AST]?.contains(namespaceBlockVertex1) ?: false)
-            assertTrue(
-                plumeGraph.edgesOut(namespaceBlockVertex1)[EdgeLabel.AST]?.contains(namespaceBlockVertex2) ?: false
-            )
+            val g = TinkerGraphDriverIntTest.driver.getProgramStructure()
+            val ns = g.nodes().asSequence().toList()
+            val es = g.edges().asSequence().toList()
+            assertEquals(3, ns.size)
+            assertEquals(2, es.size)
 
-            assertTrue(plumeGraph.edgesIn(namespaceBlockVertex1)[EdgeLabel.AST]?.contains(fileVertex) ?: false)
-            assertTrue(
-                plumeGraph.edgesIn(namespaceBlockVertex2)[EdgeLabel.AST]?.contains(namespaceBlockVertex1) ?: false
-            )
+            val file = g.V(fileVertex.id()).next()
+            val ns1 = g.V(namespaceBlockVertex1.id()).next()
+            // Assert no program structure vertices part of the method body
+            assertTrue(ns.any { it.id() == namespaceBlockVertex2.id() })
+            assertTrue(ns.any { it.id() == namespaceBlockVertex1.id() })
+            assertTrue(ns.any { it.id() == fileVertex.id() })
+            // Check that vertices are connected by AST edges
+            assertTrue(file.out(AST).asSequence().any { it.id() == namespaceBlockVertex1.id() })
+            assertTrue(ns1.out(AST).asSequence().any { it.id() == namespaceBlockVertex2.id() })
         }
 
         @Test
         fun testGetNeighbours() {
-            val plumeGraph = driver.getNeighbours(fileVertex)
-            assertEquals("PlumeGraph(vertices:3, edges:2)", plumeGraph.toString())
-            val graphVertices = plumeGraph.vertices()
-            assertEquals(3, graphVertices.size)
-            // Check that vertices are connected by AST edges
-            assertTrue(plumeGraph.edgesOut(fileVertex)[EdgeLabel.AST]?.contains(namespaceBlockVertex1) ?: false)
-            assertTrue(plumeGraph.edgesOut(methodVertex)[EdgeLabel.SOURCE_FILE]?.contains(fileVertex) ?: false)
+            val g = TinkerGraphDriverIntTest.driver.getNeighbours(fileVertex)
+            val ns = g.nodes().asSequence().toList()
+            val es = g.edges().asSequence().toList()
+            assertEquals(3, ns.size)
+            assertEquals(2, es.size)
 
-            assertTrue(plumeGraph.edgesIn(namespaceBlockVertex1)[EdgeLabel.AST]?.contains(fileVertex) ?: false)
-            assertTrue(plumeGraph.edgesIn(fileVertex)[EdgeLabel.SOURCE_FILE]?.contains(methodVertex) ?: false)
+            val file = g.V(fileVertex.id()).next()
+            val mtd = g.V(methodVertex.id()).next()
+            // Check that vertices are connected by AST edges
+            assertTrue(file.out(AST).asSequence().any { it.id() == namespaceBlockVertex1.id()})
+            assertTrue(mtd.out(SOURCE_FILE).asSequence().any { it.id() == fileVertex.id()})
         }
     }
 
@@ -579,7 +571,7 @@ class NeptuneDriverIntTest {
             assertFalse(driver.exists(methodVertex))
             assertFalse(driver.exists(literalVertex))
             assertFalse(driver.exists(returnVertex))
-            assertFalse(driver.exists(methodReturnVertex))
+            assertFalse(driver.exists(mtdRtnVertex))
             assertFalse(driver.exists(localVertex))
             assertFalse(driver.exists(blockVertex))
             assertFalse(driver.exists(callVertex))
