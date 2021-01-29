@@ -9,7 +9,7 @@ import io.github.plume.oss.Extractor
 import io.github.plume.oss.drivers.DriverFactory
 import io.github.plume.oss.drivers.GraphDatabase
 import io.github.plume.oss.drivers.TinkerGraphDriver
-import io.shiftleft.codepropertygraph.generated.nodes.NewLiteralBuilder
+import io.shiftleft.codepropertygraph.generated.nodes.Literal
 import java.io.File
 import java.io.FileInputStream
 import java.io.FileOutputStream
@@ -55,10 +55,11 @@ class UpdateGraphTest {
         listOf(testFile1, testFile2).forEach { extractor.load(it) }
         extractor.project()
         val g2 = driver.getWholeGraph()
-        assertTrue(g1.vertices().filterIsInstance<NewLiteralBuilder>().any { it.build().code() == "5" })
-        assertTrue(g2.vertices().filterIsInstance<NewLiteralBuilder>().any { it.build().code() == "9" })
-        assertTrue(g2.vertices().filterIsInstance<NewLiteralBuilder>().none { it.build().code() == "5" })
-        assertTrue(g1.vertices().filterIsInstance<NewLiteralBuilder>().none { it.build().code() == "9" })
+        val literals = g1.nodes().asSequence().filterIsInstance<Literal>()
+        assertTrue(literals.any { it.code() == "5" })
+        assertTrue(literals.any { it.code() == "9" })
+        assertTrue(literals.none { it.code() == "5" })
+        assertTrue(literals.none { it.code() == "9" })
         assertFalse(g1 == g2)
     }
 
