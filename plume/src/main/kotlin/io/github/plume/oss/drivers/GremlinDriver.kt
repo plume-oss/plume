@@ -231,8 +231,9 @@ abstract class GremlinDriver : IDriver {
             .with(WithOptions.tokens)
             .by(un.unfold<Any>()).toStream()
             .map { props ->
-                val builtNode = VertexMapper.mapToVertex(props.mapKeys { it.key.toString() }).build()
-                val n = overflowGraph.addNode(builtNode.label())
+                val nodeBuilder = VertexMapper.mapToVertex(props.mapKeys { it.key.toString() })
+                val builtNode = nodeBuilder.build()
+                val n = overflowGraph.addNode(nodeBuilder.id(), builtNode.label())
                 builtNode.properties().foreachEntry { key, value -> n.setProperty(key, value) }
                 Pair(n.id(), n)
             }.toList().toMap()
@@ -248,7 +249,7 @@ abstract class GremlinDriver : IDriver {
         return overflowGraph
     }
 
-    protected fun newOverflowGraph(): overflowdb.Graph = overflowdb.Graph.open(
+    private fun newOverflowGraph(): overflowdb.Graph = overflowdb.Graph.open(
         Config.withDefaults(),
         NodeFactories.allAsJava(),
         EdgeFactories.allAsJava()

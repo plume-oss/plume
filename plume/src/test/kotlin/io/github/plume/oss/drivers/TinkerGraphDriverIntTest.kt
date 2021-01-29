@@ -473,6 +473,7 @@ class TinkerGraphDriverIntTest {
 
         @Test
         fun testGetEmptyMethodBody() {
+            driver.clearGraph()
             val g = driver.getMethod(methodVertex.build().fullName(), methodVertex.build().signature())
             val ns = g.nodes().asSequence().toList()
             val es = g.edges().asSequence().toList()
