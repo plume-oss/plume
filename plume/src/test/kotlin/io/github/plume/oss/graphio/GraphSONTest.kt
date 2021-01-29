@@ -7,15 +7,14 @@ import io.github.plume.oss.TestDomainResources.Companion.identifierVertex
 import io.github.plume.oss.TestDomainResources.Companion.literalVertex
 import io.github.plume.oss.TestDomainResources.Companion.localVertex
 import io.github.plume.oss.TestDomainResources.Companion.metaDataVertex
-import io.github.plume.oss.TestDomainResources.Companion.methodParameterInVertex
-import io.github.plume.oss.TestDomainResources.Companion.methodReturnVertex
+import io.github.plume.oss.TestDomainResources.Companion.mtdParamInVertex
+import io.github.plume.oss.TestDomainResources.Companion.mtdRtnVertex
 import io.github.plume.oss.TestDomainResources.Companion.methodVertex
 import io.github.plume.oss.TestDomainResources.Companion.namespaceBlockVertex1
 import io.github.plume.oss.TestDomainResources.Companion.namespaceBlockVertex2
 import io.github.plume.oss.TestDomainResources.Companion.returnVertex
 import io.github.plume.oss.TestDomainResources.Companion.typeDeclVertex
 import io.github.plume.oss.domain.enums.EdgeLabel
-import io.github.plume.oss.domain.models.PlumeGraph
 import io.github.plume.oss.drivers.DriverFactory
 import io.github.plume.oss.drivers.GraphDatabase
 import io.github.plume.oss.drivers.TinkerGraphDriver
@@ -24,6 +23,7 @@ import org.junit.jupiter.api.AfterEach
 import org.junit.jupiter.api.Assertions.assertEquals
 import org.junit.jupiter.api.BeforeEach
 import org.junit.jupiter.api.Test
+import overflowdb.Graph
 import java.io.File
 import java.io.FileWriter
 
@@ -32,14 +32,14 @@ class GraphSONTest {
     companion object {
         val driver = (DriverFactory.invoke(GraphDatabase.TINKER_GRAPH) as TinkerGraphDriver).apply { connect() }
 
-        private lateinit var graph: PlumeGraph
+        private lateinit var graph: Graph
         private val tempDir = System.getProperty("java.io.tmpdir")
         private val testGraphSON = "${tempDir}/plume/plume_driver_test.json"
 
         @JvmStatic
         @AfterAll
         fun tearDownAll() {
-//            File(testGraphSON).delete()
+            File(testGraphSON).delete()
         }
     }
 
@@ -52,7 +52,7 @@ class GraphSONTest {
         // Create method head
         driver.addEdge(typeDeclVertex, methodVertex, EdgeLabel.AST)
         driver.addEdge(methodVertex, fileVertex, EdgeLabel.SOURCE_FILE)
-        driver.addEdge(methodVertex, methodParameterInVertex, EdgeLabel.AST)
+        driver.addEdge(methodVertex, mtdParamInVertex, EdgeLabel.AST)
         driver.addEdge(methodVertex, localVertex, EdgeLabel.AST)
         driver.addEdge(methodVertex, blockVertex, EdgeLabel.AST)
         driver.addEdge(methodVertex, blockVertex, EdgeLabel.CFG)
@@ -65,8 +65,8 @@ class GraphSONTest {
         driver.addEdge(callVertex, literalVertex, EdgeLabel.ARGUMENT)
         driver.addEdge(blockVertex, returnVertex, EdgeLabel.AST)
         driver.addEdge(callVertex, returnVertex, EdgeLabel.CFG)
-        driver.addEdge(methodVertex, methodReturnVertex, EdgeLabel.AST)
-        driver.addEdge(returnVertex, methodReturnVertex, EdgeLabel.CFG)
+        driver.addEdge(methodVertex, mtdRtnVertex, EdgeLabel.AST)
+        driver.addEdge(returnVertex, mtdRtnVertex, EdgeLabel.CFG)
         // Link dependencies
         driver.addEdge(identifierVertex, localVertex, EdgeLabel.REF)
 
