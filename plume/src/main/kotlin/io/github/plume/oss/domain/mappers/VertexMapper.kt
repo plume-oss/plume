@@ -8,6 +8,7 @@ import io.shiftleft.codepropertygraph.generated.nodes.*
 import overflowdb.Node
 import scala.Option
 import scala.collection.immutable.`$colon$colon`
+import scala.collection.immutable.`Nil$`
 import java.util.*
 import kotlin.collections.HashMap
 
@@ -294,6 +295,7 @@ object VertexMapper {
         propertyMap.computeIfPresent("DYNAMIC_TYPE_HINT_FULL_NAME") { _, value ->
             when (value) {
                 is `$colon$colon`<*> -> value.head()
+                is `Nil$` -> ""
                 else -> value
             }
         }
@@ -302,6 +304,9 @@ object VertexMapper {
                 "PARSER_TYPE_NAME" -> Optional.empty()
                 "AST_PARENT_TYPE" -> Optional.empty()
                 "AST_PARENT_FULL_NAME" -> Optional.empty()
+                "POLICY_DIRECTORIES" -> Optional.empty()
+                "INHERITS_FROM_TYPE_FULL_NAME" -> Optional.empty()
+                "OVERLAYS" -> Optional.empty()
                 "FILENAME" -> Optional.empty()
                 "IS_EXTERNAL" -> Optional.empty()
                 else -> Optional.of(it.key)

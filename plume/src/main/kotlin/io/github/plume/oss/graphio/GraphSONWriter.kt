@@ -3,6 +3,7 @@ package io.github.plume.oss.graphio
 import io.github.plume.oss.domain.mappers.VertexMapper.extractAttributesFromMap
 import overflowdb.Graph
 import overflowdb.Node
+import scala.collection.immutable.`Nil$`
 import java.io.OutputStreamWriter
 import java.util.*
 
@@ -80,7 +81,7 @@ object GraphSONWriter {
         val sb = StringBuilder()
         sb.append("{")
         var i = 0
-        properties.forEach { (k, v) ->
+        extractAttributesFromMap(properties).forEach { (k, v) ->
             sb.append("\"$k\":[{")
             sb.append("\"id\":{\"@type\":\"g:Int64\",\"@value\":${propertyId++}}")
             when (v) {

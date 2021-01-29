@@ -18,15 +18,13 @@ import io.github.plume.oss.domain.enums.EdgeLabel
 import io.github.plume.oss.drivers.DriverFactory
 import io.github.plume.oss.drivers.GraphDatabase
 import io.github.plume.oss.drivers.TinkerGraphDriver
-import org.junit.jupiter.api.AfterAll
-import org.junit.jupiter.api.AfterEach
+import org.junit.jupiter.api.*
 import org.junit.jupiter.api.Assertions.assertEquals
-import org.junit.jupiter.api.BeforeEach
-import org.junit.jupiter.api.Test
 import overflowdb.Graph
 import java.io.File
 import java.io.FileWriter
 
+@Disabled
 class GraphMLTest {
 
     companion object {
