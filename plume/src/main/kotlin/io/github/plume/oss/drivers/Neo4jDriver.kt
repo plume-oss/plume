@@ -259,8 +259,11 @@ class Neo4jDriver : IDriver {
     }
 
     private fun addNodeToGraph(graph: Graph, v: NewNodeBuilder): Node {
+        val maybeExistingNode = graph.node(v.id())
+        if (maybeExistingNode != null) return maybeExistingNode
+
         val bNode = v.build()
-        val sNode = graph.addNode(bNode.label())
+        val sNode = graph.addNode(v.id(), bNode.label())
         bNode.properties().foreachEntry { key, value -> sNode.setProperty(key, value) }
         return sNode
     }

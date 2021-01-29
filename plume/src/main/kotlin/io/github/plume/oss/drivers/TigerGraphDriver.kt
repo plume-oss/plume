@@ -263,7 +263,7 @@ class TigerGraphDriver : IOverridenIdDriver {
             val vertices = o["allVert"] as JSONArray
             vertices.map { vertexPayloadToNode(it as JSONObject) }.forEach {
                 val n = it.build()
-                val node = graph.addNode(n.label())
+                val node = graph.addNode(it.id(), n.label())
                 n.properties().foreachEntry { key, value -> node.setProperty(key, value) }
                 vs[it.id()] = node
             }

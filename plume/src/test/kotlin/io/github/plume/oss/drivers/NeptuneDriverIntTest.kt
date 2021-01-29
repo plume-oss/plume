@@ -347,12 +347,12 @@ class NeptuneDriverIntTest {
 
         @BeforeEach
         fun setUp() {
-            generateSimpleCPG(TinkerGraphDriverIntTest.driver)
+            generateSimpleCPG(driver)
         }
 
         @Test
         fun testGetWholeGraph() {
-            val g = TinkerGraphDriverIntTest.driver.getWholeGraph()
+            val g = driver.getWholeGraph()
             val ns = g.nodes().asSequence().toList()
             val es = g.edges().asSequence().toList()
             assertEquals(21, ns.size)
@@ -410,7 +410,8 @@ class NeptuneDriverIntTest {
 
         @Test
         fun testGetEmptyMethodBody() {
-            val g = TinkerGraphDriverIntTest.driver.getMethod(methodVertex.build().fullName(), methodVertex.build().signature())
+            driver.clearGraph()
+            val g = driver.getMethod(methodVertex.build().fullName(), methodVertex.build().signature())
             val ns = g.nodes().asSequence().toList()
             val es = g.edges().asSequence().toList()
             assertEquals(0, ns.size)
@@ -419,7 +420,7 @@ class NeptuneDriverIntTest {
 
         @Test
         fun testGetMethodHeadOnly() {
-            val g = TinkerGraphDriverIntTest.driver.getMethod(methodVertex.build().fullName(), methodVertex.build().signature(), false)
+            val g = driver.getMethod(methodVertex.build().fullName(), methodVertex.build().signature(), false)
             val ns = g.nodes().asSequence().toList()
             val es = g.edges().asSequence().toList()
             assertEquals(6, ns.size)
@@ -447,7 +448,7 @@ class NeptuneDriverIntTest {
 
         @Test
         fun testGetMethodBody() {
-            val g = TinkerGraphDriverIntTest.driver.getMethod(methodVertex.build().fullName(), methodVertex.build().signature(), true)
+            val g = driver.getMethod(methodVertex.build().fullName(), methodVertex.build().signature(), true)
             val ns = g.nodes().asSequence().toList()
             val es = g.edges().asSequence().toList()
             assertEquals(15, ns.size)
@@ -503,7 +504,7 @@ class NeptuneDriverIntTest {
 
         @Test
         fun testGetProgramStructure() {
-            val g = TinkerGraphDriverIntTest.driver.getProgramStructure()
+            val g = driver.getProgramStructure()
             val ns = g.nodes().asSequence().toList()
             val es = g.edges().asSequence().toList()
             assertEquals(3, ns.size)
@@ -522,7 +523,7 @@ class NeptuneDriverIntTest {
 
         @Test
         fun testGetNeighbours() {
-            val g = TinkerGraphDriverIntTest.driver.getNeighbours(fileVertex)
+            val g = driver.getNeighbours(fileVertex)
             val ns = g.nodes().asSequence().toList()
             val es = g.edges().asSequence().toList()
             assertEquals(3, ns.size)
