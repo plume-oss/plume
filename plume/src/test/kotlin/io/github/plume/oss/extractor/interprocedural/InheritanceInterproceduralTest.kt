@@ -158,7 +158,7 @@ class InheritanceInterproceduralTest {
         ns.filterIsInstance<Call>()
             .filter { it.methodFullName() == "interprocedural.inheritance.Derived: void <init>()" }
             .apply { assertEquals(2, this.toList().size) }
-            .forEach { c -> assertTrue(g.V(c.id()).next().out(CALL).asSequence().any { it.id() == derivedShow.id() }) }
+            .forEach { c -> assertTrue(g.V(c.id()).next().out(CALL).asSequence().any { it.id() == derivedInit.id() }) }
         ns.filterIsInstance<Call>()
             .filter { it.methodFullName() == "interprocedural.inheritance.Base: void show()" }
             .apply { assertEquals(2, this.toList().size) }
@@ -171,7 +171,7 @@ class InheritanceInterproceduralTest {
         ns.filterIsInstance<Call>()
             .filter { it.methodFullName() == "interprocedural.inheritance.Derived: void show()" }
             .apply { assertEquals(1, this.toList().size) }
-            .forEach { cs ->
+            .let { cs ->
                 assertTrue(cs.any { c ->
                     g.V(c.id()).next().out(CALL).asSequence().any { it.id() == derivedShow.id() }
                 })

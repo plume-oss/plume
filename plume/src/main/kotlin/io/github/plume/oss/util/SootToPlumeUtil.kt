@@ -258,8 +258,8 @@ object SootToPlumeUtil {
         val namespaceBuilder = StringBuilder(namespaceList[0])
         for (i in 1 until namespaceList.size) {
             namespaceBuilder.append("." + namespaceList[i])
-            val ns = driver.getNeighbours(prevNamespaceBlock).V(prevNamespaceBlock.id())
-            val order = if (ns.hasNext()) ns.next().outE().asSequence().toList().size else 0
+            val ns = driver.getNeighbours(prevNamespaceBlock).node(prevNamespaceBlock.id())
+            val order = ns?.outE()?.asSequence()?.toList()?.size ?: 0
             val maybeCurrNamespaceBlock = programStructure.nodes { it == NamespaceBlock.Label() }.asSequence()
                 .firstOrNull {
                     it.property("FULL_NAME") == namespaceBuilder.toString()

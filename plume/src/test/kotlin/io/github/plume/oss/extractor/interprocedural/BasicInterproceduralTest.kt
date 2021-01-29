@@ -50,7 +50,7 @@ class BasicInterproceduralTest {
 
     @Test
     fun basicCall1Test() {
-        val ns = g.nodes().asSequence()
+        val ns = g.nodes().asSequence().toList()
         val mainMethod = ns.filterIsInstance<Method>()
             .find { it.fullName() == "interprocedural.basic.Basic1.main" }
             .apply { assertNotNull(this) }
@@ -65,13 +65,13 @@ class BasicInterproceduralTest {
         val gCall =
             ns.filterIsInstance<Call>().find { it.name() == "g" }.apply { assertNotNull(this) }
         mainMethod!!; fMethod!!; gMethod!!; fCall!!; gCall!!
-        assertTrue(g.V(fCall.id()).next().out(REF).asSequence().any { it.id() == fMethod.id() })
-        assertTrue(g.V(gCall.id()).next().out(REF).asSequence().any { it.id() == gMethod.id() })
+        assertTrue(g.V(fCall.id()).next().out(CALL).asSequence().any { it.id() == fMethod.id() })
+        assertTrue(g.V(gCall.id()).next().out(CALL).asSequence().any { it.id() == gMethod.id() })
     }
 
     @Test
     fun basicCall2Test() {
-        val ns = g.nodes().asSequence()
+        val ns = g.nodes().asSequence().toList()
         val mainMethod = ns.filterIsInstance<Method>()
             .find { it.fullName() == "interprocedural.basic.Basic2.main" }
             .apply { assertNotNull(this) }
@@ -82,14 +82,14 @@ class BasicInterproceduralTest {
         mainMethod!!; fMethod!!; fCall!!
         val assignVert = g.V(fCall.id()).next().`in`(ARGUMENT).next()
         assertNotNull(assignVert)
-        assertTrue(g.V(assignVert.id()).next().out(REF).asSequence().any { it.id() == fMethod.id() })
+        assertTrue(g.V(assignVert.id()).next().out(CALL).asSequence().any { it.id() == fMethod.id() })
         g.V(fCall.id()).next().out(ARGUMENT).asSequence().filterIsInstance<Literal>().firstOrNull()
             ?.let { assertEquals("5", it.code()) }
     }
 
     @Test
     fun basicCall3Test() {
-        val ns = g.nodes().asSequence()
+        val ns = g.nodes().asSequence().toList()
         ns.filterIsInstance<TypeDecl>().find { it.fullName() == "java.lang.Object" }
             .apply { assertNotNull(this) }
         ns.filterIsInstance<Method>().find { it.fullName() == "java.lang.Object.<init>" }
@@ -107,12 +107,12 @@ class BasicInterproceduralTest {
         mainMethod!!; initMethod!!; fCall!!; fMethod!!
         g.V(initMethod.id()).next().out(REF).asSequence().filterIsInstance<Method>().firstOrNull()
             ?.apply { assertNotNull(this); assertEquals(initMethod.name(), this.name()) }
-        assertTrue(g.V(fCall.id()).next().out(REF).asSequence().any { it.id() == fMethod.id() })
+        assertTrue(g.V(fCall.id()).next().`in`(ARGUMENT).next().out(CALL).asSequence().any { it.id() == fMethod.id() })
     }
 
     @Test
     fun basicCall4Test() {
-        val ns = g.nodes().asSequence()
+        val ns = g.nodes().asSequence().toList()
         ns.filterIsInstance<TypeRef>()
             .find { it.typeFullName() == "interprocedural.basic.Basic4" }
             ?.let { trv ->
@@ -136,14 +136,14 @@ class BasicInterproceduralTest {
         val fCall =
             ns.filterIsInstance<Call>().find { it.name() == "f" }.apply { assertNotNull(this) }
         mainMethod!!; initMethod!!; fCall!!; fMethod!!
-        g.V(initMethod.id()).next().out(REF).asSequence().filterIsInstance<Method>().firstOrNull()
+        g.V(initMethod.id()).next().out(CALL).asSequence().filterIsInstance<Method>().firstOrNull()
             ?.apply { assertNotNull(this); assertEquals(initMethod.name(), this.name()) }
-        assertNotNull(g.V(fCall.id()).next().out(REF).asSequence().firstOrNull { it.id() == fMethod.id() })
-        g.V(fCall.id()).next().out(ARGUMENT).asSequence().filterIsInstance<Literal>().let { lv ->
+        assertNotNull(g.V(fCall.id()).next().`in`(ARGUMENT).next().out(CALL).asSequence().firstOrNull { it.id() == fMethod.id() })
+        g.V(fCall.id()).next().out(ARGUMENT).asSequence().filterIsInstance<Literal>().toList().let { lv ->
             assertTrue(lv.any { it.code() == "5" })
             assertTrue(lv.any { it.code() == "6" })
         }
-        g.V(fMethod.id()).next().out(AST).asSequence().filterIsInstance<MethodParameterIn>().let { mpv ->
+        g.V(fMethod.id()).next().out(AST).asSequence().filterIsInstance<MethodParameterIn>().toList().let { mpv ->
             assertTrue(mpv.any { it.name() == "i" })
             assertTrue(mpv.any { it.name() == "j" })
         }
@@ -151,12 +151,12 @@ class BasicInterproceduralTest {
 
     @Test
     fun basicCall5Test() {
-        val ns = g.nodes().asSequence()
+        val ns = g.nodes().asSequence().toList()
         ns.filterIsInstance<TypeRef>()
             .find { it.typeFullName() == "interprocedural.basic.Basic5" }
             ?.let { trv ->
                 assertNotNull(trv)
-                val assignVert = g.V(trv.id()).next().out(AST).asSequence().first().apply { assertNotNull(this) }
+                val assignVert = g.V(trv.id()).next().`in`(AST).asSequence().firstOrNull().apply { assertNotNull(this) }
                 assignVert!!
                 g.V(assignVert.id()).next().out(AST).asSequence().filterIsInstance<Identifier>()
                     .find { it.name() == "\$stack1" }.apply { assertNotNull(this) }
@@ -176,12 +176,12 @@ class BasicInterproceduralTest {
         mainMethod!!; initMethod!!; fCall!!; fMethod!!
         g.V(initMethod.id()).next().out(REF).asSequence().filterIsInstance<Method>().firstOrNull()
             ?.apply { assertNotNull(this); assertEquals(initMethod.name(), this.name()) }
-        assertTrue(g.V(fCall.id()).next().out(REF).asSequence().any { it.id() == fMethod.id() })
-        g.V(fCall.id()).next().out(ARGUMENT).asSequence().filterIsInstance<Literal>().let { lv ->
+        assertTrue(g.V(fCall.id()).next().out(CALL).asSequence().any { it.id() == fMethod.id() })
+        g.V(fCall.id()).next().out(ARGUMENT).asSequence().filterIsInstance<Literal>().toList().let { lv ->
             assertTrue(lv.any { it.code() == "\"Test\"" })
             assertTrue(lv.any { it.code() == "\"Case\"" })
         }
-        g.V(fMethod.id()).next().out(AST).asSequence().filterIsInstance<MethodParameterIn>().let { mpv ->
+        g.V(fMethod.id()).next().out(AST).asSequence().filterIsInstance<MethodParameterIn>().toList().let { mpv ->
             assertTrue(mpv.any { it.name() == "prefix" })
             assertTrue(mpv.any { it.name() == "suffix" })
         }

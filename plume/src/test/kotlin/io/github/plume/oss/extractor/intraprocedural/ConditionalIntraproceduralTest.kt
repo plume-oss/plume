@@ -59,7 +59,7 @@ class ConditionalIntraproceduralTest {
 
     @Test
     fun conditional1Test() {
-        val ns = g.nodes().asSequence()
+        val ns = g.nodes().asSequence().toList()
         assertNotNull(ns.find { it is Local && it.name() == "a" })
         assertNotNull(ns.find { it is Local && it.name() == "b" })
         ns.filterIsInstance<Call>().filter { it.name() == "ADD" }
@@ -71,7 +71,7 @@ class ConditionalIntraproceduralTest {
         ns.filterIsInstance<ControlStructure>().filter { it.code() == "IF" }.let { csv ->
             val ifVert = csv.firstOrNull(); assertNotNull(ifVert); ifVert!!
             assertTrue(g.V(ifVert.id()).next().outE(CFG).hasNext())
-            g.V(ifVert.id()).next().out(CFG).asSequence().filterIsInstance<JumpTarget>().let {
+            g.V(ifVert.id()).next().out(CFG).asSequence().filterIsInstance<JumpTarget>().toList().let {
                 assertEquals(2, it.toList().size)
                 assertNotNull(it.find { jtv -> jtv.name() == "TRUE" })
                 assertNotNull(it.find { jtv -> jtv.name() == "FALSE" })
@@ -81,7 +81,7 @@ class ConditionalIntraproceduralTest {
 
     @Test
     fun conditional2Test() {
-        val ns = g.nodes().asSequence()
+        val ns = g.nodes().asSequence().toList()
         assertNotNull(ns.find { it is Local && it.name() == "a" })
         assertNotNull(ns.find { it is Local && it.name() == "b" })
         ns.filterIsInstance<Call>().filter { it.name() == "ADD" }
@@ -93,7 +93,7 @@ class ConditionalIntraproceduralTest {
         ns.filterIsInstance<ControlStructure>().filter { it.code() == "IF" }.let { csv ->
             val ifVert = csv.firstOrNull(); assertNotNull(ifVert); ifVert!!
             assertTrue(g.V(ifVert.id()).next().outE(CFG).hasNext())
-            g.V(ifVert.id()).next().out(CFG).asSequence().filterIsInstance<JumpTarget>().let {
+            g.V(ifVert.id()).next().out(CFG).asSequence().filterIsInstance<JumpTarget>().toList().let {
                 assertEquals(2, it.toList().size)
                 assertNotNull(it.find { jtv -> jtv.name() == "TRUE" })
                 assertNotNull(it.find { jtv -> jtv.name() == "FALSE" })
@@ -103,7 +103,7 @@ class ConditionalIntraproceduralTest {
 
     @Test
     fun conditional3Test() {
-        val ns = g.nodes().asSequence()
+        val ns = g.nodes().asSequence().toList()
         assertNotNull(ns.find { it is Local && it.name() == "a" })
         assertNotNull(ns.find { it is Local && it.name() == "b" })
         ns.filterIsInstance<Call>().filter { it.name() == "ADD" }
@@ -117,7 +117,7 @@ class ConditionalIntraproceduralTest {
         ns.filterIsInstance<ControlStructure>().filter { it.code() == "IF" }.let { csv ->
             val ifVert = csv.firstOrNull(); assertNotNull(ifVert); ifVert!!
             assertTrue(g.V(ifVert.id()).next().outE(CFG).hasNext())
-            g.V(ifVert.id()).next().out(CFG).asSequence().filterIsInstance<JumpTarget>().let {
+            g.V(ifVert.id()).next().out(CFG).asSequence().filterIsInstance<JumpTarget>().toList().let {
                 assertEquals(2, it.toList().size)
                 assertNotNull(it.find { jtv -> jtv.name() == "TRUE" })
                 assertNotNull(it.find { jtv -> jtv.name() == "FALSE" })
@@ -127,7 +127,7 @@ class ConditionalIntraproceduralTest {
 
     @Test
     fun conditional4Test() {
-        val ns = g.nodes().asSequence()
+        val ns = g.nodes().asSequence().toList()
         assertNotNull(ns.find { it is Local && it.name() == "a" })
         assertNotNull(ns.find { it is Local && it.name() == "b" })
         ns.filterIsInstance<Call>().filter { it.name() == "ADD" }
@@ -146,7 +146,7 @@ class ConditionalIntraproceduralTest {
 
     @Test
     fun conditional5Test() {
-        val ns = g.nodes().asSequence()
+        val ns = g.nodes().asSequence().toList()
         assertNotNull(ns.find { it is Local && it.name() == "a" })
         assertNotNull(ns.find { it is Local && it.name() == "b" })
         ns.filterIsInstance<Call>().filter { it.name() == "SUB" }
@@ -166,7 +166,7 @@ class ConditionalIntraproceduralTest {
 
     @Test
     fun conditional6Test() {
-        val ns = g.nodes().asSequence()
+        val ns = g.nodes().asSequence().toList()
         assertNotNull(ns.find { it is Local && it.name() == "a" })
         assertNotNull(ns.find { it is Local && it.name() == "b" })
         ns.filterIsInstance<Call>().filter { it.name() == "MUL" }
@@ -181,7 +181,7 @@ class ConditionalIntraproceduralTest {
 
     @Test
     fun conditional7Test() {
-        val ns = g.nodes().asSequence()
+        val ns = g.nodes().asSequence().toList()
         assertNotNull(ns.find { it is Local && it.name() == "a" })
         assertNotNull(ns.find { it is Local && it.name() == "b" })
         ns.filterIsInstance<Call>().filter { it.name() == "ADD" }
@@ -203,7 +203,7 @@ class ConditionalIntraproceduralTest {
 
     @Test
     fun conditional8Test() {
-        val ns = g.nodes().asSequence()
+        val ns = g.nodes().asSequence().toList()
         assertNotNull(ns.find { it is Local && it.name() == "a" })
         assertNotNull(ns.find { it is Local && it.name() == "b" })
         ns.filterIsInstance<Call>().filter { it.name() == "ADD" }
@@ -225,7 +225,7 @@ class ConditionalIntraproceduralTest {
 
     @Test
     fun conditional9Test() {
-        val ns = g.nodes().asSequence()
+        val ns = g.nodes().asSequence().toList()
         assertNotNull(ns.find { it is Local && it.name() == "a" })
         assertNotNull(ns.find { it is Local && it.name() == "b" })
         assertNotNull(ns.find { it is Local && it.name() == "c" })
@@ -238,7 +238,7 @@ class ConditionalIntraproceduralTest {
 
     @Test
     fun conditional10Test() {
-        val ns = g.nodes().asSequence()
+        val ns = g.nodes().asSequence().toList()
         assertNotNull(ns.find { it is Local && it.name() == "a" })
         assertNotNull(ns.find { it is Local && it.name() == "b" })
         assertNotNull(ns.find { it is Local && it.name() == "c" })
@@ -252,7 +252,7 @@ class ConditionalIntraproceduralTest {
 
     @Test
     fun conditional11Test() {
-        val ns = g.nodes().asSequence()
+        val ns = g.nodes().asSequence().toList()
         assertNotNull(ns.find { it is Local && it.name() == "a" })
         assertNotNull(ns.find { it is Local && it.name() == "b" })
         assertNotNull(ns.find { it is Local && it.name() == "c" })
