@@ -102,7 +102,13 @@ class OverflowDbDriver : IDriver {
     }
 
     override fun getWholeGraph(): Graph {
-        return deepCopyGraph(Traversals.getWholeGraph(graph).flatMap {  it._2.toList() }.toList())
+        val wholeGraphResults = Traversals.getWholeGraph(graph)
+        val graph = deepCopyGraph(wholeGraphResults.flatMap {  it._2.toList() }.toList())
+        wholeGraphResults.map { it._1 }.filter { graph.node(it.id()) == null }.forEach {
+            val node = graph.addNode(it.id(), it.label())
+            it.propertyMap().forEach { (key, value) -> node.setProperty(key, value) }
+        }
+        return graph
     }
 
     override fun getMethod(fullName: String, signature: String, includeBody: Boolean): Graph {
@@ -110,49 +116,30 @@ class OverflowDbDriver : IDriver {
         return deepCopyGraph(Traversals.getMethodStub(graph, fullName, signature))
     }
 
-//    private fun deepCopyGraph(nodesWithEdges: List<Pair<Node, List<Edge>>>): Graph {
-//        val graph = newOverflowGraph()
-//        val vertices = deepCopyVertices(nodesWithEdges.map { it.second }.flatten())
-//        val edges = nodesWithEdges.flatMap { x -> x.second }
-//        deepCopyEdges(edges, vertices.map { Pair(it.id(), it) }.toMap())
-//        return graph
-//    }
-
     private fun deepCopyGraph(edges: List<Edge>): Graph {
         val graph = newOverflowGraph()
-        val vertices = deepCopyVertices(graph, edges)
-        deepCopyEdges(edges, vertices.map { Pair(it.id(), it) }.toMap())
+        deepCopyVertices(graph, edges)
+        deepCopyEdges(edges, graph)
         return graph
     }
 
     private fun deepCopyVertices(graph: Graph, edges: List<Edge>): List<Node> {
-        return edges.flatMap { edge -> listOf(edge.inNode().get(), edge.outNode().get()) }
+        return edges.flatMap { edge -> listOf(edge.inNode(), edge.outNode()) }
             .distinct()
             .onEach { n ->
-                val node = graph.addNode(n.label())
-                n.propertyMap().forEach { (key, value) -> node.setProperty(key, value) }
+                val node = graph.addNode(n.id(), n.label())
+                n.propertyMap().forEach { (key, value) -> node.setProperty(key as String?, value) }
             }
     }
 
-    private fun deepCopyEdges(edges: List<Edge>, vertices: Map<Long, Node>) {
+    private fun deepCopyEdges(edges: List<Edge>, graph: Graph) {
         edges.forEach { edge ->
-            val srcNode = vertices[edge.outNode().id()]
-            val dstNode = vertices[edge.inNode().id()]
+            val srcNode = graph.node(edge.outNode().id())
+            val dstNode = graph.node(edge.inNode().id())
             if (srcNode != null && dstNode != null) {
                 srcNode.addEdge(edge.label(), dstNode)
             }
         }
-    }
-
-    private fun preProcessPropertyMap(props: Map<String, Any>): Map<String, Any> {
-        val propertyMap = props.toMutableMap()
-        propertyMap.computeIfPresent("DYNAMIC_TYPE_HINT_FULL_NAME") { _, value ->
-            when (value) {
-                is scala.collection.immutable.`$colon$colon`<*> -> value.head()
-                else -> value
-            }
-        }
-        return propertyMap
     }
 
     override fun getProgramStructure(): Graph {

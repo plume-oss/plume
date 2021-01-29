@@ -355,12 +355,12 @@ class OverflowDbDriverIntTest {
 
         @BeforeEach
         fun setUp() {
-            generateSimpleCPG(TinkerGraphDriverIntTest.driver)
+            generateSimpleCPG(driver)
         }
 
         @Test
         fun testGetWholeGraph() {
-            val g = TinkerGraphDriverIntTest.driver.getWholeGraph()
+            val g = driver.getWholeGraph()
             val ns = g.nodes().asSequence().toList()
             val es = g.edges().asSequence().toList()
             assertEquals(21, ns.size)
@@ -418,7 +418,8 @@ class OverflowDbDriverIntTest {
 
         @Test
         fun testGetEmptyMethodBody() {
-            val g = TinkerGraphDriverIntTest.driver.getMethod(
+            driver.clearGraph()
+            val g = driver.getMethod(
                 methodVertex.build().fullName(),
                 methodVertex.build().signature()
             )
@@ -430,7 +431,7 @@ class OverflowDbDriverIntTest {
 
         @Test
         fun testGetMethodHeadOnly() {
-            val g = TinkerGraphDriverIntTest.driver.getMethod(
+            val g = driver.getMethod(
                 methodVertex.build().fullName(),
                 methodVertex.build().signature(),
                 false
@@ -462,7 +463,7 @@ class OverflowDbDriverIntTest {
 
         @Test
         fun testGetMethodBody() {
-            val g = TinkerGraphDriverIntTest.driver.getMethod(
+            val g = driver.getMethod(
                 methodVertex.build().fullName(),
                 methodVertex.build().signature(),
                 true
@@ -522,7 +523,7 @@ class OverflowDbDriverIntTest {
 
         @Test
         fun testGetProgramStructure() {
-            val g = TinkerGraphDriverIntTest.driver.getProgramStructure()
+            val g = driver.getProgramStructure()
             val ns = g.nodes().asSequence().toList()
             val es = g.edges().asSequence().toList()
             assertEquals(3, ns.size)
@@ -541,7 +542,7 @@ class OverflowDbDriverIntTest {
 
         @Test
         fun testGetNeighbours() {
-            val g = TinkerGraphDriverIntTest.driver.getNeighbours(fileVertex)
+            val g = driver.getNeighbours(fileVertex)
             val ns = g.nodes().asSequence().toList()
             val es = g.edges().asSequence().toList()
             assertEquals(3, ns.size)
