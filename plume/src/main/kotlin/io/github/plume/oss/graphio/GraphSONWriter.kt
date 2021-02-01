@@ -3,9 +3,7 @@ package io.github.plume.oss.graphio
 import io.github.plume.oss.domain.mappers.VertexMapper.extractAttributesFromMap
 import overflowdb.Graph
 import overflowdb.Node
-import scala.collection.immutable.`Nil$`
 import java.io.OutputStreamWriter
-import java.util.*
 
 /**
  * Responsible for writing [Graph] objects to an [OutputStreamWriter] in GraphSON format. Note that GraphSON format
@@ -28,7 +26,9 @@ object GraphSONWriter {
     fun write(graph: Graph, writer: OutputStreamWriter) {
         propertyId = 0
         writer.use { w ->
-            graph.nodes().forEach { v -> w.write(vertexToJSON(v, graph) + "\n") }
+            graph.nodes().forEach { v ->
+                w.write(vertexToJSON(v, graph) + "\n")
+            }
         }
     }
 
@@ -36,7 +36,7 @@ object GraphSONWriter {
         val sb = StringBuilder()
         val properties = extractAttributesFromMap(v.propertyMap())
         sb.append("{")
-        sb.append("\"id\":\"${v.id()}\",")
+        sb.append("\"id\":{\"@type\":\"g:Int64\",\"@value\":${v.id()}},")
         sb.append("\"label\":\"${v.label()}\",")
         val node = graph.V(v.id()).next()
         if (node.outE().hasNext()) sb.append("\"outE\":${edgesToJSON(node, "in")},")
@@ -50,28 +50,39 @@ object GraphSONWriter {
         val sb = StringBuilder()
         sb.append("{")
         var i = 0
-        val edgesOut = mutableMapOf<String, MutableList<Node>>()
-        val es = if (tgtDirection == "in") node.inE() else node.outE()
+        val edges = mutableMapOf<String, MutableList<Node>>()
+        val es = if (tgtDirection == "out") node.inE() else node.outE()
 
-        es.forEach {
-            val eList = edgesOut[it.label()]
-            if (eList.isNullOrEmpty()) edgesOut[it.label()] = mutableListOf(it.inNode().get())
-            else eList.add(it.inNode().get())
+        if (tgtDirection == "in") {
+            es.forEach {
+                val eList = edges[it.label()]
+                if (eList.isNullOrEmpty()) edges[it.label()] = mutableListOf(it.inNode().get())
+                else eList.add(it.inNode().get())
+            }
+        } else {
+            es.forEach {
+                val eList = edges[it.label()]
+                if (eList.isNullOrEmpty()) edges[it.label()] = mutableListOf(it.outNode().get())
+                else eList.add(it.outNode().get())
+            }
         }
 
-        edgesOut.forEach { (edge, vertexList) ->
+        edges.forEach { (edge, vertexList) ->
             sb.append("\"$edge\":[")
             vertexList.forEachIndexed { i, v ->
                 sb.append("{")
                 sb.append("\"id\":{")
                 sb.append("\"@type\":\"g:Int64\",")
-                sb.append("\"@value\":\"${edgeId++}\"")
-                sb.append("}, \"${tgtDirection}V\":\"${v.id()}\"")
+                sb.append("\"@value\":${edgeId++}")
+                sb.append("},")
+                sb.append("\"${tgtDirection}V\":{")
+                sb.append("\"@type\":\"g:Int64\",")
+                sb.append("\"@value\":${v.id()}}")
                 sb.append("}")
                 if (i < vertexList.size - 1) sb.append(",")
             }
             sb.append("]")
-            if (++i < edgesOut.size) sb.append(",")
+            if (++i < edges.size) sb.append(",")
         }
         sb.append("}")
         return sb.toString()
