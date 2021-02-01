@@ -38,17 +38,20 @@ class TestDomainResources {
                 .linenumber(Option.apply(INT_1)).columnnumber(Option.apply(INT_1)),
             NewFileBuilder().name(STRING_1).hash(Option.apply(STRING_2)).order(INT_1),
             NewIdentifierBuilder().name(STRING_1).typefullname(STRING_1).code(STRING_1).order(INT_1)
-                .argumentindex(INT_1).linenumber(Option.apply(INT_1)).columnnumber(Option.apply(INT_1)),
+                .argumentindex(INT_1).linenumber(Option.apply(INT_1)).columnnumber(Option.apply(INT_1))
+                .dynamictypehintfullname(createScalaList(STRING_1)),
             NewJumpTargetBuilder().name(STRING_1).argumentindex(INT_1).code(STRING_1).order(INT_1)
                 .linenumber(Option.apply(INT_1)).columnnumber(Option.apply(INT_1)),
             NewLiteralBuilder().typefullname(STRING_1).code(STRING_1).order(INT_1).argumentindex(INT_1)
-                .linenumber(Option.apply(INT_1)).columnnumber(Option.apply(INT_1)),
+                .linenumber(Option.apply(INT_1)).columnnumber(Option.apply(INT_1))
+                .dynamictypehintfullname(createScalaList(STRING_1)),
             NewLocalBuilder().code(STRING_1).typefullname(STRING_1).name(STRING_1).order(INT_1)
                 .linenumber(Option.apply(INT_1)).columnnumber(Option.apply(INT_1)),
             NewMemberBuilder().code(STRING_1).name(STRING_1).typefullname(STRING_1).order(INT_1),
             NewMetaDataBuilder().language(STRING_1).version(STRING_1),
             NewMethodParameterInBuilder().code(STRING_1).evaluationstrategy(EVAL_1.name).typefullname(STRING_1)
-                .name(STRING_1).order(INT_1).linenumber(Option.apply(INT_1)).columnnumber(Option.apply(INT_1)),
+                .name(STRING_1).order(INT_1).linenumber(Option.apply(INT_1)).columnnumber(Option.apply(INT_1))
+                .dynamictypehintfullname(createScalaList(STRING_1)),
             NewMethodRefBuilder().methodinstfullname(Option.apply(STRING_1)).methodfullname(STRING_1).code(STRING_1)
                 .order(INT_1).argumentindex(INT_1).linenumber(Option.apply(INT_1)).columnnumber(Option.apply(INT_1)),
             NewMethodReturnBuilder().typefullname(STRING_1).evaluationstrategy(EVAL_1.name).code(STRING_1)
@@ -69,6 +72,7 @@ class TestDomainResources {
             NewTypeBuilder().name(STRING_1).fullname(STRING_1).typedeclfullname(STRING_1),
             NewUnknownBuilder().typefullname(STRING_1).code(STRING_1).order(INT_1).argumentindex(INT_1)
                 .linenumber(Option.apply(INT_1)).columnnumber(Option.apply(INT_1))
+                .dynamictypehintfullname(createScalaList(STRING_1))
         )
 
         val methodVertex: NewMethodBuilder =

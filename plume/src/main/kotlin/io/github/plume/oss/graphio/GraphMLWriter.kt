@@ -3,6 +3,8 @@ package io.github.plume.oss.graphio
 import io.github.plume.oss.domain.mappers.VertexMapper
 import overflowdb.Graph
 import overflowdb.Node
+import scala.collection.immutable.`$colon$colon`
+import scala.collection.immutable.`Nil$`
 import java.io.OutputStreamWriter
 import java.util.*
 
@@ -20,10 +22,10 @@ object GraphMLWriter {
      * [TinkerGraph](https://tinkerpop.apache.org/docs/current/reference/#graphml) and
      * [Cytoscape](http://manual.cytoscape.org/en/stable/Supported_Network_File_Formats.html#graphml).
      *
-     * @param graph The [Graph] to serialize.
+     * @param g The [Graph] to serialize.
      * @param writer The stream to write the serialized graph to.
      */
-    fun write(graph: Graph, writer: OutputStreamWriter) {
+    fun write(g: Graph, writer: OutputStreamWriter) {
         writer.use { w ->
             // Write header
             w.write(DECLARATION)
@@ -32,13 +34,13 @@ object GraphMLWriter {
             w.write("xmlns:xsi=\"http://www.w3.org/2001/XMLSchema-instance\" ")
             w.write("xsi:schemaLocation=\"http://graphml.graphdrawing.org/xmlns http://graphml.graphdrawing.org/xmlns/1.1/graphml.xsd\">")
             // Write keys
-            writeKeys(w, graph.nodes())
+            writeKeys(w, g.nodes())
             // Write graph
             w.write("<graph id=\"G\" edgedefault=\"directed\">")
             // Write vertices
-            writeVertices(w, graph.nodes())
+            writeVertices(w, g.nodes())
             // Write edges
-            writeEdges(w, graph)
+            writeEdges(w, g)
             // Close graph tags
             w.write("</graph>")
             w.write("</graphml>")
@@ -52,6 +54,8 @@ object GraphMLWriter {
                 when (u) {
                     is String -> keySet[t] = "string"
                     is Int -> keySet[t] = "int"
+                    is `$colon$colon`<*> -> keySet[t] = "string"
+                    is `Nil$` -> keySet[t] = "string"
                 }
             }
         }
@@ -69,7 +73,7 @@ object GraphMLWriter {
 
     private fun writeVertices(fw: OutputStreamWriter, vertices: MutableIterator<Node>) {
         vertices.forEach { v ->
-            fw.write("<node id=\"${v.hashCode()}\">")
+            fw.write("<node id=\"${v.id()}\">")
             VertexMapper.extractAttributesFromMap(v.propertyMap())
                 .apply { fw.write("<data key=\"labelV\">${v.label()}</data>") }
                 .forEach { (t, u) -> fw.write("<data key=\"$t\">${escape(u)}</data>") }
@@ -78,23 +82,23 @@ object GraphMLWriter {
     }
 
     private fun escape(o: Any) =
-        if (o is String)
-            o.replace("<", "&lt;").replace(">", "&gt;")
-        else
-            o.toString()
+        when (o) {
+            is String -> o.replace("<", "&lt;").replace(">", "&gt;")
+            is `$colon$colon`<*> -> o.head()
+            is `Nil$` -> ""
+            else -> o.toString()
+        }
 
-    private fun writeEdges(fw: OutputStreamWriter, graph: Graph) {
-        val vertices = graph.nodes()
+    private fun writeEdges(fw: OutputStreamWriter, g: Graph) {
+        val vertices = g.nodes()
         vertices.forEach { srcV ->
-            graph.V(srcV.id()).next().outE().asSequence().map { Pair(it.label(), it.inNode().get()) }
-                .forEach { (edgeLabel, vOut) ->
-                    vOut.propertyMap().forEach { tgtV ->
-                        fw.write("<edge id=\"${edgeId++}\" ")
-                        fw.write("source=\"${srcV.hashCode()}\" ")
-                        fw.write("target=\"${tgtV.hashCode()}\">")
-                        fw.write("<data key=\"labelE\">${edgeLabel}</data>")
-                        fw.write("</edge>")
-                    }
+            g.node(srcV.id()).outE().asSequence().map { Pair(it.label(), it.inNode().get()) }
+                .forEach { (edgeLabel, tgtV) ->
+                    fw.write("<edge id=\"${edgeId++}\" ")
+                    fw.write("source=\"${srcV.id()}\" ")
+                    fw.write("target=\"${tgtV.id()}\">")
+                    fw.write("<data key=\"labelE\">${edgeLabel}</data>")
+                    fw.write("</edge>")
                 }
         }
     }
