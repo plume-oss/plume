@@ -27,8 +27,13 @@ import io.shiftleft.codepropertygraph.generated.nodes.Factories as NodeFactories
 class Neo4jDriver : IDriver {
 
     private val logger = LogManager.getLogger(Neo4jDriver::class.java)
-    private var connected = false
     private lateinit var driver: Driver
+
+    /**
+     * Indicates whether the driver is connected to the graph database or not.
+     */
+    var connected = false
+        private set
 
     /**
      * The Neo4j server database name.

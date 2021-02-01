@@ -20,6 +20,7 @@ import io.github.plume.oss.domain.files.*
 import io.github.plume.oss.domain.mappers.VertexMapper.mapToVertex
 import io.github.plume.oss.drivers.GremlinDriver
 import io.github.plume.oss.drivers.IDriver
+import io.github.plume.oss.drivers.Neo4jDriver
 import io.github.plume.oss.drivers.OverflowDbDriver
 import io.github.plume.oss.graph.ASTBuilder
 import io.github.plume.oss.graph.CFGBuilder
@@ -160,6 +161,7 @@ class Extractor(val driver: IDriver) {
         when (driver) {
             is GremlinDriver -> if (!driver.connected) driver.connect()
             is OverflowDbDriver -> if (!driver.connected) driver.connect()
+            is Neo4jDriver -> if (!driver.connected) driver.connect()
         }
     }
 
