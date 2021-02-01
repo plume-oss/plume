@@ -24,7 +24,6 @@ import overflowdb.Graph
 import java.io.File
 import java.io.FileWriter
 
-@Disabled
 class GraphSONTest {
 
     companion object {
@@ -82,6 +81,7 @@ class GraphSONTest {
         driver.clearGraph()
         driver.importGraph(testGraphSON)
         val otherGraph = driver.getWholeGraph()
-        assertEquals(graph, otherGraph)
+        assertEquals(graph.nodeCount(), otherGraph.nodeCount())
+        assertEquals(graph.edgeCount(), otherGraph.edgeCount())
     }
 }
