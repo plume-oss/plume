@@ -12,6 +12,11 @@ and this project adheres to [Semantic Versioning](http://semver.org/).
 
 ### Fixed
 
+## [0.1.1] - 2021-02-01
+
+### Fixed
+- Upgraded ASM5 -> ASM8 to fix some JAR support
+
 ## [0.1.0] - 2021-01-27
 
 ### Changed
