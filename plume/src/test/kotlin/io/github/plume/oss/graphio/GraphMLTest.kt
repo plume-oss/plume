@@ -35,7 +35,7 @@ class GraphMLTest {
         @JvmStatic
         @AfterAll
         fun tearDownAll() {
-//            File(testGraphML).delete()
+            File(testGraphML).delete()
         }
     }
 
