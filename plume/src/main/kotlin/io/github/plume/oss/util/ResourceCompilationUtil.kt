@@ -91,7 +91,7 @@ object ResourceCompilationUtil {
     fun moveClassFiles(files: List<JVMClassFile>): List<JVMClassFile> {
         lateinit var destPath: String
 
-        class ClassPathVisitor : ClassVisitor(Opcodes.ASM5) {
+        class ClassPathVisitor : ClassVisitor(Opcodes.ASM8) {
             override fun visit(
                 version: Int,
                 access: Int,
