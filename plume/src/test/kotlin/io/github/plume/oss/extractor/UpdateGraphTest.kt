@@ -55,11 +55,12 @@ class UpdateGraphTest {
         listOf(testFile1, testFile2).forEach { extractor.load(it) }
         extractor.project()
         val g2 = driver.getWholeGraph()
-        val literals = g1.nodes().asSequence().filterIsInstance<Literal>()
-        assertTrue(literals.any { it.code() == "5" })
-        assertTrue(literals.any { it.code() == "9" })
-        assertTrue(literals.none { it.code() == "5" })
-        assertTrue(literals.none { it.code() == "9" })
+        val literalsG1 = g1.nodes().asSequence().filterIsInstance<Literal>().toList()
+        val literalsG2 = g2.nodes().asSequence().filterIsInstance<Literal>().toList()
+        assertTrue(literalsG1.any { it.code() == "5" })
+        assertTrue(literalsG2.any { it.code() == "9" })
+        assertTrue(literalsG2.none { it.code() == "5" })
+        assertTrue(literalsG1.none { it.code() == "9" })
         assertFalse(g1 == g2)
     }
 

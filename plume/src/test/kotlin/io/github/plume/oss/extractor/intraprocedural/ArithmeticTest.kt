@@ -52,17 +52,18 @@ class ArithmeticTest {
 
     @Test
     fun arithmetic1Test() {
-        val ns = g.nodes().asSequence()
+        val ns = g.nodes().asSequence().toList()
+        val calls = ns.filterIsInstance<Call>().toList()
         assertNotNull(ns.find { it is Local && it.name() == "a" })
         assertNotNull(ns.find { it is Local && it.name() == "b" })
         assertNotNull(ns.find { it is Local && it.name() == "c" })
         assertNotNull(ns.find { it is Local && it.name() == "d" })
         assertNotNull(ns.find { it is Local && it.name() == "e" })
         assertNotNull(ns.find { it is Local && it.name() == "f" })
-        val add = ns.filterIsInstance<Call>().find { it.name() == "ADD" }.apply { assertNotNull(this) }
-        val mul = ns.filterIsInstance<Call>().find { it.name() == "MUL" }.apply { assertNotNull(this) }
-        val sub = ns.filterIsInstance<Call>().find { it.name() == "SUB" }.apply { assertNotNull(this) }
-        val div = ns.filterIsInstance<Call>().find { it.name() == "DIV" }.apply { assertNotNull(this) }
+        val add = calls.find { it.name() == "ADD" }.apply { assertNotNull(this) }
+        val mul = calls.find { it.name() == "MUL" }.apply { assertNotNull(this) }
+        val sub = calls.find { it.name() == "SUB" }.apply { assertNotNull(this) }
+        val div = calls.find { it.name() == "DIV" }.apply { assertNotNull(this) }
         add!!; mul!!; sub!!; div!!
         assertTrue(add.id() < sub.id())
         assertTrue(sub.id() < mul.id())
@@ -71,25 +72,27 @@ class ArithmeticTest {
 
     @Test
     fun arithmetic2Test() {
-        val ns = g.nodes().asSequence()
+        val ns = g.nodes().asSequence().toList()
+        val calls = ns.filterIsInstance<Call>().toList()
         assertNotNull(ns.find { it is Local && it.name() == "a" })
         assertNotNull(ns.find { it is Local && it.name() == "b" })
         assertNotNull(ns.find { it is Local && it.name() == "c" })
-        val add = ns.filterIsInstance<Call>().find { it.name() == "ADD" }.apply { assertNotNull(this) }
-        val mul = ns.filterIsInstance<Call>().find { it.name() == "MUL" }.apply { assertNotNull(this) }
+        val add = calls.find { it.name() == "ADD" }.apply { assertNotNull(this) }
+        val mul = calls.find { it.name() == "MUL" }.apply { assertNotNull(this) }
         add!!; mul!!
         assertTrue(mul.id() < add.id())
     }
 
     @Test
     fun arithmetic3Test() {
-        val ns = g.nodes().asSequence()
+        val ns = g.nodes().asSequence().toList()
+        val calls = ns.filterIsInstance<Call>().toList()
         assertNotNull(ns.find { it is Local && it.name() == "a" })
         assertNotNull(ns.find { it is Local && it.name() == "b" })
         assertNotNull(ns.find { it is Local && it.name() == "c" })
-        val add = ns.filterIsInstance<Call>().find { it.name() == "ADD" }.apply { assertNotNull(this) }
-        val mul = ns.filterIsInstance<Call>().find { it.name() == "MUL" }.apply { assertNotNull(this) }
-        val sub = ns.filterIsInstance<Call>().find { it.name() == "SUB" }.apply { assertNotNull(this) }
+        val add = calls.find { it.name() == "ADD" }.apply { assertNotNull(this) }
+        val mul = calls.find { it.name() == "MUL" }.apply { assertNotNull(this) }
+        val sub = calls.find { it.name() == "SUB" }.apply { assertNotNull(this) }
         add!!; mul!!; sub!!
         assertTrue(mul.id() < add.id())
         assertTrue(add.id() < sub.id())
@@ -97,19 +100,21 @@ class ArithmeticTest {
 
     @Test
     fun arithmetic4Test() {
-        val ns = g.nodes().asSequence()
+        val ns = g.nodes().asSequence().toList()
+        val calls = ns.filterIsInstance<Call>().toList()
         assertNotNull(ns.find { it is Local && it.name() == "a" })
         assertNotNull(ns.find { it is Local && it.name() == "b" })
         assertNotNull(ns.find { it is Local && it.name() == "c" })
         assertNotNull(ns.find { it is Local && it.name() == "d" })
-        val addList = ns.filterIsInstance<Call>().filter { it.name() == "ADD" }
+        val addList = calls.filter { it.name() == "ADD" }
             .apply { assertFalse(this.toList().isNullOrEmpty()) }
         assertEquals(2, addList.toList().size)
     }
 
     @Test
     fun arithmetic5Test() {
-        val ns = g.nodes().asSequence()
+        val ns = g.nodes().asSequence().toList()
+        val calls = ns.filterIsInstance<Call>().toList()
         assertNotNull(ns.find { it is Local && it.name() == "a" })
         assertNotNull(ns.find { it is Local && it.name() == "b" })
         assertNotNull(ns.find { it is Local && it.name() == "c" })
@@ -117,11 +122,11 @@ class ArithmeticTest {
         assertNotNull(ns.find { it is Local && it.name() == "e" })
         assertNotNull(ns.find { it is Local && it.name() == "f" })
         assertNotNull(ns.find { it is Local && it.name() == "g" })
-        val and = ns.filterIsInstance<Call>().find { it.name() == "AND" }.apply { assertNotNull(this) }
-        val or = ns.filterIsInstance<Call>().find { it.name() == "OR" }.apply { assertNotNull(this) }
-        val shl = ns.filterIsInstance<Call>().find { it.name() == "SHL" }.apply { assertNotNull(this) }
-        val shr = ns.filterIsInstance<Call>().find { it.name() == "SHR" }.apply { assertNotNull(this) }
-        val rem = ns.filterIsInstance<Call>().find { it.name() == "REM" }.apply { assertNotNull(this) }
+        val and = calls.find { it.name() == "AND" }.apply { assertNotNull(this) }
+        val or = calls.find { it.name() == "OR" }.apply { assertNotNull(this) }
+        val shl = calls.find { it.name() == "SHL" }.apply { assertNotNull(this) }
+        val shr = calls.find { it.name() == "SHR" }.apply { assertNotNull(this) }
+        val rem = calls.find { it.name() == "REM" }.apply { assertNotNull(this) }
         and!!; or!!; shl!!; shr!!; rem!!
         assertTrue(and.id() < or.id())
         assertTrue(or.id() < shl.id())
@@ -131,23 +136,25 @@ class ArithmeticTest {
 
     @Test
     fun arithmetic6Test() {
-        val ns = g.nodes().asSequence()
+        val ns = g.nodes().asSequence().toList()
+        val calls = ns.filterIsInstance<Call>().toList()
         assertNotNull(ns.find { it is Local && it.name() == "a" })
         assertNotNull(ns.find { it is Local && it.name() == "b" })
         assertNotNull(ns.find { it is Local && it.name() == "c" })
         assertNotNull(ns.find { it is Local && it.name() == "d" })
-        val xor = ns.filterIsInstance<Call>().find { it.name() == "XOR" }.apply { assertNotNull(this) }
-        val ushr = ns.filterIsInstance<Call>().find { it.name() == "USHR" }.apply { assertNotNull(this) }
+        val xor = calls.find { it.name() == "XOR" }.apply { assertNotNull(this) }
+        val ushr = calls.find { it.name() == "USHR" }.apply { assertNotNull(this) }
         xor!!; ushr!!
         assertTrue(xor.id() < ushr.id())
     }
 
     @Test
     fun arithmetic7Test() {
-        val ns = g.nodes().asSequence()
+        val ns = g.nodes().asSequence().toList()
+        val calls = ns.filterIsInstance<Call>().toList()
         assertNotNull(ns.find { it is Local && it.name() == "a" })
         assertNotNull(ns.find { it is Local && it.name() == "b" })
-        val addList = ns.filterIsInstance<Call>().filter { it.name() == "ADD" }.apply {
+        val addList = calls.filter { it.name() == "ADD" }.apply {
             assertFalse(this.toList().isNullOrEmpty())
         }
         assertEquals(4, addList.toList().size)

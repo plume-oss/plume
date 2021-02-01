@@ -36,7 +36,6 @@ import org.apache.logging.log4j.LogManager
 import org.apache.logging.log4j.Logger
 import overflowdb.Graph
 import overflowdb.Node
-import scala.Some
 import soot.*
 import soot.jimple.spark.SparkTransformer
 import soot.jimple.toolkits.callgraph.CHATransformer
@@ -208,25 +207,14 @@ class Extractor(val driver: IDriver) {
                     is JVMClassFile -> splitFiles[SupportedFile.JVM_CLASS]?.add(it)
                 }
             }
+        if (splitFiles.keys.contains(SupportedFile.JAVA) || splitFiles.keys.contains(SupportedFile.JVM_CLASS)) {
+            driver.addVertex(NewMetaDataBuilder().language("Java").version(System.getProperty("java.runtime.version")))
+        }
         return splitFiles.keys.map {
             val filesToCompile = (splitFiles[it] ?: emptyList<JVMClassFile>()).toList()
             return@map when (it) {
-                SupportedFile.JAVA ->
-                    compileJavaFiles(filesToCompile)
-                        .apply {
-                            if (this.isNotEmpty()) driver.addVertex(
-                                NewMetaDataBuilder().language("Java")
-                                    .version(System.getProperty("java.runtime.version"))
-                            )
-                        }
-                SupportedFile.JVM_CLASS ->
-                    moveClassFiles(filesToCompile.map { f -> f as JVMClassFile }.toList())
-                        .apply {
-                            if (this.isNotEmpty()) driver.addVertex(
-                                NewMetaDataBuilder().language("Java")
-                                    .version(System.getProperty("java.runtime.version"))
-                            )
-                        }
+                SupportedFile.JAVA -> compileJavaFiles(filesToCompile)
+                SupportedFile.JVM_CLASS -> moveClassFiles(filesToCompile.map { f -> f as JVMClassFile }.toList())
             }
         }.asSequence().flatten().toHashSet()
     }
@@ -323,7 +311,7 @@ class Extractor(val driver: IDriver) {
         val files = programStructure.nodes { it == ODBFile.Label() }.asSequence()
         logger.debug("Looking for existing file vertex for ${cls.name} from given file hash $currentFileHash")
         files.firstOrNull { it.property("NAME") == cls.name }?.let { fileV ->
-            if ((fileV.property("HASH") as Some<*>).get() != currentFileHash) {
+            if (fileV.property("HASH") != currentFileHash) {
                 logger.debug("Existing class was found and file hashes do not match, marking for rebuild.")
                 // Rebuild
                 driver.getNeighbours(mapToVertex(fileV)).nodes { it == Method.Label() }.forEach { mtdV: Node ->

@@ -398,7 +398,12 @@ class ASTBuilder(private val driver: IDriver) : IGraphBuilder {
      */
     private fun projectBinopExpr(expr: BinopExpr, childIdx: Int): NewCallBuilder {
         val binopVertices = mutableListOf<NewNodeBuilder>()
-        val binOpExpr = BIN_OPS[expr.symbol.trim()] ?: throw Exception("Unknown binary operator $expr")
+        val binOpExpr = if (BIN_OPS.containsKey(expr.symbol.trim())) {
+            BIN_OPS[expr.symbol.trim()]
+        } else {
+            logger.warn("Unknown binary operator $expr")
+            expr.symbol.trim()
+        }
         val binOpBlock = NewCallBuilder()
             .name(binOpExpr)
             .code(expr.symbol.trim())
@@ -549,7 +554,11 @@ class ASTBuilder(private val driver: IDriver) : IGraphBuilder {
             .order(childIdx)
         projectOp(ret.op, childIdx + 1)?.let { driver.addEdge(retV, it, EdgeLabel.AST) }
         runCatching {
-            driver.addEdge(getSootAssociation(graph.body.method)?.first { it is NewBlockBuilder }!!, retV, EdgeLabel.AST)
+            driver.addEdge(
+                getSootAssociation(graph.body.method)?.first { it is NewBlockBuilder }!!,
+                retV,
+                EdgeLabel.AST
+            )
         }.onFailure { e -> logger.warn(e.message) }
         return retV
     }
@@ -562,7 +571,11 @@ class ASTBuilder(private val driver: IDriver) : IGraphBuilder {
             .columnnumber(Option.apply(ret.javaSourceStartColumnNumber))
             .order(childIdx)
         runCatching {
-            driver.addEdge(getSootAssociation(graph.body.method)?.first { it is NewBlockBuilder }!!, retV, EdgeLabel.AST)
+            driver.addEdge(
+                getSootAssociation(graph.body.method)?.first { it is NewBlockBuilder }!!,
+                retV,
+                EdgeLabel.AST
+            )
         }.onFailure { e -> logger.warn(e.message) }
         return retV
     }

@@ -55,7 +55,7 @@ class BasicIntraproceduralTest {
 
     @Test
     fun basic1Test() {
-        val ns = g.nodes().asSequence()
+        val ns = g.nodes().asSequence().toList()
         ns.filterIsInstance<NamespaceBlock>().let { nbv ->
             assertNotNull(nbv.find { it.name() == "basic" })
             assertNotNull(nbv.find { it.name() == "intraprocedural" })
@@ -75,7 +75,7 @@ class BasicIntraproceduralTest {
 
     @Test
     fun basic2Test() {
-        val ns = g.nodes().asSequence()
+        val ns = g.nodes().asSequence().toList()
         ns.filterIsInstance<NamespaceBlock>().let { nbv ->
             assertNotNull(nbv.find { it.name() == "basic" })
             assertNotNull(nbv.find { it.name() == "intraprocedural" })
@@ -95,7 +95,7 @@ class BasicIntraproceduralTest {
 
     @Test
     fun basic3Test() {
-        val ns = g.nodes().asSequence()
+        val ns = g.nodes().asSequence().toList()
         ns.filterIsInstance<NamespaceBlock>().let { nbv ->
             assertNotNull(nbv.find { it.name() == "basic" })
             assertNotNull(nbv.find { it.name() == "intraprocedural" })
@@ -115,7 +115,7 @@ class BasicIntraproceduralTest {
 
     @Test
     fun basic4Test() {
-        val ns = g.nodes().asSequence()
+        val ns = g.nodes().asSequence().toList()
         ns.filterIsInstance<NamespaceBlock>().let { nbv ->
             assertNotNull(nbv.find { it.name() == "basic" })
             assertNotNull(nbv.find { it.name() == "intraprocedural" })
@@ -145,7 +145,7 @@ class BasicIntraproceduralTest {
         extractor.load(f)
         extractor.project()
         g = driver.getWholeGraph()
-        val ns = g.nodes().asSequence()
+        val ns = g.nodes().asSequence().toList()
         ns.filterIsInstance<NamespaceBlock>().let { nbv ->
             assertNotNull(nbv.find { it.name() == "basic" })
             assertNotNull(nbv.find { it.name() == "intraprocedural" })

@@ -9,8 +9,10 @@ and this project adheres to [Semantic Versioning](http://semver.org/).
 ### Added
 
 ### Changed
+- Replaced `PlumeGraph` with `overflowdb.Graph`.
 
 ### Fixed
+- Fixed `cmp` bug by adding this to `ExtractorConst#BIN_OPS`.
 
 ## [0.1.0] - 2021-01-27
 
