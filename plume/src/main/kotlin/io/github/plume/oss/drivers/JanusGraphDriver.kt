@@ -58,17 +58,4 @@ class JanusGraphDriver : GremlinDriver() {
      */
     fun remoteConfig(remoteConfigPath: String) = apply { config.setProperty(REMOTE_CONFIG, remoteConfigPath) }
 
-    /**
-     * Given a [NewNodeBuilder], creates a [Vertex] and translates the object's field properties to key-value
-     * pairs on the [Vertex] object. This is then added to this driver's [Graph].
-     *
-     * @param v the [NewNodeBuilder] to translate into a [Vertex].
-     * @return the newly created [Vertex].
-     */
-    override fun createVertex(v: NewNodeBuilder): Vertex {
-        val propertyMap = prepareVertexProperties(v)
-        var traversalPointer = g.addV(v.build().label())
-        for ((key, value) in propertyMap) traversalPointer = traversalPointer.property(key, value)
-        return traversalPointer.next().apply { v.id(this.id() as Long) }
-    }
 }

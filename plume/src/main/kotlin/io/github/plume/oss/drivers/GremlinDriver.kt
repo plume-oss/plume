@@ -111,13 +111,11 @@ abstract class GremlinDriver : IDriver {
      * @return The newly created [Vertex].
      */
     protected open fun createVertex(v: NewNodeBuilder): Vertex {
-        val propertyMap = prepareVertexProperties(v)
-        return g.graph
-            .addVertex(T.label, v.build().label())
-            .apply {
-                propertyMap.forEach { (k, v) -> this.property(k, v) }
-                v.id(this.id() as Long)
-            }
+        val newVertexTraversal = g.addV(v.build().label())
+        prepareVertexProperties(v).forEach { (k, v) -> newVertexTraversal.property(k, v) }
+        val newVertex = newVertexTraversal.next()
+        v.id(newVertex.id() as Long)
+        return newVertex
     }
 
     protected open fun prepareVertexProperties(v: NewNodeBuilder): Map<String, Any> {
