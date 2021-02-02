@@ -12,6 +12,11 @@ and this project adheres to [Semantic Versioning](http://semver.org/).
 
 ### Fixed
 
+## [0.1.3] - 2021-02-02
+
+### Fixed
+- Performance issues with `getProgramStructure` in `OverflowDbDriver`
+
 ## [0.1.2] - 2021-02-02
 
 ### Changed
