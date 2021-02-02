@@ -20,7 +20,8 @@ object ExtractorConst {
         ">" to "GT",
         "!=" to "NEQ",
         "<=" to "LTE",
-        ">=" to "GTE"
+        ">=" to "GTE",
+        "cmp" to "CMP"
     )
 
     // block bodies

@@ -18,13 +18,16 @@ package io.github.plume.oss.util
 import io.github.plume.oss.Extractor
 import io.github.plume.oss.Extractor.Companion.addSootToPlumeAssociation
 import io.github.plume.oss.domain.enums.EdgeLabel
+import io.github.plume.oss.domain.mappers.VertexMapper.mapToVertex
 import io.github.plume.oss.drivers.IDriver
 import io.github.plume.oss.util.SootParserUtil.determineEvaluationStrategy
 import io.shiftleft.codepropertygraph.generated.nodes.*
 import scala.Option
-import scala.collection.immutable.*
 import scala.jdk.CollectionConverters
-import soot.*
+import soot.SootClass
+import soot.SootField
+import soot.SootMethod
+import soot.Value
 import soot.jimple.ArrayRef
 import soot.jimple.Constant
 import soot.jimple.FieldRef
@@ -213,11 +216,15 @@ object SootToPlumeUtil {
             val namespaceList = cls.packageName.split(".").toTypedArray()
             if (namespaceList.isNotEmpty()) nbv = populateNamespaceChain(namespaceList, driver)
         }
-        val order = if (nbv != null) driver.getNeighbours(nbv).edgesOut(nbv).size else 0
+        val order = if (nbv != null) {
+            driver.getNeighbours(nbv).use { ns ->
+                ns.node(nbv.id())?.outE()?.asSequence()?.toList()?.size ?: 0
+            }
+        } else 0
         return NewFileBuilder()
             .name(cls.name)
             .hash(Option.apply(fileHash.toString()))
-            .order(order + 1)
+            .order(order)
             .apply {
                 // Join FILE and NAMESPACE_BLOCK if namespace is present
                 if (nbv != null) {
@@ -229,37 +236,47 @@ object SootToPlumeUtil {
     }
 
     /**
-     * Creates a change of [NewNamespace]s and returns the final one in the chain.
+     * Creates a change of [NewNamespaceBlockBuilder]s and returns the final one in the chain.
      *
      * @param namespaceList A list of package names.
-     * @return The final [NewNamespace] in the chain (the one associated with the file).
+     * @return The final [NewNamespaceBlockBuilder] in the chain (the one associated with the file).
      */
     private fun populateNamespaceChain(namespaceList: Array<String>, driver: IDriver): NewNamespaceBlockBuilder {
-        val programStructure = driver.getProgramStructure()
-        var prevNamespaceBlock =
-            programStructure.vertices().filterIsInstance<NewNamespaceBlockBuilder>().map { Pair(it, it.build()) }
-                .firstOrNull { it.second.fullName() == namespaceList[0] && it.second.name() == namespaceList[0] }?.first
+        var prevNamespaceBlock: NewNamespaceBlockBuilder
+        var currNamespaceBlock: NewNamespaceBlockBuilder? = null
+        driver.getProgramStructure().use { programStructure ->
+            val maybePrevNamespaceBlock = programStructure.nodes { it == NamespaceBlock.Label() }.asSequence()
+                .firstOrNull {
+                    it.property("FULL_NAME") == namespaceList[0]
+                            && it.property("NAME") == namespaceList[0]
+                }?.let { mapToVertex(it) } as NewNamespaceBlockBuilder?
+            prevNamespaceBlock = maybePrevNamespaceBlock
                 ?: NewNamespaceBlockBuilder()
                     .name(namespaceList[0])
                     .fullname(namespaceList[0])
                     .order(0)
-        if (namespaceList.size == 1) return prevNamespaceBlock
+            if (namespaceList.size == 1) return prevNamespaceBlock
 
-        var currNamespaceBlock: NewNamespaceBlockBuilder? = null
-        val namespaceBuilder = StringBuilder(namespaceList[0])
-        for (i in 1 until namespaceList.size) {
-            namespaceBuilder.append("." + namespaceList[i])
-            val order = driver.getNeighbours(prevNamespaceBlock).edgesOut(prevNamespaceBlock).size
-            currNamespaceBlock =
-                programStructure.vertices().filterIsInstance<NewNamespaceBlockBuilder>().map { Pair(it, it.build()) }
-                    .firstOrNull { it.second.fullName() == namespaceBuilder.toString() && it.second.name() == namespaceList[i] }?.first
-                    ?: NewNamespaceBlockBuilder()
-                        .name(namespaceList[i])
-                        .fullname(namespaceBuilder.toString())
-                        .order(order)
-            if (currNamespaceBlock != null) {
-                driver.addEdge(currNamespaceBlock, prevNamespaceBlock, EdgeLabel.AST)
-                prevNamespaceBlock = currNamespaceBlock
+            val namespaceBuilder = StringBuilder(namespaceList[0])
+            for (i in 1 until namespaceList.size) {
+                namespaceBuilder.append("." + namespaceList[i])
+                val order: Int
+                driver.getNeighbours(prevNamespaceBlock).use { ns ->
+                    order = ns.node(prevNamespaceBlock.id())?.outE()?.asSequence()?.toList()?.size ?: 0
+                }
+                val maybeCurrNamespaceBlock = programStructure.nodes { it == NamespaceBlock.Label() }.asSequence()
+                    .firstOrNull {
+                        it.property("FULL_NAME") == namespaceBuilder.toString()
+                                && it.property("NAME") == namespaceList[i]
+                    }?.let { mapToVertex(it) } as NewNamespaceBlockBuilder?
+                currNamespaceBlock = maybeCurrNamespaceBlock ?: NewNamespaceBlockBuilder()
+                    .name(namespaceList[i])
+                    .fullname(namespaceBuilder.toString())
+                    .order(order)
+                if (currNamespaceBlock != null) {
+                    driver.addEdge(currNamespaceBlock!!, prevNamespaceBlock, EdgeLabel.AST)
+                    prevNamespaceBlock = currNamespaceBlock as NewNamespaceBlockBuilder
+                }
             }
         }
         return currNamespaceBlock ?: prevNamespaceBlock

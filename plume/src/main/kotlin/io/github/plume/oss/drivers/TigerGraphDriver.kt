@@ -5,7 +5,6 @@ import io.github.plume.oss.domain.exceptions.PlumeSchemaViolationException
 import io.github.plume.oss.domain.exceptions.PlumeTransactionException
 import io.github.plume.oss.domain.mappers.VertexMapper
 import io.github.plume.oss.domain.mappers.VertexMapper.checkSchemaConstraints
-import io.github.plume.oss.domain.models.PlumeGraph
 import io.github.plume.oss.util.PlumeKeyProvider
 import io.shiftleft.codepropertygraph.generated.nodes.NewMetaDataBuilder
 import io.shiftleft.codepropertygraph.generated.nodes.NewNodeBuilder
@@ -13,9 +12,14 @@ import org.apache.logging.log4j.LogManager
 import org.apache.tinkerpop.shaded.jackson.databind.ObjectMapper
 import org.json.JSONArray
 import org.json.JSONObject
+import overflowdb.Config
+import overflowdb.Graph
+import overflowdb.Node
 import scala.jdk.CollectionConverters
 import java.io.IOException
 import java.lang.Thread.sleep
+import io.shiftleft.codepropertygraph.generated.edges.Factories as EdgeFactories
+import io.shiftleft.codepropertygraph.generated.nodes.Factories as NodeFactories
 
 /**
  * The driver used to connect to a remote TigerGraph instance.
@@ -199,31 +203,35 @@ class TigerGraphDriver : IOverridenIdDriver {
         )
     }
 
-    override fun getWholeGraph(): PlumeGraph {
+    override fun getWholeGraph(): Graph {
         val result = get("query/$GRAPH_NAME/showAll")
-        return graphPayloadToPlumeGraph(result)
+        return payloadToGraph(result)
     }
 
-    override fun getMethod(fullName: String, signature: String, includeBody: Boolean): PlumeGraph {
+    override fun getMethod(fullName: String, signature: String, includeBody: Boolean): Graph {
         val path = if (!includeBody) "getMethodHead" else "getMethod"
         return try {
             val result = get("query/$GRAPH_NAME/$path", mapOf("FULL_NAME" to fullName, "SIGNATURE" to signature))
-            graphPayloadToPlumeGraph(result)
+            payloadToGraph(result)
         } catch (e: PlumeTransactionException) {
             logger.warn("${e.message}. This may be a result of the method not being present in the graph.")
-            PlumeGraph()
+            newOverflowGraph()
         }
     }
 
-    override fun getProgramStructure(): PlumeGraph {
+    override fun getProgramStructure(): Graph {
         val result = get("query/$GRAPH_NAME/getProgramStructure")
-        return graphPayloadToPlumeGraph(result)
+        return payloadToGraph(result)
     }
 
-    override fun getNeighbours(v: NewNodeBuilder): PlumeGraph {
-        if (v is NewMetaDataBuilder) return PlumeGraph().apply { addVertex(v) }
+    override fun getNeighbours(v: NewNodeBuilder): Graph {
+        val n = v.build()
+        if (v is NewMetaDataBuilder) return newOverflowGraph().apply {
+            val newNode = this.addNode(n.label())
+            n.properties().foreachEntry { key, value -> newNode.setProperty(key, value) }
+        }
         val result = get("query/$GRAPH_NAME/getNeighbours", mapOf("SOURCE" to v.id().toString()))
-        return graphPayloadToPlumeGraph(result)
+        return payloadToGraph(result)
     }
 
     override fun deleteVertex(v: NewNodeBuilder) {
@@ -247,31 +255,37 @@ class TigerGraphDriver : IOverridenIdDriver {
         return result.map { (it as Int).toLong() }.toSet()
     }
 
-    private fun graphPayloadToPlumeGraph(a: JSONArray): PlumeGraph {
-        val plumeGraph = PlumeGraph()
+    private fun payloadToGraph(a: JSONArray): Graph {
+        val graph = newOverflowGraph()
+        val vs = mutableMapOf<Long, Node>()
         a[0]?.let { res ->
             val o = res as JSONObject
             val vertices = o["allVert"] as JSONArray
-            vertices.map { vertexPayloadToPlumeGraph(it as JSONObject) }.forEach { plumeGraph.addVertex(it) }
+            vertices.map { vertexPayloadToNode(it as JSONObject) }.forEach {
+                val n = it.build()
+                val node = graph.addNode(it.id(), n.label())
+                n.properties().foreachEntry { key, value -> node.setProperty(key, value) }
+                vs[it.id()] = node
+            }
         }
         a[1]?.let { res ->
             val o = res as JSONObject
             val edges = o["@@edges"] as JSONArray
-            edges.forEach { connectEdgeResult(plumeGraph, it as JSONObject) }
+            edges.forEach { connectEdge(vs, it as JSONObject) }
         }
-        return plumeGraph
+        return graph
     }
 
-    private fun connectEdgeResult(plumeGraph: PlumeGraph, edgePayload: JSONObject) {
-        val fromV = plumeGraph.vertices().find { it.id() == edgePayload["from_id"].toString().toLong() }
-        val toV = plumeGraph.vertices().find { it.id() == edgePayload["to_id"].toString().toLong() }
-        val edge = EdgeLabel.valueOf(edgePayload["e_type"].toString())
-        if (fromV != null && toV != null) {
-            plumeGraph.addEdge(fromV, toV, edge)
+    private fun connectEdge(vertices: Map<Long, Node>, edgePayload: JSONObject) {
+        val src = vertices[edgePayload["from_id"].toString().toLong()]
+        val tgt = vertices[edgePayload["to_id"].toString().toLong()]
+        val edge = edgePayload["e_type"].toString()
+        if (src != null && tgt != null) {
+            src.addEdge(edge, tgt)
         }
     }
 
-    private fun vertexPayloadToPlumeGraph(o: JSONObject): NewNodeBuilder {
+    private fun vertexPayloadToNode(o: JSONObject): NewNodeBuilder {
         val attributes = o["attributes"] as JSONObject
         val vertexMap = HashMap<String, Any>()
         attributes.keySet().filter { attributes[it] != "" }
@@ -394,6 +408,12 @@ class TigerGraphDriver : IOverridenIdDriver {
             }
         }
     }
+
+    private fun newOverflowGraph(): Graph = Graph.open(
+        Config.withDefaults(),
+        NodeFactories.allAsJava(),
+        EdgeFactories.allAsJava()
+    )
 
     companion object {
         /**

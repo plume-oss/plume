@@ -2,19 +2,20 @@ package io.github.plume.oss.extractor.intraprocedural
 
 import io.github.plume.oss.Extractor
 import io.github.plume.oss.domain.enums.EdgeLabel
-import io.github.plume.oss.domain.models.PlumeGraph
 import io.github.plume.oss.drivers.DriverFactory
 import io.github.plume.oss.drivers.GraphDatabase
 import io.github.plume.oss.drivers.TinkerGraphDriver
-import io.shiftleft.codepropertygraph.generated.nodes.NewCallBuilder
-import io.shiftleft.codepropertygraph.generated.nodes.NewControlStructureBuilder
-import io.shiftleft.codepropertygraph.generated.nodes.NewJumpTargetBuilder
-import io.shiftleft.codepropertygraph.generated.nodes.NewLocalBuilder
+import io.shiftleft.codepropertygraph.generated.EdgeTypes.CFG
+import io.shiftleft.codepropertygraph.generated.nodes.Call
+import io.shiftleft.codepropertygraph.generated.nodes.ControlStructure
+import io.shiftleft.codepropertygraph.generated.nodes.JumpTarget
+import io.shiftleft.codepropertygraph.generated.nodes.Local
 import org.junit.jupiter.api.AfterEach
 import org.junit.jupiter.api.Assertions.*
 import org.junit.jupiter.api.BeforeEach
 import org.junit.jupiter.api.Test
 import org.junit.jupiter.api.TestInfo
+import overflowdb.Graph
 import java.io.File
 import java.io.IOException
 
@@ -23,7 +24,7 @@ class ConditionalIntraproceduralTest {
 
     companion object {
         private val driver = DriverFactory(GraphDatabase.TINKER_GRAPH) as TinkerGraphDriver
-        private lateinit var graph: PlumeGraph
+        private lateinit var g: Graph
         private var PATH: File
         private val TEST_PATH = "intraprocedural${File.separator}conditional"
 
@@ -48,218 +49,219 @@ class ConditionalIntraproceduralTest {
         val f = File(testSourceFile)
         extractor.load(f)
         extractor.project()
-        graph = driver.getWholeGraph()
+        g = driver.getWholeGraph()
     }
 
     @AfterEach
     fun tearDown() {
         driver.close()
+        g.close()
     }
 
     @Test
     fun conditional1Test() {
-        val vertices = graph.vertices()
-        assertNotNull(vertices.find { it is NewLocalBuilder && it.build().name() == "a" })
-        assertNotNull(vertices.find { it is NewLocalBuilder && it.build().name() == "b" })
-        vertices.filterIsInstance<NewCallBuilder>().filter { it.build().name() == "ADD" }
-            .let { assertEquals(1, it.size) }
-        vertices.filterIsInstance<NewCallBuilder>().filter { it.build().name() == "SUB" }
-            .let { assertEquals(2, it.size) }
-        assertEquals(2, vertices.filterIsInstance<NewJumpTargetBuilder>().size)
-        vertices.filterIsInstance<NewCallBuilder>().filter { it.build().name() == "GT" }.let { assertNotNull(it) }
-        vertices.filterIsInstance<NewControlStructureBuilder>().filter { it.build().code() == "IF" }.let { csv ->
+        val ns = g.nodes().asSequence().toList()
+        assertNotNull(ns.find { it is Local && it.name() == "a" })
+        assertNotNull(ns.find { it is Local && it.name() == "b" })
+        ns.filterIsInstance<Call>().filter { it.name() == "ADD" }
+            .let { assertEquals(1, it.toList().size) }
+        ns.filterIsInstance<Call>().filter { it.name() == "SUB" }
+            .let { assertEquals(2, it.toList().size) }
+        assertEquals(2, ns.filterIsInstance<JumpTarget>().toList().size)
+        ns.filterIsInstance<Call>().filter { it.name() == "GT" }.let { assertNotNull(it) }
+        ns.filterIsInstance<ControlStructure>().filter { it.code() == "IF" }.let { csv ->
             val ifVert = csv.firstOrNull(); assertNotNull(ifVert); ifVert!!
-            assertTrue(graph.edgesOut(ifVert).containsKey(EdgeLabel.CFG))
-            graph.edgesOut(ifVert)[EdgeLabel.CFG]!!.filterIsInstance<NewJumpTargetBuilder>().let {
-                assertEquals(2, it.size)
-                assertNotNull(it.find { jtv -> jtv.build().name() == "TRUE" })
-                assertNotNull(it.find { jtv -> jtv.build().name() == "FALSE" })
+            assertTrue(g.V(ifVert.id()).next().outE(CFG).hasNext())
+            g.V(ifVert.id()).next().out(CFG).asSequence().filterIsInstance<JumpTarget>().toList().let {
+                assertEquals(2, it.toList().size)
+                assertNotNull(it.find { jtv -> jtv.name() == "TRUE" })
+                assertNotNull(it.find { jtv -> jtv.name() == "FALSE" })
             }
         }
     }
 
     @Test
     fun conditional2Test() {
-        val vertices = graph.vertices()
-        assertNotNull(vertices.find { it is NewLocalBuilder && it.build().name() == "a" })
-        assertNotNull(vertices.find { it is NewLocalBuilder && it.build().name() == "b" })
-        vertices.filterIsInstance<NewCallBuilder>().filter { it.build().name() == "ADD" }
-            .let { assertEquals(1, it.size) }
-        vertices.filterIsInstance<NewCallBuilder>().filter { it.build().name() == "SUB" }
-            .let { assertEquals(2, it.size) }
-        assertEquals(2, vertices.filterIsInstance<NewJumpTargetBuilder>().size)
-        vertices.filterIsInstance<NewCallBuilder>().filter { it.build().name() == "GT" }.let { assertNotNull(it) }
-        vertices.filterIsInstance<NewControlStructureBuilder>().filter { it.build().code() == "IF" }.let { csv ->
+        val ns = g.nodes().asSequence().toList()
+        assertNotNull(ns.find { it is Local && it.name() == "a" })
+        assertNotNull(ns.find { it is Local && it.name() == "b" })
+        ns.filterIsInstance<Call>().filter { it.name() == "ADD" }
+            .let { assertEquals(1, it.toList().size) }
+        ns.filterIsInstance<Call>().filter { it.name() == "SUB" }
+            .let { assertEquals(2, it.toList().size) }
+        assertEquals(2, ns.filterIsInstance<JumpTarget>().toList().size)
+        ns.filterIsInstance<Call>().filter { it.name() == "GT" }.let { assertNotNull(it) }
+        ns.filterIsInstance<ControlStructure>().filter { it.code() == "IF" }.let { csv ->
             val ifVert = csv.firstOrNull(); assertNotNull(ifVert); ifVert!!
-            assertTrue(graph.edgesOut(ifVert).containsKey(EdgeLabel.CFG))
-            graph.edgesOut(ifVert)[EdgeLabel.CFG]!!.filterIsInstance<NewJumpTargetBuilder>().let {
-                assertEquals(2, it.size)
-                assertNotNull(it.find { jtv -> jtv.build().name() == "TRUE" })
-                assertNotNull(it.find { jtv -> jtv.build().name() == "FALSE" })
+            assertTrue(g.V(ifVert.id()).next().outE(CFG).hasNext())
+            g.V(ifVert.id()).next().out(CFG).asSequence().filterIsInstance<JumpTarget>().toList().let {
+                assertEquals(2, it.toList().size)
+                assertNotNull(it.find { jtv -> jtv.name() == "TRUE" })
+                assertNotNull(it.find { jtv -> jtv.name() == "FALSE" })
             }
         }
     }
 
     @Test
     fun conditional3Test() {
-        val vertices = graph.vertices()
-        assertNotNull(vertices.find { it is NewLocalBuilder && it.build().name() == "a" })
-        assertNotNull(vertices.find { it is NewLocalBuilder && it.build().name() == "b" })
-        vertices.filterIsInstance<NewCallBuilder>().filter { it.build().name() == "ADD" }
-            .let { assertEquals(1, it.size) }
-        vertices.filterIsInstance<NewCallBuilder>().filter { it.build().name() == "SUB" }
-            .let { assertEquals(2, it.size) }
-        vertices.filterIsInstance<NewCallBuilder>().filter { it.build().name() == "MUL" }
-            .let { assertEquals(1, it.size) }
-        assertEquals(2, vertices.filterIsInstance<NewJumpTargetBuilder>().size)
-        vertices.filterIsInstance<NewCallBuilder>().filter { it.build().name() == "GT" }.let { assertNotNull(it) }
-        vertices.filterIsInstance<NewControlStructureBuilder>().filter { it.build().code() == "IF" }.let { csv ->
+        val ns = g.nodes().asSequence().toList()
+        assertNotNull(ns.find { it is Local && it.name() == "a" })
+        assertNotNull(ns.find { it is Local && it.name() == "b" })
+        ns.filterIsInstance<Call>().filter { it.name() == "ADD" }
+            .let { assertEquals(1, it.toList().size) }
+        ns.filterIsInstance<Call>().filter { it.name() == "SUB" }
+            .let { assertEquals(2, it.toList().size) }
+        ns.filterIsInstance<Call>().filter { it.name() == "MUL" }
+            .let { assertEquals(1, it.toList().size) }
+        assertEquals(2, ns.filterIsInstance<JumpTarget>().toList().size)
+        ns.filterIsInstance<Call>().filter { it.name() == "GT" }.let { assertNotNull(it) }
+        ns.filterIsInstance<ControlStructure>().filter { it.code() == "IF" }.let { csv ->
             val ifVert = csv.firstOrNull(); assertNotNull(ifVert); ifVert!!
-            assertTrue(graph.edgesOut(ifVert).containsKey(EdgeLabel.CFG))
-            graph.edgesOut(ifVert)[EdgeLabel.CFG]!!.filterIsInstance<NewJumpTargetBuilder>().let {
-                assertEquals(2, it.size)
-                assertNotNull(it.find { jtv -> jtv.build().name() == "TRUE" })
-                assertNotNull(it.find { jtv -> jtv.build().name() == "FALSE" })
+            assertTrue(g.V(ifVert.id()).next().outE(CFG).hasNext())
+            g.V(ifVert.id()).next().out(CFG).asSequence().filterIsInstance<JumpTarget>().toList().let {
+                assertEquals(2, it.toList().size)
+                assertNotNull(it.find { jtv -> jtv.name() == "TRUE" })
+                assertNotNull(it.find { jtv -> jtv.name() == "FALSE" })
             }
         }
     }
 
     @Test
     fun conditional4Test() {
-        val vertices = graph.vertices()
-        assertNotNull(vertices.find { it is NewLocalBuilder && it.build().name() == "a" })
-        assertNotNull(vertices.find { it is NewLocalBuilder && it.build().name() == "b" })
-        vertices.filterIsInstance<NewCallBuilder>().filter { it.build().name() == "ADD" }
-            .let { assertEquals(1, it.size) }
-        vertices.filterIsInstance<NewCallBuilder>().filter { it.build().name() == "SUB" }
-            .let { assertEquals(2, it.size) }
-        vertices.filterIsInstance<NewCallBuilder>().filter { it.build().name() == "MUL" }
-            .let { assertEquals(1, it.size) }
-        assertEquals(4, vertices.filterIsInstance<NewJumpTargetBuilder>().size)
-        vertices.filterIsInstance<NewCallBuilder>().filter { it.build().name() == "GT" }.let { assertNotNull(it) }
-        vertices.filterIsInstance<NewCallBuilder>().filter { it.build().name() == "EQ" }.let { assertNotNull(it) }
-        vertices.filterIsInstance<NewControlStructureBuilder>().filter { it.build().code() == "IF" }.let { csv ->
-            assertEquals(2, csv.size)
+        val ns = g.nodes().asSequence().toList()
+        assertNotNull(ns.find { it is Local && it.name() == "a" })
+        assertNotNull(ns.find { it is Local && it.name() == "b" })
+        ns.filterIsInstance<Call>().filter { it.name() == "ADD" }
+            .let { assertEquals(1, it.toList().size) }
+        ns.filterIsInstance<Call>().filter { it.name() == "SUB" }
+            .let { assertEquals(2, it.toList().size) }
+        ns.filterIsInstance<Call>().filter { it.name() == "MUL" }
+            .let { assertEquals(1, it.toList().size) }
+        assertEquals(4, ns.filterIsInstance<JumpTarget>().toList().size)
+        ns.filterIsInstance<Call>().filter { it.name() == "GT" }.let { assertNotNull(it) }
+        ns.filterIsInstance<Call>().filter { it.name() == "EQ" }.let { assertNotNull(it) }
+        ns.filterIsInstance<ControlStructure>().filter { it.code() == "IF" }.let { csv ->
+            assertEquals(2, csv.toList().size)
         }
     }
 
     @Test
     fun conditional5Test() {
-        val vertices = graph.vertices()
-        assertNotNull(vertices.find { it is NewLocalBuilder && it.build().name() == "a" })
-        assertNotNull(vertices.find { it is NewLocalBuilder && it.build().name() == "b" })
-        vertices.filterIsInstance<NewCallBuilder>().filter { it.build().name() == "SUB" }
-            .let { assertEquals(1, it.size) }
-        vertices.filterIsInstance<NewCallBuilder>().filter { it.build().name() == "MUL" }
-            .let { assertEquals(1, it.size) }
-        vertices.filterIsInstance<NewCallBuilder>().filter { it.build().name() == "DIV" }
-            .let { assertEquals(1, it.size) }
-        assertEquals(6, vertices.filterIsInstance<NewJumpTargetBuilder>().size)
-        vertices.filterIsInstance<NewCallBuilder>().filter { it.build().name() == "GT" }.let { assertNotNull(it) }
-        vertices.filterIsInstance<NewCallBuilder>().filter { it.build().name() == "EQ" }.let { assertNotNull(it) }
-        vertices.filterIsInstance<NewCallBuilder>().filter { it.build().name() == "LT" }.let { assertNotNull(it) }
-        vertices.filterIsInstance<NewControlStructureBuilder>().filter { it.build().code() == "IF" }.let { csv ->
-            assertEquals(3, csv.size)
+        val ns = g.nodes().asSequence().toList()
+        assertNotNull(ns.find { it is Local && it.name() == "a" })
+        assertNotNull(ns.find { it is Local && it.name() == "b" })
+        ns.filterIsInstance<Call>().filter { it.name() == "SUB" }
+            .let { assertEquals(1, it.toList().size) }
+        ns.filterIsInstance<Call>().filter { it.name() == "MUL" }
+            .let { assertEquals(1, it.toList().size) }
+        ns.filterIsInstance<Call>().filter { it.name() == "DIV" }
+            .let { assertEquals(1, it.toList().size) }
+        assertEquals(6, ns.filterIsInstance<JumpTarget>().toList().size)
+        ns.filterIsInstance<Call>().filter { it.name() == "GT" }.let { assertNotNull(it) }
+        ns.filterIsInstance<Call>().filter { it.name() == "EQ" }.let { assertNotNull(it) }
+        ns.filterIsInstance<Call>().filter { it.name() == "LT" }.let { assertNotNull(it) }
+        ns.filterIsInstance<ControlStructure>().filter { it.code() == "IF" }.let { csv ->
+            assertEquals(3, csv.toList().size)
         }
     }
 
     @Test
     fun conditional6Test() {
-        val vertices = graph.vertices()
-        assertNotNull(vertices.find { it is NewLocalBuilder && it.build().name() == "a" })
-        assertNotNull(vertices.find { it is NewLocalBuilder && it.build().name() == "b" })
-        vertices.filterIsInstance<NewCallBuilder>().filter { it.build().name() == "MUL" }
-            .let { assertEquals(1, it.size) }
-        assertEquals(2, vertices.filterIsInstance<NewJumpTargetBuilder>().size)
-        vertices.filterIsInstance<NewCallBuilder>().filter { it.build().name() == "GT" }.let { assertNotNull(it) }
-        vertices.filterIsInstance<NewCallBuilder>().filter { it.build().name() == "EQ" }.let { assertNotNull(it) }
-        vertices.filterIsInstance<NewCallBuilder>().filter { it.build().name() == "LT" }.let { assertNotNull(it) }
-        vertices.filterIsInstance<NewControlStructureBuilder>().filter { it.build().code() == "IF" }
-            .let { csv -> assertEquals(1, csv.size) }
+        val ns = g.nodes().asSequence().toList()
+        assertNotNull(ns.find { it is Local && it.name() == "a" })
+        assertNotNull(ns.find { it is Local && it.name() == "b" })
+        ns.filterIsInstance<Call>().filter { it.name() == "MUL" }
+            .let { assertEquals(1, it.toList().size) }
+        assertEquals(2, ns.filterIsInstance<JumpTarget>().toList().size)
+        ns.filterIsInstance<Call>().filter { it.name() == "GT" }.let { assertNotNull(it) }
+        ns.filterIsInstance<Call>().filter { it.name() == "EQ" }.let { assertNotNull(it) }
+        ns.filterIsInstance<Call>().filter { it.name() == "LT" }.let { assertNotNull(it) }
+        ns.filterIsInstance<ControlStructure>().filter { it.code() == "IF" }
+            .let { csv -> assertEquals(1, csv.toList().size) }
     }
 
     @Test
     fun conditional7Test() {
-        val vertices = graph.vertices()
-        assertNotNull(vertices.find { it is NewLocalBuilder && it.build().name() == "a" })
-        assertNotNull(vertices.find { it is NewLocalBuilder && it.build().name() == "b" })
-        vertices.filterIsInstance<NewCallBuilder>().filter { it.build().name() == "ADD" }
-            .let { assertEquals(1, it.size) }
-        vertices.filterIsInstance<NewCallBuilder>().filter { it.build().name() == "SUB" }
-            .let { assertEquals(2, it.size) }
-        vertices.filterIsInstance<NewCallBuilder>().filter { it.build().name() == "MUL" }
-            .let { assertEquals(1, it.size) }
-        vertices.filterIsInstance<NewCallBuilder>().filter { it.build().name() == "DIV" }
-            .let { assertEquals(1, it.size) }
-        assertEquals(6, vertices.filterIsInstance<NewJumpTargetBuilder>().size)
-        vertices.filterIsInstance<NewCallBuilder>().filter { it.build().name() == "GT" }.let { assertNotNull(it) }
-        vertices.filterIsInstance<NewCallBuilder>().filter { it.build().name() == "EQ" }.let { assertNotNull(it) }
-        vertices.filterIsInstance<NewCallBuilder>().filter { it.build().name() == "LT" }.let { assertNotNull(it) }
-        vertices.filterIsInstance<NewControlStructureBuilder>().filter { it.build().code() == "IF" }.let { csv ->
-            assertEquals(3, csv.size)
+        val ns = g.nodes().asSequence().toList()
+        assertNotNull(ns.find { it is Local && it.name() == "a" })
+        assertNotNull(ns.find { it is Local && it.name() == "b" })
+        ns.filterIsInstance<Call>().filter { it.name() == "ADD" }
+            .let { assertEquals(1, it.toList().size) }
+        ns.filterIsInstance<Call>().filter { it.name() == "SUB" }
+            .let { assertEquals(2, it.toList().size) }
+        ns.filterIsInstance<Call>().filter { it.name() == "MUL" }
+            .let { assertEquals(1, it.toList().size) }
+        ns.filterIsInstance<Call>().filter { it.name() == "DIV" }
+            .let { assertEquals(1, it.toList().size) }
+        assertEquals(6, ns.filterIsInstance<JumpTarget>().toList().size)
+        ns.filterIsInstance<Call>().filter { it.name() == "GT" }.let { assertNotNull(it) }
+        ns.filterIsInstance<Call>().filter { it.name() == "EQ" }.let { assertNotNull(it) }
+        ns.filterIsInstance<Call>().filter { it.name() == "LT" }.let { assertNotNull(it) }
+        ns.filterIsInstance<ControlStructure>().filter { it.code() == "IF" }.let { csv ->
+            assertEquals(3, csv.toList().size)
         }
     }
 
     @Test
     fun conditional8Test() {
-        val vertices = graph.vertices()
-        assertNotNull(vertices.find { it is NewLocalBuilder && it.build().name() == "a" })
-        assertNotNull(vertices.find { it is NewLocalBuilder && it.build().name() == "b" })
-        vertices.filterIsInstance<NewCallBuilder>().filter { it.build().name() == "ADD" }
-            .let { assertEquals(1, it.size) }
-        vertices.filterIsInstance<NewCallBuilder>().filter { it.build().name() == "SUB" }
-            .let { assertEquals(2, it.size) }
-        vertices.filterIsInstance<NewCallBuilder>().filter { it.build().name() == "MUL" }
-            .let { assertEquals(1, it.size) }
-        vertices.filterIsInstance<NewCallBuilder>().filter { it.build().name() == "DIV" }
-            .let { assertEquals(1, it.size) }
-        assertEquals(6, vertices.filterIsInstance<NewJumpTargetBuilder>().size)
-        vertices.filterIsInstance<NewCallBuilder>().filter { it.build().name() == "GT" }.let { assertNotNull(it) }
-        vertices.filterIsInstance<NewCallBuilder>().filter { it.build().name() == "EQ" }.let { assertNotNull(it) }
-        vertices.filterIsInstance<NewCallBuilder>().filter { it.build().name() == "LT" }.let { assertNotNull(it) }
-        vertices.filterIsInstance<NewControlStructureBuilder>().filter { it.build().code() == "IF" }.let { csv ->
-            assertEquals(3, csv.size)
+        val ns = g.nodes().asSequence().toList()
+        assertNotNull(ns.find { it is Local && it.name() == "a" })
+        assertNotNull(ns.find { it is Local && it.name() == "b" })
+        ns.filterIsInstance<Call>().filter { it.name() == "ADD" }
+            .let { assertEquals(1, it.toList().size) }
+        ns.filterIsInstance<Call>().filter { it.name() == "SUB" }
+            .let { assertEquals(2, it.toList().size) }
+        ns.filterIsInstance<Call>().filter { it.name() == "MUL" }
+            .let { assertEquals(1, it.toList().size) }
+        ns.filterIsInstance<Call>().filter { it.name() == "DIV" }
+            .let { assertEquals(1, it.toList().size) }
+        assertEquals(6, ns.filterIsInstance<JumpTarget>().toList().size)
+        ns.filterIsInstance<Call>().filter { it.name() == "GT" }.let { assertNotNull(it) }
+        ns.filterIsInstance<Call>().filter { it.name() == "EQ" }.let { assertNotNull(it) }
+        ns.filterIsInstance<Call>().filter { it.name() == "LT" }.let { assertNotNull(it) }
+        ns.filterIsInstance<ControlStructure>().filter { it.code() == "IF" }.let { csv ->
+            assertEquals(3, csv.toList().size)
         }
     }
 
     @Test
     fun conditional9Test() {
-        val vertices = graph.vertices()
-        assertNotNull(vertices.find { it is NewLocalBuilder && it.build().name() == "a" })
-        assertNotNull(vertices.find { it is NewLocalBuilder && it.build().name() == "b" })
-        assertNotNull(vertices.find { it is NewLocalBuilder && it.build().name() == "c" })
-        assertEquals(2, vertices.filterIsInstance<NewJumpTargetBuilder>().size)
-        vertices.filterIsInstance<NewCallBuilder>().filter { it.build().name() == "GT" }.let { assertNotNull(it) }
-        vertices.filterIsInstance<NewControlStructureBuilder>().filter { it.build().code() == "IF" }.let { csv ->
-            assertEquals(1, csv.size)
+        val ns = g.nodes().asSequence().toList()
+        assertNotNull(ns.find { it is Local && it.name() == "a" })
+        assertNotNull(ns.find { it is Local && it.name() == "b" })
+        assertNotNull(ns.find { it is Local && it.name() == "c" })
+        assertEquals(2, ns.filterIsInstance<JumpTarget>().toList().size)
+        ns.filterIsInstance<Call>().filter { it.name() == "GT" }.let { assertNotNull(it) }
+        ns.filterIsInstance<ControlStructure>().filter { it.code() == "IF" }.let { csv ->
+            assertEquals(1, csv.toList().size)
         }
     }
 
     @Test
     fun conditional10Test() {
-        val vertices = graph.vertices()
-        assertNotNull(vertices.find { it is NewLocalBuilder && it.build().name() == "a" })
-        assertNotNull(vertices.find { it is NewLocalBuilder && it.build().name() == "b" })
-        assertNotNull(vertices.find { it is NewLocalBuilder && it.build().name() == "c" })
-        assertEquals(4, vertices.filterIsInstance<NewJumpTargetBuilder>().size)
-        vertices.filterIsInstance<NewCallBuilder>().filter { it.build().name() == "GT" }.let { assertNotNull(it) }
-        vertices.filterIsInstance<NewCallBuilder>().filter { it.build().name() == "LT" }.let { assertNotNull(it) }
-        vertices.filterIsInstance<NewControlStructureBuilder>().filter { it.build().code() == "IF" }.let { csv ->
-            assertEquals(2, csv.size)
+        val ns = g.nodes().asSequence().toList().distinct()
+        assertNotNull(ns.find { it is Local && it.name() == "a" })
+        assertNotNull(ns.find { it is Local && it.name() == "b" })
+        assertNotNull(ns.find { it is Local && it.name() == "c" })
+        assertEquals(4, ns.filterIsInstance<JumpTarget>().toList().size)
+        ns.filterIsInstance<Call>().filter { it.name() == "GT" }.let { assertNotNull(it) }
+        ns.filterIsInstance<Call>().filter { it.name() == "LT" }.let { assertNotNull(it) }
+        ns.filterIsInstance<ControlStructure>().filter { it.code() == "IF" }.let { csv ->
+            assertEquals(2, csv.toList().size)
         }
     }
 
     @Test
     fun conditional11Test() {
-        val vertices = graph.vertices()
-        assertNotNull(vertices.find { it is NewLocalBuilder && it.build().name() == "a" })
-        assertNotNull(vertices.find { it is NewLocalBuilder && it.build().name() == "b" })
-        assertNotNull(vertices.find { it is NewLocalBuilder && it.build().name() == "c" })
-        assertEquals(4, vertices.filterIsInstance<NewJumpTargetBuilder>().size)
-        vertices.filterIsInstance<NewCallBuilder>().filter { it.build().name() == "GT" }.let { assertNotNull(it) }
-        vertices.filterIsInstance<NewCallBuilder>().filter { it.build().name() == "LT" }.let { assertNotNull(it) }
-        vertices.filterIsInstance<NewControlStructureBuilder>().filter { it.build().code() == "IF" }.let { csv ->
-            assertEquals(2, csv.size)
+        val ns = g.nodes().asSequence().toList()
+        assertNotNull(ns.find { it is Local && it.name() == "a" })
+        assertNotNull(ns.find { it is Local && it.name() == "b" })
+        assertNotNull(ns.find { it is Local && it.name() == "c" })
+        assertEquals(4, ns.filterIsInstance<JumpTarget>().toList().size)
+        ns.filterIsInstance<Call>().filter { it.name() == "GT" }.let { assertNotNull(it) }
+        ns.filterIsInstance<Call>().filter { it.name() == "LT" }.let { assertNotNull(it) }
+        ns.filterIsInstance<ControlStructure>().filter { it.code() == "IF" }.let { csv ->
+            assertEquals(2, csv.toList().size)
         }
     }
 }

@@ -74,7 +74,7 @@ class TestDomainResources {
         val methodVertex: NewMethodBuilder =
             NewMethodBuilder().code(STRING_1).name(STRING_1).fullname(STRING_1).order(INT_1)
                 .linenumber(Option.apply(INT_1)).columnnumber(Option.apply(INT_1)).signature(STRING_2)
-        val methodParameterInVertex: NewMethodParameterInBuilder =
+        val mtdParamInVertex: NewMethodParameterInBuilder =
             NewMethodParameterInBuilder().code(STRING_1).evaluationstrategy(EVAL_1.name).typefullname(STRING_1)
                 .name(STRING_1).order(INT_1).linenumber(Option.apply(INT_1)).columnnumber(Option.apply(INT_1))
         val blockVertex: NewBlockBuilder =
@@ -99,7 +99,7 @@ class TestDomainResources {
         val returnVertex: NewReturnBuilder =
             NewReturnBuilder().order(INT_1).argumentindex(INT_1).code(STRING_1).linenumber(Option.apply(INT_1))
                 .columnnumber(Option.apply(INT_1))
-        val methodReturnVertex: NewMethodReturnBuilder =
+        val mtdRtnVertex: NewMethodReturnBuilder =
             NewMethodReturnBuilder().typefullname(STRING_1).evaluationstrategy(EVAL_1.name).code(STRING_1)
                 .order(INT_1).linenumber(Option.apply(INT_1)).columnnumber(Option.apply(INT_1))
         val fileVertex: NewFileBuilder = NewFileBuilder().name(STRING_1).hash(Option.apply(STRING_2)).order(INT_1)
@@ -117,7 +117,7 @@ class TestDomainResources {
         val bindingVertex: NewBindingBuilder = NewBindingBuilder().name(STRING_1).signature(STRING_2)
         val typeArgumentVertex: NewTypeArgumentBuilder = NewTypeArgumentBuilder().order(INT_1)
         val typeParameterVertex: NewTypeParameterBuilder = NewTypeParameterBuilder().name(STRING_1).order(INT_1)
-        val fieldIdentifierVertex: NewFieldIdentifierBuilder =
+        val fldIdentVertex: NewFieldIdentifierBuilder =
             NewFieldIdentifierBuilder().canonicalname(STRING_1).code(STRING_1).argumentindex(INT_1).order(INT_1)
                 .linenumber(Option.apply(INT_1)).columnnumber(Option.apply(INT_1))
         val methodRefVertex: NewMethodRefBuilder =
@@ -134,7 +134,7 @@ class TestDomainResources {
 
         val simpleCpgVertices = listOf(
             methodVertex,
-            methodParameterInVertex,
+            mtdParamInVertex,
             blockVertex,
             callVertex,
             localVertex,
@@ -142,7 +142,7 @@ class TestDomainResources {
             typeDeclVertex,
             literalVertex,
             returnVertex,
-            methodReturnVertex,
+            mtdRtnVertex,
             fileVertex,
             namespaceBlockVertex1,
             namespaceBlockVertex2,
@@ -152,7 +152,7 @@ class TestDomainResources {
             bindingVertex,
             typeArgumentVertex,
             typeParameterVertex,
-            fieldIdentifierVertex,
+            fldIdentVertex,
             methodRefVertex,
             typeRefVertex,
             unknownVertex,
@@ -167,7 +167,7 @@ class TestDomainResources {
             // Create method head
             driver.addEdge(typeDeclVertex, methodVertex, EdgeLabel.AST)
             driver.addEdge(methodVertex, fileVertex, EdgeLabel.SOURCE_FILE)
-            driver.addEdge(methodVertex, methodParameterInVertex, EdgeLabel.AST)
+            driver.addEdge(methodVertex, mtdParamInVertex, EdgeLabel.AST)
             driver.addEdge(methodVertex, localVertex, EdgeLabel.AST)
             driver.addEdge(methodVertex, blockVertex, EdgeLabel.AST)
             driver.addEdge(methodVertex, blockVertex, EdgeLabel.CFG)
@@ -179,21 +179,21 @@ class TestDomainResources {
             driver.addEdge(callVertex, identifierVertex, EdgeLabel.ARGUMENT)
             driver.addEdge(callVertex, literalVertex, EdgeLabel.ARGUMENT)
             driver.addEdge(blockVertex, returnVertex, EdgeLabel.AST)
-            driver.addEdge(callVertex, fieldIdentifierVertex, EdgeLabel.AST)
-            driver.addEdge(methodVertex, methodReturnVertex, EdgeLabel.AST)
+            driver.addEdge(callVertex, fldIdentVertex, EdgeLabel.AST)
+            driver.addEdge(methodVertex, mtdRtnVertex, EdgeLabel.AST)
             driver.addEdge(blockVertex, methodRefVertex, EdgeLabel.AST)
             driver.addEdge(blockVertex, typeRefVertex, EdgeLabel.AST)
             driver.addEdge(blockVertex, controlStructureVertex, EdgeLabel.AST)
             driver.addEdge(blockVertex, jumpTargetVertex, EdgeLabel.AST)
 
             driver.addEdge(blockVertex, callVertex, EdgeLabel.CFG)
-            driver.addEdge(callVertex, fieldIdentifierVertex, EdgeLabel.CFG)
-            driver.addEdge(fieldIdentifierVertex, methodRefVertex, EdgeLabel.CFG)
+            driver.addEdge(callVertex, fldIdentVertex, EdgeLabel.CFG)
+            driver.addEdge(fldIdentVertex, methodRefVertex, EdgeLabel.CFG)
             driver.addEdge(methodRefVertex, typeRefVertex, EdgeLabel.CFG)
             driver.addEdge(typeRefVertex, controlStructureVertex, EdgeLabel.CFG)
             driver.addEdge(controlStructureVertex, jumpTargetVertex, EdgeLabel.CFG)
             driver.addEdge(jumpTargetVertex, returnVertex, EdgeLabel.CFG)
-            driver.addEdge(returnVertex, methodReturnVertex, EdgeLabel.CFG)
+            driver.addEdge(returnVertex, mtdRtnVertex, EdgeLabel.CFG)
 
             // Just add some vertices to test conversion
             driver.addVertex(unknownVertex)

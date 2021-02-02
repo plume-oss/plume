@@ -1,17 +1,18 @@
 package io.github.plume.oss.extractor.intraprocedural
 
 import io.github.plume.oss.Extractor
-import io.github.plume.oss.domain.models.PlumeGraph
 import io.github.plume.oss.drivers.DriverFactory
 import io.github.plume.oss.drivers.GraphDatabase
 import io.github.plume.oss.drivers.TinkerGraphDriver
 import io.shiftleft.codepropertygraph.generated.nodes.*
+import io.shiftleft.codepropertygraph.generated.nodes.File as ODBFile
 import org.junit.jupiter.api.AfterEach
 import org.junit.jupiter.api.Assertions.assertEquals
 import org.junit.jupiter.api.Assertions.assertNotNull
 import org.junit.jupiter.api.BeforeEach
 import org.junit.jupiter.api.Test
 import org.junit.jupiter.api.TestInfo
+import overflowdb.Graph
 import java.io.File
 import java.io.IOException
 
@@ -20,7 +21,7 @@ class BasicIntraproceduralTest {
 
     companion object {
         private val driver = DriverFactory(GraphDatabase.TINKER_GRAPH) as TinkerGraphDriver
-        private lateinit var graph: PlumeGraph
+        private lateinit var g: Graph
         private var PATH: File
         private val TEST_PATH = "intraprocedural${File.separator}basic"
 
@@ -44,94 +45,95 @@ class BasicIntraproceduralTest {
         val f = File(resourceDir)
         extractor.load(f)
         extractor.project()
-        graph = driver.getWholeGraph()
+        g = driver.getWholeGraph()
     }
 
     @AfterEach
     fun tearDown() {
         driver.close()
+        g.close()
     }
 
     @Test
     fun basic1Test() {
-        val vertices = graph.vertices()
-        vertices.filterIsInstance<NewNamespaceBlockBuilder>().let { nbv ->
-            assertNotNull(nbv.find { it.build().name() == "basic" })
-            assertNotNull(nbv.find { it.build().name() == "intraprocedural" })
+        val ns = g.nodes().asSequence().toList()
+        ns.filterIsInstance<NamespaceBlock>().let { nbv ->
+            assertNotNull(nbv.find { it.name() == "basic" })
+            assertNotNull(nbv.find { it.name() == "intraprocedural" })
         }
-        vertices.filterIsInstance<NewFileBuilder>()
-            .find { it.build().name() == "intraprocedural.basic.Basic$currentTestNumber" }
+        ns.filterIsInstance<ODBFile>()
+            .find { it.name() == "intraprocedural.basic.Basic$currentTestNumber" }
             .let { assertNotNull(it) }
-        vertices.filterIsInstance<NewMethodBuilder>().find { it.build().name() == "main" }.let { assertNotNull(it) }
-        vertices.filterIsInstance<NewLocalBuilder>().find { it.build().name() == "a" }
-            .let { assertNotNull(it); assertEquals("byte", it!!.build().typeFullName()) }
-        vertices.filterIsInstance<NewLocalBuilder>().find { it.build().name() == "b" }
-            .let { assertNotNull(it); assertEquals("byte", it!!.build().typeFullName()) }
-        vertices.filterIsInstance<NewLocalBuilder>().find { it.build().name() == "c" }
-            .let { assertNotNull(it); assertEquals("int", it!!.build().typeFullName()) }
-        vertices.filterIsInstance<NewCallBuilder>().find { it.build().name() == "ADD" }.let { assertNotNull(it) }
+        ns.filterIsInstance<Method>().find { it.name() == "main" }.let { assertNotNull(it) }
+        ns.filterIsInstance<Local>().find { it.name() == "a" }
+            .let { assertNotNull(it); assertEquals("byte", it!!.typeFullName()) }
+        ns.filterIsInstance<Local>().find { it.name() == "b" }
+            .let { assertNotNull(it); assertEquals("byte", it!!.typeFullName()) }
+        ns.filterIsInstance<Local>().find { it.name() == "c" }
+            .let { assertNotNull(it); assertEquals("int", it!!.typeFullName()) }
+        ns.filterIsInstance<Call>().find { it.name() == "ADD" }.let { assertNotNull(it) }
     }
 
     @Test
     fun basic2Test() {
-        val vertices = graph.vertices()
-        vertices.filterIsInstance<NewNamespaceBlockBuilder>().let { nbv ->
-            assertNotNull(nbv.find { it.build().name() == "basic" })
-            assertNotNull(nbv.find { it.build().name() == "intraprocedural" })
+        val ns = g.nodes().asSequence().toList()
+        ns.filterIsInstance<NamespaceBlock>().let { nbv ->
+            assertNotNull(nbv.find { it.name() == "basic" })
+            assertNotNull(nbv.find { it.name() == "intraprocedural" })
         }
-        vertices.filterIsInstance<NewFileBuilder>()
-            .find { it.build().name() == "intraprocedural.basic.Basic$currentTestNumber" }
+        ns.filterIsInstance<ODBFile>()
+            .find { it.name() == "intraprocedural.basic.Basic$currentTestNumber" }
             .let { assertNotNull(it) }
-        vertices.filterIsInstance<NewMethodBuilder>().find { it.build().name() == "main" }.let { assertNotNull(it) }
-        vertices.filterIsInstance<NewLocalBuilder>().find { it.build().name() == "a" }
-            .let { assertNotNull(it); assertEquals("byte", it!!.build().typeFullName()) }
-        vertices.filterIsInstance<NewLocalBuilder>().find { it.build().name() == "b" }
-            .let { assertNotNull(it); assertEquals("double", it!!.build().typeFullName()) }
-        vertices.filterIsInstance<NewLocalBuilder>().find { it.build().name() == "c" }
-            .let { assertNotNull(it); assertEquals("double", it!!.build().typeFullName()) }
-        vertices.filterIsInstance<NewCallBuilder>().find { it.build().name() == "ADD" }.let { assertNotNull(it) }
+        ns.filterIsInstance<Method>().find { it.name() == "main" }.let { assertNotNull(it) }
+        ns.filterIsInstance<Local>().find { it.name() == "a" }
+            .let { assertNotNull(it); assertEquals("byte", it!!.typeFullName()) }
+        ns.filterIsInstance<Local>().find { it.name() == "b" }
+            .let { assertNotNull(it); assertEquals("double", it!!.typeFullName()) }
+        ns.filterIsInstance<Local>().find { it.name() == "c" }
+            .let { assertNotNull(it); assertEquals("double", it!!.typeFullName()) }
+        ns.filterIsInstance<Call>().find { it.name() == "ADD" }.let { assertNotNull(it) }
     }
 
     @Test
     fun basic3Test() {
-        val vertices = graph.vertices()
-        vertices.filterIsInstance<NewNamespaceBlockBuilder>().let { nbv ->
-            assertNotNull(nbv.find { it.build().name() == "basic" })
-            assertNotNull(nbv.find { it.build().name() == "intraprocedural" })
+        val ns = g.nodes().asSequence().toList()
+        ns.filterIsInstance<NamespaceBlock>().let { nbv ->
+            assertNotNull(nbv.find { it.name() == "basic" })
+            assertNotNull(nbv.find { it.name() == "intraprocedural" })
         }
-        vertices.filterIsInstance<NewFileBuilder>()
-            .find { it.build().name() == "intraprocedural.basic.Basic$currentTestNumber" }
+        ns.filterIsInstance<ODBFile>()
+            .find { it.name() == "intraprocedural.basic.Basic$currentTestNumber" }
             .let { assertNotNull(it) }
-        vertices.filterIsInstance<NewMethodBuilder>().find { it.build().name() == "main" }.let { assertNotNull(it) }
-        vertices.filterIsInstance<NewLocalBuilder>().find { it.build().name() == "a" }
-            .let { assertNotNull(it); assertEquals("long", it!!.build().typeFullName()) }
-        vertices.filterIsInstance<NewLocalBuilder>().find { it.build().name() == "b" }
-            .let { assertNotNull(it); assertEquals("short", it!!.build().typeFullName()) }
-        vertices.filterIsInstance<NewLocalBuilder>().find { it.build().name() == "c" }
-            .let { assertNotNull(it); assertEquals("long", it!!.build().typeFullName()) }
-        vertices.filterIsInstance<NewCallBuilder>().find { it.build().name() == "ADD" }.let { assertNotNull(it) }
+        ns.filterIsInstance<Method>().find { it.name() == "main" }.let { assertNotNull(it) }
+        ns.filterIsInstance<Local>().find { it.name() == "a" }
+            .let { assertNotNull(it); assertEquals("long", it!!.typeFullName()) }
+        ns.filterIsInstance<Local>().find { it.name() == "b" }
+            .let { assertNotNull(it); assertEquals("short", it!!.typeFullName()) }
+        ns.filterIsInstance<Local>().find { it.name() == "c" }
+            .let { assertNotNull(it); assertEquals("long", it!!.typeFullName()) }
+        ns.filterIsInstance<Call>().find { it.name() == "ADD" }.let { assertNotNull(it) }
     }
 
     @Test
     fun basic4Test() {
-        val vertices = graph.vertices()
-        vertices.filterIsInstance<NewNamespaceBlockBuilder>().let { nbv ->
-            assertNotNull(nbv.find { it.build().name() == "basic" })
-            assertNotNull(nbv.find { it.build().name() == "intraprocedural" })
+        val ns = g.nodes().asSequence().toList()
+        ns.filterIsInstance<NamespaceBlock>().let { nbv ->
+            assertNotNull(nbv.find { it.name() == "basic" })
+            assertNotNull(nbv.find { it.name() == "intraprocedural" })
         }
-        vertices.filterIsInstance<NewFileBuilder>()
-            .find { it.build().name() == "intraprocedural.basic.Basic$currentTestNumber" }
+        ns.filterIsInstance<ODBFile>()
+            .find { it.name() == "intraprocedural.basic.Basic$currentTestNumber" }
             .let { assertNotNull(it) }
-        vertices.filterIsInstance<NewMethodBuilder>().find { it.build().name() == "main" }.let { assertNotNull(it) }
-        vertices.filterIsInstance<NewMethodBuilder>().find { it.build().name() == "Sally" }.let { assertNotNull(it) }
-        vertices.filterIsInstance<NewMethodBuilder>().find { it.build().name() == "John" }.let { assertNotNull(it) }
-        vertices.filterIsInstance<NewMethodBuilder>().find { it.build().name() == "Dick" }.let { assertNotNull(it) }
-        vertices.filterIsInstance<NewMethodBuilder>().find { it.build().name() == "Nigel" }.let { assertNotNull(it) }
-        vertices.filterIsInstance<NewMethodReturnBuilder>().let { mrv ->
-            assertNotNull(mrv.find { it.build().typeFullName() == "int" })
-            assertNotNull(mrv.find { it.build().typeFullName() == "int[]" })
-            assertNotNull(mrv.find { it.build().typeFullName() == "double" })
-            assertNotNull(mrv.find { it.build().typeFullName() == "boolean" })
+        ns.filterIsInstance<Method>().find { it.name() == "main" }.let { assertNotNull(it) }
+        ns.filterIsInstance<Method>().find { it.name() == "Sally" }.let { assertNotNull(it) }
+        ns.filterIsInstance<Method>().find { it.name() == "John" }.let { assertNotNull(it) }
+        ns.filterIsInstance<Method>().find { it.name() == "Dick" }.let { assertNotNull(it) }
+        ns.filterIsInstance<Method>().find { it.name() == "Nigel" }.let { assertNotNull(it) }
+        ns.filterIsInstance<MethodReturn>().let { mrv ->
+            assertNotNull(mrv.find { it.typeFullName() == "int" })
+            assertNotNull(mrv.find { it.typeFullName() == "int[]" })
+            assertNotNull(mrv.find { it.typeFullName() == "double" })
+            assertNotNull(mrv.find { it.typeFullName() == "boolean" })
         }
     }
 
@@ -143,25 +145,25 @@ class BasicIntraproceduralTest {
         val f = File(resourceDir)
         extractor.load(f)
         extractor.project()
-        graph = driver.getWholeGraph()
-        val vertices = graph.vertices()
-        vertices.filterIsInstance<NewNamespaceBlockBuilder>().let { nbv ->
-            assertNotNull(nbv.find { it.build().name() == "basic" })
-            assertNotNull(nbv.find { it.build().name() == "intraprocedural" })
-            assertNotNull(nbv.find { it.build().name() == "basic5" })
-            assertEquals(3, nbv.size)
+        g = driver.getWholeGraph()
+        val ns = g.nodes().asSequence().toList()
+        ns.filterIsInstance<NamespaceBlock>().let { nbv ->
+            assertNotNull(nbv.find { it.name() == "basic" })
+            assertNotNull(nbv.find { it.name() == "intraprocedural" })
+            assertNotNull(nbv.find { it.name() == "basic5" })
+            assertEquals(3, nbv.toList().size)
         }
-        vertices.filterIsInstance<NewTypeDeclBuilder>().let { mrv ->
-            assertNotNull(mrv.find { it.build().fullName() == "intraprocedural.basic.Basic5" })
-            assertNotNull(mrv.find { it.build().fullName() == "intraprocedural.basic.basic5.Basic5" })
-            assertEquals(2, mrv.size)
+        ns.filterIsInstance<TypeDecl>().let { mrv ->
+            assertNotNull(mrv.find { it.fullName() == "intraprocedural.basic.Basic5" })
+            assertNotNull(mrv.find { it.fullName() == "intraprocedural.basic.basic5.Basic5" })
+            assertEquals(2, mrv.toList().size)
         }
-        vertices.filterIsInstance<NewMethodBuilder>().let { mv ->
-            assertNotNull(mv.find { it.build().fullName() == "intraprocedural.basic.Basic5.main" })
-            assertNotNull(mv.find { it.build().fullName() == "intraprocedural.basic.basic5.Basic5.main" })
-            assertNotNull(mv.find { it.build().fullName() == "intraprocedural.basic.Basic5.<init>" })
-            assertNotNull(mv.find { it.build().fullName() == "intraprocedural.basic.basic5.Basic5.<init>" })
-            assertEquals(4, mv.size)
+        ns.filterIsInstance<Method>().let { mv ->
+            assertNotNull(mv.find { it.fullName() == "intraprocedural.basic.Basic5.main" })
+            assertNotNull(mv.find { it.fullName() == "intraprocedural.basic.basic5.Basic5.main" })
+            assertNotNull(mv.find { it.fullName() == "intraprocedural.basic.Basic5.<init>" })
+            assertNotNull(mv.find { it.fullName() == "intraprocedural.basic.basic5.Basic5.<init>" })
+            assertEquals(4, mv.toList().size)
         }
     }
 }

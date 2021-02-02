@@ -2,9 +2,8 @@ package io.github.plume.oss.drivers
 
 import io.github.plume.oss.domain.enums.EdgeLabel
 import io.github.plume.oss.domain.exceptions.PlumeSchemaViolationException
-import io.github.plume.oss.domain.models.PlumeGraph
-import io.shiftleft.codepropertygraph.generated.nodes.NewNode
 import io.shiftleft.codepropertygraph.generated.nodes.NewNodeBuilder
+import overflowdb.Graph
 
 /**
  * The minimal interface for all graph drivers.
@@ -58,12 +57,12 @@ interface IDriver : AutoCloseable {
     fun clearGraph(): IDriver
 
     /**
-     * Returns the whole CPG as a [PlumeGraph] object. Depending on the size of the CPG, this may be very memory
+     * Returns the whole CPG as a [Graph] object. Depending on the size of the CPG, this may be very memory
      * intensive.
      *
      * @return The whole CPG in the graph database.
      */
-    fun getWholeGraph(): PlumeGraph
+    fun getWholeGraph(): Graph
 
     /**
      * Given the full signature of a method, returns the subgraph of the method body.
@@ -71,24 +70,24 @@ interface IDriver : AutoCloseable {
      * @param fullName The fully qualified name e.g. interprocedural.basic.Basic4.f
      * @param signature The method signature e.g. int f(int, int)
      * @param includeBody True if the body should be included, false if only method head should be included.
-     * @return The [PlumeGraph] containing the method graph.
+     * @return The [Graph] containing the method graph.
      */
-    fun getMethod(fullName: String, signature: String, includeBody: Boolean = false): PlumeGraph
+    fun getMethod(fullName: String, signature: String, includeBody: Boolean = false): Graph
 
     /**
      * Obtains all program structure related vertices.
      *
-     * @return The [PlumeGraph] containing the program structure related sub-graphs.
+     * @return The [Graph] containing the program structure related sub-graphs.
      */
-    fun getProgramStructure(): PlumeGraph
+    fun getProgramStructure(): Graph
 
     /**
-     * Given a vertex, returns a [PlumeGraph] representation of neighbouring vertices.
+     * Given a vertex, returns a [Graph] representation of neighbouring vertices.
      *
      * @param v The source vertex.
-     * @return The [PlumeGraph] representation of the source vertex and its neighbouring vertices.
+     * @return The [Graph] representation of the source vertex and its neighbouring vertices.
      */
-    fun getNeighbours(v: NewNodeBuilder): PlumeGraph
+    fun getNeighbours(v: NewNodeBuilder): Graph
 
     /**
      * Given a vertex, will remove it from the graph if present.

@@ -9,8 +9,12 @@ and this project adheres to [Semantic Versioning](http://semver.org/).
 ### Added
 
 ### Changed
+- Replaced `PlumeGraph` with `overflowdb.Graph`.
+- Removed Gremlin driver transaction logic being present by default.
 
 ### Fixed
+- Fixed `cmp` bug by adding this to `ExtractorConst#BIN_OPS`.
+- Neo4j driver now also connects in the extractor if given to extractor disconnected
 
 ## [0.1.1] - 2021-02-01
 

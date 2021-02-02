@@ -4,20 +4,26 @@ import io.github.plume.oss.Extractor
 import io.github.plume.oss.drivers.DriverFactory
 import io.github.plume.oss.drivers.GraphDatabase
 import io.github.plume.oss.drivers.OverflowDbDriver
-import io.shiftleft.codepropertygraph.generated.nodes.*
+import io.shiftleft.codepropertygraph.generated.nodes.Call
+import io.shiftleft.codepropertygraph.generated.nodes.Local
+import io.shiftleft.codepropertygraph.generated.nodes.Method
+import io.shiftleft.codepropertygraph.generated.nodes.NamespaceBlock
 import org.junit.jupiter.api.AfterEach
 import org.junit.jupiter.api.Assertions
 import org.junit.jupiter.api.Assertions.assertEquals
 import org.junit.jupiter.api.Assertions.assertNotNull
 import org.junit.jupiter.api.BeforeAll
 import org.junit.jupiter.api.Test
+import overflowdb.Graph
 import java.io.File
+import io.shiftleft.codepropertygraph.generated.nodes.File as ODBFile
 
 class BasicExtractorTest {
     companion object {
         private val driver = DriverFactory(GraphDatabase.OVERFLOWDB) as OverflowDbDriver
         private val TEST_PATH = "extractor_tests${File.separator}"
         private lateinit var extractor: Extractor
+        private lateinit var g: Graph
         private lateinit var validSourceFile: File
         private lateinit var validClassFile: File
         private lateinit var validDirectory: File
@@ -43,62 +49,62 @@ class BasicExtractorTest {
     @AfterEach
     fun tearDown() {
         driver.clearGraph()
+        if (!g.isClosed) g.close()
     }
 
     @Test
     fun validSourceFileTest() {
         extractor.load(validSourceFile)
         extractor.project()
-        val graph = driver.getWholeGraph()
-        val vertices = graph.vertices()
-        assertNotNull(
-            vertices.filterIsInstance<NewNamespaceBlockBuilder>().find { it.build().name() == "extractor_tests" })
-        vertices.filterIsInstance<NewFileBuilder>().find { it.build().name() == "extractor_tests.Test1" }
+        g = driver.getWholeGraph()
+        val ns = g.nodes().asSequence().toList()
+        assertNotNull(ns.filterIsInstance<NamespaceBlock>().find { it.name() == "extractor_tests" })
+        ns.filterIsInstance<ODBFile>().find { it.name() == "extractor_tests.Test1" }
             .let { assertNotNull(it) }
-        vertices.filterIsInstance<NewMethodBuilder>().find { it.build().name() == "main" }.let { assertNotNull(it) }
-        vertices.filterIsInstance<NewLocalBuilder>().find { it.build().name() == "a" }
-            .let { assertNotNull(it); assertEquals("byte", it!!.build().typeFullName()) }
-        vertices.filterIsInstance<NewLocalBuilder>().find { it.build().name() == "b" }
-            .let { assertNotNull(it); assertEquals("byte", it!!.build().typeFullName()) }
-        vertices.filterIsInstance<NewLocalBuilder>().find { it.build().name() == "c" }
-            .let { assertNotNull(it); assertEquals("int", it!!.build().typeFullName()) }
-        vertices.filterIsInstance<NewCallBuilder>().find { it.build().name() == "ADD" }.let { assertNotNull(it) }
+        ns.filterIsInstance<Method>().find { it.name() == "main" }.let { assertNotNull(it) }
+        ns.filterIsInstance<Local>().find { it.name() == "a" }
+            .let { assertNotNull(it); assertEquals("byte", it!!.typeFullName()) }
+        ns.filterIsInstance<Local>().find { it.name() == "b" }
+            .let { assertNotNull(it); assertEquals("byte", it!!.typeFullName()) }
+        ns.filterIsInstance<Local>().find { it.name() == "c" }
+            .let { assertNotNull(it); assertEquals("int", it!!.typeFullName()) }
+        ns.filterIsInstance<Call>().find { it.name() == "ADD" }.let { assertNotNull(it) }
     }
 
     @Test
     fun validClassFileTest() {
         extractor.load(validClassFile)
         extractor.project()
-        val graph = driver.getWholeGraph()
-        val vertices = graph.vertices()
+        g = driver.getWholeGraph()
+        val ns = g.nodes().asSequence().toList()
         assertNotNull(
-            vertices.filterIsInstance<NewNamespaceBlockBuilder>().find { it.build().name() == "extractor_tests" })
-        vertices.filterIsInstance<NewFileBuilder>().find { it.build().name() == "extractor_tests.Test2" }
+            ns.filterIsInstance<NamespaceBlock>().find { it.name() == "extractor_tests" })
+        ns.filterIsInstance<ODBFile>().find { it.name() == "extractor_tests.Test2" }
             .let { assertNotNull(it) }
-        vertices.filterIsInstance<NewMethodBuilder>().find { it.build().name() == "main" }.let { assertNotNull(it) }
-        vertices.filterIsInstance<NewLocalBuilder>().find { it.build().name() == "l1" }
-            .let { assertNotNull(it); assertEquals("byte", it!!.build().typeFullName()) }
-        vertices.filterIsInstance<NewLocalBuilder>().find { it.build().name() == "l2" }
-            .let { assertNotNull(it); assertEquals("byte", it!!.build().typeFullName()) }
-        vertices.filterIsInstance<NewLocalBuilder>().find { it.build().name() == "l3" }
-            .let { assertNotNull(it); assertEquals("int", it!!.build().typeFullName()) }
-        vertices.filterIsInstance<NewCallBuilder>().find { it.build().name() == "ADD" }.let { assertNotNull(it) }
+        ns.filterIsInstance<Method>().find { it.name() == "main" }.let { assertNotNull(it) }
+        ns.filterIsInstance<Local>().find { it.name() == "l1" }
+            .let { assertNotNull(it); assertEquals("byte", it!!.typeFullName()) }
+        ns.filterIsInstance<Local>().find { it.name() == "l2" }
+            .let { assertNotNull(it); assertEquals("byte", it!!.typeFullName()) }
+        ns.filterIsInstance<Local>().find { it.name() == "l3" }
+            .let { assertNotNull(it); assertEquals("int", it!!.typeFullName()) }
+        ns.filterIsInstance<Call>().find { it.name() == "ADD" }.let { assertNotNull(it) }
     }
 
     @Test
     fun validDirectoryTest() {
         extractor.load(validDirectory)
         extractor.project()
-        val graph = driver.getProgramStructure()
-        val vertices = graph.vertices()
-        vertices.filterIsInstance<NewFileBuilder>().let { fileList ->
-            assertNotNull(fileList.firstOrNull { it.build().name() == "extractor_tests.dir_test.Dir1" })
-            assertNotNull(fileList.firstOrNull { it.build().name() == "extractor_tests.dir_test.pack.Dir2" })
+        g = driver.getProgramStructure()
+        val ns = g.nodes().asSequence().toList()
+        ns.filterIsInstance<ODBFile>().let { fileList ->
+            assertNotNull(fileList.firstOrNull { it.name() == "extractor_tests.dir_test.Dir1" })
+            assertNotNull(fileList.firstOrNull { it.name() == "extractor_tests.dir_test.pack.Dir2" })
         }
-        vertices.filterIsInstance<NewNamespaceBlockBuilder>().let { fileList ->
-            assertNotNull(fileList.firstOrNull { it.build().name() == "dir_test" })
-            assertNotNull(fileList.firstOrNull { it.build().name() == "extractor_tests" })
-            assertNotNull(fileList.firstOrNull { it.build().name() == "pack" })
+        ns.filterIsInstance<NamespaceBlock>().let { fileList ->
+            assertNotNull(fileList.firstOrNull { it.name() == "dir_test" })
+            assertNotNull(fileList.firstOrNull { it.name() == "extractor_tests" })
+            assertNotNull(fileList.firstOrNull { it.name() == "pack" })
         }
     }
 
