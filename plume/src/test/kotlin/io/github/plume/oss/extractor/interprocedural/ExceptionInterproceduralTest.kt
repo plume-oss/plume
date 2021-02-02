@@ -59,7 +59,7 @@ class ExceptionInterproceduralTest {
 
     @Test
     fun exception1Test() {
-        val ns = g.nodes().asSequence()
+        val ns =  g.nodes().asSequence().toList()
         val localV = ns.filterIsInstance<Local>()
         val mtdV = ns.filterIsInstance<Block>().firstOrNull()?.apply { assertNotNull(this) }
         assertNotNull(localV.firstOrNull { it.name() == "e" && it.typeFullName() == "java.lang.Exception" })
@@ -77,7 +77,7 @@ class ExceptionInterproceduralTest {
 
     @Test
     fun exception2Test() {
-        val ns = g.nodes().asSequence()
+        val ns =  g.nodes().asSequence().toList()
         val localV = ns.filterIsInstance<Local>()
 
         val mtdV = ns.filterIsInstance<Block>().firstOrNull()?.apply { assertNotNull(this) }

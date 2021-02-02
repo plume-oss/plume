@@ -51,7 +51,7 @@ class TypeInterproceduralTest {
 
     @Test
     fun type1Test() {
-        val ns = g.nodes().asSequence()
+        val ns = g.nodes().asSequence().toList()
         ns.filterIsInstance<Local>().let { localList ->
             assertNotNull(localList.firstOrNull { it.name() == "intList" && it.typeFullName() == "java.util.LinkedList" })
             assertNotNull(localList.firstOrNull { it.name() == "stringList" && it.typeFullName() == "java.util.LinkedList" })
@@ -68,7 +68,7 @@ class TypeInterproceduralTest {
 
     @Test
     fun type2Test() {
-        val ns = g.nodes().asSequence()
+        val ns = g.nodes().asSequence().toList()
         assertNotNull(
             ns.filterIsInstance<Local>().firstOrNull { it.name() == "intArray" && it.typeFullName() == "int[]" })
         ns.filterIsInstance<Identifier>().filter { it.name().contains("intArray") }
@@ -80,7 +80,7 @@ class TypeInterproceduralTest {
 
     @Test
     fun type3Test() {
-        val ns = g.nodes().asSequence()
+        val ns = g.nodes().asSequence().toList()
         assertNotNull(
             ns.filterIsInstance<Local>()
                 .firstOrNull { it.name() == "cls" && it.typeFullName() == "java.lang.Class" })

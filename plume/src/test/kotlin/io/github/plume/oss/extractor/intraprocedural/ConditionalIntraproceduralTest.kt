@@ -238,7 +238,7 @@ class ConditionalIntraproceduralTest {
 
     @Test
     fun conditional10Test() {
-        val ns = g.nodes().asSequence().toList()
+        val ns = g.nodes().asSequence().toList().distinct()
         assertNotNull(ns.find { it is Local && it.name() == "a" })
         assertNotNull(ns.find { it is Local && it.name() == "b" })
         assertNotNull(ns.find { it is Local && it.name() == "c" })
