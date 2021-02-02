@@ -274,6 +274,7 @@ object SootToPlumeUtil {
                 prevNamespaceBlock = currNamespaceBlock
             }
         }
+        programStructure.close()
         return currNamespaceBlock ?: prevNamespaceBlock
     }
 

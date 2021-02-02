@@ -237,6 +237,7 @@ class Extractor(val driver: IDriver) {
         programStructure = driver.getProgramStructure()
         classStream.forEach(this::analyseExistingCPGs)
         // Update program structure after sub-graphs which will change are discarded
+        programStructure.close()
         programStructure = driver.getProgramStructure()
         // Load all methods to construct the CPG from and convert them to UnitGraph objects
         val graphs = classStream.asSequence()
@@ -418,8 +419,10 @@ class Extractor(val driver: IDriver) {
         classToFileHash.clear()
         sootToPlume.clear()
         savedCallGraphEdges.clear()
+        programStructure.close()
         deleteClassFiles(File(COMP_DIR))
         G.reset()
+        G.v().resetSpark()
     }
 
 }
