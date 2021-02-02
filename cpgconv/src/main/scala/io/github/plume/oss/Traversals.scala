@@ -7,6 +7,7 @@ import io.shiftleft.codepropertygraph.generated.EdgeTypes
 import io.shiftleft.codepropertygraph.generated.nodes.{AstNode, HasOrder, StoredNode}
 import io.shiftleft.semanticcpg.language._
 import overflowdb.{Edge, Graph}
+import io.shiftleft.codepropertygraph.generated.nodes
 
 import scala.jdk.CollectionConverters._
 
@@ -46,7 +47,14 @@ object Traversals {
   }
 
   def getProgramStructure(graph: Graph): util.List[Edge] = {
-    Cpg(graph).file.ast.outE(EdgeTypes.AST).l.asJava
+    Cpg(graph).file
+      .outE(EdgeTypes.AST)
+      .filter { x =>
+        x.inNode()
+          .isInstanceOf[nodes.NamespaceBlock]
+      }
+      .l
+      .asJava
   }
 
   def getNeighbours(graph: Graph, nodeId: Long): util.List[Edge] = {
@@ -56,14 +64,21 @@ object Traversals {
       .flatMap { f =>
         List(f) ++ f.astChildren
       }
-      .inE.l.asJava
+      .inE
+      .l
+      .asJava
   }
 
   def getVertexIds(graph: Graph, lowerBound: Long, upperBound: Long): util.Set[Long] = {
     Cpg(graph).all
-      .map { x => x.id() }
-      .filter { id => lowerBound to upperBound contains id }
-      .toSet.asJava
+      .map { x =>
+        x.id()
+      }
+      .filter { id =>
+        lowerBound to upperBound contains id
+      }
+      .toSet
+      .asJava
   }
 
   def clearGraph(graph: Graph): Unit = {
