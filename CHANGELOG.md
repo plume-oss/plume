@@ -9,6 +9,12 @@ and this project adheres to [Semantic Versioning](http://semver.org/).
 ### Added
 
 ### Changed
+
+### Fixed
+
+## [0.1.2] - 2021-02-02
+
+### Changed
 - Replaced `PlumeGraph` with `overflowdb.Graph`.
 - Removed Gremlin driver transaction logic being present by default.
 
