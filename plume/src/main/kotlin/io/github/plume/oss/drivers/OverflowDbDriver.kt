@@ -102,13 +102,9 @@ class OverflowDbDriver : IDriver {
     }
 
     override fun getWholeGraph(): Graph {
-        val wholeGraphResults = Traversals.getWholeGraph(graph)
-        val graph = deepCopyGraph(wholeGraphResults.flatMap {  it._2.toList() }.toList())
-        wholeGraphResults.map { it._1 }.filter { graph.node(it.id()) == null }.forEach {
-            val node = graph.addNode(it.id(), it.label())
-            it.propertyMap().forEach { (key, value) -> node.setProperty(key, value) }
-        }
-        return graph
+        val result = newOverflowGraph()
+        graph.copyTo(result)
+        return result
     }
 
     override fun getMethod(fullName: String, signature: String, includeBody: Boolean): Graph {
