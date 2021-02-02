@@ -217,8 +217,9 @@ object SootToPlumeUtil {
             if (namespaceList.isNotEmpty()) nbv = populateNamespaceChain(namespaceList, driver)
         }
         val order = if (nbv != null) {
-            val ns = driver.getNeighbours(nbv).V(nbv.id())
-            if (ns.hasNext()) ns.next().outE().asSequence().toList().size else 0
+            driver.getNeighbours(nbv).use { ns ->
+                ns.node(nbv.id())?.outE()?.asSequence()?.toList()?.size ?: 0
+            }
         } else 0
         return NewFileBuilder()
             .name(cls.name)
@@ -241,40 +242,43 @@ object SootToPlumeUtil {
      * @return The final [NewNamespaceBlockBuilder] in the chain (the one associated with the file).
      */
     private fun populateNamespaceChain(namespaceList: Array<String>, driver: IDriver): NewNamespaceBlockBuilder {
-        val programStructure = driver.getProgramStructure()
-        val maybePrevNamespaceBlock = programStructure.nodes { it == NamespaceBlock.Label() }.asSequence()
-            .firstOrNull {
-                it.property("FULL_NAME") == namespaceList[0]
-                        && it.property("NAME") == namespaceList[0]
-            }?.let { mapToVertex(it) } as NewNamespaceBlockBuilder?
-        var prevNamespaceBlock = maybePrevNamespaceBlock
-            ?: NewNamespaceBlockBuilder()
-                .name(namespaceList[0])
-                .fullname(namespaceList[0])
-                .order(0)
-        if (namespaceList.size == 1) return prevNamespaceBlock
-
+        var prevNamespaceBlock: NewNamespaceBlockBuilder
         var currNamespaceBlock: NewNamespaceBlockBuilder? = null
-        val namespaceBuilder = StringBuilder(namespaceList[0])
-        for (i in 1 until namespaceList.size) {
-            namespaceBuilder.append("." + namespaceList[i])
-            val ns = driver.getNeighbours(prevNamespaceBlock).node(prevNamespaceBlock.id())
-            val order = ns?.outE()?.asSequence()?.toList()?.size ?: 0
-            val maybeCurrNamespaceBlock = programStructure.nodes { it == NamespaceBlock.Label() }.asSequence()
+        driver.getProgramStructure().use { programStructure ->
+            val maybePrevNamespaceBlock = programStructure.nodes { it == NamespaceBlock.Label() }.asSequence()
                 .firstOrNull {
-                    it.property("FULL_NAME") == namespaceBuilder.toString()
-                            && it.property("NAME") == namespaceList[i]
+                    it.property("FULL_NAME") == namespaceList[0]
+                            && it.property("NAME") == namespaceList[0]
                 }?.let { mapToVertex(it) } as NewNamespaceBlockBuilder?
-            currNamespaceBlock = maybeCurrNamespaceBlock ?: NewNamespaceBlockBuilder()
-                .name(namespaceList[i])
-                .fullname(namespaceBuilder.toString())
-                .order(order)
-            if (currNamespaceBlock != null) {
-                driver.addEdge(currNamespaceBlock, prevNamespaceBlock, EdgeLabel.AST)
-                prevNamespaceBlock = currNamespaceBlock
+            prevNamespaceBlock = maybePrevNamespaceBlock
+                ?: NewNamespaceBlockBuilder()
+                    .name(namespaceList[0])
+                    .fullname(namespaceList[0])
+                    .order(0)
+            if (namespaceList.size == 1) return prevNamespaceBlock
+
+            val namespaceBuilder = StringBuilder(namespaceList[0])
+            for (i in 1 until namespaceList.size) {
+                namespaceBuilder.append("." + namespaceList[i])
+                val order: Int
+                driver.getNeighbours(prevNamespaceBlock).use { ns ->
+                    order = ns.node(prevNamespaceBlock.id())?.outE()?.asSequence()?.toList()?.size ?: 0
+                }
+                val maybeCurrNamespaceBlock = programStructure.nodes { it == NamespaceBlock.Label() }.asSequence()
+                    .firstOrNull {
+                        it.property("FULL_NAME") == namespaceBuilder.toString()
+                                && it.property("NAME") == namespaceList[i]
+                    }?.let { mapToVertex(it) } as NewNamespaceBlockBuilder?
+                currNamespaceBlock = maybeCurrNamespaceBlock ?: NewNamespaceBlockBuilder()
+                    .name(namespaceList[i])
+                    .fullname(namespaceBuilder.toString())
+                    .order(order)
+                if (currNamespaceBlock != null) {
+                    driver.addEdge(currNamespaceBlock!!, prevNamespaceBlock, EdgeLabel.AST)
+                    prevNamespaceBlock = currNamespaceBlock as NewNamespaceBlockBuilder
+                }
             }
         }
-        programStructure.close()
         return currNamespaceBlock ?: prevNamespaceBlock
     }
 

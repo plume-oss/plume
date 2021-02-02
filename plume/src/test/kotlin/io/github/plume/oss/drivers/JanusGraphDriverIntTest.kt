@@ -38,6 +38,7 @@ import io.shiftleft.codepropertygraph.generated.nodes.*
 import org.apache.logging.log4j.LogManager
 import org.junit.jupiter.api.*
 import org.junit.jupiter.api.Assertions.*
+import overflowdb.Graph
 import scala.Option
 import kotlin.properties.Delegates
 
@@ -344,15 +345,21 @@ class JanusGraphDriverIntTest {
     @Nested
     @DisplayName("Any OverflowDb result related tests based off of a test CPG")
     inner class PlumeGraphTests {
+        private lateinit var g: Graph
 
         @BeforeEach
         fun setUp() {
             generateSimpleCPG(driver)
         }
 
+        @AfterEach
+        fun tearDown() {
+            g.close()
+        }
+
         @Test
         fun testGetWholeGraph() {
-            val g = driver.getWholeGraph()
+            g = driver.getWholeGraph()
             val ns = g.nodes().asSequence().toList()
             val es = g.edges().asSequence().toList()
             assertEquals(21, ns.size)
@@ -411,7 +418,7 @@ class JanusGraphDriverIntTest {
         @Test
         fun testGetEmptyMethodBody() {
             driver.clearGraph()
-            val g = driver.getMethod(methodVertex.build().fullName(), methodVertex.build().signature())
+            g = driver.getMethod(methodVertex.build().fullName(), methodVertex.build().signature())
             val ns = g.nodes().asSequence().toList()
             val es = g.edges().asSequence().toList()
             assertEquals(0, ns.size)
@@ -420,7 +427,7 @@ class JanusGraphDriverIntTest {
 
         @Test
         fun testGetMethodHeadOnly() {
-            val g = driver.getMethod(methodVertex.build().fullName(), methodVertex.build().signature(), false)
+            g = driver.getMethod(methodVertex.build().fullName(), methodVertex.build().signature(), false)
             val ns = g.nodes().asSequence().toList()
             val es = g.edges().asSequence().toList()
             assertEquals(6, ns.size)
@@ -448,7 +455,7 @@ class JanusGraphDriverIntTest {
 
         @Test
         fun testGetMethodBody() {
-            val g = driver.getMethod(methodVertex.build().fullName(), methodVertex.build().signature(), true)
+            g = driver.getMethod(methodVertex.build().fullName(), methodVertex.build().signature(), true)
             val ns = g.nodes().asSequence().toList()
             val es = g.edges().asSequence().toList()
             assertEquals(15, ns.size)
@@ -504,7 +511,7 @@ class JanusGraphDriverIntTest {
 
         @Test
         fun testGetProgramStructure() {
-            val g = driver.getProgramStructure()
+            g = driver.getProgramStructure()
             val ns = g.nodes().asSequence().toList()
             val es = g.edges().asSequence().toList()
             assertEquals(3, ns.size)
@@ -523,7 +530,7 @@ class JanusGraphDriverIntTest {
 
         @Test
         fun testGetNeighbours() {
-            val g = driver.getNeighbours(fileVertex)
+            g = driver.getNeighbours(fileVertex)
             val ns = g.nodes().asSequence().toList()
             val es = g.edges().asSequence().toList()
             assertEquals(3, ns.size)

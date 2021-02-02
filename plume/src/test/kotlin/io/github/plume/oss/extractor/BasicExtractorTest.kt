@@ -49,7 +49,7 @@ class BasicExtractorTest {
     @AfterEach
     fun tearDown() {
         driver.clearGraph()
-        g.close()
+        if (!g.isClosed) g.close()
     }
 
     @Test
@@ -57,7 +57,7 @@ class BasicExtractorTest {
         extractor.load(validSourceFile)
         extractor.project()
         g = driver.getWholeGraph()
-        val ns = g.nodes().asSequence()
+        val ns = g.nodes().asSequence().toList()
         assertNotNull(ns.filterIsInstance<NamespaceBlock>().find { it.name() == "extractor_tests" })
         ns.filterIsInstance<ODBFile>().find { it.name() == "extractor_tests.Test1" }
             .let { assertNotNull(it) }
@@ -76,7 +76,7 @@ class BasicExtractorTest {
         extractor.load(validClassFile)
         extractor.project()
         g = driver.getWholeGraph()
-        val ns = g.nodes().asSequence()
+        val ns = g.nodes().asSequence().toList()
         assertNotNull(
             ns.filterIsInstance<NamespaceBlock>().find { it.name() == "extractor_tests" })
         ns.filterIsInstance<ODBFile>().find { it.name() == "extractor_tests.Test2" }
@@ -96,7 +96,7 @@ class BasicExtractorTest {
         extractor.load(validDirectory)
         extractor.project()
         g = driver.getProgramStructure()
-        val ns = g.nodes().asSequence()
+        val ns = g.nodes().asSequence().toList()
         ns.filterIsInstance<ODBFile>().let { fileList ->
             assertNotNull(fileList.firstOrNull { it.name() == "extractor_tests.dir_test.Dir1" })
             assertNotNull(fileList.firstOrNull { it.name() == "extractor_tests.dir_test.pack.Dir2" })

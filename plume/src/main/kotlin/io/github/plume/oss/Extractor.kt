@@ -317,24 +317,27 @@ class Extractor(val driver: IDriver) {
             if (fileV.property("HASH") != currentFileHash) {
                 logger.debug("Existing class was found and file hashes do not match, marking for rebuild.")
                 // Rebuild
-                driver.getNeighbours(mapToVertex(fileV)).nodes { it == Method.Label() }.forEach { mtdV: Node ->
-                    val mtd1 = (mapToVertex(mtdV) as NewMethodBuilder).build()
-                    logger.debug(
-                        "Deleting method and saving incoming call graph edges for " +
-                                "${mtd1.fullName()} ${mtd1.signature()}"
-                    )
-                    driver.getMethod(mtd1.fullName(), mtd1.signature(), false).let { g ->
-                        g.nodes { it == Method.Label() }.asSequence().firstOrNull()?.let { mtdV: Node ->
-                            val mtd2 = mapToVertex(mtdV) as NewMethodBuilder
-                            val ns = driver.getNeighbours(mtd2).V(mtdV.id())
-                            if (ns.hasNext()) {
-                                ns.next().`in`("CALL").asSequence()
-                                    .filterIsInstance<Call>()
-                                    .forEach { saveCallGraphEdge(mtd2, mapToVertex(it) as NewCallBuilder) }
+                driver.getNeighbours(mapToVertex(fileV)).use { neighbours ->
+                    neighbours.nodes { it == Method.Label() }.forEach { mtdV: Node ->
+                        val mtd1 = (mapToVertex(mtdV) as NewMethodBuilder).build()
+                        logger.debug(
+                            "Deleting method and saving incoming call graph edges for " +
+                                    "${mtd1.fullName()} ${mtd1.signature()}"
+                        )
+                        driver.getMethod(mtd1.fullName(), mtd1.signature(), false).use { g ->
+                            g.nodes { it == Method.Label() }.asSequence().firstOrNull()?.let { mtdV: Node ->
+                                val mtd2 = mapToVertex(mtdV) as NewMethodBuilder
+                                driver.getNeighbours(mtd2).use { ns ->
+                                    if (ns.V(mtdV.id()).hasNext()) {
+                                        ns.V(mtdV.id()).next().`in`("CALL").asSequence()
+                                            .filterIsInstance<Call>()
+                                            .forEach { saveCallGraphEdge(mtd2, mapToVertex(it) as NewCallBuilder) }
+                                    }
+                                }
                             }
                         }
+                        driver.deleteMethod(mtd1.fullName(), mtd1.signature())
                     }
-                    driver.deleteMethod(mtd1.fullName(), mtd1.signature())
                 }
                 logger.debug("Deleting $fileV")
                 driver.deleteVertex(mapToVertex(fileV) as NewFileBuilder)

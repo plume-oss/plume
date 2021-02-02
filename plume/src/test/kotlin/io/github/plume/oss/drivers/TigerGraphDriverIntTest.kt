@@ -37,6 +37,7 @@ import io.shiftleft.codepropertygraph.generated.EdgeTypes.*
 import io.shiftleft.codepropertygraph.generated.nodes.*
 import org.junit.jupiter.api.*
 import org.junit.jupiter.api.Assertions.*
+import overflowdb.Graph
 import scala.Option
 import kotlin.properties.Delegates
 
@@ -344,15 +345,21 @@ class TigerGraphDriverIntTest {
     @Nested
     @DisplayName("Any OverflowDb result related tests based off of a test CPG")
     inner class PlumeGraphTests {
+        private lateinit var g: Graph
 
         @BeforeEach
         fun setUp() {
             generateSimpleCPG(driver)
         }
 
+        @AfterEach
+        fun tearDown() {
+            g.close()
+        }
+
         @Test
         fun testGetWholeGraph() {
-            val g = driver.getWholeGraph()
+            g = driver.getWholeGraph()
             val ns = g.nodes().asSequence().toList()
             val es = g.edges().asSequence().toList()
             assertEquals(21, ns.size)
@@ -411,7 +418,7 @@ class TigerGraphDriverIntTest {
         @Test
         fun testGetEmptyMethodBody() {
             driver.clearGraph()
-            val g = driver.getMethod(
+            g = driver.getMethod(
                 methodVertex.build().fullName(),
                 methodVertex.build().signature()
             )
@@ -423,7 +430,7 @@ class TigerGraphDriverIntTest {
 
         @Test
         fun testGetMethodHeadOnly() {
-            val g = driver.getMethod(
+            g = driver.getMethod(
                 methodVertex.build().fullName(),
                 methodVertex.build().signature(),
                 false
@@ -455,7 +462,7 @@ class TigerGraphDriverIntTest {
 
         @Test
         fun testGetMethodBody() {
-            val g = driver.getMethod(
+            g = driver.getMethod(
                 methodVertex.build().fullName(),
                 methodVertex.build().signature(),
                 true
@@ -515,7 +522,7 @@ class TigerGraphDriverIntTest {
 
         @Test
         fun testGetProgramStructure() {
-            val g = driver.getProgramStructure()
+            g = driver.getProgramStructure()
             val ns = g.nodes().asSequence().toList()
             val es = g.edges().asSequence().toList()
             assertEquals(3, ns.size)
@@ -534,7 +541,7 @@ class TigerGraphDriverIntTest {
 
         @Test
         fun testGetNeighbours() {
-            val g = driver.getNeighbours(fileVertex)
+            g = driver.getNeighbours(fileVertex)
             val ns = g.nodes().asSequence().toList()
             val es = g.edges().asSequence().toList()
             assertEquals(3, ns.size)

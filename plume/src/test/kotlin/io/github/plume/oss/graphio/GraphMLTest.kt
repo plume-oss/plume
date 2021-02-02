@@ -71,7 +71,8 @@ class GraphMLTest {
 
     @AfterEach
     fun tearDown() {
-        driver.clearGraph()
+        driver.close()
+        graph.close()
     }
 
     @Test
