@@ -46,15 +46,22 @@ object Traversals {
       .asJava
   }
 
+  import overflowdb.traversal._
   def getProgramStructure(graph: Graph): util.List[Edge] = {
-    Cpg(graph).file
+    val edgesFromFile: List[Edge] = Cpg(graph).file
       .outE(EdgeTypes.AST)
-      .filter { x =>
-        x.inNode()
-          .isInstanceOf[nodes.NamespaceBlock]
+      .filter(_.inNode().isInstanceOf[nodes.NamespaceBlock])
+      .l
+    val edgesFromNamespaceBlock: List[Edge] = edgesFromFile
+      .to(Traversal)
+      .inV
+      .collect {
+        case x: nodes.NamespaceBlock =>
+          x.outE(EdgeTypes.AST).filter(_.inNode().isInstanceOf[nodes.NamespaceBlock]).l
       }
       .l
-      .asJava
+      .flatten
+    (edgesFromFile ++ edgesFromNamespaceBlock).asJava
   }
 
   def getNeighbours(graph: Graph, nodeId: Long): util.List[Edge] = {
