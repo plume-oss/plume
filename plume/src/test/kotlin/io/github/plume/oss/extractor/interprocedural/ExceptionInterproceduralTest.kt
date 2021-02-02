@@ -55,6 +55,7 @@ class ExceptionInterproceduralTest {
     @AfterEach
     fun tearDown() {
         driver.close()
+        g.close()
     }
 
     @Test

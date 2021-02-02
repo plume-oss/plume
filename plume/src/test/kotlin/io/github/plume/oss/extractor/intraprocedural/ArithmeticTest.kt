@@ -48,6 +48,7 @@ class ArithmeticTest {
     @AfterEach
     fun tearDown() {
         driver.close()
+        g.close()
     }
 
     @Test

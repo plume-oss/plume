@@ -54,7 +54,8 @@ class LoopIntraproceduralTest {
 
     @AfterEach
     fun tearDown() {
-        driver.clearGraph()
+        driver.close()
+        g.close()
     }
 
     @Test

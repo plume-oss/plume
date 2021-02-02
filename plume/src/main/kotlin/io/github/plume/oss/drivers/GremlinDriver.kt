@@ -68,6 +68,7 @@ abstract class GremlinDriver : IDriver {
     override fun close() {
         require(connected) { "Cannot close a graph that is not already connected!" }
         try {
+            g.close()
             graph.close()
         } catch (e: Exception) {
             logger.warn("Exception thrown while attempting to close graph.", e)

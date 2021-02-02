@@ -55,6 +55,7 @@ class ConditionalIntraproceduralTest {
     @AfterEach
     fun tearDown() {
         driver.close()
+        g.close()
     }
 
     @Test

@@ -35,7 +35,8 @@ class InheritanceInterproceduralTest {
 
     @AfterEach
     fun tearDown() {
-        driver.clearGraph().close()
+        driver.close()
+        g.close()
     }
 
     @Test
@@ -107,12 +108,12 @@ class InheritanceInterproceduralTest {
         calls.filter { it.methodFullName() == "interprocedural.inheritance.Base: void show()" }
             .apply { assertEquals(2, this.toList().size) }
             .forEach { call ->
-                val calls = g.V(call.id()).next().out(CALL).asSequence().toList()
-                if (calls.size > 1) {
-                    assertTrue(calls.any { it.id() == derivedShow.id() })
-                    assertTrue(calls.any { it.id() == baseShow.id() })
+                val cs = g.V(call.id()).next().out(CALL).asSequence().toList()
+                if (cs.size > 1) {
+                    assertTrue(cs.any { it.id() == derivedShow.id() })
+                    assertTrue(cs.any { it.id() == baseShow.id() })
                 } else {
-                    assertTrue(calls.any { it.id() == derivedShow.id() })
+                    assertTrue(cs.any { it.id() == derivedShow.id() })
                 }
             }
         calls.filter { it.methodFullName() == "interprocedural.inheritance.Derived: void show()" }

@@ -14,6 +14,7 @@ import org.junit.jupiter.api.Assertions.assertEquals
 import org.junit.jupiter.api.Assertions.assertNotNull
 import org.junit.jupiter.api.BeforeAll
 import org.junit.jupiter.api.Test
+import overflowdb.Graph
 import java.io.File
 import io.shiftleft.codepropertygraph.generated.nodes.File as ODBFile
 
@@ -22,6 +23,7 @@ class BasicExtractorTest {
         private val driver = DriverFactory(GraphDatabase.OVERFLOWDB) as OverflowDbDriver
         private val TEST_PATH = "extractor_tests${File.separator}"
         private lateinit var extractor: Extractor
+        private lateinit var g: Graph
         private lateinit var validSourceFile: File
         private lateinit var validClassFile: File
         private lateinit var validDirectory: File
@@ -47,13 +49,14 @@ class BasicExtractorTest {
     @AfterEach
     fun tearDown() {
         driver.clearGraph()
+        g.close()
     }
 
     @Test
     fun validSourceFileTest() {
         extractor.load(validSourceFile)
         extractor.project()
-        val g = driver.getWholeGraph()
+        g = driver.getWholeGraph()
         val ns = g.nodes().asSequence()
         assertNotNull(ns.filterIsInstance<NamespaceBlock>().find { it.name() == "extractor_tests" })
         ns.filterIsInstance<ODBFile>().find { it.name() == "extractor_tests.Test1" }
@@ -72,7 +75,7 @@ class BasicExtractorTest {
     fun validClassFileTest() {
         extractor.load(validClassFile)
         extractor.project()
-        val g = driver.getWholeGraph()
+        g = driver.getWholeGraph()
         val ns = g.nodes().asSequence()
         assertNotNull(
             ns.filterIsInstance<NamespaceBlock>().find { it.name() == "extractor_tests" })
@@ -92,7 +95,7 @@ class BasicExtractorTest {
     fun validDirectoryTest() {
         extractor.load(validDirectory)
         extractor.project()
-        val g = driver.getProgramStructure()
+        g = driver.getProgramStructure()
         val ns = g.nodes().asSequence()
         ns.filterIsInstance<ODBFile>().let { fileList ->
             assertNotNull(fileList.firstOrNull { it.name() == "extractor_tests.dir_test.Dir1" })

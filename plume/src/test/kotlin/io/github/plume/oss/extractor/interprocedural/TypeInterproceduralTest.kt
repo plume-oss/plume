@@ -46,7 +46,8 @@ class TypeInterproceduralTest {
 
     @AfterEach
     fun tearDown() {
-        driver.clearGraph().close()
+        driver.close()
+        g.close()
     }
 
     @Test

@@ -10,6 +10,7 @@ import io.github.plume.oss.drivers.DriverFactory
 import io.github.plume.oss.drivers.GraphDatabase
 import io.github.plume.oss.drivers.TinkerGraphDriver
 import io.shiftleft.codepropertygraph.generated.nodes.Literal
+import overflowdb.Graph
 import java.io.File
 import java.io.FileInputStream
 import java.io.FileOutputStream
@@ -41,7 +42,7 @@ class UpdateGraphTest {
 
     @AfterEach
     fun tearDown() {
-        driver.clearGraph()
+        driver.close()
     }
 
     @Test
@@ -62,6 +63,8 @@ class UpdateGraphTest {
         assertTrue(literalsG2.none { it.code() == "5" })
         assertTrue(literalsG1.none { it.code() == "9" })
         assertFalse(g1 == g2)
+        g1.close()
+        g2.close()
     }
 
     private fun rewriteFileContents(tgt: File, incoming: File): File {

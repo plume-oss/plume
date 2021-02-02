@@ -50,7 +50,8 @@ class BasicIntraproceduralTest {
 
     @AfterEach
     fun tearDown() {
-        driver.clearGraph().close()
+        driver.close()
+        g.close()
     }
 
     @Test
