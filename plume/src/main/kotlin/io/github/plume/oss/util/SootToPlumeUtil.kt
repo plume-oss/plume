@@ -221,8 +221,9 @@ object SootToPlumeUtil {
                 ns.node(nbv.id())?.outE()?.asSequence()?.toList()?.size ?: 0
             }
         } else 0
+        val filename = "/" + cls.getPackageName().replace(".", "/") + cls.name + ".class"
         return NewFileBuilder()
-            .name(cls.name)
+            .name(filename)
             .hash(Option.apply(fileHash.toString()))
             .order(order)
             .apply {
