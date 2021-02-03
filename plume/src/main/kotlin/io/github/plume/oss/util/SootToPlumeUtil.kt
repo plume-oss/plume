@@ -165,7 +165,7 @@ object SootToPlumeUtil {
         mtdVertex: NewMethodBuilder,
         currentLine: Int,
         currentCol: Int,
-        initialChildIdx: Int = 0
+        initialChildIdx: Int = 1
     ) {
         var childIdx = initialChildIdx
         mtd.parameterTypes.forEachIndexed { i, type ->

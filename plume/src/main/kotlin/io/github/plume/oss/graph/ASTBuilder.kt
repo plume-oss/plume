@@ -82,7 +82,7 @@ class ASTBuilder(private val driver: IDriver) : IGraphBuilder {
         val localVertices = mutableListOf<NewNodeBuilder>()
         graph.body.parameterLocals
             .mapIndexed { i, local ->
-                SootToPlumeUtil.projectMethodParameterIn(local, currentLine, currentCol, i)
+                SootToPlumeUtil.projectMethodParameterIn(local, currentLine, currentCol, i + 1)
                     .apply { addSootToPlumeAssociation(local, this) }
             }
             .forEach {
