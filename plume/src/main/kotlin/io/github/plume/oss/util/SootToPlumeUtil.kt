@@ -246,7 +246,7 @@ object SootToPlumeUtil {
     private fun sootClassToFileName(cls : SootClass) : String {
         val packageName = cls.getPackageName()
         if (packageName != null) {
-            return "/" + packageName.replace(".", "/") + cls.name + ".class"
+            return "/" + cls.name.replace(".", "/")  + ".class"
         } else {
             return io.shiftleft.semanticcpg.language.types.structure.File.UNKNOWN()
         }
@@ -312,6 +312,7 @@ object SootToPlumeUtil {
         NewTypeDeclBuilder()
             .name(cls.shortName)
             .fullname(cls.name)
+            .filename(sootClassToFileName(cls))
             .astparentfullname(cls.getPackageName())
             .astparenttype("NAMESPACE_BLOCK")
             .order(0)
