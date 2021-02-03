@@ -98,11 +98,12 @@ object SootToPlumeUtil {
     fun buildMethodHead(mtd: SootMethod, driver: IDriver): NewMethodBuilder {
         val currentLine = mtd.javaSourceStartLineNumber
         val currentCol = mtd.javaSourceStartColumnNumber
-        var childIdx = 0
+        var childIdx = 1
         // Method vertex
         val mtdVertex = NewMethodBuilder()
             .name(mtd.name)
             .fullname("${mtd.declaringClass}.${mtd.name}")
+            .filename(sootClassToFileName(mtd.declaringClass))
             .signature(mtd.subSignature)
             .code(mtd.declaration)
             .linenumber(Option.apply(currentLine))
@@ -217,13 +218,14 @@ object SootToPlumeUtil {
         if (cls.packageName.isNotEmpty()) {
             // Populate namespace block chain
             val namespaceList = arrayOf(cls.packageName)
+            // TODO : the CPG spec doesn't know these chains, simplify
             if (namespaceList.isNotEmpty()) nbv = populateNamespaceChain(namespaceList, filename, driver)
         }
         val order = if (nbv != null) {
             driver.getNeighbours(nbv).use { ns ->
-                ns.node(nbv.id())?.outE()?.asSequence()?.toList()?.size ?: 0
+                ns.node(nbv.id())?.outE()?.asSequence()?.toList()?.size ?: 1
             }
-        } else 0
+        } else 1
         return NewFileBuilder()
             .name(sootClassToFileName(cls))
             .hash(Option.apply(fileHash.toString()))
