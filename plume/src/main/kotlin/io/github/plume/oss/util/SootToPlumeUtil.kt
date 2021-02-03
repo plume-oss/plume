@@ -17,10 +17,10 @@ package io.github.plume.oss.util
 
 import io.github.plume.oss.Extractor
 import io.github.plume.oss.Extractor.Companion.addSootToPlumeAssociation
-import io.github.plume.oss.domain.enums.EdgeLabel
 import io.github.plume.oss.domain.mappers.VertexMapper.mapToVertex
 import io.github.plume.oss.drivers.IDriver
 import io.github.plume.oss.util.SootParserUtil.determineEvaluationStrategy
+import io.shiftleft.codepropertygraph.generated.EdgeTypes.*
 import io.shiftleft.codepropertygraph.generated.nodes.*
 import scala.Option
 import scala.jdk.CollectionConverters
@@ -117,14 +117,14 @@ object SootToPlumeUtil {
             .argumentindex(0)
             .linenumber(Option.apply(currentLine))
             .columnnumber(Option.apply(currentCol))
-            .apply { driver.addEdge(mtdVertex, this, EdgeLabel.AST); addSootToPlumeAssociation(mtd, this) }
+            .apply { driver.addEdge(mtdVertex, this, AST); addSootToPlumeAssociation(mtd, this) }
         // Store return type
         projectMethodReturnVertex(mtd.returnType, currentLine, currentCol, childIdx++)
-            .apply { driver.addEdge(mtdVertex, this, EdgeLabel.AST); addSootToPlumeAssociation(mtd, this) }
+            .apply { driver.addEdge(mtdVertex, this, AST); addSootToPlumeAssociation(mtd, this) }
         // Modifier vertices
         SootParserUtil.determineModifiers(mtd.modifiers, mtd.name)
             .map { NewModifierBuilder().modifiertype(it.name).order(childIdx++) }
-            .forEach { driver.addEdge(mtdVertex, it, EdgeLabel.AST); addSootToPlumeAssociation(mtd, it) }
+            .forEach { driver.addEdge(mtdVertex, it, AST); addSootToPlumeAssociation(mtd, it) }
         return mtdVertex
     }
 
@@ -174,7 +174,7 @@ object SootToPlumeUtil {
                 .linenumber(Option.apply(mtd.javaSourceStartLineNumber))
                 .columnnumber(Option.apply(mtd.javaSourceStartColumnNumber))
                 .order(childIdx++)
-                .apply { driver.addEdge(mtdVertex, this, EdgeLabel.AST); addSootToPlumeAssociation(mtd, this) }
+                .apply { driver.addEdge(mtdVertex, this, AST); addSootToPlumeAssociation(mtd, this) }
         }
         // Connect a call to return
         val entryPoint = Extractor.getSootAssociation(mtd)?.filterIsInstance<NewBlockBuilder>()?.firstOrNull()
@@ -186,8 +186,8 @@ object SootToPlumeUtil {
             .argumentindex(initialChildIdx)
             .code("return ${mtd.returnType.toQuotedString()}")
             .apply {
-                driver.addEdge(entryPoint!!, this, EdgeLabel.CFG)
-                driver.addEdge(this, mtdReturn!!, EdgeLabel.CFG)
+                driver.addEdge(entryPoint!!, this, CFG)
+                driver.addEdge(this, mtdReturn!!, CFG)
             }
     }
 
@@ -228,7 +228,7 @@ object SootToPlumeUtil {
             .apply {
                 // Join FILE and NAMESPACE_BLOCK if namespace is present
                 if (nbv != null) {
-                    driver.addEdge(this, nbv, EdgeLabel.AST); classChildrenVertices.add(nbv)
+                    driver.addEdge(this, nbv, AST); classChildrenVertices.add(nbv)
                 }
                 classChildrenVertices.add(0, this)
                 addSootToPlumeAssociation(cls, classChildrenVertices)
@@ -274,7 +274,7 @@ object SootToPlumeUtil {
                     .fullname(namespaceBuilder.toString())
                     .order(order)
                 if (currNamespaceBlock != null) {
-                    driver.addEdge(currNamespaceBlock!!, prevNamespaceBlock, EdgeLabel.AST)
+                    driver.addEdge(currNamespaceBlock!!, prevNamespaceBlock, AST)
                     prevNamespaceBlock = currNamespaceBlock as NewNamespaceBlockBuilder
                 }
             }
@@ -298,7 +298,7 @@ object SootToPlumeUtil {
                 // Attach fields to the TypeDecl
                 cls.fields.forEachIndexed { i, field ->
                     projectMember(field, i).let { memberVertex ->
-                        driver.addEdge(this, memberVertex, EdgeLabel.AST)
+                        driver.addEdge(this, memberVertex, AST)
                         addSootToPlumeAssociation(field, memberVertex)
                     }
                 }
@@ -317,9 +317,9 @@ object SootToPlumeUtil {
             val clsVertex = classVertices.first { it is NewFileBuilder }
             val methodVertex = Extractor.getSootAssociation(mtd)?.first { it is NewMethodBuilder } as NewMethodBuilder
             // Connect method to type declaration
-            driver.addEdge(typeDeclVertex, methodVertex, EdgeLabel.AST)
+            driver.addEdge(typeDeclVertex, methodVertex, AST)
             // Connect method to source file
-            driver.addEdge(methodVertex, clsVertex, EdgeLabel.SOURCE_FILE)
+            driver.addEdge(methodVertex, clsVertex, SOURCE_FILE)
         }
     }
 

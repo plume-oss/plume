@@ -1,6 +1,5 @@
 package io.github.plume.oss.domain.mappers
 
-import io.github.plume.oss.domain.enums.EdgeLabel
 import io.github.plume.oss.util.SootToPlumeUtil.createScalaList
 import io.shiftleft.codepropertygraph.generated.nodes.*
 import overflowdb.Node

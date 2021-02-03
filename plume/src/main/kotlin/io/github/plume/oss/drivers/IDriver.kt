@@ -1,6 +1,5 @@
 package io.github.plume.oss.drivers
 
-import io.github.plume.oss.domain.enums.EdgeLabel
 import io.github.plume.oss.domain.exceptions.PlumeSchemaViolationException
 import io.shiftleft.codepropertygraph.generated.nodes.NewNodeBuilder
 import overflowdb.Graph

@@ -30,7 +30,6 @@ import io.github.plume.oss.TestDomainResources.Companion.typeDeclVertex
 import io.github.plume.oss.TestDomainResources.Companion.typeParameterVertex
 import io.github.plume.oss.TestDomainResources.Companion.typeRefVertex
 import io.github.plume.oss.TestDomainResources.Companion.unknownVertex
-import io.github.plume.oss.domain.enums.EdgeLabel
 import io.github.plume.oss.domain.exceptions.PlumeSchemaViolationException
 import io.github.plume.oss.util.SootToPlumeUtil
 import io.shiftleft.codepropertygraph.generated.EdgeTypes.*
@@ -230,9 +229,9 @@ class OverflowDbDriverIntTest {
             driver.addVertex(typeParameterVertex)
             assertTrue(driver.exists(typeDeclVertex))
             assertTrue(driver.exists(typeParameterVertex))
-            assertFalse(driver.exists(typeDeclVertex, typeParameterVertex, EdgeLabel.AST))
-            driver.addEdge(typeDeclVertex, typeParameterVertex, EdgeLabel.AST)
-            assertTrue(driver.exists(typeDeclVertex, typeParameterVertex, EdgeLabel.AST))
+            assertFalse(driver.exists(typeDeclVertex, typeParameterVertex, AST))
+            driver.addEdge(typeDeclVertex, typeParameterVertex, AST)
+            assertTrue(driver.exists(typeDeclVertex, typeParameterVertex, AST))
         }
 
         @Test
@@ -241,106 +240,106 @@ class OverflowDbDriverIntTest {
             driver.addVertex(identifierVertex)
             assertTrue(driver.exists(literalVertex))
             assertTrue(driver.exists(identifierVertex))
-            assertFalse(driver.exists(literalVertex, identifierVertex, EdgeLabel.AST))
+            assertFalse(driver.exists(literalVertex, identifierVertex, AST))
             assertThrows(PlumeSchemaViolationException::class.java) {
                 driver.addEdge(
                     literalVertex,
                     identifierVertex,
-                    EdgeLabel.AST
+                    AST
                 )
             }
         }
 
         @Test
         fun testEdgeWhenVerticesAreNotAlreadyPresent() {
-            assertFalse(driver.exists(callVertex, identifierVertex, EdgeLabel.AST))
-            driver.addEdge(callVertex, identifierVertex, EdgeLabel.AST)
+            assertFalse(driver.exists(callVertex, identifierVertex, AST))
+            driver.addEdge(callVertex, identifierVertex, AST)
             assertTrue(driver.exists(callVertex))
             assertTrue(driver.exists(identifierVertex))
-            assertTrue(driver.exists(callVertex, identifierVertex, EdgeLabel.AST))
+            assertTrue(driver.exists(callVertex, identifierVertex, AST))
         }
 
         @Test
         fun testEdgeDirection() {
-            assertFalse(driver.exists(callVertex, identifierVertex, EdgeLabel.AST))
-            assertFalse(driver.exists(identifierVertex, callVertex, EdgeLabel.AST))
-            driver.addEdge(callVertex, identifierVertex, EdgeLabel.AST)
+            assertFalse(driver.exists(callVertex, identifierVertex, AST))
+            assertFalse(driver.exists(identifierVertex, callVertex, AST))
+            driver.addEdge(callVertex, identifierVertex, AST)
             assertTrue(driver.exists(callVertex))
             assertTrue(driver.exists(identifierVertex))
-            assertTrue(driver.exists(callVertex, identifierVertex, EdgeLabel.AST))
-            assertFalse(driver.exists(identifierVertex, callVertex, EdgeLabel.AST))
+            assertTrue(driver.exists(callVertex, identifierVertex, AST))
+            assertFalse(driver.exists(identifierVertex, callVertex, AST))
         }
 
         @Test
         fun testCfgEdgeCreation() {
-            assertFalse(driver.exists(literalVertex, identifierVertex, EdgeLabel.CFG))
-            driver.addEdge(literalVertex, identifierVertex, EdgeLabel.CFG)
+            assertFalse(driver.exists(literalVertex, identifierVertex, CFG))
+            driver.addEdge(literalVertex, identifierVertex, CFG)
             assertTrue(driver.exists(literalVertex))
             assertTrue(driver.exists(identifierVertex))
-            assertTrue(driver.exists(literalVertex, identifierVertex, EdgeLabel.CFG))
+            assertTrue(driver.exists(literalVertex, identifierVertex, CFG))
         }
 
         @Test
         fun testBindsToEdgeCreation() {
-            assertFalse(driver.exists(typeArgumentVertex, typeParameterVertex, EdgeLabel.BINDS_TO))
-            driver.addEdge(typeArgumentVertex, typeParameterVertex, EdgeLabel.BINDS_TO)
+            assertFalse(driver.exists(typeArgumentVertex, typeParameterVertex, BINDS_TO))
+            driver.addEdge(typeArgumentVertex, typeParameterVertex, BINDS_TO)
             assertTrue(driver.exists(typeArgumentVertex))
             assertTrue(driver.exists(typeParameterVertex))
-            assertTrue(driver.exists(typeArgumentVertex, typeParameterVertex, EdgeLabel.BINDS_TO))
+            assertTrue(driver.exists(typeArgumentVertex, typeParameterVertex, BINDS_TO))
         }
 
         @Test
         fun testRefEdgeCreation() {
-            assertFalse(driver.exists(bindingVertex, methodVertex, EdgeLabel.REF))
-            driver.addEdge(bindingVertex, methodVertex, EdgeLabel.REF)
+            assertFalse(driver.exists(bindingVertex, methodVertex, REF))
+            driver.addEdge(bindingVertex, methodVertex, REF)
             assertTrue(driver.exists(bindingVertex))
             assertTrue(driver.exists(methodVertex))
-            assertTrue(driver.exists(bindingVertex, methodVertex, EdgeLabel.REF))
+            assertTrue(driver.exists(bindingVertex, methodVertex, REF))
         }
 
         @Test
         fun testReceiverEdgeCreation() {
-            assertFalse(driver.exists(callVertex, identifierVertex, EdgeLabel.RECEIVER))
-            driver.addEdge(callVertex, identifierVertex, EdgeLabel.RECEIVER)
+            assertFalse(driver.exists(callVertex, identifierVertex, RECEIVER))
+            driver.addEdge(callVertex, identifierVertex, RECEIVER)
             assertTrue(driver.exists(callVertex))
             assertTrue(driver.exists(identifierVertex))
-            assertTrue(driver.exists(callVertex, identifierVertex, EdgeLabel.RECEIVER))
+            assertTrue(driver.exists(callVertex, identifierVertex, RECEIVER))
         }
 
         @Test
         fun testConditionEdgeCreation() {
-            assertFalse(driver.exists(controlStructureVertex, jumpTargetVertex, EdgeLabel.CONDITION))
-            driver.addEdge(controlStructureVertex, jumpTargetVertex, EdgeLabel.CONDITION)
+            assertFalse(driver.exists(controlStructureVertex, jumpTargetVertex, CONDITION))
+            driver.addEdge(controlStructureVertex, jumpTargetVertex, CONDITION)
             assertTrue(driver.exists(controlStructureVertex))
             assertTrue(driver.exists(jumpTargetVertex))
-            assertTrue(driver.exists(controlStructureVertex, jumpTargetVertex, EdgeLabel.CONDITION))
+            assertTrue(driver.exists(controlStructureVertex, jumpTargetVertex, CONDITION))
         }
 
         @Test
         fun testBindsEdgeCreation() {
-            assertFalse(driver.exists(typeDeclVertex, bindingVertex, EdgeLabel.BINDS))
-            driver.addEdge(typeDeclVertex, bindingVertex, EdgeLabel.BINDS)
+            assertFalse(driver.exists(typeDeclVertex, bindingVertex, BINDS))
+            driver.addEdge(typeDeclVertex, bindingVertex, BINDS)
             assertTrue(driver.exists(typeDeclVertex))
             assertTrue(driver.exists(bindingVertex))
-            assertTrue(driver.exists(typeDeclVertex, bindingVertex, EdgeLabel.BINDS))
+            assertTrue(driver.exists(typeDeclVertex, bindingVertex, BINDS))
         }
 
         @Test
         fun testArgumentEdgeCreation() {
-            assertFalse(driver.exists(callVertex, jumpTargetVertex, EdgeLabel.ARGUMENT))
-            driver.addEdge(callVertex, jumpTargetVertex, EdgeLabel.ARGUMENT)
+            assertFalse(driver.exists(callVertex, jumpTargetVertex, ARGUMENT))
+            driver.addEdge(callVertex, jumpTargetVertex, ARGUMENT)
             assertTrue(driver.exists(callVertex))
             assertTrue(driver.exists(callVertex))
-            assertTrue(driver.exists(callVertex, jumpTargetVertex, EdgeLabel.ARGUMENT))
+            assertTrue(driver.exists(callVertex, jumpTargetVertex, ARGUMENT))
         }
 
         @Test
         fun testSourceFileEdgeCreation() {
-            assertFalse(driver.exists(methodVertex, fileVertex, EdgeLabel.SOURCE_FILE))
-            driver.addEdge(methodVertex, fileVertex, EdgeLabel.SOURCE_FILE)
+            assertFalse(driver.exists(methodVertex, fileVertex, SOURCE_FILE))
+            driver.addEdge(methodVertex, fileVertex, SOURCE_FILE)
             assertTrue(driver.exists(methodVertex))
             assertTrue(driver.exists(fileVertex))
-            assertTrue(driver.exists(methodVertex, fileVertex, EdgeLabel.SOURCE_FILE))
+            assertTrue(driver.exists(methodVertex, fileVertex, SOURCE_FILE))
         }
     }
 

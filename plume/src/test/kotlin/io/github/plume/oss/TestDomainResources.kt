@@ -1,11 +1,14 @@
 package io.github.plume.oss
 
-import io.github.plume.oss.domain.enums.DispatchType
-import io.github.plume.oss.domain.enums.EdgeLabel
-import io.github.plume.oss.domain.enums.EvaluationStrategy
-import io.github.plume.oss.domain.enums.ModifierType
 import io.github.plume.oss.drivers.IDriver
 import io.github.plume.oss.util.SootToPlumeUtil.createScalaList
+import io.shiftleft.codepropertygraph.generated.DispatchTypes.DYNAMIC_DISPATCH
+import io.shiftleft.codepropertygraph.generated.DispatchTypes.STATIC_DISPATCH
+import io.shiftleft.codepropertygraph.generated.EdgeTypes.*
+import io.shiftleft.codepropertygraph.generated.EvaluationStrategies.BY_REFERENCE
+import io.shiftleft.codepropertygraph.generated.EvaluationStrategies.BY_SHARING
+import io.shiftleft.codepropertygraph.generated.ModifierTypes.ABSTRACT
+import io.shiftleft.codepropertygraph.generated.ModifierTypes.CONSTRUCTOR
 import io.shiftleft.codepropertygraph.generated.nodes.*
 import scala.Option
 
@@ -15,19 +18,19 @@ class TestDomainResources {
         const val STRING_2 = "TEST2"
         const val INT_1 = 0
         const val INT_2 = 1
-        val DISPATCH_1 = DispatchType.DYNAMIC_DISPATCH
-        val DISPATCH_2 = DispatchType.STATIC_DISPATCH
-        val EVAL_1 = EvaluationStrategy.BY_REFERENCE
-        val EVAL_2 = EvaluationStrategy.BY_SHARING
-        val MOD_1 = ModifierType.ABSTRACT
-        val MOD_2 = ModifierType.CONSTRUCTOR
+        val DISPATCH_1 = DYNAMIC_DISPATCH
+        val DISPATCH_2 = STATIC_DISPATCH
+        val EVAL_1 = BY_REFERENCE
+        val EVAL_2 = BY_SHARING
+        val MOD_1 = ABSTRACT
+        val MOD_2 = CONSTRUCTOR
 
         val vertices = listOf<NewNodeBuilder>(
             NewArrayInitializerBuilder().order(INT_1),
             NewBindingBuilder().name(STRING_1).signature(STRING_2),
             NewBlockBuilder().typefullname(STRING_1).code(STRING_1).order(INT_1).argumentindex(INT_1)
                 .linenumber(Option.apply(INT_1)).columnnumber(Option.apply(INT_1)),
-            NewCallBuilder().methodfullname(STRING_1).argumentindex(INT_1).dispatchtype(DISPATCH_1.name)
+            NewCallBuilder().methodfullname(STRING_1).argumentindex(INT_1).dispatchtype(DISPATCH_1)
                 .typefullname(STRING_1)
                 .dynamictypehintfullname(createScalaList(STRING_1))
                 .name(STRING_1).signature(STRING_1).code(STRING_1).order(INT_1).linenumber(Option.apply(INT_1))
@@ -47,15 +50,15 @@ class TestDomainResources {
                 .linenumber(Option.apply(INT_1)).columnnumber(Option.apply(INT_1)),
             NewMemberBuilder().code(STRING_1).name(STRING_1).typefullname(STRING_1).order(INT_1),
             NewMetaDataBuilder().language(STRING_1).version(STRING_1),
-            NewMethodParameterInBuilder().code(STRING_1).evaluationstrategy(EVAL_1.name).typefullname(STRING_1)
+            NewMethodParameterInBuilder().code(STRING_1).evaluationstrategy(EVAL_1).typefullname(STRING_1)
                 .name(STRING_1).order(INT_1).linenumber(Option.apply(INT_1)).columnnumber(Option.apply(INT_1)),
             NewMethodRefBuilder().methodinstfullname(Option.apply(STRING_1)).methodfullname(STRING_1).code(STRING_1)
                 .order(INT_1).argumentindex(INT_1).linenumber(Option.apply(INT_1)).columnnumber(Option.apply(INT_1)),
-            NewMethodReturnBuilder().typefullname(STRING_1).evaluationstrategy(EVAL_1.name).code(STRING_1)
+            NewMethodReturnBuilder().typefullname(STRING_1).evaluationstrategy(EVAL_1).code(STRING_1)
                 .order(INT_1).linenumber(Option.apply(INT_1)).columnnumber(Option.apply(INT_1)),
             NewMethodBuilder().name(STRING_1).fullname(STRING_1).signature(STRING_1).code(STRING_1).order(INT_1)
                 .linenumber(Option.apply(INT_1)).columnnumber(Option.apply(INT_1)),
-            NewModifierBuilder().modifiertype(MOD_1.name).order(INT_1),
+            NewModifierBuilder().modifiertype(MOD_1).order(INT_1),
             NewNamespaceBlockBuilder().name(STRING_1).fullname(STRING_1).order(INT_1),
             NewReturnBuilder().order(INT_1).argumentindex(INT_1).code(STRING_1).linenumber(Option.apply(INT_1))
                 .columnnumber(Option.apply(INT_1)),
@@ -75,13 +78,13 @@ class TestDomainResources {
             NewMethodBuilder().code(STRING_1).name(STRING_1).fullname(STRING_1).order(INT_1)
                 .linenumber(Option.apply(INT_1)).columnnumber(Option.apply(INT_1)).signature(STRING_2)
         val mtdParamInVertex: NewMethodParameterInBuilder =
-            NewMethodParameterInBuilder().code(STRING_1).evaluationstrategy(EVAL_1.name).typefullname(STRING_1)
+            NewMethodParameterInBuilder().code(STRING_1).evaluationstrategy(EVAL_1).typefullname(STRING_1)
                 .name(STRING_1).order(INT_1).linenumber(Option.apply(INT_1)).columnnumber(Option.apply(INT_1))
         val blockVertex: NewBlockBuilder =
             NewBlockBuilder().typefullname(STRING_1).code(STRING_1).order(INT_1).argumentindex(INT_1)
                 .linenumber(Option.apply(INT_1)).columnnumber(Option.apply(INT_1))
         val callVertex: NewCallBuilder =
-            NewCallBuilder().methodfullname(STRING_1).argumentindex(INT_1).dispatchtype(DISPATCH_1.name)
+            NewCallBuilder().methodfullname(STRING_1).argumentindex(INT_1).dispatchtype(DISPATCH_1)
                 .typefullname(STRING_1)
                 .dynamictypehintfullname(createScalaList(STRING_1))
                 .name(STRING_1).signature(STRING_1).code(STRING_1).order(INT_1).linenumber(Option.apply(INT_1))
@@ -100,7 +103,7 @@ class TestDomainResources {
             NewReturnBuilder().order(INT_1).argumentindex(INT_1).code(STRING_1).linenumber(Option.apply(INT_1))
                 .columnnumber(Option.apply(INT_1))
         val mtdRtnVertex: NewMethodReturnBuilder =
-            NewMethodReturnBuilder().typefullname(STRING_1).evaluationstrategy(EVAL_1.name).code(STRING_1)
+            NewMethodReturnBuilder().typefullname(STRING_1).evaluationstrategy(EVAL_1).code(STRING_1)
                 .order(INT_1).linenumber(Option.apply(INT_1)).columnnumber(Option.apply(INT_1))
         val fileVertex: NewFileBuilder = NewFileBuilder().name(STRING_1).hash(Option.apply(STRING_2)).order(INT_1)
         val namespaceBlockVertex1: NewNamespaceBlockBuilder =
@@ -130,7 +133,7 @@ class TestDomainResources {
         val unknownVertex: NewUnknownBuilder =
             NewUnknownBuilder().typefullname("brug").code(STRING_1).order(INT_1).argumentindex(INT_1)
                 .linenumber(Option.apply(INT_1)).columnnumber(Option.apply(INT_1))
-        val modifierVertex: NewModifierBuilder = NewModifierBuilder().modifiertype(MOD_1.name).order(INT_1)
+        val modifierVertex: NewModifierBuilder = NewModifierBuilder().modifiertype(MOD_1).order(INT_1)
 
         val simpleCpgVertices = listOf(
             methodVertex,
@@ -162,44 +165,44 @@ class TestDomainResources {
         fun generateSimpleCPG(driver: IDriver) {
             // Create program data
             driver.addVertex(metaDataVertex)
-            driver.addEdge(fileVertex, namespaceBlockVertex1, EdgeLabel.AST)
-            driver.addEdge(namespaceBlockVertex1, namespaceBlockVertex2, EdgeLabel.AST)
+            driver.addEdge(fileVertex, namespaceBlockVertex1, AST)
+            driver.addEdge(namespaceBlockVertex1, namespaceBlockVertex2, AST)
             // Create method head
-            driver.addEdge(typeDeclVertex, methodVertex, EdgeLabel.AST)
-            driver.addEdge(methodVertex, fileVertex, EdgeLabel.SOURCE_FILE)
-            driver.addEdge(methodVertex, mtdParamInVertex, EdgeLabel.AST)
-            driver.addEdge(methodVertex, localVertex, EdgeLabel.AST)
-            driver.addEdge(methodVertex, blockVertex, EdgeLabel.AST)
-            driver.addEdge(methodVertex, blockVertex, EdgeLabel.CFG)
-            driver.addEdge(methodVertex, modifierVertex, EdgeLabel.AST)
+            driver.addEdge(typeDeclVertex, methodVertex, AST)
+            driver.addEdge(methodVertex, fileVertex, SOURCE_FILE)
+            driver.addEdge(methodVertex, mtdParamInVertex, AST)
+            driver.addEdge(methodVertex, localVertex, AST)
+            driver.addEdge(methodVertex, blockVertex, AST)
+            driver.addEdge(methodVertex, blockVertex, CFG)
+            driver.addEdge(methodVertex, modifierVertex, AST)
             // Create method body
-            driver.addEdge(blockVertex, callVertex, EdgeLabel.AST)
-            driver.addEdge(callVertex, identifierVertex, EdgeLabel.AST)
-            driver.addEdge(callVertex, literalVertex, EdgeLabel.AST)
-            driver.addEdge(callVertex, identifierVertex, EdgeLabel.ARGUMENT)
-            driver.addEdge(callVertex, literalVertex, EdgeLabel.ARGUMENT)
-            driver.addEdge(blockVertex, returnVertex, EdgeLabel.AST)
-            driver.addEdge(callVertex, fldIdentVertex, EdgeLabel.AST)
-            driver.addEdge(methodVertex, mtdRtnVertex, EdgeLabel.AST)
-            driver.addEdge(blockVertex, methodRefVertex, EdgeLabel.AST)
-            driver.addEdge(blockVertex, typeRefVertex, EdgeLabel.AST)
-            driver.addEdge(blockVertex, controlStructureVertex, EdgeLabel.AST)
-            driver.addEdge(blockVertex, jumpTargetVertex, EdgeLabel.AST)
+            driver.addEdge(blockVertex, callVertex, AST)
+            driver.addEdge(callVertex, identifierVertex, AST)
+            driver.addEdge(callVertex, literalVertex, AST)
+            driver.addEdge(callVertex, identifierVertex, ARGUMENT)
+            driver.addEdge(callVertex, literalVertex, ARGUMENT)
+            driver.addEdge(blockVertex, returnVertex, AST)
+            driver.addEdge(callVertex, fldIdentVertex, AST)
+            driver.addEdge(methodVertex, mtdRtnVertex, AST)
+            driver.addEdge(blockVertex, methodRefVertex, AST)
+            driver.addEdge(blockVertex, typeRefVertex, AST)
+            driver.addEdge(blockVertex, controlStructureVertex, AST)
+            driver.addEdge(blockVertex, jumpTargetVertex, AST)
 
-            driver.addEdge(blockVertex, callVertex, EdgeLabel.CFG)
-            driver.addEdge(callVertex, fldIdentVertex, EdgeLabel.CFG)
-            driver.addEdge(fldIdentVertex, methodRefVertex, EdgeLabel.CFG)
-            driver.addEdge(methodRefVertex, typeRefVertex, EdgeLabel.CFG)
-            driver.addEdge(typeRefVertex, controlStructureVertex, EdgeLabel.CFG)
-            driver.addEdge(controlStructureVertex, jumpTargetVertex, EdgeLabel.CFG)
-            driver.addEdge(jumpTargetVertex, returnVertex, EdgeLabel.CFG)
-            driver.addEdge(returnVertex, mtdRtnVertex, EdgeLabel.CFG)
+            driver.addEdge(blockVertex, callVertex, CFG)
+            driver.addEdge(callVertex, fldIdentVertex, CFG)
+            driver.addEdge(fldIdentVertex, methodRefVertex, CFG)
+            driver.addEdge(methodRefVertex, typeRefVertex, CFG)
+            driver.addEdge(typeRefVertex, controlStructureVertex, CFG)
+            driver.addEdge(controlStructureVertex, jumpTargetVertex, CFG)
+            driver.addEdge(jumpTargetVertex, returnVertex, CFG)
+            driver.addEdge(returnVertex, mtdRtnVertex, CFG)
 
             // Just add some vertices to test conversion
             driver.addVertex(unknownVertex)
 
             // Link dependencies
-            driver.addEdge(identifierVertex, localVertex, EdgeLabel.REF)
+            driver.addEdge(identifierVertex, localVertex, REF)
         }
 
     }
