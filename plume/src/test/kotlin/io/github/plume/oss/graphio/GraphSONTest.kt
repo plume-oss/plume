@@ -14,10 +14,10 @@ import io.github.plume.oss.TestDomainResources.Companion.namespaceBlockVertex1
 import io.github.plume.oss.TestDomainResources.Companion.namespaceBlockVertex2
 import io.github.plume.oss.TestDomainResources.Companion.returnVertex
 import io.github.plume.oss.TestDomainResources.Companion.typeDeclVertex
-import io.github.plume.oss.domain.enums.EdgeLabel
 import io.github.plume.oss.drivers.DriverFactory
 import io.github.plume.oss.drivers.GraphDatabase
 import io.github.plume.oss.drivers.TinkerGraphDriver
+import io.shiftleft.codepropertygraph.generated.EdgeTypes.*
 import org.junit.jupiter.api.*
 import org.junit.jupiter.api.Assertions.assertEquals
 import overflowdb.Graph
@@ -44,28 +44,28 @@ class GraphSONTest {
     fun setUp() {
         // Create program data
         driver.addVertex(metaDataVertex)
-        driver.addEdge(fileVertex, namespaceBlockVertex1, EdgeLabel.AST)
-        driver.addEdge(namespaceBlockVertex1, namespaceBlockVertex2, EdgeLabel.AST)
+        driver.addEdge(fileVertex, namespaceBlockVertex1, AST)
+        driver.addEdge(namespaceBlockVertex1, namespaceBlockVertex2, AST)
         // Create method head
-        driver.addEdge(typeDeclVertex, methodVertex, EdgeLabel.AST)
-        driver.addEdge(methodVertex, fileVertex, EdgeLabel.SOURCE_FILE)
-        driver.addEdge(methodVertex, mtdParamInVertex, EdgeLabel.AST)
-        driver.addEdge(methodVertex, localVertex, EdgeLabel.AST)
-        driver.addEdge(methodVertex, blockVertex, EdgeLabel.AST)
-        driver.addEdge(methodVertex, blockVertex, EdgeLabel.CFG)
+        driver.addEdge(typeDeclVertex, methodVertex, AST)
+        driver.addEdge(methodVertex, fileVertex, SOURCE_FILE)
+        driver.addEdge(methodVertex, mtdParamInVertex, AST)
+        driver.addEdge(methodVertex, localVertex, AST)
+        driver.addEdge(methodVertex, blockVertex, AST)
+        driver.addEdge(methodVertex, blockVertex, CFG)
         // Create method body
-        driver.addEdge(blockVertex, callVertex, EdgeLabel.AST)
-        driver.addEdge(blockVertex, callVertex, EdgeLabel.CFG)
-        driver.addEdge(callVertex, identifierVertex, EdgeLabel.AST)
-        driver.addEdge(callVertex, literalVertex, EdgeLabel.AST)
-        driver.addEdge(callVertex, identifierVertex, EdgeLabel.ARGUMENT)
-        driver.addEdge(callVertex, literalVertex, EdgeLabel.ARGUMENT)
-        driver.addEdge(blockVertex, returnVertex, EdgeLabel.AST)
-        driver.addEdge(callVertex, returnVertex, EdgeLabel.CFG)
-        driver.addEdge(methodVertex, mtdRtnVertex, EdgeLabel.AST)
-        driver.addEdge(returnVertex, mtdRtnVertex, EdgeLabel.CFG)
+        driver.addEdge(blockVertex, callVertex, AST)
+        driver.addEdge(blockVertex, callVertex, CFG)
+        driver.addEdge(callVertex, identifierVertex, AST)
+        driver.addEdge(callVertex, literalVertex, AST)
+        driver.addEdge(callVertex, identifierVertex, ARGUMENT)
+        driver.addEdge(callVertex, literalVertex, ARGUMENT)
+        driver.addEdge(blockVertex, returnVertex, AST)
+        driver.addEdge(callVertex, returnVertex, CFG)
+        driver.addEdge(methodVertex, mtdRtnVertex, AST)
+        driver.addEdge(returnVertex, mtdRtnVertex, CFG)
         // Link dependencies
-        driver.addEdge(identifierVertex, localVertex, EdgeLabel.REF)
+        driver.addEdge(identifierVertex, localVertex, REF)
 
         graph = driver.getWholeGraph()
     }

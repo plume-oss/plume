@@ -37,15 +37,6 @@ object Traversals {
       .asJava
   }
 
-  def getWholeGraph(graph: Graph): util.List[(StoredNode, util.List[Edge])] = {
-    Cpg(graph).all
-      .map { node =>
-        (node, node.outE.asScala.toList.asJava)
-      }
-      .l
-      .asJava
-  }
-
   import overflowdb.traversal._
   def getProgramStructure(graph: Graph): util.List[Edge] = {
     val edgesFromFile: List[Edge] = Cpg(graph).file

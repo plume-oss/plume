@@ -1,6 +1,5 @@
 package io.github.plume.oss.drivers
 
-import io.github.plume.oss.domain.enums.EdgeLabel
 import io.github.plume.oss.domain.exceptions.PlumeSchemaViolationException
 import io.shiftleft.codepropertygraph.generated.nodes.NewNodeBuilder
 import overflowdb.Graph
@@ -32,22 +31,22 @@ interface IDriver : AutoCloseable {
      *
      * @param fromV the source [NewNodeBuilder].
      * @param toV the target [NewNodeBuilder].
-     * @param edge the [EdgeLabel] to label the edge with.
+     * @param edge the edge label.
      * @return true if the edge exists, false if otherwise.
      */
-    fun exists(fromV: NewNodeBuilder, toV: NewNodeBuilder, edge: EdgeLabel): Boolean
+    fun exists(fromV: NewNodeBuilder, toV: NewNodeBuilder, edge: String): Boolean
 
     /**
-     * Creates an edge with the label from enum [EdgeLabel] between two [NewNodeBuilder] vertices in the graph database.
+     * Creates an edge with the given label between two [NewNodeBuilder] vertices in the graph database.
      * If the given vertices are not already present in the database, they are created. If the edge already exists
      * it wil not be recreated.
      *
      * @param fromV the source [NewNodeBuilder].
      * @param toV the target [NewNodeBuilder].
-     * @param edge the [EdgeLabel] to label the edge with.
+     * @param edge the edge label.
      * @throws PlumeSchemaViolationException if the edge is illegal according to the CPG schema
      */
-    fun addEdge(fromV: NewNodeBuilder, toV: NewNodeBuilder, edge: EdgeLabel)
+    fun addEdge(fromV: NewNodeBuilder, toV: NewNodeBuilder, edge: String)
 
     /**
      * Clears the graph of all vertices and edges.

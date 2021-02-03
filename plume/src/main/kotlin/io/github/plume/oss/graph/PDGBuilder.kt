@@ -16,8 +16,9 @@
 package io.github.plume.oss.graph
 
 import io.github.plume.oss.Extractor.Companion.getSootAssociation
-import io.github.plume.oss.domain.enums.EdgeLabel
 import io.github.plume.oss.drivers.IDriver
+import io.shiftleft.codepropertygraph.generated.EdgeTypes.ARGUMENT
+import io.shiftleft.codepropertygraph.generated.EdgeTypes.REF
 import io.shiftleft.codepropertygraph.generated.nodes.NewCallBuilder
 import io.shiftleft.codepropertygraph.generated.nodes.NewIdentifierBuilder
 import io.shiftleft.codepropertygraph.generated.nodes.NewLocalBuilder
@@ -63,7 +64,7 @@ class PDGBuilder(private val driver: IDriver) : IGraphBuilder {
         getSootAssociation(value)?.firstOrNull { it is NewCallBuilder }?.let { src ->
             getSootAssociation(value)?.filter { it != src }?.forEach {
                 runCatching {
-                    driver.addEdge(src, it, EdgeLabel.ARGUMENT)
+                    driver.addEdge(src, it, ARGUMENT)
                 }.onFailure { e -> logger.warn(e.message) }
             }
         }
@@ -74,7 +75,7 @@ class PDGBuilder(private val driver: IDriver) : IGraphBuilder {
             assocVertices.filterIsInstance<NewIdentifierBuilder>().forEach { identifierV ->
                 assocVertices.firstOrNull { it is NewLocalBuilder || it is NewMethodParameterInBuilder }?.let { src ->
                     runCatching {
-                        driver.addEdge(identifierV, src, EdgeLabel.REF)
+                        driver.addEdge(identifierV, src, REF)
                     }.onFailure { e -> logger.warn(e.message) }
                 }
             }

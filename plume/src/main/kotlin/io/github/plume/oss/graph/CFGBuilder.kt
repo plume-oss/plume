@@ -16,10 +16,10 @@
 package io.github.plume.oss.graph
 
 import io.github.plume.oss.Extractor.Companion.getSootAssociation
-import io.github.plume.oss.domain.enums.EdgeLabel
 import io.github.plume.oss.drivers.IDriver
 import io.github.plume.oss.util.ExtractorConst.FALSE_TARGET
 import io.github.plume.oss.util.ExtractorConst.TRUE_TARGET
+import io.shiftleft.codepropertygraph.generated.EdgeTypes.CFG
 import io.shiftleft.codepropertygraph.generated.nodes.*
 import org.apache.logging.log4j.LogManager
 import soot.Unit
@@ -48,9 +48,9 @@ class CFGBuilder(private val driver: IDriver) : IGraphBuilder {
                 getSootAssociation(it)?.firstOrNull()?.let { succVert ->
                     val mtdV = getSootAssociation(mtd)
                     val bodyVertex = mtdV?.first { mtdVertices -> mtdVertices is NewBlockBuilder }!!
-                    mtdV.firstOrNull()?.let { mtdVertex -> driver.addEdge(mtdVertex, bodyVertex, EdgeLabel.CFG) }
+                    mtdV.firstOrNull()?.let { mtdVertex -> driver.addEdge(mtdVertex, bodyVertex, CFG) }
                     runCatching {
-                        driver.addEdge(bodyVertex, succVert, EdgeLabel.CFG)
+                        driver.addEdge(bodyVertex, succVert, CFG)
                     }.onFailure { e -> logger.warn(e.message) }
                 }
             }
@@ -77,7 +77,7 @@ class CFGBuilder(private val driver: IDriver) : IGraphBuilder {
                     if (sourceVertex != null) {
                         getSootAssociation(targetUnit)?.let { vList ->
                             runCatching {
-                                driver.addEdge(sourceVertex, vList.first(), EdgeLabel.CFG)
+                                driver.addEdge(sourceVertex, vList.first(), CFG)
                             }.onFailure { e -> logger.warn(e.message) }
                         }
                     }
@@ -137,11 +137,11 @@ class CFGBuilder(private val driver: IDriver) : IGraphBuilder {
         tgt: Unit
     ) {
         runCatching {
-            driver.addEdge(lookupVertex, tgtV, EdgeLabel.CFG)
+            driver.addEdge(lookupVertex, tgtV, CFG)
         }.onFailure { e -> logger.warn(e.message) }
         getSootAssociation(tgt)?.let { vList ->
             runCatching {
-                driver.addEdge(tgtV, vList.first(), EdgeLabel.CFG)
+                driver.addEdge(tgtV, vList.first(), CFG)
             }.onFailure { e -> logger.warn(e.message) }
         }
     }
@@ -158,10 +158,10 @@ class CFGBuilder(private val driver: IDriver) : IGraphBuilder {
             else getSootAssociation(it)
             tgtVertices?.let { vList ->
                 runCatching {
-                    driver.addEdge(ifVertices.first(), srcVertex, EdgeLabel.CFG)
+                    driver.addEdge(ifVertices.first(), srcVertex, CFG)
                 }.onFailure { e -> logger.warn(e.message) }
                 runCatching {
-                    driver.addEdge(srcVertex, vList.first(), EdgeLabel.CFG)
+                    driver.addEdge(srcVertex, vList.first(), CFG)
                 }.onFailure { e -> logger.warn(e.message) }
             }
         }
@@ -172,7 +172,7 @@ class CFGBuilder(private val driver: IDriver) : IGraphBuilder {
             getSootAssociation(graph.body.method)?.filterIsInstance<NewMethodReturnBuilder>()?.firstOrNull()
                 ?.let { tgt ->
                     runCatching {
-                        driver.addEdge(src, tgt, EdgeLabel.CFG)
+                        driver.addEdge(src, tgt, CFG)
                     }.onFailure { e -> logger.warn(e.message) }
                 }
         }

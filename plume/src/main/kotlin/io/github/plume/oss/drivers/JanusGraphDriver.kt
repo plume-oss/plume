@@ -1,10 +1,7 @@
 package io.github.plume.oss.drivers
 
-import io.shiftleft.codepropertygraph.generated.nodes.NewNodeBuilder
 import org.apache.logging.log4j.LogManager
 import org.apache.tinkerpop.gremlin.process.traversal.AnonymousTraversalSource
-import org.apache.tinkerpop.gremlin.structure.Graph
-import org.apache.tinkerpop.gremlin.structure.Vertex
 
 /**
  * The driver used to connect to a remote JanusGraph instance.

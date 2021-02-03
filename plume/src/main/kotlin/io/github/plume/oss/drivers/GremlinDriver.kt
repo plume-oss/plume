@@ -1,9 +1,9 @@
 package io.github.plume.oss.drivers
 
-import io.github.plume.oss.domain.enums.EdgeLabel
 import io.github.plume.oss.domain.exceptions.PlumeSchemaViolationException
 import io.github.plume.oss.domain.mappers.VertexMapper
 import io.github.plume.oss.domain.mappers.VertexMapper.checkSchemaConstraints
+import io.shiftleft.codepropertygraph.generated.EdgeTypes.AST
 import io.shiftleft.codepropertygraph.generated.nodes.*
 import org.apache.commons.configuration.BaseConfiguration
 import org.apache.logging.log4j.LogManager
@@ -85,14 +85,14 @@ abstract class GremlinDriver : IDriver {
 
     protected open fun findVertexTraversal(v: NewNodeBuilder): GraphTraversal<Vertex, Vertex> = g.V(v.id())
 
-    override fun exists(fromV: NewNodeBuilder, toV: NewNodeBuilder, edge: EdgeLabel): Boolean {
+    override fun exists(fromV: NewNodeBuilder, toV: NewNodeBuilder, edge: String): Boolean {
         if (!findVertexTraversal(fromV).hasNext() || !findVertexTraversal(toV).hasNext()) return false
         val a = findVertexTraversal(fromV).next()
         val b = findVertexTraversal(toV).next()
-        return g.V(a).outE(edge.name).filter(un.inV().`is`(b)).hasLabel(edge.name).hasNext()
+        return g.V(a).outE(edge).filter(un.inV().`is`(b)).hasLabel(edge).hasNext()
     }
 
-    override fun addEdge(fromV: NewNodeBuilder, toV: NewNodeBuilder, edge: EdgeLabel) {
+    override fun addEdge(fromV: NewNodeBuilder, toV: NewNodeBuilder, edge: String) {
         if (!checkSchemaConstraints(fromV, toV, edge)) throw PlumeSchemaViolationException(fromV, toV, edge)
         if (exists(fromV, toV, edge)) return
         val source = if (findVertexTraversal(fromV).hasNext()) findVertexTraversal(fromV).next()
@@ -134,13 +134,12 @@ abstract class GremlinDriver : IDriver {
      * Wrapper method for creating an edge between two vertices. This wrapper method assigns a random UUID as the ID
      * for the edge.
      *
-     * @param v1        The from [Vertex].
-     * @param edgeLabel The CPG edge label.
-     * @param v2        The to [Vertex].
+     * @param v1   The from [Vertex].
+     * @param edge The CPG edge label.
+     * @param v2   The to [Vertex].
      * @return The newly created [Edge].
      */
-    private fun createEdge(v1: Vertex, edgeLabel: EdgeLabel, v2: Vertex): Edge =
-        g.V(v1.id()).addE(edgeLabel.name).to(g.V(v2.id())).next()
+    private fun createEdge(v1: Vertex, edge: String, v2: Vertex) = g.V(v1.id()).addE(edge).to(g.V(v2.id())).next()
 
     override fun getWholeGraph(): overflowdb.Graph = gremlinToPlume(g)
 
@@ -148,7 +147,7 @@ abstract class GremlinDriver : IDriver {
         if (includeBody) return getMethodWithBody(fullName, signature)
         val methodSubgraph = g.V().hasLabel(Method.Label())
             .has("FULL_NAME", fullName).has("SIGNATURE", signature)
-            .outE(EdgeLabel.AST.name)
+            .outE(AST)
             .subgraph("sg")
             .cap<Graph>("sg")
             .next()
@@ -158,7 +157,7 @@ abstract class GremlinDriver : IDriver {
     private fun getMethodWithBody(fullName: String, signature: String): overflowdb.Graph {
         val methodSubgraph = g.V().hasLabel(Method.Label())
             .has("FULL_NAME", fullName).has("SIGNATURE", signature)
-            .repeat(un.outE(EdgeLabel.AST.name).inV()).emit()
+            .repeat(un.outE(AST).inV()).emit()
             .inE()
             .subgraph("sg")
             .cap<Graph>("sg")
@@ -168,7 +167,7 @@ abstract class GremlinDriver : IDriver {
 
     override fun getProgramStructure(): overflowdb.Graph {
         val programStructureSubGraph = g.V().hasLabel(File.Label())
-            .repeat(un.outE(EdgeLabel.AST.name).inV()).emit()
+            .repeat(un.outE(AST).inV()).emit()
             .inE()
             .subgraph("sg")
             .cap<Graph>("sg")
@@ -183,7 +182,7 @@ abstract class GremlinDriver : IDriver {
             n.properties().foreachEntry { key, value -> newNode.setProperty(key, value) }
         }
         val neighbourSubgraph = findVertexTraversal(v)
-            .repeat(un.outE(EdgeLabel.AST.name).bothV())
+            .repeat(un.outE(AST).bothV())
             .times(1)
             .inE()
             .subgraph("sg")
@@ -203,7 +202,7 @@ abstract class GremlinDriver : IDriver {
             .tryNext()
         if (methodV.isPresent) {
             g.V(methodV.get()).aggregate("x")
-                .repeat(un.out(EdgeLabel.AST.name)).emit().barrier()
+                .repeat(un.out(AST)).emit().barrier()
                 .aggregate("x")
                 .select<Vertex>("x")
                 .unfold<Vertex>()

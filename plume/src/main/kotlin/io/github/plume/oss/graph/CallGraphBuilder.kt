@@ -17,9 +17,9 @@ package io.github.plume.oss.graph
 
 import io.github.plume.oss.Extractor
 import io.github.plume.oss.Extractor.Companion.getSootAssociation
-import io.github.plume.oss.domain.enums.EdgeLabel
 import io.github.plume.oss.drivers.IDriver
 import io.github.plume.oss.util.SootToPlumeUtil.constructPhantom
+import io.shiftleft.codepropertygraph.generated.EdgeTypes.CALL
 import io.shiftleft.codepropertygraph.generated.nodes.NewMethodBuilder
 import org.apache.logging.log4j.LogManager
 import soot.Scene
@@ -55,7 +55,7 @@ class CallGraphBuilder(private val driver: IDriver) : IGraphBuilder {
                 val tgtPlumeVertex = getSootAssociation(e.tgt.method())?.firstOrNull()
                     ?: constructPhantom(e.tgt.method(), driver)
                 runCatching {
-                    driver.addEdge(srcPlumeVertex, tgtPlumeVertex, EdgeLabel.CALL)
+                    driver.addEdge(srcPlumeVertex, tgtPlumeVertex, CALL)
                 }.onFailure { e -> logger.warn(e.message) }
             }
         }
@@ -67,7 +67,7 @@ class CallGraphBuilder(private val driver: IDriver) : IGraphBuilder {
                 logger.debug("Saved call graph edges found - reconnecting incoming call graph edges")
                 incomingVs.forEach { inV ->
                     runCatching {
-                        driver.addEdge(inV, mtdV, EdgeLabel.CALL)
+                        driver.addEdge(inV, mtdV, CALL)
                     }.onFailure { e -> logger.warn(e.message) }
                 }
             } else {

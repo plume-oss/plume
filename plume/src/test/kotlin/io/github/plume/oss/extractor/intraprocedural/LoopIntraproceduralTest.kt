@@ -1,7 +1,6 @@
 package io.github.plume.oss.extractor.intraprocedural
 
 import io.github.plume.oss.Extractor
-import io.github.plume.oss.domain.enums.EdgeLabel
 import io.github.plume.oss.drivers.DriverFactory
 import io.github.plume.oss.drivers.GraphDatabase
 import io.github.plume.oss.drivers.TinkerGraphDriver

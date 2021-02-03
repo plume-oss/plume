@@ -33,8 +33,4 @@ object ExtractorConst {
     const val LOOKUP_ROOT = "LOOKUP_SWITCH"
     const val TRUE_TARGET = "TRUE"
     const val FALSE_TARGET = "FALSE"
-
-    // return text
-    const val RETURN = "RETURN"
-
 }

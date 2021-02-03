@@ -1,11 +1,10 @@
 package io.github.plume.oss.util
 
 import org.objectweb.asm.Opcodes
-import io.github.plume.oss.domain.enums.EvaluationStrategy
-import io.github.plume.oss.domain.enums.ModifierType
 import io.github.plume.oss.util.ExtractorConst.BIN_OPS
 import io.github.plume.oss.util.ExtractorConst.PRIMITIVES
-import java.util.*
+import io.shiftleft.codepropertygraph.generated.EvaluationStrategies.*
+import io.shiftleft.codepropertygraph.generated.ModifierTypes.*
 
 object SootParserUtil {
     /**
@@ -20,27 +19,27 @@ object SootParserUtil {
      */
     @JvmStatic
     @JvmOverloads
-    fun determineModifiers(access: Int, name: String? = null): EnumSet<ModifierType> {
-        val modifiers = EnumSet.of(ModifierType.VIRTUAL)
-        if ("<init>" == name) modifiers.add(ModifierType.CONSTRUCTOR)
+    fun determineModifiers(access: Int, name: String? = null): Set<String> {
+        val modifiers = mutableSetOf(VIRTUAL)
+        if ("<init>" == name) modifiers.add(CONSTRUCTOR)
         var remaining = access
         var bit: Int
         while (remaining != 0) {
             bit = Integer.lowestOneBit(remaining)
             when (bit) {
                 Opcodes.ACC_STATIC -> {
-                    modifiers.add(ModifierType.STATIC)
-                    modifiers.remove(ModifierType.VIRTUAL)
+                    modifiers.add(STATIC)
+                    modifiers.remove(VIRTUAL)
                 }
-                Opcodes.ACC_PUBLIC -> modifiers.add(ModifierType.PUBLIC)
+                Opcodes.ACC_PUBLIC -> modifiers.add(PUBLIC)
                 Opcodes.ACC_PRIVATE -> {
-                    modifiers.add(ModifierType.PRIVATE)
-                    modifiers.remove(ModifierType.VIRTUAL)
+                    modifiers.add(PRIVATE)
+                    modifiers.remove(VIRTUAL)
                 }
-                Opcodes.ACC_PROTECTED -> modifiers.add(ModifierType.PROTECTED)
-                Opcodes.ACC_NATIVE -> modifiers.add(ModifierType.NATIVE)
-                Opcodes.ACC_ABSTRACT -> modifiers.add(ModifierType.ABSTRACT)
-                Opcodes.ACC_FINAL -> modifiers.remove(ModifierType.VIRTUAL)
+                Opcodes.ACC_PROTECTED -> modifiers.add(PROTECTED)
+                Opcodes.ACC_NATIVE -> modifiers.add(NATIVE)
+                Opcodes.ACC_ABSTRACT -> modifiers.add(ABSTRACT)
+                Opcodes.ACC_FINAL -> modifiers.remove(VIRTUAL)
             }
             remaining -= bit
         }
@@ -56,10 +55,10 @@ object SootParserUtil {
      * @return the type of evaluation strategy used
      */
     @JvmStatic
-    fun determineEvaluationStrategy(paramType: String, isMethodReturn: Boolean): EvaluationStrategy {
+    fun determineEvaluationStrategy(paramType: String, isMethodReturn: Boolean): String {
         return if (isArrayType(paramType) || !PRIMITIVES.contains(paramType))
-            if (isMethodReturn) EvaluationStrategy.BY_SHARING else EvaluationStrategy.BY_REFERENCE
-        else EvaluationStrategy.BY_VALUE
+            if (isMethodReturn) BY_SHARING else BY_REFERENCE
+        else BY_VALUE
     }
 
     /**
