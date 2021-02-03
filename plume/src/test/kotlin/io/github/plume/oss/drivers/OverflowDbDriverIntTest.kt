@@ -336,13 +336,7 @@ class OverflowDbDriverIntTest {
 
         @Test
         fun testSourceFileEdgeCreation() {
-            assertFalse(
-                driver.exists(
-                    methodVertex,
-                    fileVertex,
-                    EdgeLabel.SOURCE_FILE
-                )
-            )
+            assertFalse(driver.exists(methodVertex, fileVertex, EdgeLabel.SOURCE_FILE))
             driver.addEdge(methodVertex, fileVertex, EdgeLabel.SOURCE_FILE)
             assertTrue(driver.exists(methodVertex))
             assertTrue(driver.exists(fileVertex))

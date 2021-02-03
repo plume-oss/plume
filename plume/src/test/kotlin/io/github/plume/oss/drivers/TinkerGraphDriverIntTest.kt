@@ -282,15 +282,6 @@ class TinkerGraphDriverIntTest {
         }
 
         @Test
-        fun testCapturedByEdgeCreation() {
-            assertFalse(driver.exists(localVertex, bindingVertex, EdgeLabel.CAPTURED_BY))
-            driver.addEdge(localVertex, bindingVertex, EdgeLabel.CAPTURED_BY)
-            assertTrue(driver.exists(bindingVertex))
-            assertTrue(driver.exists(localVertex))
-            assertTrue(driver.exists(localVertex, bindingVertex, EdgeLabel.CAPTURED_BY))
-        }
-
-        @Test
         fun testBindsToEdgeCreation() {
             assertFalse(driver.exists(typeArgumentVertex, typeParameterVertex, EdgeLabel.BINDS_TO))
             driver.addEdge(typeArgumentVertex, typeParameterVertex, EdgeLabel.BINDS_TO)
