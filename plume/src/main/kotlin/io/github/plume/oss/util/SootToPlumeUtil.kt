@@ -66,7 +66,7 @@ object SootToPlumeUtil {
         NewMethodParameterInBuilder()
             .name(local.name)
             .code("${local.type} ${local.name}")
-            .evaluationstrategy(determineEvaluationStrategy(local.type.toString(), isMethodReturn = false).name)
+            .evaluationstrategy(determineEvaluationStrategy(local.type.toString(), isMethodReturn = false))
             .typefullname(local.type.toString())
             .linenumber(Option.apply(currentLine))
             .columnnumber(Option.apply(currentCol))
@@ -123,7 +123,7 @@ object SootToPlumeUtil {
             .apply { driver.addEdge(mtdVertex, this, AST); addSootToPlumeAssociation(mtd, this) }
         // Modifier vertices
         SootParserUtil.determineModifiers(mtd.modifiers, mtd.name)
-            .map { NewModifierBuilder().modifiertype(it.name).order(childIdx++) }
+            .map { NewModifierBuilder().modifiertype(it).order(childIdx++) }
             .forEach { driver.addEdge(mtdVertex, it, AST); addSootToPlumeAssociation(mtd, it) }
         return mtdVertex
     }
@@ -169,7 +169,7 @@ object SootToPlumeUtil {
             NewMethodParameterInBuilder()
                 .code("$type param$i")
                 .name("param$i")
-                .evaluationstrategy(determineEvaluationStrategy(type.toString(), isMethodReturn = false).name)
+                .evaluationstrategy(determineEvaluationStrategy(type.toString(), isMethodReturn = false))
                 .typefullname(type.toString())
                 .linenumber(Option.apply(mtd.javaSourceStartLineNumber))
                 .columnnumber(Option.apply(mtd.javaSourceStartColumnNumber))
@@ -331,7 +331,7 @@ object SootToPlumeUtil {
     ): NewMethodReturnBuilder =
         NewMethodReturnBuilder()
             .code("return ${type.toQuotedString()}")
-            .evaluationstrategy(determineEvaluationStrategy(type.toQuotedString(), true).name)
+            .evaluationstrategy(determineEvaluationStrategy(type.toQuotedString(), true))
             .typefullname(type.toQuotedString())
             .linenumber(Option.apply(currentLine))
             .columnnumber(Option.apply(currentCol))

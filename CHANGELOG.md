@@ -9,6 +9,7 @@ and this project adheres to [Semantic Versioning](http://semver.org/).
 ### Added
 
 ### Changed
+- Replaced Plume enums with `codepropertygraph` constants
 
 ### Fixed
 
