@@ -210,7 +210,7 @@ class Extractor(val driver: IDriver) {
                 }
             }
         if (splitFiles.keys.contains(SupportedFile.JAVA) || splitFiles.keys.contains(SupportedFile.JVM_CLASS)) {
-            driver.addVertex(NewMetaDataBuilder().language("Java").version("0.1"))
+            driver.addVertex(NewMetaDataBuilder().language("Plume").version("0.1"))
             driver.addVertex(NewFileBuilder().name(io.shiftleft.semanticcpg.language.types.structure.File.UNKNOWN()).order(0))
         }
         return splitFiles.keys.map {
