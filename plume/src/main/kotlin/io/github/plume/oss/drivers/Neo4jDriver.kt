@@ -1,6 +1,5 @@
 package io.github.plume.oss.drivers
 
-import io.github.plume.oss.domain.enums.EdgeLabel
 import io.github.plume.oss.domain.exceptions.PlumeSchemaViolationException
 import io.github.plume.oss.domain.mappers.VertexMapper
 import io.github.plume.oss.domain.mappers.VertexMapper.checkSchemaConstraints
@@ -171,7 +170,7 @@ class Neo4jDriver : IDriver {
         }
     }
 
-    override fun exists(fromV: NewNodeBuilder, toV: NewNodeBuilder, edge: EdgeLabel): Boolean {
+    override fun exists(fromV: NewNodeBuilder, toV: NewNodeBuilder, edge: String): Boolean {
         if (!exists(fromV) || !exists(toV)) return false
         val src = fromV.build()
         val tgt = toV.build()
@@ -189,7 +188,7 @@ class Neo4jDriver : IDriver {
         }
     }
 
-    override fun addEdge(fromV: NewNodeBuilder, toV: NewNodeBuilder, edge: EdgeLabel) {
+    override fun addEdge(fromV: NewNodeBuilder, toV: NewNodeBuilder, edge: String) {
         if (!checkSchemaConstraints(fromV, toV, edge)) throw PlumeSchemaViolationException(fromV, toV, edge)
         if (!exists(fromV)) addVertex(fromV)
         if (!exists(toV)) addVertex(toV)

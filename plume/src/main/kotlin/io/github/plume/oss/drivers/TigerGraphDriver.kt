@@ -1,6 +1,5 @@
 package io.github.plume.oss.drivers
 
-import io.github.plume.oss.domain.enums.EdgeLabel
 import io.github.plume.oss.domain.exceptions.PlumeSchemaViolationException
 import io.github.plume.oss.domain.exceptions.PlumeTransactionException
 import io.github.plume.oss.domain.mappers.VertexMapper
@@ -115,7 +114,7 @@ class TigerGraphDriver : IOverridenIdDriver {
         }
     }
 
-    override fun exists(fromV: NewNodeBuilder, toV: NewNodeBuilder, edge: EdgeLabel): Boolean {
+    override fun exists(fromV: NewNodeBuilder, toV: NewNodeBuilder, edge: String): Boolean {
         // No edge can be connected to a MetaDataVertex
         if (fromV is NewMetaDataBuilder || toV is NewMetaDataBuilder) return false
         return try {
@@ -124,7 +123,7 @@ class TigerGraphDriver : IOverridenIdDriver {
                 mapOf(
                     "V_FROM" to fromV.id().toString(),
                     "V_TO" to toV.id().toString(),
-                    "EDGE_LABEL" to edge.name
+                    "EDGE_LABEL" to edge
                 )
             ).firstOrNull()
             return if (response == null) {
@@ -142,7 +141,7 @@ class TigerGraphDriver : IOverridenIdDriver {
         }
     }
 
-    override fun addEdge(fromV: NewNodeBuilder, toV: NewNodeBuilder, edge: EdgeLabel) {
+    override fun addEdge(fromV: NewNodeBuilder, toV: NewNodeBuilder, edge: String) {
         if (!checkSchemaConstraints(fromV, toV, edge)) throw PlumeSchemaViolationException(fromV, toV, edge)
         if (exists(fromV, toV, edge)) return
         val fromPayload = createVertexPayload(fromV)
@@ -184,7 +183,7 @@ class TigerGraphDriver : IOverridenIdDriver {
         return attributes
     }
 
-    private fun createEdgePayload(from: NewNodeBuilder, to: NewNodeBuilder, edge: EdgeLabel): Map<String, Any> {
+    private fun createEdgePayload(from: NewNodeBuilder, to: NewNodeBuilder, edge: String): Map<String, Any> {
         val fromPayload = createVertexPayload(from)
         val toPayload = createVertexPayload(to)
         val fromLabel = fromPayload.keys.first()
@@ -192,7 +191,7 @@ class TigerGraphDriver : IOverridenIdDriver {
         return mapOf(
             fromLabel to mapOf(
                 from.id().toString() to mapOf<String, Any>(
-                    edge.name to mapOf<String, Any>(
+                    edge to mapOf<String, Any>(
                         toLabel to mapOf<String, Any>(
                             to.id().toString() to emptyMap<String, Any>()
                         )

@@ -1,9 +1,8 @@
 package io.github.plume.oss.drivers
 
 import io.github.plume.oss.Traversals
-import io.github.plume.oss.domain.enums.EdgeLabel
 import io.github.plume.oss.domain.exceptions.PlumeSchemaViolationException
-import io.github.plume.oss.domain.mappers.VertexMapper
+import io.github.plume.oss.domain.mappers.VertexMapper.checkSchemaConstraints
 import io.shiftleft.codepropertygraph.generated.nodes.*
 import org.apache.logging.log4j.LogManager
 import overflowdb.*
@@ -72,25 +71,21 @@ class OverflowDbDriver : IDriver {
         return (graph.node(v.id()) != null)
     }
 
-    override fun exists(fromV: NewNodeBuilder, toV: NewNodeBuilder, edge: EdgeLabel): Boolean {
+    override fun exists(fromV: NewNodeBuilder, toV: NewNodeBuilder, edge: String): Boolean {
         val srcNode = graph.node(fromV.id()) ?: return false
         val dstNode = graph.node(toV.id()) ?: return false
-        return srcNode.out(edge.name).asSequence().toList().any { node -> node.id() == dstNode.id() }
+        return srcNode.out(edge).asSequence().toList().any { node -> node.id() == dstNode.id() }
     }
 
-    override fun addEdge(fromV: NewNodeBuilder, toV: NewNodeBuilder, edge: EdgeLabel) {
-        if (!VertexMapper.checkSchemaConstraints(fromV, toV, edge)) throw PlumeSchemaViolationException(
-            fromV,
-            toV,
-            edge
-        )
+    override fun addEdge(fromV: NewNodeBuilder, toV: NewNodeBuilder, edge: String) {
+        if (!checkSchemaConstraints(fromV, toV, edge)) throw PlumeSchemaViolationException(fromV, toV, edge)
         if (!exists(fromV)) addVertex(fromV)
         if (!exists(toV)) addVertex(toV)
         val srcNode = graph.node(fromV.id())
         val dstNode = graph.node(toV.id())
 
         try {
-            srcNode.addEdge(edge.name, dstNode)
+            srcNode.addEdge(edge, dstNode)
         } catch (exc: RuntimeException) {
             logger.error(exc.message, exc)
             throw PlumeSchemaViolationException(fromV, toV, edge)
