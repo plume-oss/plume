@@ -14,28 +14,29 @@ class NamespaceBlockTests extends PlumeCodeToCpgSuite {
       |}
       |""".stripMargin
 
-  "should contain two namespace blocks in total" in {
-//    cpg.namespaceBlock.size shouldBe 2
-  }
-
-  "should contain a correct global namespace block for the `<unknown>` file" in {
-//    cpg.namespaceBlock.filename(File.UNKNOWN).l match {
-//      case List(x) =>
-//        x.name shouldBe Namespace.globalNamespaceName
-//        x.fullName shouldBe Namespace.globalNamespaceName
-//        x.order shouldBe 0
-//      case _ => fail()
-//    }
+  "should contain one namespace blocks in total" in {
+    cpg.namespaceBlock.size shouldBe 1
+    // There is no global namespace block in Java
   }
 
   "should contain correct namespace block for known file" in {
-//    cpg.namespaceBlock.filenameNot(File.UNKNOWN).l match {
-//      case List(x) =>
-//        x.name shouldBe "bar"
-//        x.fullName shouldBe "foo.bar"
-//        x.order shouldBe 0
-//      case _ => fail()
-//    }
+    val List(x) = cpg.namespaceBlock.filenameNot(File.UNKNOWN).l
+    x.name shouldBe "foo.bar"
+    x.filename should not be ""
+    x.fullName shouldBe "foo.bar"
+    x.order shouldBe 1
+  }
+
+  "should allow traversing from namespace block to method" in {
+    cpg.namespaceBlock.filenameNot(File.UNKNOWN).typeDecl.method.name.toSet shouldBe Set("foo", "<init>")
+  }
+
+  "should allow traversing from namespace block to type declaration" in {
+    cpg.namespaceBlock.filenameNot(File.UNKNOWN).typeDecl.name.l shouldBe List("A")
+  }
+
+  "should allow traversing from namespace block to namespace" in {
+    cpg.namespaceBlock.filenameNot(File.UNKNOWN).namespace.name.l shouldBe List("foo.bar")
   }
 
 }

@@ -113,6 +113,7 @@ object VertexMapper {
                 .id(map["id"] as Long)
             NamespaceBlock.Label() -> NewNamespaceBlockBuilder()
                 .fullname(map["FULL_NAME"] as String)
+                .filename(map["FILENAME"] as String)
                 .name(map["NAME"] as String)
                 .order(map["ORDER"] as Int)
                 .id(map["id"] as Long)

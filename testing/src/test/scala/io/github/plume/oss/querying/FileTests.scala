@@ -24,7 +24,6 @@ class FileTests extends PlumeCodeToCpgSuite {
 
   "should contain exactly one non-placeholder file with absolute path in `name`" in {
     val List(x) = cpg.file.nameNot(File.UNKNOWN).l
-    println(x.name)
     x.name should startWith("/")
     x.hash.isDefined shouldBe true
   }
