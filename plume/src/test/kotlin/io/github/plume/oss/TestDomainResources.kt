@@ -77,6 +77,7 @@ class TestDomainResources {
         val methodVertex: NewMethodBuilder =
             NewMethodBuilder().code(STRING_1).name(STRING_1).fullname(STRING_1).order(INT_1)
                 .linenumber(Option.apply(INT_1)).columnnumber(Option.apply(INT_1)).signature(STRING_2).filename(STRING_1)
+                .astparentfullname(STRING_1).astparenttype(STRING_2)
         val mtdParamInVertex: NewMethodParameterInBuilder =
             NewMethodParameterInBuilder().code(STRING_1).evaluationstrategy(EVAL_1).typefullname(STRING_1)
                 .name(STRING_1).order(INT_1).linenumber(Option.apply(INT_1)).columnnumber(Option.apply(INT_1))
@@ -96,6 +97,7 @@ class TestDomainResources {
             NewIdentifierBuilder().name(STRING_1).typefullname(STRING_1).code(STRING_1).order(INT_1)
                 .argumentindex(INT_1).linenumber(Option.apply(INT_1)).columnnumber(Option.apply(INT_1))
         val typeDeclVertex: NewTypeDeclBuilder = NewTypeDeclBuilder().name(STRING_1).fullname(STRING_1).order(INT_1)
+            .astparentfullname(STRING_1).astparenttype(STRING_2)
         val literalVertex: NewLiteralBuilder =
             NewLiteralBuilder().typefullname(STRING_1).code(STRING_1).order(INT_1).argumentindex(INT_1)
                 .linenumber(Option.apply(INT_1)).columnnumber(Option.apply(INT_1))
@@ -131,7 +133,7 @@ class TestDomainResources {
             .code(STRING_1).argumentindex(INT_1).order(INT_1).linenumber(Option.apply(INT_1))
             .columnnumber(Option.apply(INT_1))
         val unknownVertex: NewUnknownBuilder =
-            NewUnknownBuilder().typefullname("brug").code(STRING_1).order(INT_1).argumentindex(INT_1)
+            NewUnknownBuilder().typefullname(STRING_1).code(STRING_1).order(INT_1).argumentindex(INT_1)
                 .linenumber(Option.apply(INT_1)).columnnumber(Option.apply(INT_1))
         val modifierVertex: NewModifierBuilder = NewModifierBuilder().modifiertype(MOD_1).order(INT_1)
 
