@@ -245,12 +245,12 @@ object SootToPlumeUtil {
      * @param cls the soot class
      * @return the filename in string form
      * */
-    private fun sootClassToFileName(cls : SootClass) : String {
-        val packageName = cls.getPackageName()
-        if (packageName != null) {
-            return "/" + cls.name.replace(".", "/")  + ".class"
+    fun sootClassToFileName(cls : SootClass) : String {
+        val packageName = cls.packageName
+        return if (packageName != null) {
+            "/" + cls.name.replace(".", "/")  + ".class"
         } else {
-            return io.shiftleft.semanticcpg.language.types.structure.File.UNKNOWN()
+            io.shiftleft.semanticcpg.language.types.structure.File.UNKNOWN()
         }
     }
 

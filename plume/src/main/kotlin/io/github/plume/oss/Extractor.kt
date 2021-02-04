@@ -313,7 +313,7 @@ class Extractor(val driver: IDriver) {
         val currentFileHash = getFileHashPair(cls)
         val files = programStructure.nodes { it == ODBFile.Label() }.asSequence()
         logger.debug("Looking for existing file vertex for ${cls.name} from given file hash $currentFileHash")
-        files.firstOrNull { it.property("NAME") == cls.name }?.let { fileV ->
+        files.firstOrNull { it.property("NAME") == SootToPlumeUtil.sootClassToFileName(cls)}?.let { fileV ->
             if (fileV.property("HASH") != currentFileHash) {
                 logger.debug("Existing class was found and file hashes do not match, marking for rebuild.")
                 // Rebuild
