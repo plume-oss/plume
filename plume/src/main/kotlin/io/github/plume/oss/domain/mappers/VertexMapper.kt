@@ -59,6 +59,8 @@ object VertexMapper {
                 .order(map["ORDER"] as Int)
                 .id(map["id"] as Long)
             Method.Label() -> NewMethodBuilder()
+                .astparentfullname(map["AST_PARENT_FULL_NAME"] as String)
+                .astparenttype(map["AST_PARENT_TYPE"] as String)
                 .name(map["NAME"] as String)
                 .code(map["CODE"] as String)
                 .fullname(map["FULL_NAME"] as String)
@@ -94,6 +96,8 @@ object VertexMapper {
                 .typedeclfullname(map["TYPE_DECL_FULL_NAME"] as String)
                 .id(map["id"] as Long)
             TypeDecl.Label() -> NewTypeDeclBuilder()
+                .astparentfullname(map["AST_PARENT_FULL_NAME"] as String)
+                .astparenttype(map["AST_PARENT_TYPE"] as String)
                 .name(map["NAME"] as String)
                 .fullname(map["FULL_NAME"] as String)
                 .order(map["ORDER"] as Int)
@@ -113,6 +117,7 @@ object VertexMapper {
                 .id(map["id"] as Long)
             NamespaceBlock.Label() -> NewNamespaceBlockBuilder()
                 .fullname(map["FULL_NAME"] as String)
+                .filename(map["FILENAME"] as String)
                 .name(map["NAME"] as String)
                 .order(map["ORDER"] as Int)
                 .id(map["id"] as Long)
@@ -324,12 +329,9 @@ object VertexMapper {
         propertyMap.forEach {
             val key: Optional<String> = when (it.key) {
                 "PARSER_TYPE_NAME" -> Optional.empty()
-                "AST_PARENT_TYPE" -> Optional.empty()
-                "AST_PARENT_FULL_NAME" -> Optional.empty()
                 "POLICY_DIRECTORIES" -> Optional.empty()
                 "INHERITS_FROM_TYPE_FULL_NAME" -> Optional.empty()
                 "OVERLAYS" -> Optional.empty()
-                "FILENAME" -> Optional.empty()
                 "IS_EXTERNAL" -> Optional.empty()
                 else -> Optional.of(it.key)
             }

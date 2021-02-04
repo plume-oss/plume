@@ -210,7 +210,7 @@ class Extractor(val driver: IDriver) {
                 }
             }
         if (splitFiles.keys.contains(SupportedFile.JAVA) || splitFiles.keys.contains(SupportedFile.JVM_CLASS)) {
-            driver.addVertex(NewMetaDataBuilder().language("Java").version(System.getProperty("java.runtime.version")))
+            driver.addVertex(NewMetaDataBuilder().language("Plume").version("0.1"))
         }
         return splitFiles.keys.map {
             val filesToCompile = (splitFiles[it] ?: emptyList<JVMClassFile>()).toList()
@@ -222,7 +222,7 @@ class Extractor(val driver: IDriver) {
     }
 
     /**
-     * Projects all loaded classes currently loaded.
+     * Projects all loaded classes.
      */
     fun project() {
         configureSoot()
@@ -313,7 +313,7 @@ class Extractor(val driver: IDriver) {
         val currentFileHash = getFileHashPair(cls)
         val files = programStructure.nodes { it == ODBFile.Label() }.asSequence()
         logger.debug("Looking for existing file vertex for ${cls.name} from given file hash $currentFileHash")
-        files.firstOrNull { it.property("NAME") == cls.name }?.let { fileV ->
+        files.firstOrNull { it.property("NAME") == SootToPlumeUtil.sootClassToFileName(cls)}?.let { fileV ->
             if (fileV.property("HASH") != currentFileHash) {
                 logger.debug("Existing class was found and file hashes do not match, marking for rebuild.")
                 // Rebuild

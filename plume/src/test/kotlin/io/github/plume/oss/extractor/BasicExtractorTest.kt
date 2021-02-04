@@ -9,9 +9,7 @@ import io.shiftleft.codepropertygraph.generated.nodes.Local
 import io.shiftleft.codepropertygraph.generated.nodes.Method
 import io.shiftleft.codepropertygraph.generated.nodes.NamespaceBlock
 import org.junit.jupiter.api.AfterEach
-import org.junit.jupiter.api.Assertions
-import org.junit.jupiter.api.Assertions.assertEquals
-import org.junit.jupiter.api.Assertions.assertNotNull
+import org.junit.jupiter.api.Assertions.*
 import org.junit.jupiter.api.BeforeAll
 import org.junit.jupiter.api.Test
 import overflowdb.Graph
@@ -59,7 +57,7 @@ class BasicExtractorTest {
         g = driver.getWholeGraph()
         val ns = g.nodes().asSequence().toList()
         assertNotNull(ns.filterIsInstance<NamespaceBlock>().find { it.name() == "extractor_tests" })
-        ns.filterIsInstance<ODBFile>().find { it.name() == "extractor_tests.Test1" }
+        ns.filterIsInstance<ODBFile>().find { it.name() == "/extractor_tests/Test1.class" }
             .let { assertNotNull(it) }
         ns.filterIsInstance<Method>().find { it.name() == "main" }.let { assertNotNull(it) }
         ns.filterIsInstance<Local>().find { it.name() == "a" }
@@ -79,7 +77,7 @@ class BasicExtractorTest {
         val ns = g.nodes().asSequence().toList()
         assertNotNull(
             ns.filterIsInstance<NamespaceBlock>().find { it.name() == "extractor_tests" })
-        ns.filterIsInstance<ODBFile>().find { it.name() == "extractor_tests.Test2" }
+        ns.filterIsInstance<ODBFile>().find { it.name() == "/extractor_tests/Test2.class" }
             .let { assertNotNull(it) }
         ns.filterIsInstance<Method>().find { it.name() == "main" }.let { assertNotNull(it) }
         ns.filterIsInstance<Local>().find { it.name() == "l1" }
@@ -98,18 +96,14 @@ class BasicExtractorTest {
         g = driver.getProgramStructure()
         val ns = g.nodes().asSequence().toList()
         ns.filterIsInstance<ODBFile>().let { fileList ->
-            assertNotNull(fileList.firstOrNull { it.name() == "extractor_tests.dir_test.Dir1" })
-            assertNotNull(fileList.firstOrNull { it.name() == "extractor_tests.dir_test.pack.Dir2" })
+            assertNotNull(fileList.firstOrNull { it.name() == "/extractor_tests/dir_test/Dir1.class" })
+            assertNotNull(fileList.firstOrNull { it.name() == "/extractor_tests/dir_test/pack/Dir2.class" })
         }
-        ns.filterIsInstance<NamespaceBlock>().let { fileList ->
-            assertNotNull(fileList.firstOrNull { it.name() == "dir_test" })
-            assertNotNull(fileList.firstOrNull { it.name() == "extractor_tests" })
-            assertNotNull(fileList.firstOrNull { it.name() == "pack" })
-        }
+        assertNotNull(ns.filterIsInstance<NamespaceBlock>().firstOrNull { it.name() == "extractor_tests.dir_test.pack" })
     }
 
     @Test
     fun loadFileThatDoesNotExistTest() {
-        Assertions.assertThrows(NullPointerException::class.java) { extractor.load(File("dne.class")) }
+        assertThrows(NullPointerException::class.java) { extractor.load(File("dne.class")) }
     }
 }

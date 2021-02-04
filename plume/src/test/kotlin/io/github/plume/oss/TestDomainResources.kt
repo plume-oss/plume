@@ -59,7 +59,7 @@ class TestDomainResources {
             NewMethodBuilder().name(STRING_1).fullname(STRING_1).signature(STRING_1).code(STRING_1).order(INT_1)
                 .linenumber(Option.apply(INT_1)).columnnumber(Option.apply(INT_1)),
             NewModifierBuilder().modifiertype(MOD_1).order(INT_1),
-            NewNamespaceBlockBuilder().name(STRING_1).fullname(STRING_1).order(INT_1),
+            NewNamespaceBlockBuilder().name(STRING_1).fullname(STRING_1).order(INT_1).filename(STRING_1),
             NewReturnBuilder().order(INT_1).argumentindex(INT_1).code(STRING_1).linenumber(Option.apply(INT_1))
                 .columnnumber(Option.apply(INT_1)),
             NewTypeArgumentBuilder().order(INT_1),
@@ -76,7 +76,8 @@ class TestDomainResources {
 
         val methodVertex: NewMethodBuilder =
             NewMethodBuilder().code(STRING_1).name(STRING_1).fullname(STRING_1).order(INT_1)
-                .linenumber(Option.apply(INT_1)).columnnumber(Option.apply(INT_1)).signature(STRING_2)
+                .linenumber(Option.apply(INT_1)).columnnumber(Option.apply(INT_1)).signature(STRING_2).filename(STRING_1)
+                .astparentfullname(STRING_1).astparenttype(STRING_2)
         val mtdParamInVertex: NewMethodParameterInBuilder =
             NewMethodParameterInBuilder().code(STRING_1).evaluationstrategy(EVAL_1).typefullname(STRING_1)
                 .name(STRING_1).order(INT_1).linenumber(Option.apply(INT_1)).columnnumber(Option.apply(INT_1))
@@ -96,6 +97,7 @@ class TestDomainResources {
             NewIdentifierBuilder().name(STRING_1).typefullname(STRING_1).code(STRING_1).order(INT_1)
                 .argumentindex(INT_1).linenumber(Option.apply(INT_1)).columnnumber(Option.apply(INT_1))
         val typeDeclVertex: NewTypeDeclBuilder = NewTypeDeclBuilder().name(STRING_1).fullname(STRING_1).order(INT_1)
+            .astparentfullname(STRING_1).astparenttype(STRING_2)
         val literalVertex: NewLiteralBuilder =
             NewLiteralBuilder().typefullname(STRING_1).code(STRING_1).order(INT_1).argumentindex(INT_1)
                 .linenumber(Option.apply(INT_1)).columnnumber(Option.apply(INT_1))
@@ -107,9 +109,9 @@ class TestDomainResources {
                 .order(INT_1).linenumber(Option.apply(INT_1)).columnnumber(Option.apply(INT_1))
         val fileVertex: NewFileBuilder = NewFileBuilder().name(STRING_1).hash(Option.apply(STRING_2)).order(INT_1)
         val namespaceBlockVertex1: NewNamespaceBlockBuilder =
-            NewNamespaceBlockBuilder().name(STRING_1).fullname(STRING_1).order(INT_1)
+            NewNamespaceBlockBuilder().name(STRING_1).fullname(STRING_1).order(INT_1).filename(STRING_1)
         val namespaceBlockVertex2: NewNamespaceBlockBuilder =
-            NewNamespaceBlockBuilder().name(STRING_2).fullname(STRING_2).order(INT_1)
+            NewNamespaceBlockBuilder().name(STRING_2).fullname(STRING_2).order(INT_1).filename(STRING_2)
         val metaDataVertex: NewMetaDataBuilder = NewMetaDataBuilder().language(STRING_1).version(STRING_2)
         val controlStructureVertex: NewControlStructureBuilder =
             NewControlStructureBuilder().code(STRING_1).linenumber(Option.apply(INT_1))
@@ -131,7 +133,7 @@ class TestDomainResources {
             .code(STRING_1).argumentindex(INT_1).order(INT_1).linenumber(Option.apply(INT_1))
             .columnnumber(Option.apply(INT_1))
         val unknownVertex: NewUnknownBuilder =
-            NewUnknownBuilder().typefullname("brug").code(STRING_1).order(INT_1).argumentindex(INT_1)
+            NewUnknownBuilder().typefullname(STRING_1).code(STRING_1).order(INT_1).argumentindex(INT_1)
                 .linenumber(Option.apply(INT_1)).columnnumber(Option.apply(INT_1))
         val modifierVertex: NewModifierBuilder = NewModifierBuilder().modifiertype(MOD_1).order(INT_1)
 

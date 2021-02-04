@@ -10,7 +10,6 @@ import io.github.plume.oss.drivers.DriverFactory
 import io.github.plume.oss.drivers.GraphDatabase
 import io.github.plume.oss.drivers.TinkerGraphDriver
 import io.shiftleft.codepropertygraph.generated.nodes.Literal
-import overflowdb.Graph
 import java.io.File
 import java.io.FileInputStream
 import java.io.FileOutputStream
