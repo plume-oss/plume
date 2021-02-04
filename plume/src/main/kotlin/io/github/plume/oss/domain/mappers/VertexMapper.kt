@@ -329,12 +329,9 @@ object VertexMapper {
         propertyMap.forEach {
             val key: Optional<String> = when (it.key) {
                 "PARSER_TYPE_NAME" -> Optional.empty()
-                "AST_PARENT_TYPE" -> Optional.empty()
-                "AST_PARENT_FULL_NAME" -> Optional.empty()
                 "POLICY_DIRECTORIES" -> Optional.empty()
                 "INHERITS_FROM_TYPE_FULL_NAME" -> Optional.empty()
                 "OVERLAYS" -> Optional.empty()
-                "FILENAME" -> Optional.empty()
                 "IS_EXTERNAL" -> Optional.empty()
                 else -> Optional.of(it.key)
             }
