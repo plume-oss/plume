@@ -57,12 +57,9 @@ class BasicIntraproceduralTest {
     @Test
     fun basic1Test() {
         val ns = g.nodes().asSequence().toList()
-        ns.filterIsInstance<NamespaceBlock>().let { nbv ->
-            assertNotNull(nbv.find { it.name() == "basic" })
-            assertNotNull(nbv.find { it.name() == "intraprocedural" })
-        }
+        assertNotNull(ns.filterIsInstance<NamespaceBlock>().find { it.name() == "intraprocedural.basic" })
         ns.filterIsInstance<ODBFile>()
-            .find { it.name() == "intraprocedural.basic.Basic$currentTestNumber" }
+            .find { it.name() == "/intraprocedural/basic/Basic$currentTestNumber.class" }
             .let { assertNotNull(it) }
         ns.filterIsInstance<Method>().find { it.name() == "main" }.let { assertNotNull(it) }
         ns.filterIsInstance<Local>().find { it.name() == "a" }
@@ -77,12 +74,9 @@ class BasicIntraproceduralTest {
     @Test
     fun basic2Test() {
         val ns = g.nodes().asSequence().toList()
-        ns.filterIsInstance<NamespaceBlock>().let { nbv ->
-            assertNotNull(nbv.find { it.name() == "basic" })
-            assertNotNull(nbv.find { it.name() == "intraprocedural" })
-        }
+        assertNotNull(ns.filterIsInstance<NamespaceBlock>().find { it.name() == "intraprocedural.basic" })
         ns.filterIsInstance<ODBFile>()
-            .find { it.name() == "intraprocedural.basic.Basic$currentTestNumber" }
+            .find { it.name() == "/intraprocedural/basic/Basic$currentTestNumber.class" }
             .let { assertNotNull(it) }
         ns.filterIsInstance<Method>().find { it.name() == "main" }.let { assertNotNull(it) }
         ns.filterIsInstance<Local>().find { it.name() == "a" }
@@ -97,12 +91,9 @@ class BasicIntraproceduralTest {
     @Test
     fun basic3Test() {
         val ns = g.nodes().asSequence().toList()
-        ns.filterIsInstance<NamespaceBlock>().let { nbv ->
-            assertNotNull(nbv.find { it.name() == "basic" })
-            assertNotNull(nbv.find { it.name() == "intraprocedural" })
-        }
+        assertNotNull(ns.filterIsInstance<NamespaceBlock>().find { it.name() == "intraprocedural.basic" })
         ns.filterIsInstance<ODBFile>()
-            .find { it.name() == "intraprocedural.basic.Basic$currentTestNumber" }
+            .find { it.name() == "/intraprocedural/basic/Basic$currentTestNumber.class" }
             .let { assertNotNull(it) }
         ns.filterIsInstance<Method>().find { it.name() == "main" }.let { assertNotNull(it) }
         ns.filterIsInstance<Local>().find { it.name() == "a" }
@@ -117,12 +108,9 @@ class BasicIntraproceduralTest {
     @Test
     fun basic4Test() {
         val ns = g.nodes().asSequence().toList()
-        ns.filterIsInstance<NamespaceBlock>().let { nbv ->
-            assertNotNull(nbv.find { it.name() == "basic" })
-            assertNotNull(nbv.find { it.name() == "intraprocedural" })
-        }
+        assertNotNull(ns.filterIsInstance<NamespaceBlock>().find { it.name() == "intraprocedural.basic" })
         ns.filterIsInstance<ODBFile>()
-            .find { it.name() == "intraprocedural.basic.Basic$currentTestNumber" }
+            .find { it.name() == "/intraprocedural/basic/Basic$currentTestNumber.class" }
             .let { assertNotNull(it) }
         ns.filterIsInstance<Method>().find { it.name() == "main" }.let { assertNotNull(it) }
         ns.filterIsInstance<Method>().find { it.name() == "Sally" }.let { assertNotNull(it) }
@@ -148,10 +136,8 @@ class BasicIntraproceduralTest {
         g = driver.getWholeGraph()
         val ns = g.nodes().asSequence().toList()
         ns.filterIsInstance<NamespaceBlock>().let { nbv ->
-            assertNotNull(nbv.find { it.name() == "basic" })
-            assertNotNull(nbv.find { it.name() == "intraprocedural" })
-            assertNotNull(nbv.find { it.name() == "basic5" })
-            assertEquals(3, nbv.toList().size)
+            assertNotNull(nbv.find { it.name() == "intraprocedural.basic.basic5" })
+            assertEquals(2, nbv.toList().size)
         }
         ns.filterIsInstance<TypeDecl>().let { mrv ->
             assertNotNull(mrv.find { it.fullName() == "intraprocedural.basic.Basic5" })
