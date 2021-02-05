@@ -321,7 +321,7 @@ object SootToPlumeUtil {
             .apply {
                 // Attach fields to the TypeDecl
                 cls.fields.forEachIndexed { i, field ->
-                    projectMember(field, i).let { memberVertex ->
+                    projectMember(field, i + 1).let { memberVertex ->
                         driver.addEdge(this, memberVertex, AST)
                         addSootToPlumeAssociation(field, memberVertex)
                     }
