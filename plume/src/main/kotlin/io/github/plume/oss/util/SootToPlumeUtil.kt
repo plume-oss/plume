@@ -21,6 +21,7 @@ import io.github.plume.oss.domain.mappers.VertexMapper.mapToVertex
 import io.github.plume.oss.drivers.IDriver
 import io.github.plume.oss.util.SootParserUtil.determineEvaluationStrategy
 import io.shiftleft.codepropertygraph.generated.EdgeTypes.*
+import io.shiftleft.codepropertygraph.generated.NodeTypes.UNKNOWN
 import io.shiftleft.codepropertygraph.generated.nodes.*
 import scala.Option
 import scala.jdk.CollectionConverters
@@ -323,10 +324,14 @@ object SootToPlumeUtil {
      * @return The [NewTypeDecl] representing this newly created vertex.
      */
     fun buildTypeDeclaration(type: soot.Type, isExternal: Boolean = true): NewTypeDeclBuilder {
-        val filename = (if (type.toQuotedString().contains('.')) "/${
-            type.toQuotedString().replace(".", "/").removeSuffix("[]")
-        }.class"
-        else type.toQuotedString())
+        val filename = if (isExternal) {
+            "<${UNKNOWN.toLowerCase()}>"
+        } else {
+            if (type.toQuotedString().contains('.')) "/${
+                type.toQuotedString().replace(".", "/").removeSuffix("[]")
+            }.class"
+            else type.toQuotedString()
+        }
         val parentType = if (type.toQuotedString().contains('.')) type.toQuotedString().substringBeforeLast(".")
         else type.toQuotedString()
         val shortName = if (type.toQuotedString().contains('.')) type.toQuotedString().substringAfterLast('.')
@@ -338,7 +343,7 @@ object SootToPlumeUtil {
             .filename(filename)
             .astparentfullname(parentType)
             .astparenttype("NAMESPACE_BLOCK")
-            .order(1)
+            .order(if (isExternal) -1 else 1)
             .isexternal(isExternal)
             .apply { addSootToPlumeAssociation(type, this) }
     }

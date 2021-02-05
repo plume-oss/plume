@@ -252,8 +252,18 @@ class Extractor(val driver: IDriver) {
             }
             .distinct().toList().let { if (it.size >= 100000) it.parallelStream() else it.stream() }
             .filter { !it.isPhantom }.map { BriefUnitGraph(it.retrieveActiveBody()) }.toList()
-        // Build types
-        graphs.asSequence().map { it.body.locals }.flatten().map { it.type }
+        // Build types from fields
+        classStream.asSequence().map { it.fields }.flatten().map { it.type }.distinct()
+            .filter { t ->
+                !classStream.any { it.name == t.toQuotedString() }
+                        &&
+                        !programStructure.nodes { n -> n == TYPE_DECL }.asSequence()
+                            .any { n -> n.property(FULL_NAME) == t.toQuotedString() }
+            }
+            .map(SootToPlumeUtil::buildTypeDeclaration)
+            .forEach(driver::addVertex)
+        // Build types from locals
+        graphs.asSequence().map { it.body.locals + it.body.parameterLocals }.flatten().map { it.type }
             .distinct()
             .filter { t ->
                 !classStream.any { it.name == t.toQuotedString() }

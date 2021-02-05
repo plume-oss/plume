@@ -21,24 +21,25 @@ class TypeDeclTests extends PlumeCodeToCpgSuite {
     x.name shouldBe "Bar"
     x.fullName shouldBe "Foo.Bar"
     x.isExternal shouldBe false
-    // TODO
+    // TODO: Inheritance still needs to be added
     // x.inheritsFromTypeFullName shouldBe List("Woo")
     x.aliasTypeFullName shouldBe None
-    // x.order shouldBe 1
+    x.order shouldBe 1
     x.filename.startsWith("/") shouldBe true
     x.filename.endsWith(".class") shouldBe true
   }
 
-//  "should contain type decl for external type `int`" in {
-//    val List(x) = cpg.typeDecl("int").l
-//    x.name shouldBe "int"
-//    x.fullName shouldBe "int"
-//    x.isExternal shouldBe true
+  "should contain type decl for external type `int`" in {
+    cpg.typeDecl.l.foreach(t => println(t.fullName))
+    val List(x) = cpg.typeDecl("int").l
+    x.name shouldBe "int"
+    x.fullName shouldBe "int"
+    x.isExternal shouldBe true
 //    x.inheritsFromTypeFullName shouldBe List()
-//    x.aliasTypeFullName shouldBe None
-//    x.order shouldBe -1
-//    x.filename shouldBe File.UNKNOWN
-//  }
+    x.aliasTypeFullName shouldBe None
+    x.order shouldBe -1
+    x.filename shouldBe File.UNKNOWN
+  }
 
 
 }
