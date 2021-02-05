@@ -54,6 +54,7 @@ object GraphMLWriter {
                 when (u) {
                     is String -> keySet[t] = "string"
                     is Int -> keySet[t] = "int"
+                    is Boolean -> keySet[t] = "boolean"
                     is `$colon$colon`<*> -> keySet[t] = "string"
                     is `Nil$` -> keySet[t] = "string"
                 }

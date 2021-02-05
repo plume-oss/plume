@@ -181,7 +181,7 @@ abstract class GremlinDriver : IDriver {
             .map { Pair(sg.addVertex(T.label, it[T.label], T.id, it[T.id]), it as Map<*, *>) }
             .forEach { (v, map) ->
                 map.filter { it.key != T.id && it.key != T.label }
-                    .forEach { (key, value) -> println("$key -> $value"); v.property(key.toString(), value) }
+                    .forEach { (key, value) -> v.property(key.toString(), value) }
             }
         return gremlinToPlume(sg.traversal())
     }

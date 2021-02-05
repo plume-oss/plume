@@ -101,6 +101,7 @@ object VertexMapper {
                 .name(map["NAME"] as String)
                 .fullname(map["FULL_NAME"] as String)
                 .order(map["ORDER"] as Int)
+                .isexternal(map["IS_EXTERNAL"] as Boolean)
                 .id(map["id"] as Long)
             TypeParameter.Label() -> NewTypeParameterBuilder()
                 .name(map["NAME"] as String)
@@ -332,7 +333,6 @@ object VertexMapper {
                 "POLICY_DIRECTORIES" -> Optional.empty()
                 "INHERITS_FROM_TYPE_FULL_NAME" -> Optional.empty()
                 "OVERLAYS" -> Optional.empty()
-                "IS_EXTERNAL" -> Optional.empty()
                 else -> Optional.of(it.key)
             }
             if (key.isPresent) attributes[key.get()] = it.value

@@ -44,7 +44,7 @@ object SootToPlumeUtil {
      *
      * @param field The [SootField] from which the class member information is constructed from.
      */
-    private fun projectMember(field: SootField, childIdx: Int): NewMemberBuilder =
+    fun projectMember(field: SootField, childIdx: Int): NewMemberBuilder =
         NewMemberBuilder()
             .name(field.name)
             .code(field.declaration)
@@ -153,8 +153,16 @@ object SootToPlumeUtil {
             (Extractor.getSootAssociation(mtd)?.size ?: 0) + 1
         )
         // Create program structure
-        buildClassStructure(mtd.declaringClass, driver)
-        buildTypeDeclaration(mtd.declaringClass, driver)
+        val cls = mtd.declaringClass
+        buildClassStructure(cls, driver)
+        val typeDecl = buildTypeDeclaration(cls.type)
+        addSootToPlumeAssociation(cls, typeDecl)
+        cls.fields.forEachIndexed { i, field ->
+            projectMember(field, i + 1).let { memberVertex ->
+                driver.addEdge(typeDecl, memberVertex, AST)
+                addSootToPlumeAssociation(field, memberVertex)
+            }
+        }
         connectMethodToTypeDecls(mtd, driver)
         return mtdVertex
     }
@@ -245,10 +253,10 @@ object SootToPlumeUtil {
      * @param cls the soot class
      * @return the filename in string form
      * */
-    fun sootClassToFileName(cls : SootClass) : String {
+    fun sootClassToFileName(cls: SootClass): String {
         val packageName = cls.packageName
         return if (packageName != null) {
-            "/" + cls.name.replace(".", "/")  + ".class"
+            "/" + cls.name.replace(".", "/") + ".class"
         } else {
             io.shiftleft.semanticcpg.language.types.structure.File.UNKNOWN()
         }
@@ -260,7 +268,11 @@ object SootToPlumeUtil {
      * @param namespaceList A list of package names.
      * @return The final [NewNamespaceBlockBuilder] in the chain (the one associated with the file).
      */
-    private fun populateNamespaceChain(namespaceList: Array<String>, filename : String, driver: IDriver): NewNamespaceBlockBuilder {
+    private fun populateNamespaceChain(
+        namespaceList: Array<String>,
+        filename: String,
+        driver: IDriver
+    ): NewNamespaceBlockBuilder {
         var prevNamespaceBlock: NewNamespaceBlockBuilder
         var currNamespaceBlock: NewNamespaceBlockBuilder? = null
         driver.getProgramStructure().use { programStructure ->
@@ -304,30 +316,32 @@ object SootToPlumeUtil {
     }
 
     /**
-     * Given a class will construct a type declaration with members.
+     * Given a type will construct a type declaration with members.
      *
-     * @param cls The [SootClass] to create the declaration from.
-     * @param driver The driver to construct the type declaration to.
+     * @param type The [soot.Type] to create the declaration from.
+     * @param isExternal Whether the type is part of the application or it is external.
      * @return The [NewTypeDecl] representing this newly created vertex.
      */
-    fun buildTypeDeclaration(cls: SootClass, driver: IDriver): NewTypeDeclBuilder =
-        NewTypeDeclBuilder()
-            .name(cls.shortName)
-            .fullname(cls.name)
-            .filename(sootClassToFileName(cls))
-            .astparentfullname(cls.getPackageName())
+    fun buildTypeDeclaration(type: soot.Type, isExternal: Boolean = true): NewTypeDeclBuilder {
+        val filename = (if (type.toQuotedString().contains('.')) "/${
+            type.toQuotedString().replace(".", "/").removeSuffix("[]")
+        }.class"
+        else type.toQuotedString())
+        val parentType = if (type.toQuotedString().contains('.')) type.toQuotedString().substringBeforeLast(".")
+        else type.toQuotedString()
+        val shortName = if (type.toQuotedString().contains('.')) type.toQuotedString().substringAfterLast('.')
+        else type.toQuotedString()
+
+        return NewTypeDeclBuilder()
+            .name(shortName)
+            .fullname(type.toQuotedString())
+            .filename(filename)
+            .astparentfullname(parentType)
             .astparenttype("NAMESPACE_BLOCK")
-            .order(0)
-            .apply {
-                // Attach fields to the TypeDecl
-                cls.fields.forEachIndexed { i, field ->
-                    projectMember(field, i).let { memberVertex ->
-                        driver.addEdge(this, memberVertex, AST)
-                        addSootToPlumeAssociation(field, memberVertex)
-                    }
-                }
-                addSootToPlumeAssociation(cls, this)
-            }
+            .order(1)
+            .isexternal(isExternal)
+            .apply { addSootToPlumeAssociation(type, this) }
+    }
 
     /**
      * Connects the given method's [BriefUnitGraph] to its type declaration and source file (if present).
