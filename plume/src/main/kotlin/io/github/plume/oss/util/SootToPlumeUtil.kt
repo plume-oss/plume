@@ -321,7 +321,7 @@ object SootToPlumeUtil {
             .apply {
                 // Attach fields to the TypeDecl
                 cls.fields.forEachIndexed { i, field ->
-                    projectMember(field, i).let { memberVertex ->
+                    projectMember(field, i + 1).let { memberVertex ->
                         driver.addEdge(this, memberVertex, AST)
                         addSootToPlumeAssociation(field, memberVertex)
                     }
@@ -354,7 +354,7 @@ object SootToPlumeUtil {
         childIdx: Int = 0
     ): NewMethodReturnBuilder =
         NewMethodReturnBuilder()
-            .code("return ${type.toQuotedString()}")
+            .code("${type.toQuotedString()}")
             .evaluationstrategy(determineEvaluationStrategy(type.toQuotedString(), true))
             .typefullname(type.toQuotedString())
             .linenumber(Option.apply(currentLine))
