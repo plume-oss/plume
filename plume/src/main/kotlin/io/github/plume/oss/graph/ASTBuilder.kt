@@ -65,7 +65,7 @@ class ASTBuilder(private val driver: IDriver) : IGraphBuilder {
         // Build body
         graph.body.units.filterNot { it is IdentityStmt }
             .forEachIndexed { idx, u ->
-                projectUnit(u, idx)
+                projectUnit(u, idx + 1)
                     ?.let {
                         runCatching {
                             driver.addEdge(
@@ -152,8 +152,8 @@ class ASTBuilder(private val driver: IDriver) : IGraphBuilder {
         // Create vertices for arguments
         unit.args.forEachIndexed { i, arg ->
             when (arg) {
-                is Local -> SootToPlumeUtil.createIdentifierVertex(arg, currentLine, currentCol, i)
-                is Constant -> SootToPlumeUtil.createLiteralVertex(arg, currentLine, currentCol, i)
+                is Local -> SootToPlumeUtil.createIdentifierVertex(arg, currentLine, currentCol, i + 1)
+                is Constant -> SootToPlumeUtil.createLiteralVertex(arg, currentLine, currentCol, i + 1)
                 else -> null
             }?.let { expressionVertex ->
                 runCatching {
@@ -447,21 +447,21 @@ class ASTBuilder(private val driver: IDriver) : IGraphBuilder {
             .signature("${expr.op1.type} $symbol ${expr.op2.type}")
             .methodfullname(symbol)
             .dispatchtype(STATIC_DISPATCH)
-            .order(2)
-            .argumentindex(2) // under an if-condition, the condition child will be after the two paths
+            .order(3)
+            .argumentindex(3) // under an if-condition, the condition child will be after the two paths
             .typefullname(expr.type.toQuotedString())
             .linenumber(Option.apply(currentLine))
             .columnnumber(Option.apply(currentCol))
             .dynamictypehintfullname(createScalaList(expr.op2.type.toQuotedString()))
             .apply { conditionVertices.add(this) }
-        projectOp(expr.op1, 0)?.let {
+        projectOp(expr.op1, 1)?.let {
             runCatching {
                 driver.addEdge(binOpBlock, it, AST)
             }.onFailure { e -> logger.warn(e.message) }
             conditionVertices.add(it)
             addSootToPlumeAssociation(expr.op1, it)
         }
-        projectOp(expr.op2, 1)?.let {
+        projectOp(expr.op2, 2)?.let {
             runCatching {
                 driver.addEdge(binOpBlock, it, AST)
             }.onFailure { e -> logger.warn(e.message) }
@@ -487,7 +487,7 @@ class ASTBuilder(private val driver: IDriver) : IGraphBuilder {
             .linenumber(Option.apply(currentLine))
             .columnnumber(Option.apply(currentCol))
             .apply { castVertices.add(this) }
-        projectOp(expr.op, 0)?.let {
+        projectOp(expr.op, 1)?.let {
             runCatching {
                 driver.addEdge(castBlock, it, AST); castVertices.add(it)
             }.onFailure { e -> logger.warn(e.message) }
