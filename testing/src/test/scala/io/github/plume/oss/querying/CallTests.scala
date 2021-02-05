@@ -37,7 +37,7 @@ class CallTests extends PlumeCodeToCpgSuite {
 
   "should allow traversing from call to arguments" in {
     cpg.call("add").argument.size shouldBe 2
-    
+
     val List(arg1) = cpg.call("add").argument(1).l
     arg1.isInstanceOf[nodes.Identifier] shouldBe true
     arg1.asInstanceOf[nodes.Identifier].name shouldBe "argc"
