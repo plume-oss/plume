@@ -74,7 +74,7 @@ interface IDriver : AutoCloseable {
     fun getMethod(fullName: String, signature: String, includeBody: Boolean = false): Graph
 
     /**
-     * Obtains all program structure related vertices.
+     * Obtains all program structure related vertices. These are NAMESPACE_BLOCK, FILE, and TYPE_DECL vertices.
      *
      * @return The [Graph] containing the program structure related sub-graphs.
      */

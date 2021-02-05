@@ -127,7 +127,7 @@ CREATE QUERY getProgramStructure() FOR GRAPH cpg {
 
   WHILE start.size() > 0 DO
 	  start = SELECT t
-	          FROM start:s -(AST:e) ->:t
+	          FROM start:s -(AST:e)->:t
 	          WHERE NOT t.@visited
 	          ACCUM t.@visited = TRUE, @@edges += e;
     allVert = allVert UNION start;
@@ -136,6 +136,11 @@ CREATE QUERY getProgramStructure() FOR GRAPH cpg {
   finalEdges = SELECT t
                FROM allVert -(AST:e)->:t
                ACCUM @@edges += e;
+  start = {CPG_VERT.*};
+  typeDecl = SELECT n
+             FROM start:n
+             WHERE n.label == "TYPE_DECL";
+  allVert = allVert UNION typeDecl;
 
   PRINT allVert;
   PRINT @@edges;

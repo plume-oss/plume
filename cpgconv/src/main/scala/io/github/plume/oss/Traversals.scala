@@ -1,10 +1,9 @@
 package io.github.plume.oss
 
 import java.util
-
 import io.shiftleft.codepropertygraph.Cpg
 import io.shiftleft.codepropertygraph.generated.EdgeTypes
-import io.shiftleft.codepropertygraph.generated.nodes.{AstNode, HasOrder, StoredNode}
+import io.shiftleft.codepropertygraph.generated.nodes.{AstNode, HasOrder, StoredNode, TypeDecl}
 import io.shiftleft.semanticcpg.language._
 import overflowdb.{Edge, Graph}
 import io.shiftleft.codepropertygraph.generated.nodes
@@ -54,6 +53,8 @@ object Traversals {
       .flatten
     (edgesFromFile ++ edgesFromNamespaceBlock).asJava
   }
+
+  def getTypeDecls(graph: Graph):util.List[TypeDecl] = Cpg(graph).typeDecl.l.asJava
 
   def getNeighbours(graph: Graph, nodeId: Long): util.List[Edge] = {
     Cpg(graph)

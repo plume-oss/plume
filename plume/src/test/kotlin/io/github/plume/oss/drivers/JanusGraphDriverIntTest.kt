@@ -31,6 +31,7 @@ import io.github.plume.oss.TestDomainResources.Companion.typeParameterVertex
 import io.github.plume.oss.TestDomainResources.Companion.typeRefVertex
 import io.github.plume.oss.TestDomainResources.Companion.unknownVertex
 import io.github.plume.oss.domain.exceptions.PlumeSchemaViolationException
+import io.github.plume.oss.graphio.GraphMLWriter
 import io.github.plume.oss.util.SootToPlumeUtil
 import io.shiftleft.codepropertygraph.generated.EdgeTypes.*
 import io.shiftleft.codepropertygraph.generated.nodes.*
@@ -39,6 +40,7 @@ import org.junit.jupiter.api.*
 import org.junit.jupiter.api.Assertions.*
 import overflowdb.Graph
 import scala.Option
+import java.io.FileWriter
 import kotlin.properties.Delegates
 
 class JanusGraphDriverIntTest {
@@ -504,15 +506,16 @@ class JanusGraphDriverIntTest {
             g = driver.getProgramStructure()
             val ns = g.nodes().asSequence().toList()
             val es = g.edges().asSequence().toList()
-            assertEquals(3, ns.size)
+            assertEquals(4, ns.size)
             assertEquals(2, es.size)
 
             val file = g.V(fileVertex.id()).next()
             val ns1 = g.V(namespaceBlockVertex1.id()).next()
-            // Assert no program structure vertices part of the method body
+            // Assert program structure vertices are present
             assertTrue(ns.any { it.id() == namespaceBlockVertex2.id() })
             assertTrue(ns.any { it.id() == namespaceBlockVertex1.id() })
             assertTrue(ns.any { it.id() == fileVertex.id() })
+            assertTrue(ns.any { it.id() == typeDeclVertex.id() })
             // Check that vertices are connected by AST edges
             assertTrue(file.out(AST).asSequence().any { it.id() == namespaceBlockVertex1.id() })
             assertTrue(ns1.out(AST).asSequence().any { it.id() == namespaceBlockVertex2.id() })

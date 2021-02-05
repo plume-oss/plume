@@ -5,8 +5,7 @@ import io.github.plume.oss.domain.mappers.VertexMapper
 import io.github.plume.oss.domain.mappers.VertexMapper.checkSchemaConstraints
 import io.github.plume.oss.domain.mappers.VertexMapper.mapToVertex
 import io.shiftleft.codepropertygraph.generated.EdgeTypes.AST
-import io.shiftleft.codepropertygraph.generated.NodeTypes.FILE
-import io.shiftleft.codepropertygraph.generated.NodeTypes.METHOD
+import io.shiftleft.codepropertygraph.generated.NodeTypes.*
 import io.shiftleft.codepropertygraph.generated.nodes.NewNodeBuilder
 import org.apache.logging.log4j.LogManager
 import org.neo4j.driver.AuthTokens
@@ -320,6 +319,17 @@ class Neo4jDriver : IDriver {
                 ).list().map { it["x"] }
             }
             neo4jToOverflowGraph(result, graph)
+            val typeDecl = session.writeTransaction { tx ->
+                tx.run(
+                    """
+                    MATCH (n:$TYPE_DECL)
+                    RETURN n
+                    """.trimIndent()
+                ).list()
+            }
+            typeDecl.map { it["n"].asNode() }
+                .map { mapToVertex(it.asMap() + mapOf("id" to it.id())) }
+                .forEach { addNodeToGraph(graph, it) }
         }
         return graph
     }
