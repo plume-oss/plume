@@ -373,7 +373,7 @@ object SootToPlumeUtil {
         childIdx: Int = 0
     ): NewMethodReturnBuilder =
         NewMethodReturnBuilder()
-            .code("return ${type.toQuotedString()}")
+            .code("${type.toQuotedString()}")
             .evaluationstrategy(determineEvaluationStrategy(type.toQuotedString(), true))
             .typefullname(type.toQuotedString())
             .linenumber(Option.apply(currentLine))
