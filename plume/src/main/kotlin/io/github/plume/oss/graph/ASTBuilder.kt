@@ -139,7 +139,7 @@ class ASTBuilder(private val driver: IDriver) : IGraphBuilder {
         val callVertex = NewCallBuilder()
             .name(unit.methodRef.name)
             .signature(unit.methodRef.signature)
-            .code(unit.methodRef.subSignature.toString())
+            .code("${unit.methodRef.name}(${unit.args.joinToString()})")
             .order(childIdx)
             .dynamictypehintfullname(createScalaList(unit.methodRef.returnType.toQuotedString()))
             .linenumber(Option.apply(currentLine))

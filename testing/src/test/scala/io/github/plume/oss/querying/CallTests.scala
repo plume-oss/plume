@@ -23,8 +23,7 @@ class CallTests extends PlumeCodeToCpgSuite {
 
   "should contain a call node for `add` with correct fields" in {
     val List(x) = cpg.call("add").l
-    // TODO
-    // x.code shouldBe "add((1+2), 3)"
+    x.code shouldBe "add(argc, 3)"
     x.name shouldBe "add"
     x.order shouldBe 1
     x.methodInstFullName shouldBe None // Deprecated

@@ -83,7 +83,7 @@ class BasicInterproceduralTest {
         mainMethod!!; fMethod!!; fCall!!
         val assignVert = g.V(fCall.id()).next().`in`(ARGUMENT).next()
         assertNotNull(assignVert)
-        assertTrue(g.V(assignVert.id()).next().out(CALL).asSequence().any { it.id() == fMethod.id() })
+        assertTrue(g.V(fCall.id()).next().out(CALL).asSequence().any { it.id() == fMethod.id() })
         g.V(fCall.id()).next().out(ARGUMENT).asSequence().filterIsInstance<Literal>().firstOrNull()
             ?.let { assertEquals("5", it.code()) }
     }
@@ -108,7 +108,7 @@ class BasicInterproceduralTest {
         mainMethod!!; initMethod!!; fCall!!; fMethod!!
         g.V(initMethod.id()).next().out(REF).asSequence().filterIsInstance<Method>().firstOrNull()
             ?.apply { assertNotNull(this); assertEquals(initMethod.name(), this.name()) }
-        assertTrue(g.V(fCall.id()).next().`in`(ARGUMENT).next().out(CALL).asSequence().any { it.id() == fMethod.id() })
+        assertTrue(g.V(fCall.id()).next().out(CALL).asSequence().any { it.id() == fMethod.id() })
     }
 
     @Test
@@ -139,7 +139,7 @@ class BasicInterproceduralTest {
         mainMethod!!; initMethod!!; fCall!!; fMethod!!
         g.V(initMethod.id()).next().out(CALL).asSequence().filterIsInstance<Method>().firstOrNull()
             ?.apply { assertNotNull(this); assertEquals(initMethod.name(), this.name()) }
-        assertNotNull(g.V(fCall.id()).next().`in`(ARGUMENT).next().out(CALL).asSequence().firstOrNull { it.id() == fMethod.id() })
+        assertNotNull(g.V(fCall.id()).next().out(CALL).asSequence().firstOrNull { it.id() == fMethod.id() })
         g.V(fCall.id()).next().out(ARGUMENT).asSequence().filterIsInstance<Literal>().toList().let { lv ->
             assertTrue(lv.any { it.code() == "5" })
             assertTrue(lv.any { it.code() == "6" })
