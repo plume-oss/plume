@@ -69,12 +69,11 @@ class CallGraphBuilder(private val driver: IDriver) : IGraphBuilder {
         }
         // If call graph analysis fails because there is no main method, we will need to figure out call edges ourselves
         // We can do this by looking if our call unit does not have any outgoing CALL edges.
-        val callV = when (unit) {
+        when (unit) {
             is AssignStmt -> getSootAssociation(unit.rightOp)?.filterIsInstance<NewCallBuilder>()?.firstOrNull()
             is InvokeStmt -> getSootAssociation(unit.invokeExpr)?.filterIsInstance<NewCallBuilder>()?.firstOrNull()
             else -> null
-        }
-        if (callV != null) {
+        }?.let { callV ->
             driver.getNeighbours(callV).use { g ->
                 // If there is no outgoing call edge from this call, then we should attempt to find it's target method
                 if (g.node(callV.id())?.outE(CALL)?.hasNext() != true) {
@@ -89,7 +88,6 @@ class CallGraphBuilder(private val driver: IDriver) : IGraphBuilder {
                                 val mtdV = mg.nodes(METHOD).next()
                                 // Since this method already exists, we don't need to build a new method, only provide
                                 // an existing ID
-                                // TODO: Create a variant of addEdge that uses supplied IDs
                                 driver.addEdge(callV, NewMethodBuilder().id(mtdV.id()), CALL)
                             }
                         }
