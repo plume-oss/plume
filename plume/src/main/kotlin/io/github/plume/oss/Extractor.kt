@@ -32,12 +32,16 @@ import io.github.plume.oss.util.ResourceCompilationUtil.compileJavaFiles
 import io.github.plume.oss.util.ResourceCompilationUtil.deleteClassFiles
 import io.github.plume.oss.util.ResourceCompilationUtil.moveClassFiles
 import io.github.plume.oss.util.SootToPlumeUtil
+import io.shiftleft.codepropertygraph.generated.EdgeTypes
+import io.shiftleft.codepropertygraph.generated.NodeKeyNames.FULL_NAME
+import io.shiftleft.codepropertygraph.generated.NodeTypes.TYPE_DECL
 import io.shiftleft.codepropertygraph.generated.nodes.*
 import org.apache.logging.log4j.LogManager
 import org.apache.logging.log4j.Logger
 import overflowdb.Graph
 import overflowdb.Node
 import soot.*
+import soot.jimple.*
 import soot.jimple.spark.SparkTransformer
 import soot.jimple.toolkits.callgraph.CHATransformer
 import soot.jimple.toolkits.callgraph.Edge
@@ -248,6 +252,27 @@ class Extractor(val driver: IDriver) {
             }
             .distinct().toList().let { if (it.size >= 100000) it.parallelStream() else it.stream() }
             .filter { !it.isPhantom }.map { BriefUnitGraph(it.retrieveActiveBody()) }.toList()
+        // Build types from fields
+        classStream.asSequence().map { it.fields }.flatten().map { it.type }.distinct()
+            .filter { t ->
+                !classStream.any { it.name == t.toQuotedString() }
+                        &&
+                        !programStructure.nodes { n -> n == TYPE_DECL }.asSequence()
+                            .any { n -> n.property(FULL_NAME) == t.toQuotedString() }
+            }
+            .map(SootToPlumeUtil::buildTypeDeclaration)
+            .forEach(driver::addVertex)
+        // Build types from locals
+        graphs.asSequence().map { it.body.locals + it.body.parameterLocals }.flatten().map { it.type }
+            .distinct()
+            .filter { t ->
+                !classStream.any { it.name == t.toQuotedString() }
+                        &&
+                        !programStructure.nodes { n -> n == TYPE_DECL }.asSequence()
+                            .any { n -> n.property(FULL_NAME) == t.toQuotedString() }
+            }
+            .map(SootToPlumeUtil::buildTypeDeclaration)
+            .forEach(driver::addVertex)
         // Construct the CPGs for methods
         graphs.map(this::constructCPG)
             .toList().asSequence()
@@ -281,7 +306,14 @@ class Extractor(val driver: IDriver) {
         if (programStructure.nodes { it == ODBFile.Label() }.asSequence().none { it.property("NAME") == cls.name }) {
             logger.debug("Building file, namespace, and type declaration for ${cls.name}")
             SootToPlumeUtil.buildClassStructure(cls, driver)
-            SootToPlumeUtil.buildTypeDeclaration(cls, driver)
+            val typeDecl = SootToPlumeUtil.buildTypeDeclaration(cls.type, false)
+            addSootToPlumeAssociation(cls, typeDecl)
+            cls.fields.forEachIndexed { i, field ->
+                SootToPlumeUtil.projectMember(field, i + 1).let { memberVertex ->
+                    driver.addEdge(typeDecl, memberVertex, EdgeTypes.AST)
+                    addSootToPlumeAssociation(field, memberVertex)
+                }
+            }
         }
     }
 
@@ -313,7 +345,7 @@ class Extractor(val driver: IDriver) {
         val currentFileHash = getFileHashPair(cls)
         val files = programStructure.nodes { it == ODBFile.Label() }.asSequence()
         logger.debug("Looking for existing file vertex for ${cls.name} from given file hash $currentFileHash")
-        files.firstOrNull { it.property("NAME") == SootToPlumeUtil.sootClassToFileName(cls)}?.let { fileV ->
+        files.firstOrNull { it.property("NAME") == SootToPlumeUtil.sootClassToFileName(cls) }?.let { fileV ->
             if (fileV.property("HASH") != currentFileHash) {
                 logger.debug("Existing class was found and file hashes do not match, marking for rebuild.")
                 // Rebuild

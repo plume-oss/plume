@@ -27,7 +27,8 @@ CREATE VERTEX CPG_VERT (
     CANONICAL_NAME STRING DEFAULT "null",
     AST_ORDER INT DEFAULT -1,
     SIGNATURE STRING DEFAULT "()",
-    HASH STRING DEFAULT "null"
+    HASH STRING DEFAULT "null",
+    IS_EXTERNAL BOOL DEFAULT "TRUE"
 ) WITH primary_id_as_attribute="true"
 ## Language Dependent
 CREATE VERTEX META_DATA_VERT (
@@ -91,57 +92,51 @@ CREATE QUERY getMethodHead(STRING FULL_NAME, STRING SIGNATURE) FOR GRAPH cpg {
   PRINT @@edges;
 }
 
-CREATE QUERY getMethod(STRING FULL_NAME, STRING SIGNATURE) FOR GRAPH cpg {
+CREATE QUERY getMethod(STRING FULL_NAME, STRING SIGNATURE) FOR GRAPH cpg SYNTAX v2 {
   SetAccum<EDGE> @@edges;
-  OrAccum @visited;
   allV = {ANY};
+  # Get method
   start = SELECT src
           FROM allV:src
           WHERE src.FULL_NAME == FULL_NAME AND src.SIGNATURE == SIGNATURE;
   allVert = start;
-
-  WHILE start.size() > 0 DO
-	  start = SELECT t
-	          FROM start:s -((AST|REF|CFG|ARGUMENT|CAPTURED_BY|BINDS_TO|RECEIVER|CONDITION|BINDS):e) ->:t
-	          WHERE NOT t.@visited
-	          ACCUM t.@visited = TRUE, @@edges += e;
-    allVert = allVert UNION start;
-	END;
-
+  # Get method's body vertices
+  start = SELECT t
+          FROM start:s -((AST>|REF>|CFG>|ARGUMENT>|CAPTURED_BY>|BINDS_TO>|RECEIVER>|CONDITION>|BINDS>)*) - :t;
+  allVert = allVert UNION start;
+  # Get edges between body methods
   finalEdges = SELECT t
-               FROM allVert -((AST|REF|CFG|ARGUMENT|CAPTURED_BY|BINDS_TO|RECEIVER|CONDITION|BINDS):e)->:t
+               FROM allVert -((AST>|REF>|CFG>|ARGUMENT>|CAPTURED_BY>|BINDS_TO>|RECEIVER>|CONDITION>|BINDS>):e)-:t
                ACCUM @@edges += e;
-
   PRINT allVert;
   PRINT @@edges;
 }
 
-CREATE QUERY getProgramStructure() FOR GRAPH cpg {
+CREATE QUERY getProgramStructure() FOR GRAPH cpg SYNTAX v2 {
   SetAccum<EDGE> @@edges;
-  OrAccum @visited;
+
   start = {CPG_VERT.*};
   start = SELECT s
-          FROM start:s -(:e)-> :t
-          WHERE s.label == "FILE";
+          FROM start:s
+          WHERE s.label == "FILE" OR s.label == "TYPE_DECL";
   allVert = start;
 
-  WHILE start.size() > 0 DO
-	  start = SELECT t
-	          FROM start:s -(AST:e) ->:t
-	          WHERE NOT t.@visited
-	          ACCUM t.@visited = TRUE, @@edges += e;
-    allVert = allVert UNION start;
-	END;
+	start = SELECT t
+	        FROM start:s -(AST>*)- :t
+          WHERE t.label == "NAMESPACE_BLOCK";
+  allVert = allVert UNION start;
 
   finalEdges = SELECT t
-               FROM allVert -(AST:e)->:t
+               FROM allVert -(AST>:e)- :t
+               WHERE t.label == "NAMESPACE_BLOCK"
                ACCUM @@edges += e;
+  start = {CPG_VERT.*};
 
   PRINT allVert;
   PRINT @@edges;
 }
 
-CREATE QUERY getNeighbours(VERTEX<CPG_VERT> SOURCE) FOR GRAPH cpg {
+CREATE QUERY getNeighbours(VERTEX<CPG_VERT> SOURCE) FOR GRAPH cpg SYNTAX v2 {
   SetAccum<EDGE> @@edges;
   seed = {CPG_VERT.*};
   sourceSet = {SOURCE};
@@ -149,33 +144,23 @@ CREATE QUERY getNeighbours(VERTEX<CPG_VERT> SOURCE) FOR GRAPH cpg {
             FROM seed:src -(:e)- CPG_VERT:tgt
             WHERE src == SOURCE
             ACCUM @@edges += e;
-  inVert = SELECT src
-            FROM seed:src -(:e)- CPG_VERT:tgt
-            WHERE tgt == SOURCE
-            ACCUM @@edges += e;
-  allVert = inVert UNION outVert;
-  allVert = allVert UNION sourceSet;
+  allVert = outVert UNION sourceSet;
 
   PRINT allVert;
   PRINT @@edges;
 }
 
-CREATE QUERY deleteMethod(STRING FULL_NAME, STRING SIGNATURE) FOR GRAPH cpg {
-  SetAccum<EDGE> @@edges;
-  OrAccum @visited;
+CREATE QUERY deleteMethod(STRING FULL_NAME, STRING SIGNATURE) FOR GRAPH cpg SYNTAX v2 {
   allV = {ANY};
+  # Get method
   start = SELECT src
           FROM allV:src
           WHERE src.FULL_NAME == FULL_NAME AND src.SIGNATURE == SIGNATURE;
   allVert = start;
-
-  WHILE start.size() > 0 DO
-	  start = SELECT t
-	          FROM start:s -((AST|REF|CFG|ARGUMENT|CAPTURED_BY|BINDS_TO|RECEIVER|CONDITION|BINDS):e) ->:t
-	          WHERE NOT t.@visited
-	          ACCUM t.@visited = TRUE, @@edges += e;
-    allVert = allVert UNION start;
-	END;
+  # Get method's body vertices
+  start = SELECT t
+          FROM start:s -((AST>|REF>|CFG>|ARGUMENT>|CAPTURED_BY>|BINDS_TO>|RECEIVER>|CONDITION>|BINDS>)*) - :t;
+  allVert = allVert UNION start;
 
   DELETE s FROM allVert:s;
 }

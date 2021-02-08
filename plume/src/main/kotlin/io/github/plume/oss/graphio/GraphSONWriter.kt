@@ -99,6 +99,7 @@ object GraphSONWriter {
                 is String -> sb.append(",\"value\":\"$v\"")
                 is Int -> sb.append(",\"value\":{\"@type\":\"g:Int32\",\"@value\":$v}")
                 is Long -> sb.append(",\"value\":{\"@type\":\"g:Int64\",\"@value\":$v}")
+                is Boolean -> sb.append(",\"value\":$v")
                 else -> println("Unsupported type $v ${v.javaClass}")
             }
             sb.append("}]")

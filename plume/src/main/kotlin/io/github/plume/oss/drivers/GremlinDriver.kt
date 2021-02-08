@@ -166,13 +166,24 @@ abstract class GremlinDriver : IDriver {
     }
 
     override fun getProgramStructure(): overflowdb.Graph {
-        val programStructureSubGraph = g.V().hasLabel(File.Label())
+        val sg = g.V().hasLabel(File.Label())
             .repeat(un.outE(AST).inV()).emit()
             .inE()
             .subgraph("sg")
             .cap<Graph>("sg")
             .next()
-        return gremlinToPlume(programStructureSubGraph.traversal())
+        // Transfer type decl vertices to the result, this needs to be done with the tokens step to get all properties
+        // from the remote server
+        g.V().hasLabel(TypeDecl.Label()).valueMap<String>()
+            .with(WithOptions.tokens)
+            .by(un.unfold<Any>())
+            .toStream()
+            .map { Pair(sg.addVertex(T.label, it[T.label], T.id, it[T.id]), it as Map<*, *>) }
+            .forEach { (v, map) ->
+                map.filter { it.key != T.id && it.key != T.label }
+                    .forEach { (key, value) -> v.property(key.toString(), value) }
+            }
+        return gremlinToPlume(sg.traversal())
     }
 
     override fun getNeighbours(v: NewNodeBuilder): overflowdb.Graph {

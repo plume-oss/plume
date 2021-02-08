@@ -24,6 +24,7 @@ class TestDomainResources {
         val EVAL_2 = BY_SHARING
         val MOD_1 = ABSTRACT
         val MOD_2 = CONSTRUCTOR
+        val BOOL_1 = false
 
         val vertices = listOf<NewNodeBuilder>(
             NewArrayInitializerBuilder().order(INT_1),
@@ -63,7 +64,7 @@ class TestDomainResources {
             NewReturnBuilder().order(INT_1).argumentindex(INT_1).code(STRING_1).linenumber(Option.apply(INT_1))
                 .columnnumber(Option.apply(INT_1)),
             NewTypeArgumentBuilder().order(INT_1),
-            NewTypeDeclBuilder().name(STRING_1).fullname(STRING_1).order(INT_1),
+            NewTypeDeclBuilder().name(STRING_1).fullname(STRING_1).order(INT_1).isexternal(BOOL_1),
             NewTypeParameterBuilder().name(STRING_1).order(INT_1),
             NewTypeRefBuilder().typefullname(STRING_1)
                 .dynamictypehintfullname(createScalaList(STRING_1))

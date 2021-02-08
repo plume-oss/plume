@@ -142,7 +142,10 @@ class BasicIntraproceduralTest {
         ns.filterIsInstance<TypeDecl>().let { mrv ->
             assertNotNull(mrv.find { it.fullName() == "intraprocedural.basic.Basic5" })
             assertNotNull(mrv.find { it.fullName() == "intraprocedural.basic.basic5.Basic5" })
-            assertEquals(2, mrv.toList().size)
+            assertNotNull(mrv.find { it.fullName() == "int" })
+            assertNotNull(mrv.find { it.fullName() == "byte" })
+            assertNotNull(mrv.find { it.fullName() == "java.lang.String[]" })
+            assertEquals(5, mrv.toList().size)
         }
         ns.filterIsInstance<Method>().let { mv ->
             assertNotNull(mv.find { it.fullName() == "intraprocedural.basic.Basic5.main" })
