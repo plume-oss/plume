@@ -9,9 +9,19 @@ and this project adheres to [Semantic Versioning](http://semver.org/).
 ### Added
 
 ### Changed
+
+### Fixed
+
+## [0.1.4] - 2021-02-08
+
+### Added
+- `TypeDecl` are now properly generated for external types
+
+### Changed
 - Replaced Plume enums with `codepropertygraph` constants
 
 ### Fixed
+- `CALL` edges not created if no `static void main` present
 
 ## [0.1.3] - 2021-02-02
 

@@ -3,6 +3,7 @@ name: Release
 on:
   push:
     branches: [ master ]
+    tags: [ 'v*' ] # Push events to matching v*, i.e. v1.0, v20.15.10
 
 jobs:
   publish:
@@ -23,11 +24,16 @@ jobs:
         run: chmod +x gradlew
       - name: Build code
         run: ./gradlew assemble
-      - name: Publish release to jCenter
-        run: ./gradlew bintrayUpload
+      - name: Create Release
+        id: create_release
+        uses: actions/create-release@v1
         env:
-          BINTRAY_USER: ${{ secrets.BINTRAY_USER }}
-          BINTRAY_API_KEY: ${{ secrets.BINTRAY_API_KEY }}
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          tag_name: ${{ github.ref }}
+          release_name: Release ${{ github.ref }}
+          draft: false
+          prerelease: false
       - name: Build and deploy Orchid documentation
         run: ./gradlew :plume:orchidDeploy -PorchidEnvironment=prod
         env:
