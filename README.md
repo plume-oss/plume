@@ -2,7 +2,7 @@
 [![License](https://img.shields.io/badge/License-Apache%202.0-blue.svg)](https://opensource.org/licenses/Apache-2.0)
 ![GitHub Actions](https://github.com/plume-oss/plume/workflows/CI/badge.svg)
 [![codecov](https://codecov.io/gh/plume-oss/plume/branch/develop/graph/badge.svg)](https://codecov.io/gh/plume-oss/plume)
-[![Download](https://api.bintray.com/packages/plume-oss/maven/plume/images/download.svg)](https://bintray.com/plume-oss/maven/plume/_latestVersion)
+[![](https://jitpack.io/v/plume-oss/plume.svg)](https://jitpack.io/#plume-oss/plume)
 
 A Kotlin driver for the Plume library to provide an interface for connecting and writing to various graph databases based
 on the [code-property graph schema](https://github.com/ShiftLeftSecurity/codepropertygraph/blob/master/codepropertygraph/src/main/resources/schemas/base.json).
@@ -11,7 +11,7 @@ For more documentation check out the [Plume docs](https://plume-oss.github.io/pl
 
 ## Download from jCenter Bintray
 
-Replace `X.X.X` with the desired version on [jCenter](https://bintray.com/plume-oss/maven/plume/_latestVersion).
+Replace `X.X.X` with the desired version on [JitPack](https://bintray.com/plume-oss/maven/plume/_latestVersion).
 
 Maven:
 ```mxml
@@ -28,7 +28,7 @@ Gradle:
 implementation 'io.github.plume-oss:plume:X.X.X'
 ```
 
-Don't forget to include the jCenter repository in your `pom.xml` or `build.gradle`.
+Don't forget to include the JCenter and JitPack repository in your `pom.xml` or `build.gradle`.
 
 Maven:
 ```mxml
@@ -40,6 +40,11 @@ Maven:
       <name>jcenter</name>
       <url>https://jcenter.bintray.com</url>
     </repository>
+    <repository>
+      <id>jitpack</id>
+      <name>jitpack</name>
+      <url>https://jitpack.io</url>
+    </repository>
   </repositories>
   [...]
 </project>
@@ -49,13 +54,14 @@ Gradle:
 ```groovy
 repositories {
     jcenter()
+    maven { url "https://jitpack.io" }
 }
 ```
 
 ## Building from Source
 
-Plume releases are available on JCenter. If downloading from JCenter
-is not an option or you would like to depend on a modified version of
+Plume releases are available on JitPack. If downloading from JitPack
+is not an option, or you would like to depend on a modified version of
 Plume, you can build Plume locally and use it as an unmanaged
 dependency. JDK version 11 or higher is required.
 
