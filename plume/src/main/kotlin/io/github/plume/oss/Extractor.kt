@@ -61,6 +61,7 @@ import java.nio.file.Files
 import java.nio.file.Path
 import java.nio.file.Paths
 import java.util.stream.Collectors
+import kotlin.streams.asSequence
 import kotlin.streams.toList
 import io.shiftleft.codepropertygraph.generated.nodes.File as ODBFile
 
@@ -254,35 +255,16 @@ class Extractor(val driver: IDriver) {
         // Setup defaults
         setUpDefaultStructure()
         // Load all methods to construct the CPG from and convert them to UnitGraph objects
-        val graphs = classStream.asSequence()
-            .map { it.methods.filter { mtd -> mtd.isConcrete }.toList() }.flatten()
-            .let {
-                if (ExtractorOptions.callGraphAlg == ExtractorOptions.CallGraphAlg.NONE)
-                    it else it.map(this::addExternallyReferencedMethods).flatten()
-            }
-            .distinct().toList().let { if (it.size >= 100000) it.parallelStream() else it.stream() }
-            .filter { !it.isPhantom }.map { BriefUnitGraph(it.retrieveActiveBody()) }.toList()
+        val graphs = constructUnitGraphs(classStream)
         // Build external types from fields and locals
-        val createExtTypes = { stream: Sequence<soot.Type> ->
-            stream.distinct()
-                .filter { t -> !classStream.any { it.name == t.toString() } }
-                .filter {
-                    !programStructure.nodes(TYPE_DECL).asSequence().any { n -> n.property(FULL_NAME) == it.toString() }
-                }
-                .map { t -> buildTypeDeclaration(t).apply { driver.addVertex(this) } }
-                .forEach { t ->
-                    // Connect external type decls to the unknown file vert
-                    getSootAssociation("<unknown>")?.let {
-                        it.firstOrNull()?.let { f -> driver.addEdge(t, f, SOURCE_FILE) }
-                    }
-                    // Connect type decls to their modifiers
-                    obtainModifiersFromTypeDeclVert(t).forEachIndexed { i, m ->
-                        driver.addEdge(t, NewModifierBuilder().modifiertype(m).order(i + 1), AST)
-                    }
-                }
-        }
-        createExtTypes(classStream.asSequence().map { it.fields }.flatten().map { it.type })
-        createExtTypes(graphs.asSequence().map { it.body.locals + it.body.parameterLocals }.flatten().map { it.type })
+        createExternalTypes(
+            classStream = classStream,
+            typeStream = classStream.asSequence().map { it.fields }.flatten().map { it.type }
+        )
+        createExternalTypes(
+            classStream = classStream,
+            typeStream = graphs.asSequence().map { it.body.locals + it.body.parameterLocals }.flatten().map { it.type }
+        )
         // Construct the CPGs for methods
         graphs.map(this::constructCPG)
             .toList().asSequence()
@@ -293,6 +275,51 @@ class Extractor(val driver: IDriver) {
         graphs.forEach { SootToPlumeUtil.connectMethodToTypeDecls(it.body.method, driver) }
         clear()
     }
+
+    /**
+     * Creates [TypeDecl] from external [soot.Type]s. This also links the [TypeDecl]s to their modifiers and the
+     * unknown file vertex.
+     *
+     * @param classStream The stream of application [SootClass] to separate external classes from.
+     * @param typeStream The stream of all [soot.Type]s.
+     */
+    private fun createExternalTypes(classStream: List<SootClass>, typeStream: Sequence<soot.Type>) {
+        typeStream.distinct()
+            .filter { t -> !classStream.any { it.name == t.toString() } }
+            .filter {
+                !programStructure.nodes(TYPE_DECL).asSequence().any { n -> n.property(FULL_NAME) == it.toString() }
+            }
+            .map { t -> buildTypeDeclaration(t).apply { driver.addVertex(this) } }
+            .forEach { t ->
+                // Connect external type decls to the unknown file vert
+                getSootAssociation("<unknown>")?.let {
+                    it.firstOrNull()?.let { f -> driver.addEdge(t, f, SOURCE_FILE) }
+                }
+                // Connect type decls to their modifiers
+                obtainModifiersFromTypeDeclVert(t).forEachIndexed { i, m ->
+                    driver.addEdge(t, NewModifierBuilder().modifiertype(m).order(i + 1), AST)
+                }
+            }
+    }
+
+    /**
+     * Load all methods to construct the CPG from and convert them to [UnitGraph] objects.
+     *
+     * @param classStream A stream of [SootClass] to construct [BriefUnitGraph] from.
+     * @return a list of [BriefUnitGraph] objects.
+     */
+    private fun constructUnitGraphs(classStream: List<SootClass>) = classStream.asSequence()
+        .map { it.methods.filter { mtd -> mtd.isConcrete }.toList() }.flatten()
+        .let {
+            if (ExtractorOptions.callGraphAlg == ExtractorOptions.CallGraphAlg.NONE)
+                it else it.map(this::addExternallyReferencedMethods).flatten()
+        }
+        .distinct().toList().let { if (it.size >= 100000) it.parallelStream() else it.stream() }
+        .filter { !it.isPhantom }.map { m ->
+            runCatching { BriefUnitGraph(m.retrieveActiveBody()) }
+                .onFailure { logger.warn("Unable to get method body for method ${m.name}.") }
+                .getOrNull()
+        }.asSequence().filterNotNull().toList()
 
     /**
      * Sets up default vertices for placeholders like unknown files.
@@ -319,7 +346,13 @@ class Extractor(val driver: IDriver) {
     private fun addExternallyReferencedMethods(mtd: SootMethod): List<SootMethod> {
         val cg = Scene.v().callGraph
         val edges = cg.edgesOutOf(mtd) as Iterator<Edge>
-        return edges.asSequence().map { it.tgt.method() }.toMutableList().apply { this.add(mtd) }
+        return edges.asSequence()
+            .map { e ->
+                runCatching { e.tgt.method() }
+                    .onFailure { logger.warn("Unable to get method for externally referenced method ${e.tgt}.") }
+                    .getOrNull()
+            }
+            .filterNotNull().toMutableList().apply { this.add(mtd) }
     }
 
     /**

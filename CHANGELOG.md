@@ -14,6 +14,8 @@ and this project adheres to [Semantic Versioning](http://semver.org/).
 ### Changed
 
 ### Fixed
+- When Soot cannot get method data, it will log this as a warning 
+  instead of throwing a `RuntimeException`
 
 ## [0.1.4] - 2021-02-08
 
