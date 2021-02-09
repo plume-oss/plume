@@ -61,6 +61,7 @@ import java.nio.file.Files
 import java.nio.file.Path
 import java.nio.file.Paths
 import java.util.stream.Collectors
+import kotlin.streams.asSequence
 import kotlin.streams.toList
 import io.shiftleft.codepropertygraph.generated.nodes.File as ODBFile
 
@@ -261,7 +262,11 @@ class Extractor(val driver: IDriver) {
                     it else it.map(this::addExternallyReferencedMethods).flatten()
             }
             .distinct().toList().let { if (it.size >= 100000) it.parallelStream() else it.stream() }
-            .filter { !it.isPhantom }.map { BriefUnitGraph(it.retrieveActiveBody()) }.toList()
+            .filter { !it.isPhantom }.map { m ->
+                runCatching { BriefUnitGraph(m.retrieveActiveBody()) }
+                    .onFailure { logger.warn("Unable to get method body for method ${m.name}.") }
+                    .getOrNull()
+            }.asSequence().filterNotNull().toList()
         // Build external types from fields and locals
         val createExtTypes = { stream: Sequence<soot.Type> ->
             stream.distinct()
@@ -319,7 +324,13 @@ class Extractor(val driver: IDriver) {
     private fun addExternallyReferencedMethods(mtd: SootMethod): List<SootMethod> {
         val cg = Scene.v().callGraph
         val edges = cg.edgesOutOf(mtd) as Iterator<Edge>
-        return edges.asSequence().map { it.tgt.method() }.toMutableList().apply { this.add(mtd) }
+        return edges.asSequence()
+            .map { e ->
+                runCatching { e.tgt.method() }
+                    .onFailure { logger.warn("Unable to get method for externally referenced method ${e.tgt}.") }
+                    .getOrNull()
+            }
+            .filterNotNull().toMutableList().apply { this.add(mtd) }
     }
 
     /**
