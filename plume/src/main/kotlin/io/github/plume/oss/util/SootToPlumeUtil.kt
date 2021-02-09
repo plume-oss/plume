@@ -20,15 +20,13 @@ import io.github.plume.oss.Extractor.Companion.addSootToPlumeAssociation
 import io.github.plume.oss.domain.mappers.VertexMapper.mapToVertex
 import io.github.plume.oss.drivers.IDriver
 import io.github.plume.oss.util.SootParserUtil.determineEvaluationStrategy
+import io.github.plume.oss.util.SootParserUtil.determineModifiers
 import io.shiftleft.codepropertygraph.generated.EdgeTypes.*
 import io.shiftleft.codepropertygraph.generated.NodeTypes.UNKNOWN
 import io.shiftleft.codepropertygraph.generated.nodes.*
 import scala.Option
 import scala.jdk.CollectionConverters
-import soot.SootClass
-import soot.SootField
-import soot.SootMethod
-import soot.Value
+import soot.*
 import soot.jimple.ArrayRef
 import soot.jimple.Constant
 import soot.jimple.FieldRef
@@ -126,9 +124,9 @@ object SootToPlumeUtil {
         projectMethodReturnVertex(mtd.returnType, currentLine, currentCol, childIdx++)
             .apply { driver.addEdge(mtdVertex, this, AST); addSootToPlumeAssociation(mtd, this) }
         // Modifier vertices
-        SootParserUtil.determineModifiers(mtd.modifiers, mtd.name)
+        determineModifiers(mtd.modifiers, mtd.name)
             .map { NewModifierBuilder().modifiertype(it).order(childIdx++) }
-            .forEach { driver.addEdge(mtdVertex, it, AST); addSootToPlumeAssociation(mtd, it) }
+            .forEach { driver.addEdge(mtdVertex, it, AST) }
         return mtdVertex
     }
 
@@ -157,6 +155,9 @@ object SootToPlumeUtil {
         val cls = mtd.declaringClass
         buildClassStructure(cls, driver)
         val typeDecl = buildTypeDeclaration(cls.type)
+        determineModifiers(cls.modifiers)
+            .mapIndexed { i, m -> NewModifierBuilder().modifiertype(m).order(i + 1) }
+            .forEach { driver.addEdge(typeDecl, it, AST) }
         addSootToPlumeAssociation(cls, typeDecl)
         cls.fields.forEachIndexed { i, field ->
             projectMember(field, i + 1).let { memberVertex ->
@@ -346,6 +347,18 @@ object SootToPlumeUtil {
             .order(if (isExternal) -1 else 1)
             .isexternal(isExternal)
             .apply { addSootToPlumeAssociation(type, this) }
+    }
+
+    /**
+     * Obtains modifiers from the given [NewTypeDeclBuilder] by finding the class in Soot and checking the corresponding
+     * class' modifier information.
+     *
+     * @param type The [NewTypeDeclBuilder] to obtain modifiers from.
+     * @return a [Set] of modifiers.
+     */
+    fun obtainModifiersFromTypeDeclVert(type: NewTypeDeclBuilder): Set<String> {
+        Scene.v().getSootClass(type.build().fullName())?.let { return determineModifiers(it.modifiers) }
+        return emptySet()
     }
 
     /**
