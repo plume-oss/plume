@@ -31,15 +31,23 @@ import io.github.plume.oss.util.ResourceCompilationUtil.COMP_DIR
 import io.github.plume.oss.util.ResourceCompilationUtil.compileJavaFiles
 import io.github.plume.oss.util.ResourceCompilationUtil.deleteClassFiles
 import io.github.plume.oss.util.ResourceCompilationUtil.moveClassFiles
+import io.github.plume.oss.util.SootParserUtil.determineModifiers
 import io.github.plume.oss.util.SootToPlumeUtil
-import io.shiftleft.codepropertygraph.generated.EdgeTypes
+import io.github.plume.oss.util.SootToPlumeUtil.buildClassStructure
+import io.github.plume.oss.util.SootToPlumeUtil.buildTypeDeclaration
+import io.github.plume.oss.util.SootToPlumeUtil.obtainModifiersFromTypeDeclVert
+import io.shiftleft.codepropertygraph.generated.EdgeTypes.AST
+import io.shiftleft.codepropertygraph.generated.EdgeTypes.SOURCE_FILE
 import io.shiftleft.codepropertygraph.generated.NodeKeyNames.FULL_NAME
+import io.shiftleft.codepropertygraph.generated.NodeKeyNames.NAME
+import io.shiftleft.codepropertygraph.generated.NodeTypes.FILE
 import io.shiftleft.codepropertygraph.generated.NodeTypes.TYPE_DECL
 import io.shiftleft.codepropertygraph.generated.nodes.*
 import org.apache.logging.log4j.LogManager
 import org.apache.logging.log4j.Logger
 import overflowdb.Graph
 import overflowdb.Node
+import scala.Option
 import soot.*
 import soot.jimple.*
 import soot.jimple.spark.SparkTransformer
@@ -243,6 +251,8 @@ class Extractor(val driver: IDriver) {
         // Update program structure after sub-graphs which will change are discarded
         programStructure.close()
         programStructure = driver.getProgramStructure()
+        // Setup defaults
+        setUpDefaultStructure()
         // Load all methods to construct the CPG from and convert them to UnitGraph objects
         val graphs = classStream.asSequence()
             .map { it.methods.filter { mtd -> mtd.isConcrete }.toList() }.flatten()
@@ -252,27 +262,27 @@ class Extractor(val driver: IDriver) {
             }
             .distinct().toList().let { if (it.size >= 100000) it.parallelStream() else it.stream() }
             .filter { !it.isPhantom }.map { BriefUnitGraph(it.retrieveActiveBody()) }.toList()
-        // Build types from fields
-        classStream.asSequence().map { it.fields }.flatten().map { it.type }.distinct()
-            .filter { t ->
-                !classStream.any { it.name == t.toQuotedString() }
-                        &&
-                        !programStructure.nodes { n -> n == TYPE_DECL }.asSequence()
-                            .any { n -> n.property(FULL_NAME) == t.toQuotedString() }
-            }
-            .map(SootToPlumeUtil::buildTypeDeclaration)
-            .forEach(driver::addVertex)
-        // Build types from locals
-        graphs.asSequence().map { it.body.locals + it.body.parameterLocals }.flatten().map { it.type }
-            .distinct()
-            .filter { t ->
-                !classStream.any { it.name == t.toQuotedString() }
-                        &&
-                        !programStructure.nodes { n -> n == TYPE_DECL }.asSequence()
-                            .any { n -> n.property(FULL_NAME) == t.toQuotedString() }
-            }
-            .map(SootToPlumeUtil::buildTypeDeclaration)
-            .forEach(driver::addVertex)
+        // Build external types from fields and locals
+        val createExtTypes = { stream: Sequence<soot.Type> ->
+            stream.distinct()
+                .filter { t -> !classStream.any { it.name == t.toString() } }
+                .filter {
+                    !programStructure.nodes(TYPE_DECL).asSequence().any { n -> n.property(FULL_NAME) == it.toString() }
+                }
+                .map { t -> buildTypeDeclaration(t).apply { driver.addVertex(this) } }
+                .forEach { t ->
+                    // Connect external type decls to the unknown file vert
+                    getSootAssociation("<unknown>")?.let {
+                        it.firstOrNull()?.let { f -> driver.addEdge(t, f, SOURCE_FILE) }
+                    }
+                    // Connect type decls to their modifiers
+                    obtainModifiersFromTypeDeclVert(t).forEachIndexed { i, m ->
+                        driver.addEdge(t, NewModifierBuilder().modifiertype(m).order(i + 1), AST)
+                    }
+                }
+        }
+        createExtTypes(classStream.asSequence().map { it.fields }.flatten().map { it.type })
+        createExtTypes(graphs.asSequence().map { it.body.locals + it.body.parameterLocals }.flatten().map { it.type })
         // Construct the CPGs for methods
         graphs.map(this::constructCPG)
             .toList().asSequence()
@@ -282,6 +292,21 @@ class Extractor(val driver: IDriver) {
         // Connect methods to their type declarations and source files (if present)
         graphs.forEach { SootToPlumeUtil.connectMethodToTypeDecls(it.body.method, driver) }
         clear()
+    }
+
+    /**
+     * Sets up default vertices for placeholders like unknown files.
+     */
+    private fun setUpDefaultStructure() {
+        if (programStructure.nodes(FILE).asSequence<Node>().none { f: Node -> f.property(NAME) == "<unknown>" }) {
+            val unknownFile = NewFileBuilder().name("<unknown>").order(0).hash(Option.apply("<unknown>"))
+            driver.addVertex(unknownFile)
+            val fileNode = unknownFile.build()
+            programStructure.addNode(unknownFile.id(), fileNode.label()).let { n ->
+                fileNode.properties().foreach { e -> n.setProperty(e._1, e._2) }
+            }
+            addSootToPlumeAssociation("<unknown>", unknownFile)
+        }
     }
 
     /**
@@ -305,12 +330,16 @@ class Extractor(val driver: IDriver) {
     private fun constructStructure(cls: SootClass) {
         if (programStructure.nodes { it == ODBFile.Label() }.asSequence().none { it.property("NAME") == cls.name }) {
             logger.debug("Building file, namespace, and type declaration for ${cls.name}")
-            SootToPlumeUtil.buildClassStructure(cls, driver)
-            val typeDecl = SootToPlumeUtil.buildTypeDeclaration(cls.type, false)
+            val file = buildClassStructure(cls, driver)
+            val typeDecl = buildTypeDeclaration(cls.type, false)
+            driver.addEdge(typeDecl, file, SOURCE_FILE)
+            determineModifiers(cls.modifiers)
+                .mapIndexed { i, m -> NewModifierBuilder().modifiertype(m).order(i + 1) }
+                .forEach { driver.addEdge(typeDecl, it, AST) }
             addSootToPlumeAssociation(cls, typeDecl)
             cls.fields.forEachIndexed { i, field ->
                 SootToPlumeUtil.projectMember(field, i + 1).let { memberVertex ->
-                    driver.addEdge(typeDecl, memberVertex, EdgeTypes.AST)
+                    driver.addEdge(typeDecl, memberVertex, AST)
                     addSootToPlumeAssociation(field, memberVertex)
                 }
             }

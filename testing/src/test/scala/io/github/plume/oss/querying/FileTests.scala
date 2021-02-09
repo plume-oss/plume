@@ -13,7 +13,8 @@ class FileTests extends PlumeCodeToCpgSuite {
       |""".stripMargin
 
   "should contain one file node in total with order=1" in {
-    cpg.file.order.l shouldBe List(1)
+    cpg.file.order.l shouldBe List(0, 1)
+    cpg.file.name(File.UNKNOWN).size shouldBe 1
     cpg.file.nameNot(File.UNKNOWN).size shouldBe 1
   }
 
