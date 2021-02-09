@@ -9,9 +9,9 @@ on the [code-property graph schema](https://github.com/ShiftLeftSecurity/codepro
 
 For more documentation check out the [Plume docs](https://plume-oss.github.io/plume-docs/).
 
-## Download from jCenter Bintray
+## Adding Plume as a Dependency
 
-Replace `X.X.X` with the desired version on [JitPack](https://bintray.com/plume-oss/maven/plume/_latestVersion).
+Replace `X.X.X` with the desired version on [JitPack](https://jitpack.io/#plume-oss/plume).
 
 Maven:
 ```mxml

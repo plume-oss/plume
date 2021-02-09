@@ -12,6 +12,17 @@ and this project adheres to [Semantic Versioning](http://semver.org/).
 
 ### Fixed
 
+## [0.1.5] - 2021-02-09
+
+### Added
+- `AST` edges between `TypeDecl` and their `Modifier`s
+- `SOURCE_FILE` edges between `TypeDecl` and their `File`s
+- A `File` vertex to represent unknown files
+
+### Fixed
+- When Soot cannot get method data, it will log this as a warning 
+  instead of throwing a `RuntimeException`
+
 ## [0.1.4] - 2021-02-08
 
 ### Added
