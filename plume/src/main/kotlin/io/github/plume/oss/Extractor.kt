@@ -39,12 +39,15 @@ import io.github.plume.oss.util.SootToPlumeUtil.obtainModifiersFromTypeDeclVert
 import io.shiftleft.codepropertygraph.generated.EdgeTypes.AST
 import io.shiftleft.codepropertygraph.generated.EdgeTypes.SOURCE_FILE
 import io.shiftleft.codepropertygraph.generated.NodeKeyNames.FULL_NAME
+import io.shiftleft.codepropertygraph.generated.NodeKeyNames.NAME
+import io.shiftleft.codepropertygraph.generated.NodeTypes.FILE
 import io.shiftleft.codepropertygraph.generated.NodeTypes.TYPE_DECL
 import io.shiftleft.codepropertygraph.generated.nodes.*
 import org.apache.logging.log4j.LogManager
 import org.apache.logging.log4j.Logger
 import overflowdb.Graph
 import overflowdb.Node
+import scala.Option
 import soot.*
 import soot.jimple.*
 import soot.jimple.spark.SparkTransformer
@@ -248,6 +251,8 @@ class Extractor(val driver: IDriver) {
         // Update program structure after sub-graphs which will change are discarded
         programStructure.close()
         programStructure = driver.getProgramStructure()
+        // Setup defaults
+        setUpDefaultStructure()
         // Load all methods to construct the CPG from and convert them to UnitGraph objects
         val graphs = classStream.asSequence()
             .map { it.methods.filter { mtd -> mtd.isConcrete }.toList() }.flatten()
@@ -266,6 +271,11 @@ class Extractor(val driver: IDriver) {
                 }
                 .map { t -> buildTypeDeclaration(t).apply { driver.addVertex(this) } }
                 .forEach { t ->
+                    // Connect external type decls to the unknown file vert
+                    getSootAssociation("<unknown>")?.let {
+                        it.firstOrNull()?.let { f -> driver.addEdge(t, f, SOURCE_FILE) }
+                    }
+                    // Connect type decls to their modifiers
                     obtainModifiersFromTypeDeclVert(t).forEachIndexed { i, m ->
                         driver.addEdge(t, NewModifierBuilder().modifiertype(m).order(i + 1), AST)
                     }
@@ -282,6 +292,21 @@ class Extractor(val driver: IDriver) {
         // Connect methods to their type declarations and source files (if present)
         graphs.forEach { SootToPlumeUtil.connectMethodToTypeDecls(it.body.method, driver) }
         clear()
+    }
+
+    /**
+     * Sets up default vertices for placeholders like unknown files.
+     */
+    private fun setUpDefaultStructure() {
+        if (programStructure.nodes(FILE).asSequence<Node>().none { f: Node -> f.property(NAME) == "<unknown>" }) {
+            val unknownFile = NewFileBuilder().name("<unknown>").order(0).hash(Option.apply("<unknown>"))
+            driver.addVertex(unknownFile)
+            val fileNode = unknownFile.build()
+            programStructure.addNode(unknownFile.id(), fileNode.label()).let { n ->
+                fileNode.properties().foreach { e -> n.setProperty(e._1, e._2) }
+            }
+            addSootToPlumeAssociation("<unknown>", unknownFile)
+        }
     }
 
     /**
