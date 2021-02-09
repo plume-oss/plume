@@ -7,6 +7,9 @@ and this project adheres to [Semantic Versioning](http://semver.org/).
 ## [Unreleased] - yyyy-mm-dd
 
 ### Added
+- `AST` edges between `TypeDecl` and their `Modifier`s
+- `SOURCE_FILE` edges between `TypeDecl` and their `File`s
+- A `File` vertex to represent unknown files
 
 ### Changed
 
