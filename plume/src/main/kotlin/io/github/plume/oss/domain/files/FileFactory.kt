@@ -67,6 +67,21 @@ object FileFactory {
 }
 
 /**
+ * Class wrapper for Java source files.
+ */
+class JavaFile(pathname: String) : PlumeFile(pathname)
+
+/**
+ * Class wrapper for JVM class files.
+ */
+class JVMClassFile(pathname: String) : PlumeFile(pathname)
+
+/**
+ * Class wrapper for unsupported files.
+ */
+class UnsupportedFile(pathname: String) : PlumeFile(pathname)
+
+/**
  * The file types supported by Plume's [Extractor].
  */
 enum class SupportedFile {
