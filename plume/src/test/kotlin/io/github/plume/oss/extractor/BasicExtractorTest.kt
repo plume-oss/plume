@@ -4,6 +4,7 @@ import io.github.plume.oss.Extractor
 import io.github.plume.oss.drivers.DriverFactory
 import io.github.plume.oss.drivers.GraphDatabase
 import io.github.plume.oss.drivers.OverflowDbDriver
+import io.github.plume.oss.graphio.GraphMLWriter
 import io.shiftleft.codepropertygraph.generated.nodes.Call
 import io.shiftleft.codepropertygraph.generated.nodes.Local
 import io.shiftleft.codepropertygraph.generated.nodes.Method
@@ -14,6 +15,7 @@ import org.junit.jupiter.api.BeforeAll
 import org.junit.jupiter.api.Test
 import overflowdb.Graph
 import java.io.File
+import java.io.FileWriter
 import io.shiftleft.codepropertygraph.generated.nodes.File as ODBFile
 
 class BasicExtractorTest {
@@ -99,7 +101,26 @@ class BasicExtractorTest {
             assertNotNull(fileList.firstOrNull { it.name() == "/extractor_tests/dir_test/Dir1.class" })
             assertNotNull(fileList.firstOrNull { it.name() == "/extractor_tests/dir_test/pack/Dir2.class" })
         }
-        assertNotNull(ns.filterIsInstance<NamespaceBlock>().firstOrNull { it.name() == "extractor_tests.dir_test.pack" })
+        assertNotNull(
+            ns.filterIsInstance<NamespaceBlock>().firstOrNull { it.name() == "extractor_tests.dir_test.pack" })
+    }
+
+    @Test
+    fun validJarTest() {
+        extractor.load(validJarFile)
+        extractor.project()
+        g = driver.getWholeGraph()
+        GraphMLWriter.write(g, FileWriter("/tmp/plume/x.xml"))
+        g = driver.getProgramStructure()
+        val ns = g.nodes().asSequence().toList()
+        ns.filterIsInstance<ODBFile>().let { fileList ->
+            assertNotNull(fileList.firstOrNull { it.name() == "/intraprocedural/basic/Basic6.class" })
+            assertNotNull(fileList.firstOrNull { it.name() == "/intraprocedural/basic/basic6/Basic6.class" })
+        }
+        ns.filterIsInstance<NamespaceBlock>().let { nsList ->
+            assertNotNull(nsList.firstOrNull { it.name() == "intraprocedural.basic" })
+            assertNotNull(nsList.firstOrNull { it.name() == "intraprocedural.basic.basic6" })
+        }
     }
 
     @Test

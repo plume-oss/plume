@@ -61,6 +61,7 @@ import java.nio.file.Files
 import java.nio.file.Path
 import java.nio.file.Paths
 import java.util.stream.Collectors
+import java.util.zip.ZipFile
 import kotlin.streams.asSequence
 import kotlin.streams.toList
 import io.shiftleft.codepropertygraph.generated.nodes.File as ODBFile
@@ -199,7 +200,32 @@ class Extractor(val driver: IDriver) {
                     .let { loadedFiles.addAll(it) }
             }
         } else if (f.isFile) {
-            loadedFiles.add(FileFactory(f))
+            if (f.name.endsWith(".jar")) {
+                unzipArchive(ZipFile(f)).forEach { loadedFiles.add(FileFactory(it)) }
+            } else {
+                loadedFiles.add(FileFactory(f))
+            }
+        }
+    }
+
+    private fun unzipArchive(zf: ZipFile) = sequence {
+        zf.use { zip ->
+            // Copy zipped files across
+            zip.entries().asSequence().filter { !it.isDirectory }.forEach { entry ->
+                val destFile = File(COMP_DIR + File.separator + entry.name)
+                val dirName = destFile.absolutePath.substringBeforeLast('/')
+                // Create directory path
+                File(dirName).mkdirs()
+                runCatching {
+                    destFile.createNewFile()
+                }.onSuccess {
+                    zip.getInputStream(entry)
+                        .use { input -> destFile.outputStream().use { output -> input.copyTo(output) } }
+                }.onFailure {
+                    logger.warn("Encountered an error while extracting entry ${entry.name} from archive ${zf.name}.")
+                }
+                yield(destFile)
+            }
         }
     }
 
