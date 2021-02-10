@@ -12,6 +12,11 @@ and this project adheres to [Semantic Versioning](http://semver.org/).
 
 ### Fixed
 
+## [0.1.6] - 2021-02-10
+
+### Added
+- Support for loading JAR files via `load` function
+
 ## [0.1.5] - 2021-02-09
 
 ### Added
