@@ -59,7 +59,7 @@ class CallGraphBuilder(private val driver: IDriver) : IGraphBuilder {
             // If Soot points to the assignment as the call source then this is most likely from the rightOp. Let's
             // hope this is not the source of a bug
             val srcUnit = if (unit is AssignStmt) unit.rightOp else unit
-            getSootAssociation(srcUnit)?.firstOrNull()?.let { srcPlumeVertex ->
+            getSootAssociation(srcUnit)?.filterIsInstance<NewCallBuilder>()?.firstOrNull()?.let { srcPlumeVertex ->
                 val tgtPlumeVertex = getSootAssociation(e.tgt.method())?.firstOrNull()
                     ?: constructPhantom(e.tgt.method(), driver)
                 runCatching {

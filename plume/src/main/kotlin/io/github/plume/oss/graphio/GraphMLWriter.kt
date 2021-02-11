@@ -84,7 +84,10 @@ object GraphMLWriter {
 
     private fun escape(o: Any) =
         when (o) {
-            is String -> o.replace("<", "&lt;").replace(">", "&gt;")
+            is String -> o
+                .replace("<", "&lt;")
+                .replace(">", "&gt;")
+                .replace("&", "&amp;")
             is `$colon$colon`<*> -> o.head()
             is `Nil$` -> ""
             else -> o.toString()

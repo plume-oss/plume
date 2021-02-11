@@ -110,7 +110,6 @@ class BasicExtractorTest {
         extractor.load(validJarFile)
         extractor.project()
         g = driver.getWholeGraph()
-        GraphMLWriter.write(g, FileWriter("/tmp/plume/x.xml"))
         g = driver.getProgramStructure()
         val ns = g.nodes().asSequence().toList()
         ns.filterIsInstance<ODBFile>().let { fileList ->
