@@ -188,6 +188,7 @@ class Extractor(val driver: IDriver) {
      */
     @Throws(PlumeCompileException::class, NullPointerException::class, IOException::class)
     fun load(f: File) {
+        if (!File(COMP_DIR).exists()) File(COMP_DIR).mkdirs()
         if (!f.exists()) {
             throw NullPointerException("File '${f.name}' does not exist!")
         } else if (f.isDirectory) {
@@ -543,7 +544,7 @@ class Extractor(val driver: IDriver) {
         sootToPlume.clear()
         savedCallGraphEdges.clear()
         programStructure.close()
-        File(COMP_DIR).listFiles()?.forEach { f -> if (f.isDirectory) f.deleteRecursively() }
+        File(COMP_DIR).deleteRecursively()
         G.reset()
         G.v().resetSpark()
     }
