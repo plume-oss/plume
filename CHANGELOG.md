@@ -19,6 +19,8 @@ and this project adheres to [Semantic Versioning](http://semver.org/).
 
 ### Fixed
 - Module not found bug introduced by improper class cleanup in temp dir.
+- Fixed instances where CallGraphBuilder would connect non-NewCallBuilder source nodes to methods. 
+- Fixed GraphML not escaping ampersands
 
 ## [0.1.6] - 2021-02-10
 
