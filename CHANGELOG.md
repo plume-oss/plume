@@ -9,6 +9,12 @@ and this project adheres to [Semantic Versioning](http://semver.org/).
 ### Added
 
 ### Changed
+
+### Fixed
+
+## [0.1.7] - 2021-02-11
+
+### Changed
 - Lifted compilation directory to $TEMP/plume/build. This is then deleted recursively after project.
 
 ### Fixed
