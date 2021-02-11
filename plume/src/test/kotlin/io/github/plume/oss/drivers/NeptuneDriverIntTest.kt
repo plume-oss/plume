@@ -563,6 +563,17 @@ class NeptuneDriverIntTest {
         }
 
         @Test
+        fun testEdgeDelete() {
+            assertTrue(driver.exists(methodVertex, fileVertex, SOURCE_FILE))
+            driver.deleteEdge(methodVertex, fileVertex, SOURCE_FILE)
+            assertFalse(driver.exists(methodVertex, fileVertex, SOURCE_FILE))
+            assertTrue(driver.exists(methodVertex))
+            assertTrue(driver.exists(fileVertex))
+            // Try delete edge which doesn't exist, should not throw error
+            driver.deleteEdge(methodVertex, fileVertex, SOURCE_FILE)
+        }
+
+        @Test
         fun testMethodDelete() {
             assertTrue(driver.exists(methodVertex))
             driver.deleteMethod(methodVertex.build().fullName(), methodVertex.build().signature())

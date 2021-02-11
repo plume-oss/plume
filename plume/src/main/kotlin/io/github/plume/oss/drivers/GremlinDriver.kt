@@ -85,20 +85,20 @@ abstract class GremlinDriver : IDriver {
 
     protected open fun findVertexTraversal(v: NewNodeBuilder): GraphTraversal<Vertex, Vertex> = g.V(v.id())
 
-    override fun exists(fromV: NewNodeBuilder, toV: NewNodeBuilder, edge: String): Boolean {
-        if (!findVertexTraversal(fromV).hasNext() || !findVertexTraversal(toV).hasNext()) return false
-        val a = findVertexTraversal(fromV).next()
-        val b = findVertexTraversal(toV).next()
+    override fun exists(src: NewNodeBuilder, tgt: NewNodeBuilder, edge: String): Boolean {
+        if (!findVertexTraversal(src).hasNext() || !findVertexTraversal(tgt).hasNext()) return false
+        val a = findVertexTraversal(src).next()
+        val b = findVertexTraversal(tgt).next()
         return g.V(a).outE(edge).filter(un.inV().`is`(b)).hasLabel(edge).hasNext()
     }
 
-    override fun addEdge(fromV: NewNodeBuilder, toV: NewNodeBuilder, edge: String) {
-        if (!checkSchemaConstraints(fromV, toV, edge)) throw PlumeSchemaViolationException(fromV, toV, edge)
-        if (exists(fromV, toV, edge)) return
-        val source = if (findVertexTraversal(fromV).hasNext()) findVertexTraversal(fromV).next()
-        else createVertex(fromV)
-        val target = if (findVertexTraversal(toV).hasNext()) findVertexTraversal(toV).next()
-        else createVertex(toV)
+    override fun addEdge(src: NewNodeBuilder, tgt: NewNodeBuilder, edge: String) {
+        if (!checkSchemaConstraints(src, tgt, edge)) throw PlumeSchemaViolationException(src, tgt, edge)
+        if (exists(src, tgt, edge)) return
+        val source = if (findVertexTraversal(src).hasNext()) findVertexTraversal(src).next()
+        else createVertex(src)
+        val target = if (findVertexTraversal(tgt).hasNext()) findVertexTraversal(tgt).next()
+        else createVertex(tgt)
         createEdge(source, edge, target)
     }
 
@@ -205,6 +205,11 @@ abstract class GremlinDriver : IDriver {
     override fun deleteVertex(v: NewNodeBuilder) {
         if (!exists(v)) return
         findVertexTraversal(v).drop().iterate()
+    }
+
+    override fun deleteEdge(src: NewNodeBuilder, tgt: NewNodeBuilder, edge: String) {
+        if (!exists(src, tgt, edge)) return
+        g.V(src.id()).outE(edge).where(un.otherV().hasId(tgt.id())).drop().iterate()
     }
 
     override fun deleteMethod(fullName: String, signature: String) {
