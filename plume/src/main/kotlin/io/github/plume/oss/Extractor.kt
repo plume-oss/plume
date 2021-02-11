@@ -29,7 +29,6 @@ import io.github.plume.oss.graph.PDGBuilder
 import io.github.plume.oss.options.ExtractorOptions
 import io.github.plume.oss.util.ResourceCompilationUtil.COMP_DIR
 import io.github.plume.oss.util.ResourceCompilationUtil.compileJavaFiles
-import io.github.plume.oss.util.ResourceCompilationUtil.deleteClassFiles
 import io.github.plume.oss.util.ResourceCompilationUtil.moveClassFiles
 import io.github.plume.oss.util.SootParserUtil.determineModifiers
 import io.github.plume.oss.util.SootToPlumeUtil
@@ -189,6 +188,7 @@ class Extractor(val driver: IDriver) {
      */
     @Throws(PlumeCompileException::class, NullPointerException::class, IOException::class)
     fun load(f: File) {
+        if (!File(COMP_DIR).exists()) File(COMP_DIR).mkdirs()
         if (!f.exists()) {
             throw NullPointerException("File '${f.name}' does not exist!")
         } else if (f.isDirectory) {
@@ -329,7 +329,7 @@ class Extractor(val driver: IDriver) {
     }
 
     /**
-     * Load all methods to construct the CPG from and convert them to [UnitGraph] objects.
+     * Load all methods to construct the CPG from and convert them to [BriefUnitGraph] objects.
      *
      * @param classStream A stream of [SootClass] to construct [BriefUnitGraph] from.
      * @return a list of [BriefUnitGraph] objects.
@@ -524,6 +524,7 @@ class Extractor(val driver: IDriver) {
     private fun loadClassesIntoSoot(classNames: HashSet<JVMClassFile>): List<SootClass> {
         classNames.map(this::getQualifiedClassPath).forEach(Scene.v()::addBasicClass)
         Scene.v().loadBasicClasses()
+        Scene.v().loadDynamicClasses()
         return classNames.map { Pair(it, getQualifiedClassPath(it)) }
             .map { Pair(it.first, Scene.v().loadClassAndSupport(it.second)) }
             .map { clsPair: Pair<File, SootClass> ->
@@ -543,7 +544,7 @@ class Extractor(val driver: IDriver) {
         sootToPlume.clear()
         savedCallGraphEdges.clear()
         programStructure.close()
-        deleteClassFiles(File(COMP_DIR))
+        File(COMP_DIR).deleteRecursively()
         G.reset()
         G.v().resetSpark()
     }

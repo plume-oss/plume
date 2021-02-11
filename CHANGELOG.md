@@ -9,8 +9,10 @@ and this project adheres to [Semantic Versioning](http://semver.org/).
 ### Added
 
 ### Changed
+- Lifted compilation directory to $TEMP/plume/build. This is then deleted recursively after project.
 
 ### Fixed
+- Module not found bug introduced by improper class cleanup in temp dir.
 
 ## [0.1.6] - 2021-02-10
 

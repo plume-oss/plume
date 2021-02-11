@@ -24,7 +24,6 @@ dependencies {
 }
 
 group = "io.github.plume-oss"
-version = "0.0.3"
 
 sourceSets {
     main.java.srcDirs = []

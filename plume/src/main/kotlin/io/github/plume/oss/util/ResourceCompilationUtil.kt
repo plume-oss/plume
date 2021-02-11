@@ -18,44 +18,23 @@ package io.github.plume.oss.util
 import io.github.plume.oss.domain.exceptions.PlumeCompileException
 import io.github.plume.oss.domain.files.JVMClassFile
 import io.github.plume.oss.domain.files.PlumeFile
-import org.apache.logging.log4j.LogManager
-import org.apache.logging.log4j.Logger
 import org.objectweb.asm.ClassReader
 import org.objectweb.asm.ClassReader.SKIP_CODE
 import org.objectweb.asm.ClassVisitor
 import org.objectweb.asm.Opcodes
 import java.io.File
 import java.io.FileInputStream
-import java.io.IOException
 import java.nio.file.Files
-import java.nio.file.Path
-import java.nio.file.Paths
 import java.nio.file.StandardCopyOption
 import java.util.*
-import java.util.stream.Collectors
 import javax.tools.JavaCompiler
-import javax.tools.ToolProvider
 import javax.tools.JavaFileObject
-
 import javax.tools.StandardLocation
+import javax.tools.ToolProvider
 
 
 object ResourceCompilationUtil {
-    private val logger: Logger = LogManager.getLogger(ResourceCompilationUtil::javaClass)
-    val COMP_DIR = "${System.getProperty("java.io.tmpdir")}${File.separator}plume"
-
-    /**
-     * Validates the given file as a directory that exists.
-     *
-     * @param f the file to validate.
-     * @throws IOException if the file is not a valid directory or does not exist.
-     */
-    @Throws(IOException::class)
-    private fun validateFileAsDirectory(f: File) {
-        // Validate path
-        if (!f.isDirectory) throw IOException("The path must point to a valid directory!")
-        if (!f.exists()) throw IOException("The path does not exist!")
-    }
+    val COMP_DIR = "${System.getProperty("java.io.tmpdir")}${File.separator}plume${File.separator}build"
 
     /**
      * Given paths to a Java source files, programmatically compiles the source (.java) files.
@@ -76,8 +55,10 @@ object ResourceCompilationUtil {
             fileManager.getJavaFileObjectsFromFiles(files)
         ).call()
         return sequence {
-            for (jfo in fileManager.list(StandardLocation.CLASS_OUTPUT,
-                "", Collections.singleton(JavaFileObject.Kind.CLASS), true)) {
+            for (jfo in fileManager.list(
+                StandardLocation.CLASS_OUTPUT,
+                "", Collections.singleton(JavaFileObject.Kind.CLASS), true
+            )) {
                 yield(JVMClassFile(jfo.name))
             }
         }.toList()
@@ -128,22 +109,5 @@ object ResourceCompilationUtil {
             ?: throw PlumeCompileException("Unable to find a Java compiler on the system!")
         if (javac.sourceVersions.none { it.ordinal >= 8 }) throw PlumeCompileException("Plume requires JDK version >= 8. Please install a suitable JDK and re-run the process.")
         return javac
-    }
-
-    /**
-     * Given a path to a directory, programmatically delete any .class files found in the directory.
-     *
-     * @param path the path to the directory.
-     * @throws IOException if the path is not a directory or does not exist.
-     */
-    @Throws(IOException::class)
-    fun deleteClassFiles(path: File) {
-        validateFileAsDirectory(path)
-        Files.walk(Paths.get(path.absolutePath)).use { walk ->
-            walk.map { obj: Path -> obj.toString() }
-                .filter { f: String -> f.endsWith(".class") }
-                .collect(Collectors.toList())
-                .forEach { f: String -> if (!File(f).delete()) logger.error("Unable to delete: $f") }
-        }
     }
 }
