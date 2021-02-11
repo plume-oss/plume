@@ -28,16 +28,14 @@ import java.io.File
 import java.io.FileInputStream
 import java.io.IOException
 import java.nio.file.Files
-import java.nio.file.Path
-import java.nio.file.Paths
 import java.nio.file.StandardCopyOption
 import java.util.*
-import java.util.stream.Collectors
 import javax.tools.JavaCompiler
 import javax.tools.ToolProvider
 import javax.tools.JavaFileObject
 
 import javax.tools.StandardLocation
+import kotlin.io.path.isDirectory
 
 
 object ResourceCompilationUtil {
@@ -128,22 +126,5 @@ object ResourceCompilationUtil {
             ?: throw PlumeCompileException("Unable to find a Java compiler on the system!")
         if (javac.sourceVersions.none { it.ordinal >= 8 }) throw PlumeCompileException("Plume requires JDK version >= 8. Please install a suitable JDK and re-run the process.")
         return javac
-    }
-
-    /**
-     * Given a path to a directory, programmatically delete any .class files found in the directory.
-     *
-     * @param path the path to the directory.
-     * @throws IOException if the path is not a directory or does not exist.
-     */
-    @Throws(IOException::class)
-    fun deleteClassFiles(path: File) {
-        validateFileAsDirectory(path)
-        Files.walk(Paths.get(path.absolutePath)).use { walk ->
-            walk.map { obj: Path -> obj.toString() }
-                .filter { f: String -> f.endsWith(".class") }
-                .collect(Collectors.toList())
-                .forEach { f: String -> if (!File(f).delete()) logger.error("Unable to delete: $f") }
-        }
     }
 }
