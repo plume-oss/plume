@@ -327,7 +327,7 @@ class Extractor(val driver: IDriver) {
                 }
                 // Connect type decls to their modifiers
                 obtainModifiersFromTypeDeclVert(t).forEachIndexed { i, m ->
-                    driver.addEdge(t, NewModifierBuilder().modifiertype(m).order(i + 1), AST)
+                    driver.addEdge(t, NewModifierBuilder().modifierType(m).order(i + 1), AST)
                 }
             }
     }
@@ -397,7 +397,7 @@ class Extractor(val driver: IDriver) {
             val typeDecl = buildTypeDeclaration(cls.type, false)
             driver.addEdge(typeDecl, file, SOURCE_FILE)
             determineModifiers(cls.modifiers)
-                .mapIndexed { i, m -> NewModifierBuilder().modifiertype(m).order(i + 1) }
+                .mapIndexed { i, m -> NewModifierBuilder().modifierType(m).order(i + 1) }
                 .forEach { driver.addEdge(typeDecl, it, AST) }
             addSootToPlumeAssociation(cls, typeDecl)
             cls.fields.forEachIndexed { i, field ->
