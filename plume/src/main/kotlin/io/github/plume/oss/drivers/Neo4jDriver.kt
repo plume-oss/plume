@@ -169,16 +169,16 @@ class Neo4jDriver : IDriver {
         }
     }
 
-    override fun exists(fromV: NewNodeBuilder, toV: NewNodeBuilder, edge: String): Boolean {
-        if (!exists(fromV) || !exists(toV)) return false
-        val src = fromV.build()
-        val tgt = toV.build()
+    override fun exists(src: NewNodeBuilder, tgt: NewNodeBuilder, edge: String): Boolean {
+        if (!exists(src) || !exists(tgt)) return false
+        val srcN = src.build()
+        val tgtN = tgt.build()
         driver.session().use { session ->
             return session.writeTransaction { tx ->
                 val result = tx.run(
                     """
-                    MATCH (a:${src.label()}), (b:${tgt.label()})
-                    WHERE id(a) = ${fromV.id()} AND id(b) = ${toV.id()}
+                    MATCH (a:${srcN.label()}), (b:${tgtN.label()})
+                    WHERE id(a) = ${src.id()} AND id(b) = ${tgt.id()}
                     RETURN EXISTS ((a)-[:$edge]->(b)) as edge_exists
                     """.trimIndent()
                 )
@@ -187,18 +187,18 @@ class Neo4jDriver : IDriver {
         }
     }
 
-    override fun addEdge(fromV: NewNodeBuilder, toV: NewNodeBuilder, edge: String) {
-        if (!checkSchemaConstraints(fromV, toV, edge)) throw PlumeSchemaViolationException(fromV, toV, edge)
-        if (!exists(fromV)) addVertex(fromV)
-        if (!exists(toV)) addVertex(toV)
-        val src = fromV.build()
-        val tgt = toV.build()
+    override fun addEdge(src: NewNodeBuilder, tgt: NewNodeBuilder, edge: String) {
+        if (!checkSchemaConstraints(src, tgt, edge)) throw PlumeSchemaViolationException(src, tgt, edge)
+        if (!exists(src)) addVertex(src)
+        if (!exists(tgt)) addVertex(tgt)
+        val srcN = src.build()
+        val tgtN = tgt.build()
         driver.session().use { session ->
             return session.writeTransaction { tx ->
                 val result = tx.run(
                     """
-                    MATCH (a:${src.label()}), (b:${tgt.label()})
-                    WHERE id(a) = ${fromV.id()} AND id(b) = ${toV.id()}
+                    MATCH (a:${srcN.label()}), (b:${tgtN.label()})
+                    WHERE id(a) = ${src.id()} AND id(b) = ${tgt.id()}
                     CREATE (a)-[r:$edge]->(b)
                     RETURN r
                     """.trimIndent()
@@ -375,6 +375,7 @@ class Neo4jDriver : IDriver {
     }
 
     override fun deleteVertex(v: NewNodeBuilder) {
+        if (!exists(v)) return
         driver.session().use { session ->
             session.writeTransaction { tx ->
                 tx.run(
@@ -382,6 +383,23 @@ class Neo4jDriver : IDriver {
                     MATCH (n)
                     WHERE ID(n) = ${v.id()}
                     DETACH DELETE n
+                    """.trimIndent()
+                )
+            }
+        }
+    }
+
+    override fun deleteEdge(src: NewNodeBuilder, tgt: NewNodeBuilder, edge: String) {
+        if (!exists(src, tgt, edge)) return
+        val srcN = src.build()
+        val tgtN = tgt.build()
+        driver.session().use { session ->
+            session.writeTransaction { tx ->
+                tx.run(
+                    """
+                    MATCH (s:${srcN.label()})-[r:$edge]->(t:${tgtN.label()})
+                    WHERE ID(s) = ${src.id()} AND ID(t) = ${tgt.id()}  
+                    DELETE r
                     """.trimIndent()
                 )
             }

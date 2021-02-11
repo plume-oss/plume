@@ -29,24 +29,24 @@ interface IDriver : AutoCloseable {
     /**
      * Checks if there exists a directed edge of the given label between two [NewNodeBuilder] vertices.
      *
-     * @param fromV the source [NewNodeBuilder].
-     * @param toV the target [NewNodeBuilder].
+     * @param src the source [NewNodeBuilder].
+     * @param tgt the target [NewNodeBuilder].
      * @param edge the edge label.
      * @return true if the edge exists, false if otherwise.
      */
-    fun exists(fromV: NewNodeBuilder, toV: NewNodeBuilder, edge: String): Boolean
+    fun exists(src: NewNodeBuilder, tgt: NewNodeBuilder, edge: String): Boolean
 
     /**
      * Creates an edge with the given label between two [NewNodeBuilder] vertices in the graph database.
      * If the given vertices are not already present in the database, they are created. If the edge already exists
      * it wil not be recreated.
      *
-     * @param fromV the source [NewNodeBuilder].
-     * @param toV the target [NewNodeBuilder].
+     * @param src the source [NewNodeBuilder].
+     * @param tgt the target [NewNodeBuilder].
      * @param edge the edge label.
      * @throws PlumeSchemaViolationException if the edge is illegal according to the CPG schema
      */
-    fun addEdge(fromV: NewNodeBuilder, toV: NewNodeBuilder, edge: String)
+    fun addEdge(src: NewNodeBuilder, tgt: NewNodeBuilder, edge: String)
 
     /**
      * Clears the graph of all vertices and edges.
@@ -102,5 +102,14 @@ interface IDriver : AutoCloseable {
      * @param signature The method signature e.g. int f(int, int)
      */
     fun deleteMethod(fullName: String, signature: String)
+
+    /**
+     * Given two vertices and an edge label.
+     *
+     * @param src Outgoing vertex.
+     * @param tgt Incoming vertex.
+     * @param edge The edge label of the edge to remove.
+     */
+    fun deleteEdge(src: NewNodeBuilder, tgt: NewNodeBuilder, edge: String)
 
 }

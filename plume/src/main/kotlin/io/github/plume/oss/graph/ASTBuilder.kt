@@ -69,8 +69,8 @@ class ASTBuilder(private val driver: IDriver) : IGraphBuilder {
                     ?.let {
                         runCatching {
                             driver.addEdge(
-                                fromV = getSootAssociation(mtd)!!.first { v -> v is NewBlockBuilder },
-                                toV = it,
+                                src = getSootAssociation(mtd)!!.first { v -> v is NewBlockBuilder },
+                                tgt = it,
                                 edge = AST
                             )
                         }.onFailure { e -> logger.warn(e.message) }

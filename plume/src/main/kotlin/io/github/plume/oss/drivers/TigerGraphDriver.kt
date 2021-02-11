@@ -114,20 +114,20 @@ class TigerGraphDriver : IOverridenIdDriver {
         }
     }
 
-    override fun exists(fromV: NewNodeBuilder, toV: NewNodeBuilder, edge: String): Boolean {
+    override fun exists(src: NewNodeBuilder, tgt: NewNodeBuilder, edge: String): Boolean {
         // No edge can be connected to a MetaDataVertex
-        if (fromV is NewMetaDataBuilder || toV is NewMetaDataBuilder) return false
+        if (src is NewMetaDataBuilder || tgt is NewMetaDataBuilder) return false
         return try {
             val response = get(
                 "query/$GRAPH_NAME/areVerticesJoinedByEdge",
                 mapOf(
-                    "V_FROM" to fromV.id().toString(),
-                    "V_TO" to toV.id().toString(),
+                    "V_FROM" to src.id().toString(),
+                    "V_TO" to tgt.id().toString(),
                     "EDGE_LABEL" to edge
                 )
             ).firstOrNull()
             return if (response == null) {
-                throw PlumeTransactionException("Null response for exists query between $fromV and $toV with edge label $edge")
+                throw PlumeTransactionException("Null response for exists query between $src and $tgt with edge label $edge")
             } else {
                 (response as JSONObject)["result"] as Boolean
             }
@@ -141,15 +141,15 @@ class TigerGraphDriver : IOverridenIdDriver {
         }
     }
 
-    override fun addEdge(fromV: NewNodeBuilder, toV: NewNodeBuilder, edge: String) {
-        if (!checkSchemaConstraints(fromV, toV, edge)) throw PlumeSchemaViolationException(fromV, toV, edge)
-        if (exists(fromV, toV, edge)) return
-        val fromPayload = createVertexPayload(fromV)
-        val toPayload = createVertexPayload(toV)
+    override fun addEdge(src: NewNodeBuilder, tgt: NewNodeBuilder, edge: String) {
+        if (!checkSchemaConstraints(src, tgt, edge)) throw PlumeSchemaViolationException(src, tgt, edge)
+        if (exists(src, tgt, edge)) return
+        val fromPayload = createVertexPayload(src)
+        val toPayload = createVertexPayload(tgt)
         val vertexPayload = if (fromPayload.keys.first() == toPayload.keys.first()) mapOf(
             fromPayload.keys.first() to mapOf(
-                fromV.id().toString() to (fromPayload.values.first() as Map<*, *>)[fromV.id().toString()],
-                toV.id().toString() to (toPayload.values.first() as Map<*, *>)[toV.id().toString()]
+                src.id().toString() to (fromPayload.values.first() as Map<*, *>)[src.id().toString()],
+                tgt.id().toString() to (toPayload.values.first() as Map<*, *>)[tgt.id().toString()]
             )
         )
         else mapOf(
@@ -158,7 +158,7 @@ class TigerGraphDriver : IOverridenIdDriver {
         )
         val payload = mutableMapOf(
             "vertices" to vertexPayload,
-            "edges" to createEdgePayload(fromV, toV, edge)
+            "edges" to createEdgePayload(src, tgt, edge)
         )
         post("graph/$GRAPH_NAME", payload)
     }
@@ -234,8 +234,14 @@ class TigerGraphDriver : IOverridenIdDriver {
     }
 
     override fun deleteVertex(v: NewNodeBuilder) {
+        if (!exists(v)) return
         val label = if (v is NewMetaDataBuilder) "META_DATA_VERT" else "CPG_VERT"
         delete("graph/$GRAPH_NAME/vertices/$label/${v.id()}")
+    }
+
+    override fun deleteEdge(src: NewNodeBuilder, tgt: NewNodeBuilder, edge: String) {
+        if (!exists(src, tgt, edge)) return
+        delete("graph/$GRAPH_NAME/edges/CPG_VERT/${src.id()}/$edge/CPG_VERT/${tgt.id()}")
     }
 
     override fun deleteMethod(fullName: String, signature: String) {

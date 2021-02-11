@@ -71,24 +71,24 @@ class OverflowDbDriver : IDriver {
         return (graph.node(v.id()) != null)
     }
 
-    override fun exists(fromV: NewNodeBuilder, toV: NewNodeBuilder, edge: String): Boolean {
-        val srcNode = graph.node(fromV.id()) ?: return false
-        val dstNode = graph.node(toV.id()) ?: return false
+    override fun exists(src: NewNodeBuilder, tgt: NewNodeBuilder, edge: String): Boolean {
+        val srcNode = graph.node(src.id()) ?: return false
+        val dstNode = graph.node(tgt.id()) ?: return false
         return srcNode.out(edge).asSequence().toList().any { node -> node.id() == dstNode.id() }
     }
 
-    override fun addEdge(fromV: NewNodeBuilder, toV: NewNodeBuilder, edge: String) {
-        if (!checkSchemaConstraints(fromV, toV, edge)) throw PlumeSchemaViolationException(fromV, toV, edge)
-        if (!exists(fromV)) addVertex(fromV)
-        if (!exists(toV)) addVertex(toV)
-        val srcNode = graph.node(fromV.id())
-        val dstNode = graph.node(toV.id())
+    override fun addEdge(src: NewNodeBuilder, tgt: NewNodeBuilder, edge: String) {
+        if (!checkSchemaConstraints(src, tgt, edge)) throw PlumeSchemaViolationException(src, tgt, edge)
+        if (!exists(src)) addVertex(src)
+        if (!exists(tgt)) addVertex(tgt)
+        val srcNode = graph.node(src.id())
+        val dstNode = graph.node(tgt.id())
 
         try {
             srcNode.addEdge(edge, dstNode)
         } catch (exc: RuntimeException) {
             logger.error(exc.message, exc)
-            throw PlumeSchemaViolationException(fromV, toV, edge)
+            throw PlumeSchemaViolationException(src, tgt, edge)
         }
     }
 
@@ -148,6 +148,12 @@ class OverflowDbDriver : IDriver {
 
     override fun deleteVertex(v: NewNodeBuilder) {
         graph.node(v.id())?.let { graph.remove(it) }
+    }
+
+    override fun deleteEdge(src: NewNodeBuilder, tgt: NewNodeBuilder, edge: String) {
+        if (!exists(src, tgt, edge)) return
+        val e = graph.node(src.id())?.outE(edge)?.next()
+        if (e?.inNode()?.id() == tgt.id()) e.remove()
     }
 
     override fun deleteMethod(fullName: String, signature: String) {
