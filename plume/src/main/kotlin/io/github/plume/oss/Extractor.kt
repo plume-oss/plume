@@ -81,6 +81,10 @@ class Extractor(val driver: IDriver) {
     private lateinit var programStructure: Graph
 
     init {
+        File(COMP_DIR).let { f ->
+            if (f.exists()) f.deleteRecursively()
+            f.deleteOnExit()
+        }
         checkDriverConnection(driver)
         astBuilder = ASTBuilder(driver)
         cfgBuilder = CFGBuilder(driver)
@@ -188,7 +192,7 @@ class Extractor(val driver: IDriver) {
      */
     @Throws(PlumeCompileException::class, NullPointerException::class, IOException::class)
     fun load(f: File) {
-        if (!File(COMP_DIR).exists()) File(COMP_DIR).mkdirs()
+        File(COMP_DIR).let { c -> if (!c.exists()) c.mkdirs() }
         if (!f.exists()) {
             throw NullPointerException("File '${f.name}' does not exist!")
         } else if (f.isDirectory) {
