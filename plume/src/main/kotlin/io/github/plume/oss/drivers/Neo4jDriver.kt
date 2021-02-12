@@ -153,14 +153,15 @@ class Neo4jDriver : IDriver {
         }
     }
 
-    override fun exists(v: NewNodeBuilder): Boolean {
-        val node = v.build()
+    override fun exists(v: NewNodeBuilder): Boolean = checkVertexExist(v.id(), v.build().label())
+
+    private fun checkVertexExist(id: Long, label: String? = null): Boolean {
         driver.session().use { session ->
             return session.writeTransaction { tx ->
                 val result = tx.run(
                     """
-                    MATCH (n:${node.label()})
-                    WHERE id(n) = ${v.id()}
+                    MATCH (n${if (label != null) ":$label" else ""})
+                    WHERE id(n) = $id
                     RETURN n
                     """.trimIndent()
                 )
@@ -374,14 +375,14 @@ class Neo4jDriver : IDriver {
             }
     }
 
-    override fun deleteVertex(v: NewNodeBuilder) {
-        if (!exists(v)) return
+    override fun deleteVertex(id: Long, label: String?) {
+        if (!checkVertexExist(id, label)) return
         driver.session().use { session ->
             session.writeTransaction { tx ->
                 tx.run(
                     """
-                    MATCH (n)
-                    WHERE ID(n) = ${v.id()}
+                    MATCH (n${if (label != null) ":$label" else ""})
+                    WHERE ID(n) = $id
                     DETACH DELETE n
                     """.trimIndent()
                 )

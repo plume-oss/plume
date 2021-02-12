@@ -15,8 +15,6 @@ dependencies {
     // Core dependencies
     implementation "io.shiftleft:codepropertygraph_2.13:$shiftleftVersion"
     implementation "io.shiftleft:semanticcpg_2.13:$shiftleftVersion"
-    // Sub-project integration
-    compile(project(":plume")) { transitive = false }
 }
 
 group = "io.github.plume-oss"

@@ -146,8 +146,8 @@ class OverflowDbDriver : IDriver {
         return deepCopyGraph(Traversals.getNeighbours(graph, v.id()))
     }
 
-    override fun deleteVertex(v: NewNodeBuilder) {
-        graph.node(v.id())?.let { graph.remove(it) }
+    override fun deleteVertex(id: Long, label: String?) {
+        graph.node(id)?.let { graph.remove(it) }
     }
 
     override fun deleteEdge(src: NewNodeBuilder, tgt: NewNodeBuilder, edge: String) {

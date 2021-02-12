@@ -202,9 +202,9 @@ abstract class GremlinDriver : IDriver {
         return gremlinToPlume(neighbourSubgraph.traversal())
     }
 
-    override fun deleteVertex(v: NewNodeBuilder) {
-        if (!exists(v)) return
-        findVertexTraversal(v).drop().iterate()
+    override fun deleteVertex(id: Long, label: String?) {
+        if (!g.V(id).hasNext()) return
+        g.V(id).drop().iterate()
     }
 
     override fun deleteEdge(src: NewNodeBuilder, tgt: NewNodeBuilder, edge: String) {
