@@ -141,13 +141,13 @@ class ASTBuilder(private val driver: IDriver) : IGraphBuilder {
             .signature(unit.methodRef.signature)
             .code("${unit.methodRef.name}(${unit.args.joinToString()})")
             .order(childIdx)
-            .dynamictypehintfullname(createScalaList(unit.methodRef.returnType.toQuotedString()))
-            .linenumber(Option.apply(currentLine))
-            .columnnumber(Option.apply(currentCol))
-            .methodfullname(unit.methodRef.toString().removeSurrounding("<", ">"))
-            .argumentindex(childIdx)
-            .dispatchtype(if (unit.methodRef.isStatic) STATIC_DISPATCH else DYNAMIC_DISPATCH)
-            .typefullname(unit.type.toString())
+            .dynamicTypeHintFullName(createScalaList(unit.methodRef.returnType.toQuotedString()))
+            .lineNumber(Option.apply(currentLine))
+            .columnNumber(Option.apply(currentCol))
+            .methodFullName(unit.methodRef.toString().removeSurrounding("<", ">"))
+            .argumentIndex(childIdx)
+            .dispatchType(if (unit.methodRef.isStatic) STATIC_DISPATCH else DYNAMIC_DISPATCH)
+            .typeFullName(unit.type.toString())
         val callVertices = mutableListOf<NewNodeBuilder>(callVertex)
         // Create vertices for arguments
         unit.args.forEachIndexed { i, arg ->
@@ -189,19 +189,19 @@ class ASTBuilder(private val driver: IDriver) : IGraphBuilder {
     private fun projectTableSwitch(unit: TableSwitchStmt, childIdx: Int): NewControlStructureBuilder {
         val switchVertex = NewControlStructureBuilder()
             .code(ExtractorConst.TABLE_SWITCH)
-            .linenumber(Option.apply(currentLine))
-            .columnnumber(Option.apply(currentCol))
+            .lineNumber(Option.apply(currentLine))
+            .columnNumber(Option.apply(currentCol))
             .order(childIdx)
-            .argumentindex(childIdx)
+            .argumentIndex(childIdx)
         projectSwitchDefault(unit, switchVertex)
         // Handle case jumps
         unit.targets.forEachIndexed { i, tgt ->
             if (unit.defaultTarget != tgt) {
                 val tgtV = NewJumpTargetBuilder()
                     .name("CASE $i")
-                    .argumentindex(i)
-                    .linenumber(Option.apply(tgt.javaSourceStartLineNumber))
-                    .columnnumber(Option.apply(tgt.javaSourceStartColumnNumber))
+                    .argumentIndex(i)
+                    .lineNumber(Option.apply(tgt.javaSourceStartLineNumber))
+                    .columnNumber(Option.apply(tgt.javaSourceStartColumnNumber))
                     .code(tgt.toString())
                     .order(childIdx)
                 runCatching {
@@ -222,10 +222,10 @@ class ASTBuilder(private val driver: IDriver) : IGraphBuilder {
     private fun projectLookupSwitch(unit: LookupSwitchStmt, childIdx: Int): NewControlStructureBuilder {
         val switchVertex = NewControlStructureBuilder()
             .code(ExtractorConst.LOOKUP_ROOT)
-            .linenumber(Option.apply(unit.javaSourceStartLineNumber))
-            .columnnumber(Option.apply(unit.javaSourceStartColumnNumber))
+            .lineNumber(Option.apply(unit.javaSourceStartLineNumber))
+            .columnNumber(Option.apply(unit.javaSourceStartColumnNumber))
             .order(childIdx)
-            .argumentindex(childIdx)
+            .argumentIndex(childIdx)
         projectSwitchDefault(unit, switchVertex)
         // Handle case jumps
         for (i in 0 until unit.targetCount) {
@@ -234,9 +234,9 @@ class ASTBuilder(private val driver: IDriver) : IGraphBuilder {
                 val lookupValue = unit.getLookupValue(i)
                 val tgtV = NewJumpTargetBuilder()
                     .name("CASE $lookupValue")
-                    .argumentindex(lookupValue)
-                    .linenumber(Option.apply(tgt.javaSourceStartLineNumber))
-                    .columnnumber(Option.apply(tgt.javaSourceStartColumnNumber))
+                    .argumentIndex(lookupValue)
+                    .lineNumber(Option.apply(tgt.javaSourceStartLineNumber))
+                    .columnNumber(Option.apply(tgt.javaSourceStartColumnNumber))
                     .code(tgt.toString())
                     .order(childIdx)
                 runCatching {
@@ -261,9 +261,9 @@ class ASTBuilder(private val driver: IDriver) : IGraphBuilder {
         unit.defaultTarget.let {
             val tgtV = NewJumpTargetBuilder()
                 .name("DEFAULT")
-                .argumentindex(totalTgts + 2)
-                .linenumber(Option.apply(it.javaSourceStartLineNumber))
-                .columnnumber(Option.apply(it.javaSourceStartColumnNumber))
+                .argumentIndex(totalTgts + 2)
+                .lineNumber(Option.apply(it.javaSourceStartLineNumber))
+                .columnNumber(Option.apply(it.javaSourceStartColumnNumber))
                 .code(it.toString())
                 .order(totalTgts + 2)
             runCatching {
@@ -285,17 +285,17 @@ class ASTBuilder(private val driver: IDriver) : IGraphBuilder {
             val condBody: NewJumpTargetBuilder = if (it == unit.target) {
                 NewJumpTargetBuilder()
                     .name(FALSE_TARGET)
-                    .argumentindex(0)
-                    .linenumber(Option.apply(it.javaSourceStartLineNumber))
-                    .columnnumber(Option.apply(it.javaSourceStartColumnNumber))
+                    .argumentIndex(0)
+                    .lineNumber(Option.apply(it.javaSourceStartLineNumber))
+                    .columnNumber(Option.apply(it.javaSourceStartColumnNumber))
                     .code("ELSE_BODY")
                     .order(childIdx)
             } else {
                 NewJumpTargetBuilder()
                     .name(TRUE_TARGET)
-                    .argumentindex(1)
-                    .linenumber(Option.apply(it.javaSourceStartLineNumber))
-                    .columnnumber(Option.apply(it.javaSourceStartColumnNumber))
+                    .argumentIndex(1)
+                    .lineNumber(Option.apply(it.javaSourceStartLineNumber))
+                    .columnNumber(Option.apply(it.javaSourceStartColumnNumber))
                     .code("IF_BODY")
                     .order(childIdx)
             }
@@ -316,10 +316,10 @@ class ASTBuilder(private val driver: IDriver) : IGraphBuilder {
     private fun projectIfRootAndCondition(unit: IfStmt, childIdx: Int): NewControlStructureBuilder {
         val ifRootVertex = NewControlStructureBuilder()
             .code(ExtractorConst.IF_ROOT)
-            .linenumber(Option.apply(unit.javaSourceStartLineNumber))
-            .columnnumber(Option.apply(unit.javaSourceStartColumnNumber))
+            .lineNumber(Option.apply(unit.javaSourceStartLineNumber))
+            .columnNumber(Option.apply(unit.javaSourceStartColumnNumber))
             .order(childIdx)
-            .argumentindex(childIdx)
+            .argumentIndex(childIdx)
         driver.addVertex(ifRootVertex)
         val condition = unit.condition as ConditionExpr
         val conditionExpr = projectFlippedConditionalExpr(condition)
@@ -344,14 +344,14 @@ class ASTBuilder(private val driver: IDriver) : IGraphBuilder {
             .name(ASSIGN)
             .code("=")
             .signature("${leftOp.type} = ${rightOp.type}")
-            .methodfullname("=")
-            .dispatchtype(STATIC_DISPATCH)
-            .dynamictypehintfullname(createScalaList(unit.rightOp.type.toQuotedString()))
+            .methodFullName("=")
+            .dispatchType(STATIC_DISPATCH)
+            .dynamicTypeHintFullName(createScalaList(unit.rightOp.type.toQuotedString()))
             .order(childIdx)
-            .argumentindex(childIdx)
-            .typefullname(leftOp.type.toQuotedString())
-            .linenumber(Option.apply(unit.javaSourceStartLineNumber))
-            .columnnumber(Option.apply(unit.javaSourceStartColumnNumber))
+            .argumentIndex(childIdx)
+            .typeFullName(leftOp.type.toQuotedString())
+            .lineNumber(Option.apply(unit.javaSourceStartLineNumber))
+            .columnNumber(Option.apply(unit.javaSourceStartColumnNumber))
         when (leftOp) {
             is Local -> SootToPlumeUtil.createIdentifierVertex(leftOp, currentLine, currentCol, 0).apply {
                 addSootToPlumeAssociation(leftOp, this)
@@ -409,14 +409,14 @@ class ASTBuilder(private val driver: IDriver) : IGraphBuilder {
             .name(binOpExpr)
             .code(expr.symbol.trim())
             .signature("${expr.op1.type.toQuotedString()}${expr.symbol}${expr.op2.type.toQuotedString()}")
-            .methodfullname(expr.symbol.trim())
-            .dispatchtype(STATIC_DISPATCH)
-            .dynamictypehintfullname(createScalaList(expr.op2.type.toQuotedString()))
+            .methodFullName(expr.symbol.trim())
+            .dispatchType(STATIC_DISPATCH)
+            .dynamicTypeHintFullName(createScalaList(expr.op2.type.toQuotedString()))
             .order(childIdx)
-            .argumentindex(childIdx)
-            .typefullname(expr.type.toQuotedString())
-            .linenumber(Option.apply(currentLine))
-            .columnnumber(Option.apply(currentCol))
+            .argumentIndex(childIdx)
+            .typeFullName(expr.type.toQuotedString())
+            .lineNumber(Option.apply(currentLine))
+            .columnNumber(Option.apply(currentCol))
             .apply { binopVertices.add(this) }
         projectOp(expr.op1, 0)?.let {
             runCatching {
@@ -445,14 +445,14 @@ class ASTBuilder(private val driver: IDriver) : IGraphBuilder {
             .name(operator)
             .code(symbol)
             .signature("${expr.op1.type} $symbol ${expr.op2.type}")
-            .methodfullname(symbol)
-            .dispatchtype(STATIC_DISPATCH)
+            .methodFullName(symbol)
+            .dispatchType(STATIC_DISPATCH)
             .order(3)
-            .argumentindex(3) // under an if-condition, the condition child will be after the two paths
-            .typefullname(expr.type.toQuotedString())
-            .linenumber(Option.apply(currentLine))
-            .columnnumber(Option.apply(currentCol))
-            .dynamictypehintfullname(createScalaList(expr.op2.type.toQuotedString()))
+            .argumentIndex(3) // under an if-condition, the condition child will be after the two paths
+            .typeFullName(expr.type.toQuotedString())
+            .lineNumber(Option.apply(currentLine))
+            .columnNumber(Option.apply(currentCol))
+            .dynamicTypeHintFullName(createScalaList(expr.op2.type.toQuotedString()))
             .apply { conditionVertices.add(this) }
         projectOp(expr.op1, 1)?.let {
             runCatching {
@@ -478,14 +478,14 @@ class ASTBuilder(private val driver: IDriver) : IGraphBuilder {
             .name(CAST)
             .code("(${expr.castType.toQuotedString()})")
             .signature("(${expr.castType.toQuotedString()}) ${expr.op.type.toQuotedString()}")
-            .methodfullname("(${expr.castType.toQuotedString()})")
-            .dispatchtype(STATIC_DISPATCH)
-            .dynamictypehintfullname(createScalaList(expr.op.type.toQuotedString()))
+            .methodFullName("(${expr.castType.toQuotedString()})")
+            .dispatchType(STATIC_DISPATCH)
+            .dynamicTypeHintFullName(createScalaList(expr.op.type.toQuotedString()))
             .order(childIdx)
-            .argumentindex(childIdx)
-            .typefullname(expr.type.toQuotedString())
-            .linenumber(Option.apply(currentLine))
-            .columnnumber(Option.apply(currentCol))
+            .argumentIndex(childIdx)
+            .typeFullName(expr.type.toQuotedString())
+            .lineNumber(Option.apply(currentLine))
+            .columnNumber(Option.apply(currentCol))
             .apply { castVertices.add(this) }
         projectOp(expr.op, 1)?.let {
             runCatching {
@@ -527,12 +527,12 @@ class ASTBuilder(private val driver: IDriver) : IGraphBuilder {
     private fun createNewArrayExpr(expr: NewArrayExpr, childIdx: Int = 0): NewTypeRefBuilder {
         val newArrayExprVertices = mutableListOf<NewNodeBuilder>()
         val typeRef = NewTypeRefBuilder()
-            .typefullname(expr.type.toQuotedString())
+            .typeFullName(expr.type.toQuotedString())
             .code(expr.toString())
-            .argumentindex(childIdx)
+            .argumentIndex(childIdx)
             .order(childIdx)
-            .linenumber(Option.apply(currentLine))
-            .columnnumber(Option.apply(currentCol))
+            .lineNumber(Option.apply(currentLine))
+            .columnNumber(Option.apply(currentCol))
             .apply { addSootToPlumeAssociation(expr, this) }
         NewArrayInitializerBuilder()
             .order(childIdx)
@@ -549,9 +549,9 @@ class ASTBuilder(private val driver: IDriver) : IGraphBuilder {
     private fun projectReturnVertex(ret: ReturnStmt, childIdx: Int): NewReturnBuilder {
         val retV = NewReturnBuilder()
             .code(ret.toString())
-            .argumentindex(childIdx)
-            .linenumber(Option.apply(ret.javaSourceStartLineNumber))
-            .columnnumber(Option.apply(ret.javaSourceStartColumnNumber))
+            .argumentIndex(childIdx)
+            .lineNumber(Option.apply(ret.javaSourceStartLineNumber))
+            .columnNumber(Option.apply(ret.javaSourceStartColumnNumber))
             .order(childIdx)
         projectOp(ret.op, childIdx + 1)?.let { driver.addEdge(retV, it, AST) }
         runCatching {
@@ -567,9 +567,9 @@ class ASTBuilder(private val driver: IDriver) : IGraphBuilder {
     private fun projectReturnVertex(ret: ReturnVoidStmt, childIdx: Int): NewReturnBuilder {
         val retV = NewReturnBuilder()
             .code(ret.toString())
-            .argumentindex(childIdx)
-            .linenumber(Option.apply(ret.javaSourceStartLineNumber))
-            .columnnumber(Option.apply(ret.javaSourceStartColumnNumber))
+            .argumentIndex(childIdx)
+            .lineNumber(Option.apply(ret.javaSourceStartLineNumber))
+            .columnNumber(Option.apply(ret.javaSourceStartColumnNumber))
             .order(childIdx)
         runCatching {
             driver.addEdge(

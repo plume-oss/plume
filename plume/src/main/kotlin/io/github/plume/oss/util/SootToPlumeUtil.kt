@@ -47,7 +47,7 @@ object SootToPlumeUtil {
         NewMemberBuilder()
             .name(field.name)
             .code(field.declaration)
-            .typefullname(field.type.toQuotedString())
+            .typeFullName(field.type.toQuotedString())
             .order(childIdx)
 
     /**
@@ -65,10 +65,10 @@ object SootToPlumeUtil {
         NewMethodParameterInBuilder()
             .name(local.name)
             .code("${local.type} ${local.name}")
-            .evaluationstrategy(determineEvaluationStrategy(local.type.toString(), isMethodReturn = false))
-            .typefullname(local.type.toString())
-            .linenumber(Option.apply(currentLine))
-            .columnnumber(Option.apply(currentCol))
+            .evaluationStrategy(determineEvaluationStrategy(local.type.toString(), isMethodReturn = false))
+            .typeFullName(local.type.toString())
+            .lineNumber(Option.apply(currentLine))
+            .columnNumber(Option.apply(currentCol))
             .order(childIdx)
 
     /**
@@ -81,9 +81,9 @@ object SootToPlumeUtil {
         NewLocalBuilder()
             .name(local.name)
             .code("${local.type} ${local.name}")
-            .typefullname(local.type.toString())
-            .linenumber(Option.apply(currentLine))
-            .columnnumber(Option.apply(currentCol))
+            .typeFullName(local.type.toString())
+            .lineNumber(Option.apply(currentLine))
+            .columnNumber(Option.apply(currentCol))
             .order(childIdx)
 
     /**
@@ -101,31 +101,31 @@ object SootToPlumeUtil {
         // Method vertex
         val mtdVertex = NewMethodBuilder()
             .name(mtd.name)
-            .fullname("${mtd.declaringClass}.${mtd.name}")
+            .fullName("${mtd.declaringClass}.${mtd.name}")
             .filename(sootClassToFileName(mtd.declaringClass))
             .signature(mtd.subSignature)
             .code(mtd.declaration)
-            .linenumber(Option.apply(currentLine))
-            .columnnumber(Option.apply(currentCol))
+            .lineNumber(Option.apply(currentLine))
+            .columnNumber(Option.apply(currentCol))
             .order(childIdx++)
-            .astparentfullname("${mtd.declaringClass}")
-            .astparenttype("TYPE_DECL")
+            .astParentFullName("${mtd.declaringClass}")
+            .astParentType("TYPE_DECL")
         addSootToPlumeAssociation(mtd, mtdVertex)
         // Store method vertex
         NewBlockBuilder()
-            .typefullname(mtd.returnType.toQuotedString())
+            .typeFullName(mtd.returnType.toQuotedString())
             .code(ExtractorConst.ENTRYPOINT)
             .order(childIdx++)
-            .argumentindex(0)
-            .linenumber(Option.apply(currentLine))
-            .columnnumber(Option.apply(currentCol))
+            .argumentIndex(0)
+            .lineNumber(Option.apply(currentLine))
+            .columnNumber(Option.apply(currentCol))
             .apply { driver.addEdge(mtdVertex, this, AST); addSootToPlumeAssociation(mtd, this) }
         // Store return type
         projectMethodReturnVertex(mtd.returnType, currentLine, currentCol, childIdx++)
             .apply { driver.addEdge(mtdVertex, this, AST); addSootToPlumeAssociation(mtd, this) }
         // Modifier vertices
         determineModifiers(mtd.modifiers, mtd.name)
-            .map { NewModifierBuilder().modifiertype(it).order(childIdx++) }
+            .map { NewModifierBuilder().modifierType(it).order(childIdx++) }
             .forEach { driver.addEdge(mtdVertex, it, AST) }
         return mtdVertex
     }
@@ -156,7 +156,7 @@ object SootToPlumeUtil {
         buildClassStructure(cls, driver)
         val typeDecl = buildTypeDeclaration(cls.type)
         determineModifiers(cls.modifiers)
-            .mapIndexed { i, m -> NewModifierBuilder().modifiertype(m).order(i + 1) }
+            .mapIndexed { i, m -> NewModifierBuilder().modifierType(m).order(i + 1) }
             .forEach { driver.addEdge(typeDecl, it, AST) }
         addSootToPlumeAssociation(cls, typeDecl)
         cls.fields.forEachIndexed { i, field ->
@@ -182,10 +182,10 @@ object SootToPlumeUtil {
             NewMethodParameterInBuilder()
                 .code("$type param$i")
                 .name("param$i")
-                .evaluationstrategy(determineEvaluationStrategy(type.toString(), isMethodReturn = false))
-                .typefullname(type.toString())
-                .linenumber(Option.apply(mtd.javaSourceStartLineNumber))
-                .columnnumber(Option.apply(mtd.javaSourceStartColumnNumber))
+                .evaluationStrategy(determineEvaluationStrategy(type.toString(), isMethodReturn = false))
+                .typeFullName(type.toString())
+                .lineNumber(Option.apply(mtd.javaSourceStartLineNumber))
+                .columnNumber(Option.apply(mtd.javaSourceStartColumnNumber))
                 .order(childIdx++)
                 .apply { driver.addEdge(mtdVertex, this, AST); addSootToPlumeAssociation(mtd, this) }
         }
@@ -193,10 +193,10 @@ object SootToPlumeUtil {
         val entryPoint = Extractor.getSootAssociation(mtd)?.filterIsInstance<NewBlockBuilder>()?.firstOrNull()
         val mtdReturn = Extractor.getSootAssociation(mtd)?.filterIsInstance<NewMethodReturnBuilder>()?.firstOrNull()
         NewReturnBuilder()
-            .linenumber(Option.apply(currentLine))
-            .columnnumber(Option.apply(currentCol))
+            .lineNumber(Option.apply(currentLine))
+            .columnNumber(Option.apply(currentCol))
             .order(childIdx++)
-            .argumentindex(initialChildIdx)
+            .argumentIndex(initialChildIdx)
             .code("return ${mtd.returnType.toQuotedString()}")
             .apply {
                 driver.addEdge(entryPoint!!, this, CFG)
@@ -206,12 +206,12 @@ object SootToPlumeUtil {
 
     fun createNewExpr(expr: NewExpr, currentLine: Int, currentCol: Int, childIdx: Int): NewTypeRefBuilder {
         return NewTypeRefBuilder()
-            .typefullname(expr.baseType.toQuotedString())
+            .typeFullName(expr.baseType.toQuotedString())
             .code(expr.toString())
-            .argumentindex(childIdx)
+            .argumentIndex(childIdx)
             .order(childIdx)
-            .linenumber(Option.apply(currentLine))
-            .columnnumber(Option.apply(currentCol))
+            .lineNumber(Option.apply(currentLine))
+            .columnNumber(Option.apply(currentCol))
             .apply { addSootToPlumeAssociation(expr, this) }
     }
 
@@ -286,7 +286,7 @@ object SootToPlumeUtil {
             prevNamespaceBlock = maybePrevNamespaceBlock
                 ?: NewNamespaceBlockBuilder()
                     .name(namespaceList[0])
-                    .fullname(namespaceList[0])
+                    .fullName(namespaceList[0])
                     .filename(filename)
                     .order(1)
             if (namespaceList.size == 1) return prevNamespaceBlock
@@ -305,7 +305,7 @@ object SootToPlumeUtil {
                     }?.let { mapToVertex(it) } as NewNamespaceBlockBuilder?
                 currNamespaceBlock = maybeCurrNamespaceBlock ?: NewNamespaceBlockBuilder()
                     .name(namespaceList[i])
-                    .fullname(namespaceBuilder.toString())
+                    .fullName(namespaceBuilder.toString())
                     .filename(filename)
                     .order(order)
                 if (currNamespaceBlock != null) {
@@ -340,12 +340,12 @@ object SootToPlumeUtil {
 
         return NewTypeDeclBuilder()
             .name(shortName)
-            .fullname(type.toQuotedString())
+            .fullName(type.toQuotedString())
             .filename(filename)
-            .astparentfullname(parentType)
-            .astparenttype("NAMESPACE_BLOCK")
+            .astParentFullName(parentType)
+            .astParentType("NAMESPACE_BLOCK")
             .order(if (isExternal) -1 else 1)
-            .isexternal(isExternal)
+            .isExternal(isExternal)
             .apply { addSootToPlumeAssociation(type, this) }
     }
 
@@ -387,10 +387,10 @@ object SootToPlumeUtil {
     ): NewMethodReturnBuilder =
         NewMethodReturnBuilder()
             .code(type.toQuotedString())
-            .evaluationstrategy(determineEvaluationStrategy(type.toQuotedString(), true))
-            .typefullname(type.toQuotedString())
-            .linenumber(Option.apply(currentLine))
-            .columnnumber(Option.apply(currentCol))
+            .evaluationStrategy(determineEvaluationStrategy(type.toQuotedString(), true))
+            .typeFullName(type.toQuotedString())
+            .lineNumber(Option.apply(currentLine))
+            .columnNumber(Option.apply(currentCol))
             .order(childIdx)
 
     /**
@@ -405,10 +405,10 @@ object SootToPlumeUtil {
         NewLiteralBuilder()
             .code(constant.toString())
             .order(childIdx)
-            .argumentindex(childIdx)
-            .typefullname(constant.type.toQuotedString())
-            .linenumber(Option.apply(currentLine))
-            .columnnumber(Option.apply(currentCol))
+            .argumentIndex(childIdx)
+            .typeFullName(constant.type.toQuotedString())
+            .lineNumber(Option.apply(currentLine))
+            .columnNumber(Option.apply(currentCol))
 
     /**
      * Creates a [NewIdentifier] from a [Value].
@@ -423,10 +423,10 @@ object SootToPlumeUtil {
             .code(local.toString())
             .name(local.toString())
             .order(childIdx)
-            .argumentindex(childIdx)
-            .typefullname(local.type.toQuotedString())
-            .linenumber(Option.apply(currentLine))
-            .columnnumber(Option.apply(currentCol))
+            .argumentIndex(childIdx)
+            .typeFullName(local.type.toQuotedString())
+            .lineNumber(Option.apply(currentLine))
+            .columnNumber(Option.apply(currentCol))
 
     /**
      * Creates a [NewIdentifier] from an [ArrayRef].
@@ -441,10 +441,10 @@ object SootToPlumeUtil {
             .code(arrRef.toString())
             .name(arrRef.toString())
             .order(childIdx)
-            .argumentindex(arrRef.index.toString().toIntOrNull() ?: childIdx)
-            .typefullname(arrRef.type.toQuotedString())
-            .linenumber(Option.apply(currentLine))
-            .columnnumber(Option.apply(currentCol))
+            .argumentIndex(arrRef.index.toString().toIntOrNull() ?: childIdx)
+            .typeFullName(arrRef.type.toQuotedString())
+            .lineNumber(Option.apply(currentLine))
+            .columnNumber(Option.apply(currentCol))
 
     /**
      * Creates a [NewFieldIdentifier] from a [FieldRef].
@@ -456,11 +456,11 @@ object SootToPlumeUtil {
         childIdx: Int = 0
     ): NewFieldIdentifierBuilder =
         NewFieldIdentifierBuilder()
-            .canonicalname(field.field.signature)
+            .canonicalName(field.field.signature)
             .code(field.field.declaration)
-            .argumentindex(childIdx)
-            .linenumber(Option.apply(currentLine))
-            .columnnumber(Option.apply(currentCol))
+            .argumentIndex(childIdx)
+            .lineNumber(Option.apply(currentLine))
+            .columnNumber(Option.apply(currentCol))
             .order(childIdx)
 
     fun <T> createScalaList(vararg item: T): scala.collection.immutable.List<T> {

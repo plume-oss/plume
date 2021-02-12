@@ -42,6 +42,7 @@ mgmt.containsPropertyKey('AST_PARENT_FULL_NAME') ?: mgmt.makePropertyKey('AST_PA
 mgmt.containsPropertyKey('IS_EXTERNAL') ?: mgmt.makePropertyKey('IS_EXTERNAL').dataType(Boolean.class).cardinality(Cardinality.SINGLE).make()
 mgmt.containsPropertyKey('FILENAME') ?: mgmt.makePropertyKey('FILENAME').dataType(String.class).cardinality(Cardinality.SINGLE).make()
 mgmt.containsPropertyKey('SIGNATURE') ?: mgmt.makePropertyKey('SIGNATURE').dataType(String.class).cardinality(Cardinality.SINGLE).make()
+mgmt.containsPropertyKey('CONTROL_STRUCTURE_TYPE') ?: mgmt.makePropertyKey('CONTROL_STRUCTURE_TYPE').dataType(String.class).cardinality(Cardinality.SINGLE).make()
 mgmt.containsPropertyKey('EVALUATION_STRATEGY') ?: mgmt.makePropertyKey('EVALUATION_STRATEGY').dataType(String.class).cardinality(Cardinality.SINGLE).make()
 mgmt.containsPropertyKey('NAME') ?: mgmt.makePropertyKey('NAME').dataType(String.class).cardinality(Cardinality.SINGLE).make()
 mgmt.containsPropertyKey('VERSION') ?: mgmt.makePropertyKey('VERSION').dataType(String.class).cardinality(Cardinality.SINGLE).make()
