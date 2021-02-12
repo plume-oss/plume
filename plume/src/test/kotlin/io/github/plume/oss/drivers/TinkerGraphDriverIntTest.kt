@@ -118,10 +118,10 @@ class TinkerGraphDriverIntTest {
 
         @Test
         fun findFieldIdentifierVertex() {
-            val v1 = NewFieldIdentifierBuilder().canonicalname(STRING_1).code(STRING_2).argumentindex(INT_1)
-                .order(INT_1).linenumber(Option.apply(INT_1)).columnnumber(Option.apply(INT_1))
-            val v2 = NewFieldIdentifierBuilder().canonicalname(STRING_2).code(STRING_1).argumentindex(INT_1)
-                .order(INT_1).linenumber(Option.apply(INT_1)).columnnumber(Option.apply(INT_1))
+            val v1 = NewFieldIdentifierBuilder().canonicalName(STRING_1).code(STRING_2).argumentIndex(INT_1)
+                .order(INT_1).lineNumber(Option.apply(INT_1)).columnNumber(Option.apply(INT_1))
+            val v2 = NewFieldIdentifierBuilder().canonicalName(STRING_2).code(STRING_1).argumentIndex(INT_1)
+                .order(INT_1).lineNumber(Option.apply(INT_1)).columnNumber(Option.apply(INT_1))
             assertFalse(driver.exists(v1))
             assertFalse(driver.exists(v2))
             driver.addVertex(v1)
@@ -148,12 +148,12 @@ class TinkerGraphDriverIntTest {
 
         @Test
         fun findMethodRefVertex() {
-            val v1 = NewMethodRefBuilder().methodinstfullname(Option.apply(STRING_1)).methodfullname(STRING_2)
-                .code(STRING_1).order(INT_1).argumentindex(INT_1).linenumber(Option.apply(INT_1))
-                .columnnumber(Option.apply(INT_1))
-            val v2 = NewMethodRefBuilder().methodinstfullname(Option.apply(STRING_2)).methodfullname(STRING_1)
-                .code(STRING_1).order(INT_1).argumentindex(INT_1).linenumber(Option.apply(INT_1))
-                .columnnumber(Option.apply(INT_1))
+            val v1 = NewMethodRefBuilder().methodInstFullName(Option.apply(STRING_1)).methodFullName(STRING_2)
+                .code(STRING_1).order(INT_1).argumentIndex(INT_1).lineNumber(Option.apply(INT_1))
+                .columnNumber(Option.apply(INT_1))
+            val v2 = NewMethodRefBuilder().methodInstFullName(Option.apply(STRING_2)).methodFullName(STRING_1)
+                .code(STRING_1).order(INT_1).argumentIndex(INT_1).lineNumber(Option.apply(INT_1))
+                .columnNumber(Option.apply(INT_1))
             assertFalse(driver.exists(v1))
             assertFalse(driver.exists(v2))
             driver.addVertex(v1)
@@ -166,8 +166,8 @@ class TinkerGraphDriverIntTest {
 
         @Test
         fun findTypeVertex() {
-            val v1 = NewTypeBuilder().name(STRING_1).fullname(STRING_2).typedeclfullname(STRING_2)
-            val v2 = NewTypeBuilder().name(STRING_2).fullname(STRING_1).typedeclfullname(STRING_2)
+            val v1 = NewTypeBuilder().name(STRING_1).fullName(STRING_2).typeDeclFullName(STRING_2)
+            val v2 = NewTypeBuilder().name(STRING_2).fullName(STRING_1).typeDeclFullName(STRING_2)
             assertFalse(driver.exists(v1))
             assertFalse(driver.exists(v2))
             driver.addVertex(v1)
@@ -180,14 +180,14 @@ class TinkerGraphDriverIntTest {
 
         @Test
         fun findTypeRefVertex() {
-            val v1 = NewTypeRefBuilder().typefullname(STRING_1).dynamictypehintfullname(
+            val v1 = NewTypeRefBuilder().typeFullName(STRING_1).dynamicTypeHintFullName(
                 SootToPlumeUtil.createScalaList(STRING_2)
-            ).code(STRING_1).argumentindex(INT_1).order(INT_1).linenumber(Option.apply(INT_1))
-                .columnnumber(Option.apply(INT_1))
-            val v2 = NewTypeRefBuilder().typefullname(STRING_2).dynamictypehintfullname(
+            ).code(STRING_1).argumentIndex(INT_1).order(INT_1).lineNumber(Option.apply(INT_1))
+                .columnNumber(Option.apply(INT_1))
+            val v2 = NewTypeRefBuilder().typeFullName(STRING_2).dynamicTypeHintFullName(
                 SootToPlumeUtil.createScalaList(STRING_1)
-            ).code(STRING_1).argumentindex(INT_1).order(INT_1).linenumber(Option.apply(INT_1))
-                .columnnumber(Option.apply(INT_1))
+            ).code(STRING_1).argumentIndex(INT_1).order(INT_1).lineNumber(Option.apply(INT_1))
+                .columnNumber(Option.apply(INT_1))
             assertFalse(driver.exists(v1))
             assertFalse(driver.exists(v2))
             driver.addVertex(v1)
@@ -200,10 +200,10 @@ class TinkerGraphDriverIntTest {
 
         @Test
         fun findUnknownVertex() {
-            val v1 = NewUnknownBuilder().typefullname(STRING_1).code(STRING_2).order(INT_1).argumentindex(INT_1)
-                .linenumber(Option.apply(INT_1)).columnnumber(Option.apply(INT_1))
-            val v2 = NewUnknownBuilder().typefullname(STRING_2).code(STRING_1).order(INT_1).argumentindex(INT_1)
-                .linenumber(Option.apply(INT_1)).columnnumber(Option.apply(INT_1))
+            val v1 = NewUnknownBuilder().typeFullName(STRING_1).code(STRING_2).order(INT_1).argumentIndex(INT_1)
+                .lineNumber(Option.apply(INT_1)).columnNumber(Option.apply(INT_1))
+            val v2 = NewUnknownBuilder().typeFullName(STRING_2).code(STRING_1).order(INT_1).argumentIndex(INT_1)
+                .lineNumber(Option.apply(INT_1)).columnNumber(Option.apply(INT_1))
             assertFalse(driver.exists(v1))
             assertFalse(driver.exists(v2))
             driver.addVertex(v1)
@@ -348,7 +348,7 @@ class TinkerGraphDriverIntTest {
     @DisplayName("Graph import/export from file tests")
     inner class ValidateGraphImportExportFromFiles {
         private val v1 = NewFileBuilder().name(STRING_1).hash(Option.apply(STRING_2)).order(INT_1)
-        private val v2 = NewNamespaceBlockBuilder().name(STRING_1).fullname(STRING_2).order(INT_1)
+        private val v2 = NewNamespaceBlockBuilder().name(STRING_1).fullName(STRING_2).order(INT_1)
 
         @BeforeEach
         fun setUp() {

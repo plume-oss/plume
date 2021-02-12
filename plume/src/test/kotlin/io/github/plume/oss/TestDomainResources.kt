@@ -29,114 +29,114 @@ class TestDomainResources {
         val vertices = listOf<NewNodeBuilder>(
             NewArrayInitializerBuilder().order(INT_1),
             NewBindingBuilder().name(STRING_1).signature(STRING_2),
-            NewBlockBuilder().typefullname(STRING_1).code(STRING_1).order(INT_1).argumentindex(INT_1)
-                .linenumber(Option.apply(INT_1)).columnnumber(Option.apply(INT_1)),
-            NewCallBuilder().methodfullname(STRING_1).argumentindex(INT_1).dispatchtype(DISPATCH_1)
-                .typefullname(STRING_1)
-                .dynamictypehintfullname(createScalaList(STRING_1))
-                .name(STRING_1).signature(STRING_1).code(STRING_1).order(INT_1).linenumber(Option.apply(INT_1))
-                .columnnumber(Option.apply(INT_1)),
-            NewControlStructureBuilder().code(STRING_1).linenumber(Option.apply(INT_1))
-                .columnnumber(Option.apply(INT_1)).order(INT_1).argumentindex(INT_1),
-            NewFieldIdentifierBuilder().canonicalname(STRING_1).code(STRING_1).argumentindex(INT_1).order(INT_1)
-                .linenumber(Option.apply(INT_1)).columnnumber(Option.apply(INT_1)),
+            NewBlockBuilder().typeFullName(STRING_1).code(STRING_1).order(INT_1).argumentIndex(INT_1)
+                .lineNumber(Option.apply(INT_1)).columnNumber(Option.apply(INT_1)),
+            NewCallBuilder().methodFullName(STRING_1).argumentIndex(INT_1).dispatchType(DISPATCH_1)
+                .typeFullName(STRING_1)
+                .dynamicTypeHintFullName(createScalaList(STRING_1))
+                .name(STRING_1).signature(STRING_1).code(STRING_1).order(INT_1).lineNumber(Option.apply(INT_1))
+                .columnNumber(Option.apply(INT_1)),
+            NewControlStructureBuilder().code(STRING_1).lineNumber(Option.apply(INT_1))
+                .columnNumber(Option.apply(INT_1)).order(INT_1).argumentIndex(INT_1),
+            NewFieldIdentifierBuilder().canonicalName(STRING_1).code(STRING_1).argumentIndex(INT_1).order(INT_1)
+                .lineNumber(Option.apply(INT_1)).columnNumber(Option.apply(INT_1)),
             NewFileBuilder().name(STRING_1).hash(Option.apply(STRING_2)).order(INT_1),
-            NewIdentifierBuilder().name(STRING_1).typefullname(STRING_1).code(STRING_1).order(INT_1)
-                .argumentindex(INT_1).linenumber(Option.apply(INT_1)).columnnumber(Option.apply(INT_1)),
-            NewJumpTargetBuilder().name(STRING_1).argumentindex(INT_1).code(STRING_1).order(INT_1)
-                .linenumber(Option.apply(INT_1)).columnnumber(Option.apply(INT_1)),
-            NewLiteralBuilder().typefullname(STRING_1).code(STRING_1).order(INT_1).argumentindex(INT_1)
-                .linenumber(Option.apply(INT_1)).columnnumber(Option.apply(INT_1)),
-            NewLocalBuilder().code(STRING_1).typefullname(STRING_1).name(STRING_1).order(INT_1)
-                .linenumber(Option.apply(INT_1)).columnnumber(Option.apply(INT_1)),
-            NewMemberBuilder().code(STRING_1).name(STRING_1).typefullname(STRING_1).order(INT_1),
+            NewIdentifierBuilder().name(STRING_1).typeFullName(STRING_1).code(STRING_1).order(INT_1)
+                .argumentIndex(INT_1).lineNumber(Option.apply(INT_1)).columnNumber(Option.apply(INT_1)),
+            NewJumpTargetBuilder().name(STRING_1).argumentIndex(INT_1).code(STRING_1).order(INT_1)
+                .lineNumber(Option.apply(INT_1)).columnNumber(Option.apply(INT_1)),
+            NewLiteralBuilder().typeFullName(STRING_1).code(STRING_1).order(INT_1).argumentIndex(INT_1)
+                .lineNumber(Option.apply(INT_1)).columnNumber(Option.apply(INT_1)),
+            NewLocalBuilder().code(STRING_1).typeFullName(STRING_1).name(STRING_1).order(INT_1)
+                .lineNumber(Option.apply(INT_1)).columnNumber(Option.apply(INT_1)),
+            NewMemberBuilder().code(STRING_1).name(STRING_1).typeFullName(STRING_1).order(INT_1),
             NewMetaDataBuilder().language(STRING_1).version(STRING_1),
-            NewMethodParameterInBuilder().code(STRING_1).evaluationstrategy(EVAL_1).typefullname(STRING_1)
-                .name(STRING_1).order(INT_1).linenumber(Option.apply(INT_1)).columnnumber(Option.apply(INT_1)),
-            NewMethodRefBuilder().methodinstfullname(Option.apply(STRING_1)).methodfullname(STRING_1).code(STRING_1)
-                .order(INT_1).argumentindex(INT_1).linenumber(Option.apply(INT_1)).columnnumber(Option.apply(INT_1)),
-            NewMethodReturnBuilder().typefullname(STRING_1).evaluationstrategy(EVAL_1).code(STRING_1)
-                .order(INT_1).linenumber(Option.apply(INT_1)).columnnumber(Option.apply(INT_1)),
-            NewMethodBuilder().name(STRING_1).fullname(STRING_1).signature(STRING_1).code(STRING_1).order(INT_1)
-                .linenumber(Option.apply(INT_1)).columnnumber(Option.apply(INT_1)),
-            NewModifierBuilder().modifiertype(MOD_1).order(INT_1),
-            NewNamespaceBlockBuilder().name(STRING_1).fullname(STRING_1).order(INT_1).filename(STRING_1),
-            NewReturnBuilder().order(INT_1).argumentindex(INT_1).code(STRING_1).linenumber(Option.apply(INT_1))
-                .columnnumber(Option.apply(INT_1)),
+            NewMethodParameterInBuilder().code(STRING_1).evaluationStrategy(EVAL_1).typeFullName(STRING_1)
+                .name(STRING_1).order(INT_1).lineNumber(Option.apply(INT_1)).columnNumber(Option.apply(INT_1)),
+            NewMethodRefBuilder().methodInstFullName(Option.apply(STRING_1)).methodFullName(STRING_1).code(STRING_1)
+                .order(INT_1).argumentIndex(INT_1).lineNumber(Option.apply(INT_1)).columnNumber(Option.apply(INT_1)),
+            NewMethodReturnBuilder().typeFullName(STRING_1).evaluationStrategy(EVAL_1).code(STRING_1)
+                .order(INT_1).lineNumber(Option.apply(INT_1)).columnNumber(Option.apply(INT_1)),
+            NewMethodBuilder().name(STRING_1).fullName(STRING_1).signature(STRING_1).code(STRING_1).order(INT_1)
+                .lineNumber(Option.apply(INT_1)).columnNumber(Option.apply(INT_1)),
+            NewModifierBuilder().modifierType(MOD_1).order(INT_1),
+            NewNamespaceBlockBuilder().name(STRING_1).fullName(STRING_1).order(INT_1).filename(STRING_1),
+            NewReturnBuilder().order(INT_1).argumentIndex(INT_1).code(STRING_1).lineNumber(Option.apply(INT_1))
+                .columnNumber(Option.apply(INT_1)),
             NewTypeArgumentBuilder().order(INT_1),
-            NewTypeDeclBuilder().name(STRING_1).fullname(STRING_1).order(INT_1).isexternal(BOOL_1),
+            NewTypeDeclBuilder().name(STRING_1).fullName(STRING_1).order(INT_1).isExternal(BOOL_1),
             NewTypeParameterBuilder().name(STRING_1).order(INT_1),
-            NewTypeRefBuilder().typefullname(STRING_1)
-                .dynamictypehintfullname(createScalaList(STRING_1))
-                .code(STRING_1).argumentindex(INT_1).order(INT_1).linenumber(Option.apply(INT_1))
-                .columnnumber(Option.apply(INT_1)),
-            NewTypeBuilder().name(STRING_1).fullname(STRING_1).typedeclfullname(STRING_1),
-            NewUnknownBuilder().typefullname(STRING_1).code(STRING_1).order(INT_1).argumentindex(INT_1)
-                .linenumber(Option.apply(INT_1)).columnnumber(Option.apply(INT_1))
+            NewTypeRefBuilder().typeFullName(STRING_1)
+                .dynamicTypeHintFullName(createScalaList(STRING_1))
+                .code(STRING_1).argumentIndex(INT_1).order(INT_1).lineNumber(Option.apply(INT_1))
+                .columnNumber(Option.apply(INT_1)),
+            NewTypeBuilder().name(STRING_1).fullName(STRING_1).typeDeclFullName(STRING_1),
+            NewUnknownBuilder().typeFullName(STRING_1).code(STRING_1).order(INT_1).argumentIndex(INT_1)
+                .lineNumber(Option.apply(INT_1)).columnNumber(Option.apply(INT_1))
         )
 
         val methodVertex: NewMethodBuilder =
-            NewMethodBuilder().code(STRING_1).name(STRING_1).fullname(STRING_1).order(INT_1)
-                .linenumber(Option.apply(INT_1)).columnnumber(Option.apply(INT_1)).signature(STRING_2).filename(STRING_1)
-                .astparentfullname(STRING_1).astparenttype(STRING_2)
+            NewMethodBuilder().code(STRING_1).name(STRING_1).fullName(STRING_1).order(INT_1)
+                .lineNumber(Option.apply(INT_1)).columnNumber(Option.apply(INT_1)).signature(STRING_2).filename(STRING_1)
+                .astParentFullName(STRING_1).astParentType(STRING_2)
         val mtdParamInVertex: NewMethodParameterInBuilder =
-            NewMethodParameterInBuilder().code(STRING_1).evaluationstrategy(EVAL_1).typefullname(STRING_1)
-                .name(STRING_1).order(INT_1).linenumber(Option.apply(INT_1)).columnnumber(Option.apply(INT_1))
+            NewMethodParameterInBuilder().code(STRING_1).evaluationStrategy(EVAL_1).typeFullName(STRING_1)
+                .name(STRING_1).order(INT_1).lineNumber(Option.apply(INT_1)).columnNumber(Option.apply(INT_1))
         val blockVertex: NewBlockBuilder =
-            NewBlockBuilder().typefullname(STRING_1).code(STRING_1).order(INT_1).argumentindex(INT_1)
-                .linenumber(Option.apply(INT_1)).columnnumber(Option.apply(INT_1))
+            NewBlockBuilder().typeFullName(STRING_1).code(STRING_1).order(INT_1).argumentIndex(INT_1)
+                .lineNumber(Option.apply(INT_1)).columnNumber(Option.apply(INT_1))
         val callVertex: NewCallBuilder =
-            NewCallBuilder().methodfullname(STRING_1).argumentindex(INT_1).dispatchtype(DISPATCH_1)
-                .typefullname(STRING_1)
-                .dynamictypehintfullname(createScalaList(STRING_1))
-                .name(STRING_1).signature(STRING_1).code(STRING_1).order(INT_1).linenumber(Option.apply(INT_1))
-                .columnnumber(Option.apply(INT_1))
+            NewCallBuilder().methodFullName(STRING_1).argumentIndex(INT_1).dispatchType(DISPATCH_1)
+                .typeFullName(STRING_1)
+                .dynamicTypeHintFullName(createScalaList(STRING_1))
+                .name(STRING_1).signature(STRING_1).code(STRING_1).order(INT_1).lineNumber(Option.apply(INT_1))
+                .columnNumber(Option.apply(INT_1))
         val localVertex: NewLocalBuilder =
-            NewLocalBuilder().code(STRING_1).typefullname(STRING_1).name(STRING_1).order(INT_1)
-                .linenumber(Option.apply(INT_1)).columnnumber(Option.apply(INT_1))
+            NewLocalBuilder().code(STRING_1).typeFullName(STRING_1).name(STRING_1).order(INT_1)
+                .lineNumber(Option.apply(INT_1)).columnNumber(Option.apply(INT_1))
         val identifierVertex: NewIdentifierBuilder =
-            NewIdentifierBuilder().name(STRING_1).typefullname(STRING_1).code(STRING_1).order(INT_1)
-                .argumentindex(INT_1).linenumber(Option.apply(INT_1)).columnnumber(Option.apply(INT_1))
-        val typeDeclVertex: NewTypeDeclBuilder = NewTypeDeclBuilder().name(STRING_1).fullname(STRING_1).order(INT_1)
-            .astparentfullname(STRING_1).astparenttype(STRING_2)
+            NewIdentifierBuilder().name(STRING_1).typeFullName(STRING_1).code(STRING_1).order(INT_1)
+                .argumentIndex(INT_1).lineNumber(Option.apply(INT_1)).columnNumber(Option.apply(INT_1))
+        val typeDeclVertex: NewTypeDeclBuilder = NewTypeDeclBuilder().name(STRING_1).fullName(STRING_1).order(INT_1)
+            .astParentFullName(STRING_1).astParentType(STRING_2)
         val literalVertex: NewLiteralBuilder =
-            NewLiteralBuilder().typefullname(STRING_1).code(STRING_1).order(INT_1).argumentindex(INT_1)
-                .linenumber(Option.apply(INT_1)).columnnumber(Option.apply(INT_1))
+            NewLiteralBuilder().typeFullName(STRING_1).code(STRING_1).order(INT_1).argumentIndex(INT_1)
+                .lineNumber(Option.apply(INT_1)).columnNumber(Option.apply(INT_1))
         val returnVertex: NewReturnBuilder =
-            NewReturnBuilder().order(INT_1).argumentindex(INT_1).code(STRING_1).linenumber(Option.apply(INT_1))
-                .columnnumber(Option.apply(INT_1))
+            NewReturnBuilder().order(INT_1).argumentIndex(INT_1).code(STRING_1).lineNumber(Option.apply(INT_1))
+                .columnNumber(Option.apply(INT_1))
         val mtdRtnVertex: NewMethodReturnBuilder =
-            NewMethodReturnBuilder().typefullname(STRING_1).evaluationstrategy(EVAL_1).code(STRING_1)
-                .order(INT_1).linenumber(Option.apply(INT_1)).columnnumber(Option.apply(INT_1))
+            NewMethodReturnBuilder().typeFullName(STRING_1).evaluationStrategy(EVAL_1).code(STRING_1)
+                .order(INT_1).lineNumber(Option.apply(INT_1)).columnNumber(Option.apply(INT_1))
         val fileVertex: NewFileBuilder = NewFileBuilder().name(STRING_1).hash(Option.apply(STRING_2)).order(INT_1)
         val namespaceBlockVertex1: NewNamespaceBlockBuilder =
-            NewNamespaceBlockBuilder().name(STRING_1).fullname(STRING_1).order(INT_1).filename(STRING_1)
+            NewNamespaceBlockBuilder().name(STRING_1).fullName(STRING_1).order(INT_1).filename(STRING_1)
         val namespaceBlockVertex2: NewNamespaceBlockBuilder =
-            NewNamespaceBlockBuilder().name(STRING_2).fullname(STRING_2).order(INT_1).filename(STRING_2)
+            NewNamespaceBlockBuilder().name(STRING_2).fullName(STRING_2).order(INT_1).filename(STRING_2)
         val metaDataVertex: NewMetaDataBuilder = NewMetaDataBuilder().language(STRING_1).version(STRING_2)
         val controlStructureVertex: NewControlStructureBuilder =
-            NewControlStructureBuilder().code(STRING_1).linenumber(Option.apply(INT_1))
-                .columnnumber(Option.apply(INT_1)).order(INT_1).argumentindex(INT_1)
+            NewControlStructureBuilder().code(STRING_1).lineNumber(Option.apply(INT_1))
+                .columnNumber(Option.apply(INT_1)).order(INT_1).argumentIndex(INT_1)
         val jumpTargetVertex: NewJumpTargetBuilder =
-            NewJumpTargetBuilder().name(STRING_1).argumentindex(INT_1).code(STRING_1).order(INT_1)
-                .linenumber(Option.apply(INT_1)).columnnumber(Option.apply(INT_1))
+            NewJumpTargetBuilder().name(STRING_1).argumentIndex(INT_1).code(STRING_1).order(INT_1)
+                .lineNumber(Option.apply(INT_1)).columnNumber(Option.apply(INT_1))
         val bindingVertex: NewBindingBuilder = NewBindingBuilder().name(STRING_1).signature(STRING_2)
         val typeArgumentVertex: NewTypeArgumentBuilder = NewTypeArgumentBuilder().order(INT_1)
         val typeParameterVertex: NewTypeParameterBuilder = NewTypeParameterBuilder().name(STRING_1).order(INT_1)
         val fldIdentVertex: NewFieldIdentifierBuilder =
-            NewFieldIdentifierBuilder().canonicalname(STRING_1).code(STRING_1).argumentindex(INT_1).order(INT_1)
-                .linenumber(Option.apply(INT_1)).columnnumber(Option.apply(INT_1))
+            NewFieldIdentifierBuilder().canonicalName(STRING_1).code(STRING_1).argumentIndex(INT_1).order(INT_1)
+                .lineNumber(Option.apply(INT_1)).columnNumber(Option.apply(INT_1))
         val methodRefVertex: NewMethodRefBuilder =
-            NewMethodRefBuilder().methodinstfullname(Option.apply(STRING_1)).methodfullname(STRING_1).code(STRING_1)
-                .order(INT_1).argumentindex(INT_1).linenumber(Option.apply(INT_1)).columnnumber(Option.apply(INT_1))
-        val typeRefVertex: NewTypeRefBuilder = NewTypeRefBuilder().typefullname(STRING_1)
-            .dynamictypehintfullname(createScalaList(STRING_1))
-            .code(STRING_1).argumentindex(INT_1).order(INT_1).linenumber(Option.apply(INT_1))
-            .columnnumber(Option.apply(INT_1))
+            NewMethodRefBuilder().methodInstFullName(Option.apply(STRING_1)).methodFullName(STRING_1).code(STRING_1)
+                .order(INT_1).argumentIndex(INT_1).lineNumber(Option.apply(INT_1)).columnNumber(Option.apply(INT_1))
+        val typeRefVertex: NewTypeRefBuilder = NewTypeRefBuilder().typeFullName(STRING_1)
+            .dynamicTypeHintFullName(createScalaList(STRING_1))
+            .code(STRING_1).argumentIndex(INT_1).order(INT_1).lineNumber(Option.apply(INT_1))
+            .columnNumber(Option.apply(INT_1))
         val unknownVertex: NewUnknownBuilder =
-            NewUnknownBuilder().typefullname(STRING_1).code(STRING_1).order(INT_1).argumentindex(INT_1)
-                .linenumber(Option.apply(INT_1)).columnnumber(Option.apply(INT_1))
-        val modifierVertex: NewModifierBuilder = NewModifierBuilder().modifiertype(MOD_1).order(INT_1)
+            NewUnknownBuilder().typeFullName(STRING_1).code(STRING_1).order(INT_1).argumentIndex(INT_1)
+                .lineNumber(Option.apply(INT_1)).columnNumber(Option.apply(INT_1))
+        val modifierVertex: NewModifierBuilder = NewModifierBuilder().modifierType(MOD_1).order(INT_1)
 
         val simpleCpgVertices = listOf(
             methodVertex,
