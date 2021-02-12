@@ -91,9 +91,10 @@ interface IDriver : AutoCloseable {
     /**
      * Given a vertex, will remove it from the graph if present.
      *
-     * @param v The vertex to remove.
+     * @param id The id to remove.
+     * @param label The label, if known.
      */
-    fun deleteVertex(v: NewNodeBuilder)
+    fun deleteVertex(id: Long, label: String? = null)
 
     /**
      * Given the full signature of a method, removes the method and its body from the graph.
