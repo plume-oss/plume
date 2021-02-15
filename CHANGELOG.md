@@ -16,6 +16,7 @@ and this project adheres to [Semantic Versioning](http://semver.org/).
 
 ### Added
 - `deleteEdge` to `IDriver`
+- `updateVertexProperty` to `IDriver`
 - `DiffGraphUtil::processDiffGraph` to accept `DiffGraph`s and apply changes to a given `IDriver`
 
 ### Changed

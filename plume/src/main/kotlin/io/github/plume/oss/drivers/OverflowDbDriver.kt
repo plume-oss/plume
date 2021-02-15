@@ -67,9 +67,7 @@ class OverflowDbDriver : IDriver {
         v.id(node.id())
     }
 
-    override fun exists(v: NewNodeBuilder): Boolean {
-        return (graph.node(v.id()) != null)
-    }
+    override fun exists(v: NewNodeBuilder) = (graph.node(v.id()) != null)
 
     override fun exists(src: NewNodeBuilder, tgt: NewNodeBuilder, edge: String): Boolean {
         val srcNode = graph.node(src.id()) ?: return false
@@ -142,9 +140,7 @@ class OverflowDbDriver : IDriver {
         return g
     }
 
-    override fun getNeighbours(v: NewNodeBuilder): Graph {
-        return deepCopyGraph(Traversals.getNeighbours(graph, v.id()))
-    }
+    override fun getNeighbours(v: NewNodeBuilder): Graph = deepCopyGraph(Traversals.getNeighbours(graph, v.id()))
 
     override fun deleteVertex(id: Long, label: String?) {
         graph.node(id)?.let { graph.remove(it) }
@@ -156,8 +152,11 @@ class OverflowDbDriver : IDriver {
         if (e?.inNode()?.id() == tgt.id()) e.remove()
     }
 
-    override fun deleteMethod(fullName: String, signature: String) {
-        Traversals.deleteMethod(graph, fullName, signature)
+    override fun deleteMethod(fullName: String, signature: String) = Traversals.deleteMethod(graph, fullName, signature)
+
+    override fun updateVertexProperty(id: Long, label: String?, key: String, value: Any) {
+        val node = graph.node(id) ?: return
+        node.setProperty(key, value)
     }
 
     override fun close() {

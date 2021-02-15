@@ -9,10 +9,6 @@ repositories {
 }
 
 dependencies {
-    // Logging
-    implementation "org.apache.logging.log4j:log4j-core:$log4jVersion"
-    implementation "org.apache.logging.log4j:log4j-slf4j-impl:$log4jVersion"
-    // Core dependencies
     implementation "io.shiftleft:codepropertygraph_2.13:$shiftleftVersion"
     implementation "io.shiftleft:semanticcpg_2.13:$shiftleftVersion"
 }

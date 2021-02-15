@@ -6,7 +6,6 @@ import io.github.plume.oss.domain.mappers.VertexMapper
 import io.github.plume.oss.domain.mappers.VertexMapper.checkSchemaConstraints
 import io.github.plume.oss.util.PlumeKeyProvider
 import io.shiftleft.codepropertygraph.generated.NodeTypes.META_DATA
-import io.shiftleft.codepropertygraph.generated.nodes.MetaData
 import io.shiftleft.codepropertygraph.generated.nodes.NewMetaDataBuilder
 import io.shiftleft.codepropertygraph.generated.nodes.NewNodeBuilder
 import org.apache.logging.log4j.LogManager
@@ -160,7 +159,7 @@ class TigerGraphDriver : IOverridenIdDriver {
             fromPayload.keys.first() to fromPayload.values.first(),
             toPayload.keys.first() to toPayload.values.first()
         )
-        val payload = mutableMapOf(
+        val payload = mapOf(
             "vertices" to vertexPayload,
             "edges" to createEdgePayload(src, tgt, edge)
         )
@@ -254,6 +253,13 @@ class TigerGraphDriver : IOverridenIdDriver {
         } catch (e: PlumeTransactionException) {
             logger.warn("${e.message}. This may be a result of the method not being present in the graph.")
         }
+    }
+
+    override fun updateVertexProperty(id: Long, label: String?, key: String, value: Any) {
+        if (!checkVertexExists(id, label)) return
+        val lbl = if (label == META_DATA) "META_DATA_VERT" else "CPG_VERT"
+        val payload = mapOf("vertices" to mapOf(lbl to mapOf(id to mapOf(key to mapOf("value" to value)))))
+        post("graph/$GRAPH_NAME", payload)
     }
 
     override fun getVertexIds(lowerBound: Long, upperBound: Long): Set<Long> {

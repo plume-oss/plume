@@ -422,6 +422,21 @@ class Neo4jDriver : IDriver {
         }
     }
 
+    override fun updateVertexProperty(id: Long, label: String?, key: String, value: Any) {
+        if (!checkVertexExist(id, label)) return
+        driver.session().use { session ->
+            session.writeTransaction { tx ->
+                tx.run(
+                    """
+                    MATCH (n${if (label != null) ":$label" else ""})
+                    WHERE ID(n) = $id
+                    SET n.$key = ${if (value is String) "\"$value\"" else value}
+                    """.trimIndent()
+                )
+            }
+        }
+    }
+
     private fun newOverflowGraph(): Graph = Graph.open(
         Config.withDefaults(),
         NodeFactories.allAsJava(),

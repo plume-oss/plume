@@ -42,6 +42,10 @@ object DiffGraphUtil {
                         tgt = VertexMapper.mapToVertex(change.dst() as NewNode),
                         edge = change.label()
                     )
+                is io.shiftleft.passes.`DiffGraph$Change$SetNodeProperty` -> {
+                    val node = change.node()
+                    driver.updateVertexProperty(node.id(), node.label(), change.key(), change.value())
+                }
                 else -> logger.warn("Unsupported DiffGraph operation ${change.javaClass} encountered.")
             }
         }

@@ -113,4 +113,14 @@ interface IDriver : AutoCloseable {
      */
     fun deleteEdge(src: NewNodeBuilder, tgt: NewNodeBuilder, edge: String)
 
+    /**
+     * Updates a vertex's property if the node exists.
+     *
+     * @param id The ID of the vertex to update.
+     * @param label The label of the node, if known.
+     * @param key The key of the property to update.
+     * @param value The updated value.
+     */
+    fun updateVertexProperty(id: Long, label: String?, key: String, value: Any)
+
 }
