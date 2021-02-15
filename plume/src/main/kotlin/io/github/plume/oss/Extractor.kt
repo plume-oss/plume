@@ -464,7 +464,7 @@ class Extractor(val driver: IDriver) {
                     }
                 }
                 logger.debug("Deleting $fileV")
-                driver.deleteVertex(mapToVertex(fileV) as NewFileBuilder)
+                driver.deleteVertex(fileV.id(), fileV.label())
             } else {
                 logger.debug("Existing class was found and file hashes match, no need to rebuild.")
             }

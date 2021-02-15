@@ -551,14 +551,14 @@ class NeptuneDriverIntTest {
         @Test
         fun testVertexDelete() {
             assertTrue(driver.exists(methodVertex))
-            driver.deleteVertex(methodVertex)
+            driver.deleteVertex(methodVertex.id(), methodVertex.build().label())
             assertFalse(driver.exists(methodVertex))
             // Try delete vertex which doesn't exist, should not throw error
-            driver.deleteVertex(methodVertex)
+            driver.deleteVertex(methodVertex.id(), methodVertex.build().label())
             assertFalse(driver.exists(methodVertex))
             // Delete metadata
             assertTrue(driver.exists(metaDataVertex))
-            driver.deleteVertex(metaDataVertex)
+            driver.deleteVertex(metaDataVertex.id(), metaDataVertex.build().label())
             assertFalse(driver.exists(metaDataVertex))
         }
 

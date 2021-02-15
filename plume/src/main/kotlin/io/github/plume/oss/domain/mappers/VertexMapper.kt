@@ -37,7 +37,7 @@ object VertexMapper {
         // Only ID should be left as Long
         mapToConvert.keys.forEach {
             when (val value = mapToConvert[it]) {
-                is Long -> if (it != "id") map[it] = value.toInt()
+                is Long -> if (it != "id") map[it] = value.toInt() else map[it] = value as Any
                 else -> map[it] = value as Any
             }
         }
