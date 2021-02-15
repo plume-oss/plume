@@ -298,7 +298,10 @@ class TigerGraphDriver : IOverridenIdDriver {
         val attributes = o["attributes"] as JSONObject
         val vertexMap = HashMap<String, Any>()
         attributes.keySet().filter { attributes[it] != "" }
-            .map { Pair(if (it == "AST_ORDER") "ORDER" else it, attributes[it]) }
+            .map {
+                if (it == "id") Pair(it, attributes[it].toString().toLong())
+                else Pair(if (it == "AST_ORDER") "ORDER" else it, attributes[it])
+            }
             .forEach { vertexMap[it.first] = it.second }
         return VertexMapper.mapToVertex(vertexMap)
     }
