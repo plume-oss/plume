@@ -6,6 +6,7 @@ import overflowdb.Node
 import scala.Option
 import scala.collection.immutable.`$colon$colon`
 import scala.collection.immutable.`Nil$`
+import scala.jdk.CollectionConverters
 import java.util.*
 import kotlin.collections.HashMap
 
@@ -23,6 +24,17 @@ object VertexMapper {
      */
     fun mapToVertex(v: Node): NewNodeBuilder {
         val map = v.propertyMap() + mapOf<String, Any>("id" to v.id(), "label" to v.label())
+        return mapToVertex(map)
+    }
+
+    /**
+     * Converts a [NewNode] to its respective [NewNodeBuilder] object.
+     *
+     * @param v The [NewNode] to deserialize.
+     * @return a [NewNodeBuilder] represented by the information in the givennode.
+     */
+    fun mapToVertex(v: NewNode): NewNodeBuilder {
+        val map = CollectionConverters.MapHasAsJava(v.properties()).asJava() + mapOf<String, Any>("label" to v.label())
         return mapToVertex(map)
     }
 
