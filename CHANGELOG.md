@@ -7,11 +7,20 @@ and this project adheres to [Semantic Versioning](http://semver.org/).
 ## [Unreleased] - yyyy-mm-dd
 
 ### Added
-- `deleteEdge` to `IDriver`
 
 ### Changed
 
 ### Fixed
+
+## [0.1.8] - 2021-02-15
+
+### Added
+- `deleteEdge` to `IDriver`
+- `updateVertexProperty` to `IDriver`
+- `DiffGraphUtil::processDiffGraph` to accept `DiffGraph`s and apply changes to a given `IDriver`
+
+### Changed
+- Modified `deleteVertex` signature to take ID and optional label
 
 ## [0.1.7] - 2021-02-11
 

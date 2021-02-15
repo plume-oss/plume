@@ -10,10 +10,7 @@ import org.apache.logging.log4j.LogManager
 import org.apache.tinkerpop.gremlin.process.traversal.dsl.graph.GraphTraversal
 import org.apache.tinkerpop.gremlin.process.traversal.dsl.graph.GraphTraversalSource
 import org.apache.tinkerpop.gremlin.process.traversal.step.util.WithOptions
-import org.apache.tinkerpop.gremlin.structure.Edge
-import org.apache.tinkerpop.gremlin.structure.Graph
-import org.apache.tinkerpop.gremlin.structure.T
-import org.apache.tinkerpop.gremlin.structure.Vertex
+import org.apache.tinkerpop.gremlin.structure.*
 import org.apache.tinkerpop.gremlin.tinkergraph.structure.TinkerGraph
 import overflowdb.Config
 import scala.jdk.CollectionConverters
@@ -202,9 +199,9 @@ abstract class GremlinDriver : IDriver {
         return gremlinToPlume(neighbourSubgraph.traversal())
     }
 
-    override fun deleteVertex(v: NewNodeBuilder) {
-        if (!exists(v)) return
-        findVertexTraversal(v).drop().iterate()
+    override fun deleteVertex(id: Long, label: String?) {
+        if (!g.V(id).hasNext()) return
+        g.V(id).drop().iterate()
     }
 
     override fun deleteEdge(src: NewNodeBuilder, tgt: NewNodeBuilder, edge: String) {
@@ -224,6 +221,11 @@ abstract class GremlinDriver : IDriver {
                 .unfold<Vertex>()
                 .drop().iterate()
         }
+    }
+
+    override fun updateVertexProperty(id: Long, label: String?, key: String, value: Any) {
+        if (!g.V(id).hasNext()) return
+        g.V(id).property(key, value).iterate()
     }
 
     /**

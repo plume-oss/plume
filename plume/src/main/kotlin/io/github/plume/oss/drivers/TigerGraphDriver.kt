@@ -5,6 +5,7 @@ import io.github.plume.oss.domain.exceptions.PlumeTransactionException
 import io.github.plume.oss.domain.mappers.VertexMapper
 import io.github.plume.oss.domain.mappers.VertexMapper.checkSchemaConstraints
 import io.github.plume.oss.util.PlumeKeyProvider
+import io.shiftleft.codepropertygraph.generated.NodeTypes.META_DATA
 import io.shiftleft.codepropertygraph.generated.nodes.NewMetaDataBuilder
 import io.shiftleft.codepropertygraph.generated.nodes.NewNodeBuilder
 import org.apache.logging.log4j.LogManager
@@ -101,13 +102,15 @@ class TigerGraphDriver : IOverridenIdDriver {
         post("graph/$GRAPH_NAME", payload)
     }
 
-    override fun exists(v: NewNodeBuilder): Boolean {
-        val route = when (v) {
-            is NewMetaDataBuilder -> "graph/$GRAPH_NAME/vertices/META_DATA_VERT"
+    override fun exists(v: NewNodeBuilder): Boolean = checkVertexExists(v.id(), v.build().label())
+
+    private fun checkVertexExists(id: Long, label: String?): Boolean {
+        val route = when (label) {
+            META_DATA -> "graph/$GRAPH_NAME/vertices/META_DATA_VERT"
             else -> "graph/$GRAPH_NAME/vertices/CPG_VERT"
         }
         return try {
-            get("$route/${v.id()}")
+            get("$route/$id")
             true
         } catch (e: PlumeTransactionException) {
             false
@@ -156,7 +159,7 @@ class TigerGraphDriver : IOverridenIdDriver {
             fromPayload.keys.first() to fromPayload.values.first(),
             toPayload.keys.first() to toPayload.values.first()
         )
-        val payload = mutableMapOf(
+        val payload = mapOf(
             "vertices" to vertexPayload,
             "edges" to createEdgePayload(src, tgt, edge)
         )
@@ -233,10 +236,10 @@ class TigerGraphDriver : IOverridenIdDriver {
         return payloadToGraph(result)
     }
 
-    override fun deleteVertex(v: NewNodeBuilder) {
-        if (!exists(v)) return
-        val label = if (v is NewMetaDataBuilder) "META_DATA_VERT" else "CPG_VERT"
-        delete("graph/$GRAPH_NAME/vertices/$label/${v.id()}")
+    override fun deleteVertex(id: Long, label: String?) {
+        if (!checkVertexExists(id, label)) return
+        val lbl = if (label == META_DATA) "META_DATA_VERT" else "CPG_VERT"
+        delete("graph/$GRAPH_NAME/vertices/$lbl/$id")
     }
 
     override fun deleteEdge(src: NewNodeBuilder, tgt: NewNodeBuilder, edge: String) {
@@ -250,6 +253,13 @@ class TigerGraphDriver : IOverridenIdDriver {
         } catch (e: PlumeTransactionException) {
             logger.warn("${e.message}. This may be a result of the method not being present in the graph.")
         }
+    }
+
+    override fun updateVertexProperty(id: Long, label: String?, key: String, value: Any) {
+        if (!checkVertexExists(id, label)) return
+        val lbl = if (label == META_DATA) "META_DATA_VERT" else "CPG_VERT"
+        val payload = mapOf("vertices" to mapOf(lbl to mapOf(id to mapOf(key to mapOf("value" to value)))))
+        post("graph/$GRAPH_NAME", payload)
     }
 
     override fun getVertexIds(lowerBound: Long, upperBound: Long): Set<Long> {
@@ -294,7 +304,10 @@ class TigerGraphDriver : IOverridenIdDriver {
         val attributes = o["attributes"] as JSONObject
         val vertexMap = HashMap<String, Any>()
         attributes.keySet().filter { attributes[it] != "" }
-            .map { Pair(if (it == "AST_ORDER") "ORDER" else it, attributes[it]) }
+            .map {
+                if (it == "id") Pair(it, attributes[it].toString().toLong())
+                else Pair(if (it == "AST_ORDER") "ORDER" else it, attributes[it])
+            }
             .forEach { vertexMap[it.first] = it.second }
         return VertexMapper.mapToVertex(vertexMap)
     }

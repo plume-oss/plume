@@ -6,6 +6,7 @@ import overflowdb.Node
 import scala.Option
 import scala.collection.immutable.`$colon$colon`
 import scala.collection.immutable.`Nil$`
+import scala.jdk.CollectionConverters
 import java.util.*
 import kotlin.collections.HashMap
 
@@ -27,6 +28,17 @@ object VertexMapper {
     }
 
     /**
+     * Converts a [NewNode] to its respective [NewNodeBuilder] object.
+     *
+     * @param v The [NewNode] to deserialize.
+     * @return a [NewNodeBuilder] represented by the information in the givennode.
+     */
+    fun mapToVertex(v: NewNode): NewNodeBuilder {
+        val map = CollectionConverters.MapHasAsJava(v.properties()).asJava() + mapOf<String, Any>("label" to v.label())
+        return mapToVertex(map)
+    }
+
+    /**
      * Converts a [Map] containing vertex properties to its respective [NewNodeBuilder] object.
      *
      * @param mapToConvert The [Map] to deserialize.
@@ -34,30 +46,26 @@ object VertexMapper {
      */
     fun mapToVertex(mapToConvert: Map<String, Any>): NewNodeBuilder {
         val map = HashMap<String, Any>()
+        // Only ID should be left as Long
         mapToConvert.keys.forEach {
             when (val value = mapToConvert[it]) {
-                is Long -> map[it] = value.toInt()
+                is Long -> if (it != "id") map[it] = value.toInt() else map[it] = value as Any
                 else -> map[it] = value as Any
             }
         }
-        map.computeIfPresent("id") { _, v -> v.toString().toLong() }
         return when (map["label"] as String) {
             ArrayInitializer.Label() -> NewArrayInitializerBuilder()
                 .order(map["ORDER"] as Int)
-                .id(map["id"] as Long)
             Binding.Label() -> NewBindingBuilder()
                 .name(map["NAME"] as String)
                 .signature(map["SIGNATURE"] as String)
-                .id(map["id"] as Long)
             MetaData.Label() -> NewMetaDataBuilder()
                 .language(map["LANGUAGE"] as String)
                 .version(map["VERSION"] as String)
-                .id(map["id"] as Long)
             File.Label() -> NewFileBuilder()
                 .name(map["NAME"] as String)
                 .hash(Option.apply(map["HASH"] as String))
                 .order(map["ORDER"] as Int)
-                .id(map["id"] as Long)
             Method.Label() -> NewMethodBuilder()
                 .astParentFullName(map["AST_PARENT_FULL_NAME"] as String)
                 .astParentType(map["AST_PARENT_TYPE"] as String)
@@ -68,7 +76,6 @@ object VertexMapper {
                 .lineNumber(Option.apply(map["LINE_NUMBER"] as Int))
                 .columnNumber(Option.apply(map["COLUMN_NUMBER"] as Int))
                 .order(map["ORDER"] as Int)
-                .id(map["id"] as Long)
             MethodParameterIn.Label() -> NewMethodParameterInBuilder()
                 .code(map["CODE"] as String)
                 .name(map["NAME"] as String)
@@ -77,7 +84,6 @@ object VertexMapper {
                 .lineNumber(Option.apply(map["LINE_NUMBER"] as Int))
                 .columnNumber(Option.apply(map["COLUMN_NUMBER"] as Int))
                 .order(map["ORDER"] as Int)
-                .id(map["id"] as Long)
             MethodReturn.Label() -> NewMethodReturnBuilder()
                 .code(map["CODE"] as String)
                 .evaluationStrategy(map["EVALUATION_STRATEGY"] as String)
@@ -85,16 +91,13 @@ object VertexMapper {
                 .lineNumber(Option.apply(map["LINE_NUMBER"] as Int))
                 .columnNumber(Option.apply(map["COLUMN_NUMBER"] as Int))
                 .order(map["ORDER"] as Int)
-                .id(map["id"] as Long)
             Modifier.Label() -> NewModifierBuilder()
                 .modifierType(map["MODIFIER_TYPE"] as String)
                 .order(map["ORDER"] as Int)
-                .id(map["id"] as Long)
             Type.Label() -> NewTypeBuilder()
                 .name(map["NAME"] as String)
                 .fullName(map["FULL_NAME"] as String)
                 .typeDeclFullName(map["TYPE_DECL_FULL_NAME"] as String)
-                .id(map["id"] as Long)
             TypeDecl.Label() -> NewTypeDeclBuilder()
                 .astParentFullName(map["AST_PARENT_FULL_NAME"] as String)
                 .astParentType(map["AST_PARENT_TYPE"] as String)
@@ -102,26 +105,21 @@ object VertexMapper {
                 .fullName(map["FULL_NAME"] as String)
                 .order(map["ORDER"] as Int)
                 .isExternal(map["IS_EXTERNAL"] as Boolean)
-                .id(map["id"] as Long)
             TypeParameter.Label() -> NewTypeParameterBuilder()
                 .name(map["NAME"] as String)
                 .order(map["ORDER"] as Int)
-                .id(map["id"] as Long)
             TypeArgument.Label() -> NewTypeArgumentBuilder()
                 .order(map["ORDER"] as Int)
-                .id(map["id"] as Long)
             Member.Label() -> NewMemberBuilder()
                 .typeFullName(map["TYPE_FULL_NAME"] as String)
                 .code(map["CODE"] as String)
                 .name(map["NAME"] as String)
                 .order(map["ORDER"] as Int)
-                .id(map["id"] as Long)
             NamespaceBlock.Label() -> NewNamespaceBlockBuilder()
                 .fullName(map["FULL_NAME"] as String)
                 .filename(map["FILENAME"] as String)
                 .name(map["NAME"] as String)
                 .order(map["ORDER"] as Int)
-                .id(map["id"] as Long)
             Literal.Label() -> NewLiteralBuilder()
                 .typeFullName(map["TYPE_FULL_NAME"] as String)
                 .code(map["CODE"] as String)
@@ -129,7 +127,6 @@ object VertexMapper {
                 .lineNumber(Option.apply(map["LINE_NUMBER"] as Int))
                 .columnNumber(Option.apply(map["COLUMN_NUMBER"] as Int))
                 .argumentIndex(map["ARGUMENT_INDEX"] as Int)
-                .id(map["id"] as Long)
             Call.Label() -> NewCallBuilder()
                 .typeFullName(map["TYPE_FULL_NAME"] as String)
                 .code(map["CODE"] as String)
@@ -148,7 +145,6 @@ object VertexMapper {
                         else -> createScalaList("")
                     }
                 )
-                .id(map["id"] as Long)
             Local.Label() -> NewLocalBuilder()
                 .typeFullName(map["TYPE_FULL_NAME"] as String)
                 .code(map["CODE"] as String)
@@ -156,7 +152,6 @@ object VertexMapper {
                 .order(map["ORDER"] as Int)
                 .lineNumber(Option.apply(map["LINE_NUMBER"] as Int))
                 .columnNumber(Option.apply(map["COLUMN_NUMBER"] as Int))
-                .id(map["id"] as Long)
             Identifier.Label() -> NewIdentifierBuilder()
                 .typeFullName(map["TYPE_FULL_NAME"] as String)
                 .code(map["CODE"] as String)
@@ -165,7 +160,6 @@ object VertexMapper {
                 .lineNumber(Option.apply(map["LINE_NUMBER"] as Int))
                 .columnNumber(Option.apply(map["COLUMN_NUMBER"] as Int))
                 .argumentIndex(map["ARGUMENT_INDEX"] as Int)
-                .id(map["id"] as Long)
             FieldIdentifier.Label() -> NewFieldIdentifierBuilder()
                 .canonicalName(map["CANONICAL_NAME"] as String)
                 .code(map["CODE"] as String)
@@ -173,14 +167,12 @@ object VertexMapper {
                 .lineNumber(Option.apply(map["LINE_NUMBER"] as Int))
                 .columnNumber(Option.apply(map["COLUMN_NUMBER"] as Int))
                 .argumentIndex(map["ARGUMENT_INDEX"] as Int)
-                .id(map["id"] as Long)
             Return.Label() -> NewReturnBuilder()
                 .code(map["CODE"] as String)
                 .order(map["ORDER"] as Int)
                 .lineNumber(Option.apply(map["LINE_NUMBER"] as Int))
                 .columnNumber(Option.apply(map["COLUMN_NUMBER"] as Int))
                 .argumentIndex(map["ARGUMENT_INDEX"] as Int)
-                .id(map["id"] as Long)
             Block.Label() -> NewBlockBuilder()
                 .typeFullName(map["TYPE_FULL_NAME"] as String)
                 .code(map["CODE"] as String)
@@ -188,7 +180,6 @@ object VertexMapper {
                 .lineNumber(Option.apply(map["LINE_NUMBER"] as Int))
                 .columnNumber(Option.apply(map["COLUMN_NUMBER"] as Int))
                 .argumentIndex(map["ARGUMENT_INDEX"] as Int)
-                .id(map["id"] as Long)
             MethodRef.Label() -> NewMethodRefBuilder()
                 .code(map["CODE"] as String)
                 .order(map["ORDER"] as Int)
@@ -197,7 +188,6 @@ object VertexMapper {
                 .lineNumber(Option.apply(map["LINE_NUMBER"] as Int))
                 .columnNumber(Option.apply(map["COLUMN_NUMBER"] as Int))
                 .argumentIndex(map["ARGUMENT_INDEX"] as Int)
-                .id(map["id"] as Long)
             TypeRef.Label() -> NewTypeRefBuilder()
                 .typeFullName(map["TYPE_FULL_NAME"] as String)
                 .dynamicTypeHintFullName(
@@ -212,7 +202,6 @@ object VertexMapper {
                 .lineNumber(Option.apply(map["LINE_NUMBER"] as Int))
                 .columnNumber(Option.apply(map["COLUMN_NUMBER"] as Int))
                 .argumentIndex(map["ARGUMENT_INDEX"] as Int)
-                .id(map["id"] as Long)
             JumpTarget.Label() -> NewJumpTargetBuilder()
                 .code(map["CODE"] as String)
                 .order(map["ORDER"] as Int)
@@ -220,14 +209,12 @@ object VertexMapper {
                 .columnNumber(Option.apply(map["COLUMN_NUMBER"] as Int))
                 .argumentIndex(map["ARGUMENT_INDEX"] as Int)
                 .name(map["NAME"] as String)
-                .id(map["id"] as Long)
             ControlStructure.Label() -> NewControlStructureBuilder()
                 .code(map["CODE"] as String)
                 .order(map["ORDER"] as Int)
                 .lineNumber(Option.apply(map["LINE_NUMBER"] as Int))
                 .columnNumber(Option.apply(map["COLUMN_NUMBER"] as Int))
                 .argumentIndex(map["ARGUMENT_INDEX"] as Int)
-                .id(map["id"] as Long)
             else -> NewUnknownBuilder()
                 .code(map["CODE"] as String)
                 .order(map["ORDER"] as Int)
@@ -235,8 +222,7 @@ object VertexMapper {
                 .typeFullName(map["TYPE_FULL_NAME"] as String)
                 .lineNumber(Option.apply(map["LINE_NUMBER"] as Int))
                 .columnNumber(Option.apply(map["COLUMN_NUMBER"] as Int))
-                .id(map["id"] as Long)
-        }
+        }.apply { if (map.containsKey("id")) this.id(map["id"] as Long) }
     }
 
     /**

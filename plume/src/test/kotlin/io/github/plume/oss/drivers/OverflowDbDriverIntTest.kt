@@ -33,6 +33,8 @@ import io.github.plume.oss.TestDomainResources.Companion.unknownVertex
 import io.github.plume.oss.domain.exceptions.PlumeSchemaViolationException
 import io.github.plume.oss.util.SootToPlumeUtil
 import io.shiftleft.codepropertygraph.generated.EdgeTypes.*
+import io.shiftleft.codepropertygraph.generated.NodeKeyNames.NAME
+import io.shiftleft.codepropertygraph.generated.NodeTypes.FILE
 import io.shiftleft.codepropertygraph.generated.nodes.*
 import org.apache.logging.log4j.LogManager
 import org.junit.jupiter.api.*
@@ -211,6 +213,17 @@ class OverflowDbDriverIntTest {
             driver.addVertex(v2)
             assertTrue(driver.exists(v1))
             assertTrue(driver.exists(v2))
+        }
+
+        @Test
+        fun updateVertexTest() {
+            driver.addVertex(fileVertex)
+            assertTrue(driver.exists(fileVertex))
+            driver.getWholeGraph()
+                .use { g -> assertTrue(g.nodes(fileVertex.id()).asSequence().any { it.property(NAME) == STRING_1 }) }
+            driver.updateVertexProperty(fileVertex.id(), FILE, NAME, STRING_2)
+            driver.getWholeGraph()
+                .use { g -> assertTrue(g.nodes(fileVertex.id()).asSequence().any { it.property(NAME) == STRING_2 }) }
         }
     }
 
@@ -569,14 +582,14 @@ class OverflowDbDriverIntTest {
         @Test
         fun testVertexDelete() {
             assertTrue(driver.exists(methodVertex))
-            driver.deleteVertex(methodVertex)
+            driver.deleteVertex(methodVertex.id(), methodVertex.build().label())
             assertFalse(driver.exists(methodVertex))
             // Try delete vertex which doesn't exist, should not throw error
-            driver.deleteVertex(methodVertex)
+            driver.deleteVertex(methodVertex.id(), methodVertex.build().label())
             assertFalse(driver.exists(methodVertex))
             // Delete metadata
             assertTrue(driver.exists(metaDataVertex))
-            driver.deleteVertex(metaDataVertex)
+            driver.deleteVertex(metaDataVertex.id(), metaDataVertex.build().label())
             assertFalse(driver.exists(metaDataVertex))
         }
 
