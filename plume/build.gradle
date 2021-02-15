@@ -172,7 +172,7 @@ dockerCompose {
 def artifactDesc = "Plume is a code property graph analysis library with options to extract the CPG from" +
         " Java bytecode and store the result in various graph databases."
 def repoUrl = "https://github.com/plume-oss/plume.git"
-def artifactVersion = "0.1.7"
+def artifactVersion = "0.1.8"
 def website = "https://plume-oss.github.io/plume-docs/"
 
 group = "io.github.plume-oss"
