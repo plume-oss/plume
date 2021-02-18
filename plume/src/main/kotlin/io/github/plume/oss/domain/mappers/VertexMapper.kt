@@ -65,7 +65,7 @@ object VertexMapper {
                 .version(map[VERSION] as String)
             File.Label() -> NewFileBuilder()
                 .name(map[NAME] as String)
-                .hash(Option.apply(map[HASH] as String))
+                .hash(Option.apply(map.getOrDefault("HASH", "<unknown>") as String))
                 .order(map[ORDER] as Int)
             Method.Label() -> NewMethodBuilder()
                 .astParentFullName(map[AST_PARENT_FULL_NAME] as String)
