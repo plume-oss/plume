@@ -325,21 +325,21 @@ class Extractor(val driver: IDriver) {
                 TypeDeclStubCreator(cpg),
                 FileCreationPass(cpg),
                 Linker(cpg),
-                NamespaceCreator(cpg),
+//                NamespaceCreator(cpg),
             ).map { it.run() }
                 .map(CollectionConverters::IteratorHasAsJava)
                 .flatMap { it.asJava().asSequence() }
                 .forEach { DiffGraphUtil.processDiffGraph(driver, it) }
             // Run io.shiftleft.dataflowengineoss.passes
-            val methods = g.nodes(METHOD).asSequence().filterIsInstance<AstNode>().toList()
-            listOf(
-                ContainsEdgePass(cpg),
-            ).map { pass ->
-                methods
-                    .map(pass::runOnPart)
-                    .map(CollectionConverters::IteratorHasAsJava)
-                    .flatMap { it.asJava().asSequence() }
-            }.flatten().forEach { DiffGraphUtil.processDiffGraph(driver, it) }
+//            val methods = g.nodes(METHOD).asSequence().filterIsInstance<AstNode>().toList()
+//            listOf(
+//                ContainsEdgePass(cpg),
+//            ).map { pass ->
+//                methods
+//                    .map(pass::runOnPart)
+//                    .map(CollectionConverters::IteratorHasAsJava)
+//                    .flatMap { it.asJava().asSequence() }
+//            }.flatten().forEach { DiffGraphUtil.processDiffGraph(driver, it) }
         }
         return this
     }
