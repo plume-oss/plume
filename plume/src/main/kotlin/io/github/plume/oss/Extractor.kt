@@ -41,10 +41,10 @@ import io.shiftleft.codepropertygraph.generated.EdgeTypes.AST
 import io.shiftleft.codepropertygraph.generated.EdgeTypes.SOURCE_FILE
 import io.shiftleft.codepropertygraph.generated.NodeKeyNames.FULL_NAME
 import io.shiftleft.codepropertygraph.generated.NodeKeyNames.NAME
-import io.shiftleft.codepropertygraph.generated.NodeTypes.FILE
-import io.shiftleft.codepropertygraph.generated.NodeTypes.TYPE_DECL
+import io.shiftleft.codepropertygraph.generated.NodeTypes.*
 import io.shiftleft.codepropertygraph.generated.nodes.*
 import io.shiftleft.semanticcpg.passes.FileCreationPass
+import io.shiftleft.semanticcpg.passes.containsedges.ContainsEdgePass
 import io.shiftleft.semanticcpg.passes.languagespecific.fuzzyc.TypeDeclStubCreator
 import io.shiftleft.semanticcpg.passes.linking.linker.Linker
 import io.shiftleft.semanticcpg.passes.namespacecreator.NamespaceCreator
@@ -198,7 +198,7 @@ class Extractor(val driver: IDriver) {
      * @throws IOException This would throw if given .java files which fail to compile.
      */
     @Throws(PlumeCompileException::class, NullPointerException::class, IOException::class)
-    fun load(f: File) {
+    fun load(f: File): Extractor {
         File(COMP_DIR).let { c -> if (!c.exists()) c.mkdirs() }
         if (!f.exists()) {
             throw NullPointerException("File '${f.name}' does not exist!")
@@ -217,6 +217,7 @@ class Extractor(val driver: IDriver) {
                 loadedFiles.add(FileFactory(f))
             }
         }
+        return this
     }
 
     private fun unzipArchive(zf: ZipFile) = sequence {
@@ -272,9 +273,9 @@ class Extractor(val driver: IDriver) {
     }
 
     /**
-     * Projects all loaded classes.
+     * Projects all loaded classes to a base CPG.
      */
-    fun project() {
+    fun project(): Extractor {
         configureSoot()
         val compiledFiles = compileLoadedFiles(loadedFiles)
         val classStream = loadClassesIntoSoot(compiledFiles)
@@ -310,19 +311,41 @@ class Extractor(val driver: IDriver) {
             .forEach(this::constructStructure)
         // Connect methods to their type declarations and source files (if present)
         graphs.forEach { SootToPlumeUtil.connectMethodToTypeDecls(it.body.method, driver) }
-        // Run dataflowoss passes to build the graph further
+        clear()
+        return this
+    }
+
+    /**
+     * Adds additional data calculated from the graph using passes from [io.shiftleft.semanticcpg.passes] and
+     * [io.shiftleft.dataflowengineoss.passes]. This is constructed from the base CPG and requires [Extractor.project]
+     * to be called beforehand.
+     */
+    fun postProject(): Extractor {
         driver.getWholeGraph().use { g ->
             val cpg = Cpg.apply(g)
+            // Run io.shiftleft.semanticcpg.passes
             listOf(
                 TypeDeclStubCreator(cpg),
                 FileCreationPass(cpg),
                 Linker(cpg),
-                NamespaceCreator(cpg)
-            ).map {  CollectionConverters.IteratorHasAsJava(it.run()) }
+                NamespaceCreator(cpg),
+            ).map { it.run() }
+                .map(CollectionConverters::IteratorHasAsJava)
                 .flatMap { it.asJava().asSequence() }
                 .forEach { DiffGraphUtil.processDiffGraph(driver, it) }
+            // Run io.shiftleft.dataflowengineoss.passes
+            val methods = g.nodes(METHOD).asSequence().filterIsInstance<AstNode>().toList()
+            listOf(
+                ContainsEdgePass(cpg),
+            ).map { pass -> methods
+                .map(pass::runOnPart)
+                .map(CollectionConverters::IteratorHasAsJava)
+                .flatMap { it.asJava().asSequence() }
+                .toList()
+            }.flatten()
+            .forEach { DiffGraphUtil.processDiffGraph(driver, it) }
         }
-        clear()
+        return this
     }
 
     /**
