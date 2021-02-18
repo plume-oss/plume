@@ -48,6 +48,7 @@ dependencies {
     implementation "khttp:khttp:$khttpVersion"
     implementation "com.fasterxml.jackson.core:jackson-databind:$jacksonVersion"
     implementation "io.shiftleft:codepropertygraph_2.13:$shiftleftVersion"
+    implementation "io.shiftleft:dataflowengineoss_2.13:$shiftleftVersion"
     implementation "io.shiftleft:semanticcpg_2.13:$shiftleftVersion"
     implementation "org.soot-oss:soot:$sootVersion"
     implementation "org.lz4:lz4-java:$lz4Version"
