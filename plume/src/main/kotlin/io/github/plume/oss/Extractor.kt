@@ -27,6 +27,7 @@ import io.github.plume.oss.graph.CFGBuilder
 import io.github.plume.oss.graph.CallGraphBuilder
 import io.github.plume.oss.graph.PDGBuilder
 import io.github.plume.oss.options.ExtractorOptions
+import io.github.plume.oss.util.DiffGraphUtil
 import io.github.plume.oss.util.ResourceCompilationUtil.COMP_DIR
 import io.github.plume.oss.util.ResourceCompilationUtil.compileJavaFiles
 import io.github.plume.oss.util.ResourceCompilationUtil.moveClassFiles
@@ -35,6 +36,7 @@ import io.github.plume.oss.util.SootToPlumeUtil
 import io.github.plume.oss.util.SootToPlumeUtil.buildClassStructure
 import io.github.plume.oss.util.SootToPlumeUtil.buildTypeDeclaration
 import io.github.plume.oss.util.SootToPlumeUtil.obtainModifiersFromTypeDeclVert
+import io.shiftleft.codepropertygraph.Cpg
 import io.shiftleft.codepropertygraph.generated.EdgeTypes.AST
 import io.shiftleft.codepropertygraph.generated.EdgeTypes.SOURCE_FILE
 import io.shiftleft.codepropertygraph.generated.NodeKeyNames.FULL_NAME
@@ -42,11 +44,16 @@ import io.shiftleft.codepropertygraph.generated.NodeKeyNames.NAME
 import io.shiftleft.codepropertygraph.generated.NodeTypes.FILE
 import io.shiftleft.codepropertygraph.generated.NodeTypes.TYPE_DECL
 import io.shiftleft.codepropertygraph.generated.nodes.*
+import io.shiftleft.semanticcpg.passes.FileCreationPass
+import io.shiftleft.semanticcpg.passes.languagespecific.fuzzyc.TypeDeclStubCreator
+import io.shiftleft.semanticcpg.passes.linking.linker.Linker
+import io.shiftleft.semanticcpg.passes.namespacecreator.NamespaceCreator
 import org.apache.logging.log4j.LogManager
 import org.apache.logging.log4j.Logger
 import overflowdb.Graph
 import overflowdb.Node
 import scala.Option
+import scala.jdk.CollectionConverters
 import soot.*
 import soot.jimple.*
 import soot.jimple.spark.SparkTransformer
@@ -303,6 +310,18 @@ class Extractor(val driver: IDriver) {
             .forEach(this::constructStructure)
         // Connect methods to their type declarations and source files (if present)
         graphs.forEach { SootToPlumeUtil.connectMethodToTypeDecls(it.body.method, driver) }
+        // Run dataflowoss passes to build the graph further
+        driver.getWholeGraph().use { g ->
+            val cpg = Cpg.apply(g)
+            listOf(
+                TypeDeclStubCreator(cpg),
+                FileCreationPass(cpg),
+                Linker(cpg),
+                NamespaceCreator(cpg)
+            ).map {  CollectionConverters.IteratorHasAsJava(it.run()) }
+                .flatMap { it.asJava().asSequence() }
+                .forEach { DiffGraphUtil.processDiffGraph(driver, it) }
+        }
         clear()
     }
 
