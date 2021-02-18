@@ -330,6 +330,7 @@ class Neo4jDriver : IDriver {
             }
             typeDecl.map { it["n"].asNode() }
                 .map { mapToVertex(it.asMap() + mapOf("id" to it.id())) }
+                .filter { graph.node(it.id()) == null }
                 .forEach { addNodeToGraph(graph, it) }
         }
         return graph

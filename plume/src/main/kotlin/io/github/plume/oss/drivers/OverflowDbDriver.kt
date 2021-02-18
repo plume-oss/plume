@@ -133,10 +133,12 @@ class OverflowDbDriver : IDriver {
 
     override fun getProgramStructure(): Graph {
         val g = deepCopyGraph(Traversals.getProgramStructure(graph))
-        Traversals.getTypeDecls(graph).forEach { t ->
-            val node = g.addNode(t.id(), t.label())
-            t.propertyMap().forEach { (key, value) -> node.setProperty(key, value) }
-        }
+        Traversals.getTypeDecls(graph)
+            .filter { g.node(it.id()) == null }
+            .forEach { t ->
+                val node = g.addNode(t.id(), t.label())
+                t.propertyMap().forEach { (key, value) -> node.setProperty(key, value) }
+            }
         return g
     }
 

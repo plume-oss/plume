@@ -175,6 +175,7 @@ abstract class GremlinDriver : IDriver {
             .with(WithOptions.tokens)
             .by(un.unfold<Any>())
             .toStream()
+            .filter { !sg.traversal().V(it[T.id]).hasNext() }
             .map { Pair(sg.addVertex(T.label, it[T.label], T.id, it[T.id]), it as Map<*, *>) }
             .forEach { (v, map) ->
                 map.filter { it.key != T.id && it.key != T.label }
