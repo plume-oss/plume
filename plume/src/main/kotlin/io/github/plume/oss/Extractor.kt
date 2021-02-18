@@ -88,10 +88,7 @@ class Extractor(val driver: IDriver) {
     private lateinit var programStructure: Graph
 
     init {
-        File(COMP_DIR).let { f ->
-            if (f.exists()) f.deleteRecursively()
-            f.deleteOnExit()
-        }
+        File(COMP_DIR).let { f -> if (f.exists()) f.deleteRecursively(); f.deleteOnExit() }
         checkDriverConnection(driver)
         astBuilder = ASTBuilder(driver)
         cfgBuilder = CFGBuilder(driver)
@@ -337,13 +334,12 @@ class Extractor(val driver: IDriver) {
             val methods = g.nodes(METHOD).asSequence().filterIsInstance<AstNode>().toList()
             listOf(
                 ContainsEdgePass(cpg),
-            ).map { pass -> methods
-                .map(pass::runOnPart)
-                .map(CollectionConverters::IteratorHasAsJava)
-                .flatMap { it.asJava().asSequence() }
-                .toList()
-            }.flatten()
-            .forEach { DiffGraphUtil.processDiffGraph(driver, it) }
+            ).map { pass ->
+                methods
+                    .map(pass::runOnPart)
+                    .map(CollectionConverters::IteratorHasAsJava)
+                    .flatMap { it.asJava().asSequence() }
+            }.flatten().forEach { DiffGraphUtil.processDiffGraph(driver, it) }
         }
         return this
     }
