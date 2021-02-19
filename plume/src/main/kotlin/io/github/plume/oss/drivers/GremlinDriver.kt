@@ -4,6 +4,7 @@ import io.github.plume.oss.domain.exceptions.PlumeSchemaViolationException
 import io.github.plume.oss.domain.mappers.VertexMapper
 import io.github.plume.oss.domain.mappers.VertexMapper.checkSchemaConstraints
 import io.shiftleft.codepropertygraph.generated.EdgeTypes.AST
+import io.shiftleft.codepropertygraph.generated.NodeTypes.*
 import io.shiftleft.codepropertygraph.generated.nodes.*
 import org.apache.commons.configuration.BaseConfiguration
 import org.apache.logging.log4j.LogManager
@@ -171,7 +172,9 @@ abstract class GremlinDriver : IDriver {
             .next()
         // Transfer type decl vertices to the result, this needs to be done with the tokens step to get all properties
         // from the remote server
-        g.V().hasLabel(TypeDecl.Label()).valueMap<String>()
+        g.V().hasLabel(TYPE_DECL, FILE, NAMESPACE_BLOCK)
+            .unfold<Vertex>()
+            .valueMap<String>()
             .with(WithOptions.tokens)
             .by(un.unfold<Any>())
             .toStream()

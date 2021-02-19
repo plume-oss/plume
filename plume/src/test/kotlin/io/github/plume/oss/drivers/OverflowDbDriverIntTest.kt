@@ -536,10 +536,12 @@ class OverflowDbDriverIntTest {
 
         @Test
         fun testGetProgramStructure() {
+            val unknown = io.shiftleft.semanticcpg.language.types.structure.File.UNKNOWN()
+            driver.addVertex(NewFileBuilder().name(unknown).order(0).hash(Option.apply(unknown)))
             g = driver.getProgramStructure()
             val ns = g.nodes().asSequence().toList()
             val es = g.edges().asSequence().toList()
-            assertEquals(4, ns.size)
+            assertEquals(5, ns.size)
             assertEquals(2, es.size)
 
             val file = g.V(fileVertex.id()).next()

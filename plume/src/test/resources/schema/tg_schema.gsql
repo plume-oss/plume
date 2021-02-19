@@ -119,11 +119,11 @@ CREATE QUERY getProgramStructure() FOR GRAPH cpg SYNTAX v2 {
   start = {CPG_VERT.*};
   start = SELECT s
           FROM start:s
-          WHERE s.label == "FILE" OR s.label == "TYPE_DECL";
+          WHERE s.label == "FILE" OR s.label == "TYPE_DECL" OR s.label == "NAMESPACE_BLOCK";
   allVert = start;
 
-	start = SELECT t
-	        FROM start:s -(AST>*)- :t
+  start = SELECT t
+	      FROM start:s -(AST>*)- :t
           WHERE t.label == "NAMESPACE_BLOCK";
   allVert = allVert UNION start;
 

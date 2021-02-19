@@ -323,12 +323,14 @@ class Neo4jDriver : IDriver {
             val typeDecl = session.writeTransaction { tx ->
                 tx.run(
                     """
-                    MATCH (n:$TYPE_DECL)
-                    RETURN n
+                    MATCH (m:$TYPE_DECL)
+                    MATCH (n:$FILE)
+                    MATCH (o:$NAMESPACE_BLOCK)
+                    RETURN m, n, o
                     """.trimIndent()
                 ).list()
             }
-            typeDecl.map { it["n"].asNode() }
+            typeDecl.flatMap { listOf(it["m"].asNode(), it["n"].asNode(), it["o"].asNode()) }
                 .map { mapToVertex(it.asMap() + mapOf("id" to it.id())) }
                 .filter { graph.node(it.id()) == null }
                 .forEach { addNodeToGraph(graph, it) }
