@@ -22,8 +22,11 @@ import io.github.plume.oss.drivers.IDriver
 import io.github.plume.oss.util.SootParserUtil.determineEvaluationStrategy
 import io.github.plume.oss.util.SootParserUtil.determineModifiers
 import io.shiftleft.codepropertygraph.generated.EdgeTypes.*
-import io.shiftleft.codepropertygraph.generated.NodeTypes.UNKNOWN
+import io.shiftleft.codepropertygraph.generated.NodeKeyNames.FULL_NAME
+import io.shiftleft.codepropertygraph.generated.NodeKeyNames.NAME
+import io.shiftleft.codepropertygraph.generated.NodeTypes.*
 import io.shiftleft.codepropertygraph.generated.nodes.*
+import org.apache.logging.log4j.LogManager
 import scala.Option
 import scala.jdk.CollectionConverters
 import soot.*
@@ -37,6 +40,8 @@ import soot.toolkits.graph.BriefUnitGraph
  * A utility class of methods to convert Soot objects to [NewNodeBuilder] items and construct pieces of the CPG.
  */
 object SootToPlumeUtil {
+
+    private val logger = LogManager.getLogger(SootToPlumeUtil::class.java)
 
     /**
      * Projects member information from class field data.
@@ -109,7 +114,7 @@ object SootToPlumeUtil {
             .columnNumber(Option.apply(currentCol))
             .order(childIdx++)
             .astParentFullName("${mtd.declaringClass}")
-            .astParentType("TYPE_DECL")
+            .astParentType(TYPE_DECL)
         addSootToPlumeAssociation(mtd, mtdVertex)
         // Store method vertex
         NewBlockBuilder()
@@ -280,8 +285,7 @@ object SootToPlumeUtil {
         driver.getProgramStructure().use { programStructure ->
             val maybePrevNamespaceBlock = programStructure.nodes { it == NamespaceBlock.Label() }.asSequence()
                 .firstOrNull {
-                    it.property("FULL_NAME") == namespaceList[0]
-                            && it.property("NAME") == namespaceList[0]
+                    it.property(FULL_NAME) == namespaceList[0] && it.property(NAME) == namespaceList[0]
                 }?.let { mapToVertex(it) } as NewNamespaceBlockBuilder?
             prevNamespaceBlock = maybePrevNamespaceBlock
                 ?: NewNamespaceBlockBuilder()
@@ -300,8 +304,7 @@ object SootToPlumeUtil {
                 }
                 val maybeCurrNamespaceBlock = programStructure.nodes { it == NamespaceBlock.Label() }.asSequence()
                     .firstOrNull {
-                        it.property("FULL_NAME") == namespaceBuilder.toString()
-                                && it.property("NAME") == namespaceList[i]
+                        it.property(FULL_NAME) == namespaceBuilder.toString() && it.property(NAME) == namespaceList[i]
                     }?.let { mapToVertex(it) } as NewNamespaceBlockBuilder?
                 currNamespaceBlock = maybeCurrNamespaceBlock ?: NewNamespaceBlockBuilder()
                     .name(namespaceList[i])
@@ -326,7 +329,7 @@ object SootToPlumeUtil {
      */
     fun buildTypeDeclaration(type: soot.Type, isExternal: Boolean = true): NewTypeDeclBuilder {
         val filename = if (isExternal) {
-            "<${UNKNOWN.toLowerCase()}>"
+            io.shiftleft.semanticcpg.language.types.structure.File.UNKNOWN()
         } else {
             if (type.toQuotedString().contains('.')) "/${
                 type.toQuotedString().replace(".", "/").removeSuffix("[]")
@@ -343,7 +346,7 @@ object SootToPlumeUtil {
             .fullName(type.toQuotedString())
             .filename(filename)
             .astParentFullName(parentType)
-            .astParentType("NAMESPACE_BLOCK")
+            .astParentType(NAMESPACE_BLOCK)
             .order(if (isExternal) -1 else 1)
             .isExternal(isExternal)
             .apply { addSootToPlumeAssociation(type, this) }
@@ -369,14 +372,36 @@ object SootToPlumeUtil {
      */
     fun connectMethodToTypeDecls(mtd: SootMethod, driver: IDriver) {
         Extractor.getSootAssociation(mtd.declaringClass)?.let { classVertices ->
+            if (classVertices.none { it is NewTypeDeclBuilder }) return
             val typeDeclVertex = classVertices.first { it is NewTypeDeclBuilder }
             val clsVertex = classVertices.first { it is NewFileBuilder }
-            val methodVertex = Extractor.getSootAssociation(mtd)?.first { it is NewMethodBuilder } as NewMethodBuilder
-            // Connect method to type declaration
-            driver.addEdge(typeDeclVertex, methodVertex, AST)
-            // Connect method to source file
-            driver.addEdge(methodVertex, clsVertex, SOURCE_FILE)
+            val methodVertex = getMethodFromSootMethod(mtd, driver)
+            if (methodVertex != null) {
+                // Connect method to type declaration
+                driver.addEdge(typeDeclVertex, methodVertex, AST)
+                // Connect method to source file
+                driver.addEdge(methodVertex, clsVertex, SOURCE_FILE)
+            } else {
+                logger.warn("Unable to obtain $mtd from driver while trying to connect to $typeDeclVertex.")
+            }
         }
+    }
+
+    /**
+     * Obtains corresponding [SootMethod] from the database.
+     *
+     * @param mtd The [SootMethod] to obtain from the database.
+     * @param driver The [IDriver] via which the method should get obtained from.
+     * @return The method vertex if found, null if otherwise.
+     */
+    fun getMethodFromSootMethod(mtd: SootMethod, driver: IDriver): NewMethodBuilder? {
+        val fullName = "${mtd.declaringClass}.${mtd.name}"
+        val signature = mtd.subSignature
+        var returnMtd: NewMethodBuilder? = null
+        driver.getMethod(fullName, signature).use { g ->
+            if (g.nodes(METHOD).hasNext()) returnMtd = mapToVertex(g.nodes(METHOD).next()) as NewMethodBuilder
+        }
+        return returnMtd
     }
 
     private fun projectMethodReturnVertex(

@@ -39,16 +39,14 @@ import io.github.plume.oss.util.SootToPlumeUtil.obtainModifiersFromTypeDeclVert
 import io.shiftleft.codepropertygraph.Cpg
 import io.shiftleft.codepropertygraph.generated.EdgeTypes.AST
 import io.shiftleft.codepropertygraph.generated.EdgeTypes.SOURCE_FILE
-import io.shiftleft.codepropertygraph.generated.NodeKeyNames.FULL_NAME
-import io.shiftleft.codepropertygraph.generated.NodeKeyNames.NAME
+import io.shiftleft.codepropertygraph.generated.NodeKeyNames.*
 import io.shiftleft.codepropertygraph.generated.NodeTypes.*
 import io.shiftleft.codepropertygraph.generated.nodes.*
 import io.shiftleft.dataflowengineoss.passes.reachingdef.ReachingDefPass
 import io.shiftleft.semanticcpg.passes.FileCreationPass
-import io.shiftleft.semanticcpg.passes.containsedges.ContainsEdgePass
 import io.shiftleft.semanticcpg.passes.languagespecific.fuzzyc.TypeDeclStubCreator
 import io.shiftleft.semanticcpg.passes.linking.linker.Linker
-import io.shiftleft.semanticcpg.passes.namespacecreator.NamespaceCreator
+import io.shiftleft.semanticcpg.passes.trim.TrimPass
 import org.apache.logging.log4j.LogManager
 import org.apache.logging.log4j.Logger
 import overflowdb.Graph
@@ -338,6 +336,7 @@ class Extractor(val driver: IDriver) {
                 .map(CollectionConverters::IteratorHasAsJava)
                 .flatMap { it.asJava().asSequence() }
                 .forEach { DiffGraphUtil.processDiffGraph(driver, it) }
+            TrimPass(cpg).run().foreach { DiffGraphUtil.processDiffGraph(driver, it) }
         }
         return this
     }
@@ -358,7 +357,7 @@ class Extractor(val driver: IDriver) {
             .map { t -> buildTypeDeclaration(t).apply { driver.addVertex(this) } }
             .forEach { t ->
                 // Connect external type decls to the unknown file vert
-                getSootAssociation("<unknown>")?.let {
+                getSootAssociation(io.shiftleft.semanticcpg.language.types.structure.File.UNKNOWN())?.let {
                     it.firstOrNull()?.let { f -> driver.addEdge(t, f, SOURCE_FILE) }
                 }
                 // Connect type decls to their modifiers
@@ -391,14 +390,15 @@ class Extractor(val driver: IDriver) {
      * Sets up default vertices for placeholders like unknown files.
      */
     private fun setUpDefaultStructure() {
-        if (programStructure.nodes(FILE).asSequence<Node>().none { f: Node -> f.property(NAME) == "<unknown>" }) {
-            val unknownFile = NewFileBuilder().name("<unknown>").order(0).hash(Option.apply("<unknown>"))
+        val unknown = io.shiftleft.semanticcpg.language.types.structure.File.UNKNOWN()
+        if (programStructure.nodes(FILE).asSequence<Node>().none { f: Node -> f.property(NAME) == unknown }) {
+            val unknownFile = NewFileBuilder().name(unknown).order(0).hash(Option.apply(unknown))
             driver.addVertex(unknownFile)
             val fileNode = unknownFile.build()
             programStructure.addNode(unknownFile.id(), fileNode.label()).let { n ->
                 fileNode.properties().foreach { e -> n.setProperty(e._1, e._2) }
             }
-            addSootToPlumeAssociation("<unknown>", unknownFile)
+            addSootToPlumeAssociation(unknown, unknownFile)
         }
     }
 
@@ -427,21 +427,27 @@ class Extractor(val driver: IDriver) {
      * @param cls The [SootClass] containing the information to build program structure information from.
      */
     private fun constructStructure(cls: SootClass) {
-        if (programStructure.nodes { it == ODBFile.Label() }.asSequence().none { it.property("NAME") == cls.name }) {
+        if (programStructure.nodes { it == FILE }.asSequence().none { it.property(NAME) == cls.name }) {
             logger.debug("Building file, namespace, and type declaration for ${cls.name}")
             val file = buildClassStructure(cls, driver)
-            val typeDecl = buildTypeDeclaration(cls.type, false)
-            driver.addEdge(typeDecl, file, SOURCE_FILE)
-            determineModifiers(cls.modifiers)
-                .mapIndexed { i, m -> NewModifierBuilder().modifierType(m).order(i + 1) }
-                .forEach { driver.addEdge(typeDecl, it, AST) }
-            addSootToPlumeAssociation(cls, typeDecl)
-            cls.fields.forEachIndexed { i, field ->
-                SootToPlumeUtil.projectMember(field, i + 1).let { memberVertex ->
-                    driver.addEdge(typeDecl, memberVertex, AST)
-                    addSootToPlumeAssociation(field, memberVertex)
+            val maybeTypeDecl = programStructure.nodes(TYPE_DECL).asSequence()
+                .firstOrNull { it.property(FULL_NAME) == cls.type.toQuotedString() }
+            val typeDecl = if (maybeTypeDecl != null) mapToVertex(maybeTypeDecl) as NewTypeDeclBuilder
+            else {
+                buildTypeDeclaration(cls.type, false).apply {
+                    determineModifiers(cls.modifiers)
+                        .mapIndexed { i, m -> NewModifierBuilder().modifierType(m).order(i + 1) }
+                        .forEach { driver.addEdge(this, it, AST) }
+                    cls.fields.forEachIndexed { i, field ->
+                        SootToPlumeUtil.projectMember(field, i + 1).let { memberVertex ->
+                            driver.addEdge(this, memberVertex, AST)
+                            addSootToPlumeAssociation(field, memberVertex)
+                        }
+                    }
                 }
             }
+            driver.addEdge(typeDecl, file, SOURCE_FILE)
+            addSootToPlumeAssociation(cls, typeDecl)
         }
     }
 
@@ -455,7 +461,7 @@ class Extractor(val driver: IDriver) {
         // If file does not exists then rebuild, else update
         val cls = graph.body.method.declaringClass
         val files = programStructure.nodes { it == ODBFile.Label() }.asSequence()
-        if (files.none { it.property("NAME") == cls.name }) {
+        if (files.none { it.property("NAME") == SootToPlumeUtil.sootClassToFileName(cls) }) {
             logger.debug("Projecting ${graph.body.method}")
             // Build head
             SootToPlumeUtil.buildMethodHead(graph.body.method, driver)
@@ -471,10 +477,10 @@ class Extractor(val driver: IDriver) {
 
     private fun analyseExistingCPGs(cls: SootClass) {
         val currentFileHash = getFileHashPair(cls)
-        val files = programStructure.nodes { it == ODBFile.Label() }.asSequence()
+        val files = programStructure.nodes { it == FILE }.asSequence()
         logger.debug("Looking for existing file vertex for ${cls.name} from given file hash $currentFileHash")
-        files.firstOrNull { it.property("NAME") == SootToPlumeUtil.sootClassToFileName(cls) }?.let { fileV ->
-            if (fileV.property("HASH") != currentFileHash) {
+        files.firstOrNull { it.property(NAME) == SootToPlumeUtil.sootClassToFileName(cls) }?.let { fileV ->
+            if (fileV.property(HASH) != currentFileHash) {
                 logger.debug("Existing class was found and file hashes do not match, marking for rebuild.")
                 // Rebuild
                 driver.getNeighbours(mapToVertex(fileV)).use { neighbours ->
@@ -489,7 +495,7 @@ class Extractor(val driver: IDriver) {
                                 val mtd2 = mapToVertex(mtdV) as NewMethodBuilder
                                 driver.getNeighbours(mtd2).use { ns ->
                                     if (ns.V(mtdV.id()).hasNext()) {
-                                        ns.V(mtdV.id()).next().`in`("CALL").asSequence()
+                                        ns.V(mtdV.id()).next().`in`(CALL).asSequence()
                                             .filterIsInstance<Call>()
                                             .forEach { saveCallGraphEdge(mtd2, mapToVertex(it) as NewCallBuilder) }
                                     }
@@ -501,6 +507,17 @@ class Extractor(val driver: IDriver) {
                 }
                 logger.debug("Deleting $fileV")
                 driver.deleteVertex(fileV.id(), fileV.label())
+                // Delete TypeDecls
+                programStructure.nodes { it == TYPE_DECL }.asSequence()
+                    .filter { it.property(FULL_NAME) == cls.type.toQuotedString() }
+                    .forEach { typeDecl ->
+                        logger.debug("Deleting $typeDecl")
+                        driver.getNeighbours(NewTypeDeclBuilder().id(typeDecl.id())).use { g ->
+                            g.nodes(typeDecl.id()).next().out(AST)
+                                .forEach { logger.debug("Deleting $it"); driver.deleteVertex(it.id(), it.label()) }
+                        }
+                        driver.deleteVertex(typeDecl.id(), TYPE_DECL)
+                    }
             } else {
                 logger.debug("Existing class was found and file hashes match, no need to rebuild.")
             }
