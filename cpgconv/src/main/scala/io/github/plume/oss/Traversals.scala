@@ -3,7 +3,7 @@ package io.github.plume.oss
 import java.util
 import io.shiftleft.codepropertygraph.Cpg
 import io.shiftleft.codepropertygraph.generated.EdgeTypes
-import io.shiftleft.codepropertygraph.generated.nodes.{AstNode, File, HasOrder, NamespaceBlock, StoredNode, TypeDecl}
+import io.shiftleft.codepropertygraph.generated.nodes.{AstNode, File, HasOrder, MetaData, NamespaceBlock, StoredNode, TypeDecl}
 import io.shiftleft.semanticcpg.language._
 import overflowdb.{Edge, Graph}
 import io.shiftleft.codepropertygraph.generated.nodes
@@ -59,6 +59,8 @@ object Traversals {
   def getFiles(graph: Graph):util.List[File] = Cpg(graph).file.l.asJava
 
   def getNamespaceBlocks(graph: Graph):util.List[NamespaceBlock] = Cpg(graph).namespaceBlock.l.asJava
+
+  def getMetaData(graph: Graph):Option[MetaData] = Cpg(graph).metaData.nextOption()
 
   def getNeighbours(graph: Graph, nodeId: Long): util.List[Edge] = {
     Cpg(graph)

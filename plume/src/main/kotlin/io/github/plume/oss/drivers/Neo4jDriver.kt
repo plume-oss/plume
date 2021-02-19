@@ -6,6 +6,7 @@ import io.github.plume.oss.domain.mappers.VertexMapper.checkSchemaConstraints
 import io.github.plume.oss.domain.mappers.VertexMapper.mapToVertex
 import io.shiftleft.codepropertygraph.generated.EdgeTypes.AST
 import io.shiftleft.codepropertygraph.generated.NodeTypes.*
+import io.shiftleft.codepropertygraph.generated.nodes.NewMetaDataBuilder
 import io.shiftleft.codepropertygraph.generated.nodes.NewNodeBuilder
 import org.apache.logging.log4j.LogManager
 import org.neo4j.driver.AuthTokens
@@ -436,6 +437,22 @@ class Neo4jDriver : IDriver {
                     SET n.$key = ${if (value is String) "\"$value\"" else value}
                     """.trimIndent()
                 )
+            }
+        }
+    }
+
+    override fun getMetaData(): NewMetaDataBuilder? {
+        driver.session().use { session ->
+            return session.writeTransaction { tx ->
+                tx.run(
+                    """
+                    MATCH (n:$META_DATA)
+                    RETURN n
+                    LIMIT 1
+                    """.trimIndent()
+                ).list().map { it["n"].asNode() }
+                    .map { mapToVertex(it.asMap() + mapOf("id" to it.id())) }
+                    .firstOrNull() as NewMetaDataBuilder?
             }
         }
     }

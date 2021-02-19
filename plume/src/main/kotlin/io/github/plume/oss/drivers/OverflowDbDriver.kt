@@ -2,6 +2,7 @@ package io.github.plume.oss.drivers
 
 import io.github.plume.oss.Traversals
 import io.github.plume.oss.domain.exceptions.PlumeSchemaViolationException
+import io.github.plume.oss.domain.mappers.VertexMapper
 import io.github.plume.oss.domain.mappers.VertexMapper.checkSchemaConstraints
 import io.shiftleft.codepropertygraph.generated.nodes.*
 import org.apache.logging.log4j.LogManager
@@ -162,6 +163,11 @@ class OverflowDbDriver : IDriver {
     override fun updateVertexProperty(id: Long, label: String?, key: String, value: Any) {
         val node = graph.node(id) ?: return
         node.setProperty(key, value)
+    }
+
+    override fun getMetaData(): NewMetaDataBuilder? {
+        val maybeMetaData = Traversals.getMetaData(graph)
+        return if (maybeMetaData.isDefined) VertexMapper.mapToVertex(maybeMetaData.get()) as NewMetaDataBuilder else null
     }
 
     override fun close() {

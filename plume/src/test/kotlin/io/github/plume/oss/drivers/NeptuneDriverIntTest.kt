@@ -213,6 +213,16 @@ class NeptuneDriverIntTest {
             driver.getWholeGraph()
                 .use { g -> assertTrue(g.nodes(fileVertex.id()).asSequence().any { it.property(NAME) == STRING_2 }) }
         }
+
+        @Test
+        fun testGetMetaData() {
+            driver.addVertex(metaDataVertex)
+            val metaData = driver.getMetaData()
+            assertNotNull(metaData)
+            assertEquals(metaDataVertex.id(), metaData!!.id())
+            driver.deleteVertex(metaData.id(), metaData.build().label())
+            assertNull(driver.getMetaData())
+        }
     }
 
     @Nested
