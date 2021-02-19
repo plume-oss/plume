@@ -28,6 +28,8 @@ import io.github.plume.oss.graph.CallGraphBuilder
 import io.github.plume.oss.graph.PDGBuilder
 import io.github.plume.oss.options.ExtractorOptions
 import io.github.plume.oss.util.DiffGraphUtil
+import io.github.plume.oss.util.ExtractorConst.LANGUAGE_FRONTEND
+import io.github.plume.oss.util.ExtractorConst.LANGUAGE_FRONTEND_VERSION
 import io.github.plume.oss.util.ResourceCompilationUtil.COMP_DIR
 import io.github.plume.oss.util.ResourceCompilationUtil.compileJavaFiles
 import io.github.plume.oss.util.ResourceCompilationUtil.moveClassFiles
@@ -101,7 +103,7 @@ class Extractor(val driver: IDriver) {
     companion object {
         private val sootToPlume = mutableMapOf<Any, MutableList<NewNodeBuilder>>()
         private val classToFileHash = mutableMapOf<SootClass, String>()
-        private val savedCallGraphEdges = mutableMapOf<NewMethodBuilder, MutableList<NewCallBuilder>>()
+        private val savedCallGraphEdges = mutableMapOf<String, MutableList<NewCallBuilder>>()
 
         /**
          * Associates the given Soot object to the given [NewNode].
@@ -156,20 +158,24 @@ class Extractor(val driver: IDriver) {
         /**
          * Saves call graph edges to the [NewMethod] from the [NewCall].
          *
-         * @param mtd The target [NewMethod].
+         * @param fullName The method full name.
+         * @param signature The method signature.
          * @param call The source [NewCall].
          */
-        fun saveCallGraphEdge(mtd: NewMethodBuilder, call: NewCallBuilder) {
-            if (!savedCallGraphEdges.containsKey(mtd)) savedCallGraphEdges[mtd] = mutableListOf(call)
-            else savedCallGraphEdges[mtd]?.add(call)
+        fun saveCallGraphEdge(fullName: String, signature: String, call: NewCallBuilder) {
+            println("Saving call graph edge between $fullName$signature and ${call.build().code()}")
+            val key = "$fullName$signature"
+            if (!savedCallGraphEdges.containsKey(key)) savedCallGraphEdges[key] = mutableListOf(call)
+            else savedCallGraphEdges[key]?.add(call)
         }
 
         /**
          * Retrieves all the incoming [NewCall]s from the given [NewMethod].
          *
-         * @param mtd [NewMethod] to retrieve call graph edges for.
+         * @param fullName The method full name.
+         * @param signature The method signature.
          */
-        fun getIncomingCallGraphEdges(mtd: NewMethodBuilder) = savedCallGraphEdges[mtd]
+        fun getIncomingCallGraphEdges(fullName: String, signature: String) = savedCallGraphEdges["$fullName$signature"]
     }
 
     /**
@@ -257,7 +263,7 @@ class Extractor(val driver: IDriver) {
                 }
             }
         if (splitFiles.keys.contains(SupportedFile.JAVA) || splitFiles.keys.contains(SupportedFile.JVM_CLASS)) {
-            driver.addVertex(NewMetaDataBuilder().language("Plume").version("0.1"))
+            addMetaDataInfo()
         }
         return splitFiles.keys.map {
             val filesToCompile = (splitFiles[it] ?: emptyList<JVMClassFile>()).toList()
@@ -266,6 +272,19 @@ class Extractor(val driver: IDriver) {
                 SupportedFile.JVM_CLASS -> moveClassFiles(filesToCompile.map { f -> f as JVMClassFile }.toList())
             }
         }.asSequence().flatten().toHashSet()
+    }
+
+    private fun addMetaDataInfo() {
+        val maybeMetaData = driver.getMetaData()
+        if (maybeMetaData != null) {
+            val metaData = maybeMetaData.build()
+            if (metaData.language() != LANGUAGE_FRONTEND || metaData.version() != LANGUAGE_FRONTEND_VERSION) {
+                driver.deleteVertex(maybeMetaData.id(), META_DATA)
+                driver.addVertex(NewMetaDataBuilder().language(LANGUAGE_FRONTEND).version(LANGUAGE_FRONTEND_VERSION))
+            }
+        } else {
+            driver.addVertex(NewMetaDataBuilder().language(LANGUAGE_FRONTEND).version(LANGUAGE_FRONTEND_VERSION))
+        }
     }
 
     /**
@@ -493,11 +512,18 @@ class Extractor(val driver: IDriver) {
                         driver.getMethod(mtd1.fullName(), mtd1.signature(), false).use { g ->
                             g.nodes { it == Method.Label() }.asSequence().firstOrNull()?.let { mtdV: Node ->
                                 val mtd2 = mapToVertex(mtdV) as NewMethodBuilder
+                                val builtMtd2 = mtd2.build()
                                 driver.getNeighbours(mtd2).use { ns ->
                                     if (ns.V(mtdV.id()).hasNext()) {
                                         ns.V(mtdV.id()).next().`in`(CALL).asSequence()
                                             .filterIsInstance<Call>()
-                                            .forEach { saveCallGraphEdge(mtd2, mapToVertex(it) as NewCallBuilder) }
+                                            .forEach {
+                                                saveCallGraphEdge(
+                                                    builtMtd2.fullName(),
+                                                    builtMtd2.signature(),
+                                                    mapToVertex(it) as NewCallBuilder
+                                                )
+                                            }
                                     }
                                 }
                             }

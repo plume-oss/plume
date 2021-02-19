@@ -98,7 +98,8 @@ class CallGraphBuilder(private val driver: IDriver) : IGraphBuilder {
     }
 
     private fun reconnectPriorCallGraphEdges(mtdV: NewMethodBuilder) {
-        Extractor.getIncomingCallGraphEdges(mtdV)?.let { incomingVs ->
+        val mtd = mtdV.build()
+        Extractor.getIncomingCallGraphEdges(mtd.fullName(), mtd.signature())?.let { incomingVs ->
             if (incomingVs.isNotEmpty()) {
                 logger.debug("Saved call graph edges found - reconnecting incoming call graph edges")
                 incomingVs.forEach { inV ->
