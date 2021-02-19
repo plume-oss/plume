@@ -163,7 +163,6 @@ class Extractor(val driver: IDriver) {
          * @param call The source [NewCall].
          */
         fun saveCallGraphEdge(fullName: String, signature: String, call: NewCallBuilder) {
-            println("Saving call graph edge between $fullName$signature and ${call.build().code()}")
             val key = "$fullName$signature"
             if (!savedCallGraphEdges.containsKey(key)) savedCallGraphEdges[key] = mutableListOf(call)
             else savedCallGraphEdges[key]?.add(call)
@@ -446,23 +445,19 @@ class Extractor(val driver: IDriver) {
      * @param cls The [SootClass] containing the information to build program structure information from.
      */
     private fun constructStructure(cls: SootClass) {
-        if (programStructure.nodes { it == FILE }.asSequence().none { it.property(NAME) == cls.name }) {
+        if (programStructure.nodes(FILE).asSequence()
+                .none { it.property(NAME) == SootToPlumeUtil.sootClassToFileName(cls) }
+        ) {
             logger.debug("Building file, namespace, and type declaration for ${cls.name}")
             val file = buildClassStructure(cls, driver)
-            val maybeTypeDecl = programStructure.nodes(TYPE_DECL).asSequence()
-                .firstOrNull { it.property(FULL_NAME) == cls.type.toQuotedString() }
-            val typeDecl = if (maybeTypeDecl != null) mapToVertex(maybeTypeDecl) as NewTypeDeclBuilder
-            else {
-                buildTypeDeclaration(cls.type, false).apply {
-                    determineModifiers(cls.modifiers)
-                        .mapIndexed { i, m -> NewModifierBuilder().modifierType(m).order(i + 1) }
-                        .forEach { driver.addEdge(this, it, AST) }
-                    cls.fields.forEachIndexed { i, field ->
-                        SootToPlumeUtil.projectMember(field, i + 1).let { memberVertex ->
-                            driver.addEdge(this, memberVertex, AST)
-                            addSootToPlumeAssociation(field, memberVertex)
-                        }
-                    }
+            val typeDecl = buildTypeDeclaration(cls.type, false)
+            determineModifiers(cls.modifiers)
+                .mapIndexed { i, m -> NewModifierBuilder().modifierType(m).order(i + 1) }
+                .forEach { driver.addEdge(typeDecl, it, AST) }
+            cls.fields.forEachIndexed { i, field ->
+                SootToPlumeUtil.projectMember(field, i + 1).let { memberVertex ->
+                    driver.addEdge(typeDecl, memberVertex, AST)
+                    addSootToPlumeAssociation(field, memberVertex)
                 }
             }
             driver.addEdge(typeDecl, file, SOURCE_FILE)
@@ -480,7 +475,7 @@ class Extractor(val driver: IDriver) {
         // If file does not exists then rebuild, else update
         val cls = graph.body.method.declaringClass
         val files = programStructure.nodes { it == ODBFile.Label() }.asSequence()
-        if (files.none { it.property("NAME") == SootToPlumeUtil.sootClassToFileName(cls) }) {
+        if (files.none { it.property(NAME) == SootToPlumeUtil.sootClassToFileName(cls) }) {
             logger.debug("Projecting ${graph.body.method}")
             // Build head
             SootToPlumeUtil.buildMethodHead(graph.body.method, driver)
