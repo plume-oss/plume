@@ -7,10 +7,15 @@ and this project adheres to [Semantic Versioning](http://semver.org/).
 ## [Unreleased] - yyyy-mm-dd
 
 ### Added
+- `Extractor::postProject` to add additional `io.shiftleft.semanticcpg.passes` and `io.shiftleft.dataflowengineoss.passes`
 
 ### Changed
+- `Extractor::load` and `Extractor::project` now return `Extractor` instance to allow call chaining
 
 ### Fixed
+- Handle the case where `NewFileBuilder#hash` is null
+- Where `TypeDecl`s were attempted to be duplicated in `getProgramStructure`
+- Fixed case where `Node` types were not handled in `DiffGraphUtil::processDiffGraph` 
 
 ## [0.1.8] - 2021-02-15
 

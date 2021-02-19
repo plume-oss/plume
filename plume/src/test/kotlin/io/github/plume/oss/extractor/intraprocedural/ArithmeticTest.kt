@@ -40,8 +40,7 @@ class ArithmeticTest {
         val resourceDir = "${PATH.absolutePath}${File.separator}Arithmetic$currentTestNumber.java"
         // Load test resource and project + export graph
         val f = File(resourceDir)
-        extractor.load(f)
-        extractor.project()
+        extractor.load(f).project().postProject()
         g = driver.getWholeGraph()
     }
 

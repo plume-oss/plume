@@ -262,6 +262,13 @@ class TigerGraphDriver : IOverridenIdDriver {
         post("graph/$GRAPH_NAME", payload)
     }
 
+    override fun getMetaData(): NewMetaDataBuilder? =
+        get("graph/$GRAPH_NAME/vertices/META_DATA_VERT")
+            .map { vertexPayloadToNode(it as JSONObject) }
+            .filterIsInstance<NewMetaDataBuilder>()
+            .firstOrNull()
+
+
     override fun getVertexIds(lowerBound: Long, upperBound: Long): Set<Long> {
         val result = (get(
             endpoint = "query/$GRAPH_NAME/getVertexIds",

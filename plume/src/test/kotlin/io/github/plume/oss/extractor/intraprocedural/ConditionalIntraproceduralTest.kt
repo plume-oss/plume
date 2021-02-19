@@ -46,8 +46,7 @@ class ConditionalIntraproceduralTest {
         val testSourceFile = "$testResourcePath.java"
         // Load test resource and project + export graph
         val f = File(testSourceFile)
-        extractor.load(f)
-        extractor.project()
+        extractor.load(f).project().postProject()
         g = driver.getWholeGraph()
     }
 

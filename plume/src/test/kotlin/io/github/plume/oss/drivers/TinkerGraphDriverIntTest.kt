@@ -36,9 +36,11 @@ import io.shiftleft.codepropertygraph.generated.EdgeTypes.*
 import io.shiftleft.codepropertygraph.generated.NodeKeyNames.NAME
 import io.shiftleft.codepropertygraph.generated.NodeTypes.FILE
 import io.shiftleft.codepropertygraph.generated.nodes.*
+import io.shiftleft.proto.cpg.Cpg
 import org.apache.logging.log4j.LogManager
 import org.junit.jupiter.api.*
 import org.junit.jupiter.api.Assertions.*
+import overflowdb.Config
 import overflowdb.Graph
 import scala.Option
 import java.io.File
@@ -225,6 +227,16 @@ class TinkerGraphDriverIntTest {
             driver.updateVertexProperty(fileVertex.id(), FILE, NAME, STRING_2)
             driver.getWholeGraph()
                 .use { g -> assertTrue(g.nodes(fileVertex.id()).asSequence().any { it.property(NAME) == STRING_2 }) }
+        }
+
+        @Test
+        fun testGetMetaData() {
+            driver.addVertex(metaDataVertex)
+            val metaData = driver.getMetaData()
+            assertNotNull(metaData)
+            assertEquals(metaDataVertex.id(), metaData!!.id())
+            driver.deleteVertex(metaData.id(), metaData.build().label())
+            assertNull(driver.getMetaData())
         }
     }
 
@@ -577,10 +589,12 @@ class TinkerGraphDriverIntTest {
 
         @Test
         fun testGetProgramStructure() {
+            val unknown = io.shiftleft.semanticcpg.language.types.structure.File.UNKNOWN()
+            driver.addVertex(NewFileBuilder().name(unknown).order(0).hash(Option.apply(unknown)))
             g = driver.getProgramStructure()
             val ns = g.nodes().asSequence().toList()
             val es = g.edges().asSequence().toList()
-            assertEquals(4, ns.size)
+            assertEquals(5, ns.size)
             assertEquals(2, es.size)
 
             val file = g.V(fileVertex.id()).next()

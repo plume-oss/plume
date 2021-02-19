@@ -16,8 +16,7 @@ class PlumeFrontend extends LanguageFrontend {
     Using(DriverFactory.invoke(GraphDatabase.OVERFLOWDB).asInstanceOf[OverflowDbDriver]) { driver =>
       driver.setStorageLocation(cpgFile.getAbsolutePath)
       val extractor = new Extractor(driver)
-      extractor.load(sourceCodeFile)
-      extractor.project()
+      extractor.load(sourceCodeFile).project().postProject()
       driver.close()
     }
     val odbConfig = overflowdb.Config.withDefaults().withStorageLocation(cpgFile.getAbsolutePath)

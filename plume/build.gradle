@@ -48,6 +48,7 @@ dependencies {
     implementation "khttp:khttp:$khttpVersion"
     implementation "com.fasterxml.jackson.core:jackson-databind:$jacksonVersion"
     implementation "io.shiftleft:codepropertygraph_2.13:$shiftleftVersion"
+    implementation "io.shiftleft:dataflowengineoss_2.13:$shiftleftVersion"
     implementation "io.shiftleft:semanticcpg_2.13:$shiftleftVersion"
     implementation "org.soot-oss:soot:$sootVersion"
     implementation "org.lz4:lz4-java:$lz4Version"
@@ -260,29 +261,6 @@ publishing {
                     url = repoUrl
                 }
             }
-        }
-    }
-}
-
-bintray {
-    user = project.hasProperty('bintrayUser') ? project.property('bintrayUser') : System.getenv('BINTRAY_USER')
-    key = project.hasProperty('bintrayApiKey') ? project.property('bintrayApiKey') : System.getenv('BINTRAY_API_KEY')
-    publications = ['mavenJava']
-    publish = true
-    pkg {
-        repo = "maven"
-        name = "plume"
-        userOrg = "plume-oss"
-        vcsUrl = repoUrl
-        websiteUrl = website
-        issueTrackerUrl = "https://github.com/plume-oss/plume/issues"
-        githubRepo = repoUrl
-        licenses = ['Apache-2.0']
-        version {
-            name = artifactVersion
-            desc = artifactDesc
-            released = new Date()
-            vcsTag = artifactVersion
         }
     }
 }

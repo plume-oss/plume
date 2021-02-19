@@ -43,8 +43,7 @@ class ExceptionInterproceduralTest {
         val resourceDir = "${PATH.absolutePath}${File.separator}Exception$currentTestNumber.java"
         // Load test resource and project + export graph
         val f = File(resourceDir)
-        extractor.load(f)
-        extractor.project()
+        extractor.load(f).project().postProject()
         g = driver.getMethod(
             "intraprocedural.exception.Exception$currentTestNumber.main",
             "void main(java.lang.String[])",

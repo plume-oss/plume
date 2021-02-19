@@ -3,10 +3,12 @@ package io.github.plume.oss.util
 import io.github.plume.oss.domain.mappers.VertexMapper
 import io.github.plume.oss.drivers.IDriver
 import io.shiftleft.codepropertygraph.generated.nodes.NewNode
+import io.shiftleft.codepropertygraph.generated.nodes.NewNodeBuilder
 import io.shiftleft.passes.DiffGraph
 import org.apache.logging.log4j.LogManager
 import org.apache.logging.log4j.Logger
 import overflowdb.Node
+import kotlin.math.log
 
 /**
  * Utility class to process [DiffGraph] changes.
@@ -24,8 +26,11 @@ object DiffGraphUtil {
     fun processDiffGraph(driver: IDriver, df: DiffGraph) {
         df.iterator().foreach { change: DiffGraph.Change ->
             when (change) {
-                is io.shiftleft.passes.`DiffGraph$Change$CreateNode` ->
-                    driver.addVertex(VertexMapper.mapToVertex(change.node()))
+                is io.shiftleft.passes.`DiffGraph$Change$CreateNode` -> {
+                    val n = convertNode(change.node())
+                    if (n != null) driver.addVertex(n)
+                    else logger.warn("Could not convert ${change.node()} from $change.")
+                }
                 is io.shiftleft.passes.`DiffGraph$Change$RemoveNode` ->
                     driver.deleteVertex(change.nodeId())
                 is io.shiftleft.passes.`DiffGraph$Change$RemoveEdge` -> {
@@ -36,12 +41,13 @@ object DiffGraphUtil {
                         edge = edge.label()
                     )
                 }
-                is io.shiftleft.passes.`DiffGraph$Change$CreateEdge` ->
-                    driver.addEdge(
-                        src = VertexMapper.mapToVertex(change.src() as NewNode),
-                        tgt = VertexMapper.mapToVertex(change.dst() as NewNode),
-                        edge = change.label()
-                    )
+                is io.shiftleft.passes.`DiffGraph$Change$CreateEdge` -> {
+                    val src: NewNodeBuilder? = convertNode(change.src())
+                    val dst: NewNodeBuilder? = convertNode(change.dst())
+                    if (src == null) logger.warn("Could not convert ${change.src()} from $change.")
+                    if (dst == null) logger.warn("Could not convert ${change.dst()} from $change.")
+                    if (src != null && dst != null) driver.addEdge(src, dst, change.label())
+                }
                 is io.shiftleft.passes.`DiffGraph$Change$SetNodeProperty` -> {
                     val node = change.node()
                     driver.updateVertexProperty(node.id(), node.label(), change.key(), change.value())
@@ -49,6 +55,13 @@ object DiffGraphUtil {
                 else -> logger.warn("Unsupported DiffGraph operation ${change.javaClass} encountered.")
             }
         }
+    }
+
+    fun convertNode(n: Any): NewNodeBuilder? =
+        when (n) {
+        is NewNode -> VertexMapper.mapToVertex(n)
+        is Node -> VertexMapper.mapToVertex(n)
+        else -> null
     }
 
 }

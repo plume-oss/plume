@@ -2,10 +2,12 @@ package io.github.plume.oss.drivers
 
 import io.github.plume.oss.Traversals
 import io.github.plume.oss.domain.exceptions.PlumeSchemaViolationException
+import io.github.plume.oss.domain.mappers.VertexMapper
 import io.github.plume.oss.domain.mappers.VertexMapper.checkSchemaConstraints
 import io.shiftleft.codepropertygraph.generated.nodes.*
 import org.apache.logging.log4j.LogManager
 import overflowdb.*
+import java.util.*
 import io.shiftleft.codepropertygraph.generated.edges.Factories as EdgeFactories
 import io.shiftleft.codepropertygraph.generated.nodes.Factories as NodeFactories
 
@@ -133,10 +135,14 @@ class OverflowDbDriver : IDriver {
 
     override fun getProgramStructure(): Graph {
         val g = deepCopyGraph(Traversals.getProgramStructure(graph))
-        Traversals.getTypeDecls(graph).forEach { t ->
-            val node = g.addNode(t.id(), t.label())
-            t.propertyMap().forEach { (key, value) -> node.setProperty(key, value) }
-        }
+        val ns = Traversals.getFiles(graph).toMutableList<StoredNode>()
+            .toCollection(Traversals.getTypeDecls(graph).toMutableList<StoredNode>())
+            .toCollection(Traversals.getNamespaceBlocks(graph).toMutableList<StoredNode>())
+        ns.filter { g.node(it.id()) == null }
+            .forEach { t ->
+                val node = g.addNode(t.id(), t.label())
+                t.propertyMap().forEach { (key, value) -> node.setProperty(key, value) }
+            }
         return g
     }
 
@@ -157,6 +163,11 @@ class OverflowDbDriver : IDriver {
     override fun updateVertexProperty(id: Long, label: String?, key: String, value: Any) {
         val node = graph.node(id) ?: return
         node.setProperty(key, value)
+    }
+
+    override fun getMetaData(): NewMetaDataBuilder? {
+        val maybeMetaData = Traversals.getMetaData(graph)
+        return if (maybeMetaData.isDefined) VertexMapper.mapToVertex(maybeMetaData.get()) as NewMetaDataBuilder else null
     }
 
     override fun close() {

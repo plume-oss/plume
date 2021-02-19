@@ -4,13 +4,17 @@ import io.github.plume.oss.domain.exceptions.PlumeSchemaViolationException
 import io.github.plume.oss.domain.mappers.VertexMapper
 import io.github.plume.oss.domain.mappers.VertexMapper.checkSchemaConstraints
 import io.shiftleft.codepropertygraph.generated.EdgeTypes.AST
+import io.shiftleft.codepropertygraph.generated.NodeTypes.*
 import io.shiftleft.codepropertygraph.generated.nodes.*
 import org.apache.commons.configuration.BaseConfiguration
 import org.apache.logging.log4j.LogManager
 import org.apache.tinkerpop.gremlin.process.traversal.dsl.graph.GraphTraversal
 import org.apache.tinkerpop.gremlin.process.traversal.dsl.graph.GraphTraversalSource
 import org.apache.tinkerpop.gremlin.process.traversal.step.util.WithOptions
-import org.apache.tinkerpop.gremlin.structure.*
+import org.apache.tinkerpop.gremlin.structure.Edge
+import org.apache.tinkerpop.gremlin.structure.Graph
+import org.apache.tinkerpop.gremlin.structure.T
+import org.apache.tinkerpop.gremlin.structure.Vertex
 import org.apache.tinkerpop.gremlin.tinkergraph.structure.TinkerGraph
 import overflowdb.Config
 import scala.jdk.CollectionConverters
@@ -171,10 +175,13 @@ abstract class GremlinDriver : IDriver {
             .next()
         // Transfer type decl vertices to the result, this needs to be done with the tokens step to get all properties
         // from the remote server
-        g.V().hasLabel(TypeDecl.Label()).valueMap<String>()
+        g.V().hasLabel(TYPE_DECL, FILE, NAMESPACE_BLOCK)
+            .unfold<Vertex>()
+            .valueMap<String>()
             .with(WithOptions.tokens)
             .by(un.unfold<Any>())
             .toStream()
+            .filter { !sg.traversal().V(it[T.id]).hasNext() }
             .map { Pair(sg.addVertex(T.label, it[T.label], T.id, it[T.id]), it as Map<*, *>) }
             .forEach { (v, map) ->
                 map.filter { it.key != T.id && it.key != T.label }
@@ -226,6 +233,18 @@ abstract class GremlinDriver : IDriver {
     override fun updateVertexProperty(id: Long, label: String?, key: String, value: Any) {
         if (!g.V(id).hasNext()) return
         g.V(id).property(key, value).iterate()
+    }
+
+    override fun getMetaData(): NewMetaDataBuilder? {
+        return if (g.V().hasLabel(META_DATA).hasNext()) {
+            val props: Map<String, Any> = g.V().hasLabel(META_DATA).valueMap<String>()
+                .by(un.unfold<Any>())
+                .with(WithOptions.tokens)
+                .next().mapKeys { it.key.toString() }
+            VertexMapper.mapToVertex(props) as NewMetaDataBuilder
+        } else {
+            null
+        }
     }
 
     /**

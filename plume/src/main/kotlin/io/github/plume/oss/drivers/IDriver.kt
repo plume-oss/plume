@@ -1,6 +1,7 @@
 package io.github.plume.oss.drivers
 
 import io.github.plume.oss.domain.exceptions.PlumeSchemaViolationException
+import io.shiftleft.codepropertygraph.generated.nodes.NewMetaDataBuilder
 import io.shiftleft.codepropertygraph.generated.nodes.NewNodeBuilder
 import overflowdb.Graph
 
@@ -122,5 +123,12 @@ interface IDriver : AutoCloseable {
      * @param value The updated value.
      */
     fun updateVertexProperty(id: Long, label: String?, key: String, value: Any)
+
+    /**
+     * Obtains the graph meta data information, if found.
+     *
+     * @return A [NewMetaDataBuilder] containing the meta data information, false if no information found.
+     */
+    fun getMetaData(): NewMetaDataBuilder?
 
 }

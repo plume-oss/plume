@@ -1,8 +1,6 @@
 package io.github.plume.oss.extractor
 
 import org.junit.jupiter.api.AfterEach
-import org.junit.jupiter.api.Assertions.assertFalse
-import org.junit.jupiter.api.Assertions.assertTrue
 import org.junit.jupiter.api.BeforeAll
 import org.junit.jupiter.api.Test
 import io.github.plume.oss.Extractor
@@ -10,6 +8,7 @@ import io.github.plume.oss.drivers.DriverFactory
 import io.github.plume.oss.drivers.GraphDatabase
 import io.github.plume.oss.drivers.TinkerGraphDriver
 import io.shiftleft.codepropertygraph.generated.nodes.Literal
+import org.junit.jupiter.api.Assertions.*
 import java.io.File
 import java.io.FileInputStream
 import java.io.FileOutputStream
@@ -48,12 +47,12 @@ class UpdateGraphTest {
     fun testGraphUpdate() {
         // Initial projection
         listOf(testFile1, testFile2).forEach { extractor.load(it) }
-        extractor.project()
+        extractor.project().postProject()
         val g1 = driver.getWholeGraph()
         // Update file and do an update projection
         testFile2 = rewriteFileContents(testFile2, testFile2Update)
         listOf(testFile1, testFile2).forEach { extractor.load(it) }
-        extractor.project()
+        extractor.project().postProject()
         val g2 = driver.getWholeGraph()
         val literalsG1 = g1.nodes().asSequence().filterIsInstance<Literal>().toList()
         val literalsG2 = g2.nodes().asSequence().filterIsInstance<Literal>().toList()
@@ -62,6 +61,8 @@ class UpdateGraphTest {
         assertTrue(literalsG2.none { it.code() == "5" })
         assertTrue(literalsG1.none { it.code() == "9" })
         assertFalse(g1 == g2)
+        assertEquals(g1.nodeCount(), g2.nodeCount())
+        assertEquals(g1.edgeCount(), g2.edgeCount())
         g1.close()
         g2.close()
     }
