@@ -7,15 +7,26 @@ and this project adheres to [Semantic Versioning](http://semver.org/).
 ## [Unreleased] - yyyy-mm-dd
 
 ### Added
+
+### Changed
+
+### Fixed
+
+## [0.2.0] - 2021-02-19
+
+### Added
 - `Extractor::postProject` to add additional `io.shiftleft.semanticcpg.passes` and `io.shiftleft.dataflowengineoss.passes`
+- Added `IDriver::getMetaData` to get the `NewMetaData` vertex from the database if present
 
 ### Changed
 - `Extractor::load` and `Extractor::project` now return `Extractor` instance to allow call chaining
 
 ### Fixed
+- Graph updates would add duplicate program structure information and fail to link prior `CALL` edges
 - Handle the case where `NewFileBuilder#hash` is null
 - Where `TypeDecl`s were attempted to be duplicated in `getProgramStructure`
-- Fixed case where `Node` types were not handled in `DiffGraphUtil::processDiffGraph` 
+- Fixed case where `Node` types were not handled in `DiffGraphUtil::processDiffGraph`
+- `IDriver::getProgramStructure` would not return vertices with degree 0
 
 ## [0.1.8] - 2021-02-15
 
