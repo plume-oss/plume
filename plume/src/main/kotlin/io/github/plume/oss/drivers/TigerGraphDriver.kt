@@ -26,6 +26,7 @@ import java.io.File
 import java.io.FileReader
 import java.io.IOException
 import java.lang.Thread.sleep
+import java.security.Permission
 import io.shiftleft.codepropertygraph.generated.edges.Factories as EdgeFactories
 import io.shiftleft.codepropertygraph.generated.nodes.Factories as NodeFactories
 
@@ -176,7 +177,7 @@ class TigerGraphDriver : IOverridenIdDriver {
                 mapOf(
                     "V_FROM" to src.id().toString(),
                     "V_TO" to tgt.id().toString(),
-                    "EDGE_LABEL" to edge
+                    "EDGE_LABEL" to "_$edge"
                 )
             ).firstOrNull()
             return if (response == null) {
@@ -243,7 +244,7 @@ class TigerGraphDriver : IOverridenIdDriver {
         return mapOf(
             fromLabel to mapOf(
                 from.id().toString() to mapOf<String, Any>(
-                    edge to mapOf<String, Any>(
+                    "_$edge" to mapOf<String, Any>(
                         toLabel to mapOf<String, Any>(
                             to.id().toString() to emptyMap<String, Any>()
                         )
@@ -262,7 +263,7 @@ class TigerGraphDriver : IOverridenIdDriver {
     override fun getMethod(fullName: String, signature: String, includeBody: Boolean): Graph {
         val path = if (!includeBody) "getMethodHead" else "getMethod"
         return try {
-            val result = get("query/$GRAPH_NAME/$path", mapOf("FULL_NAME" to fullName, "SIGNATURE" to signature))
+            val result = get("query/$GRAPH_NAME/$path", mapOf(FULL_NAME to fullName, SIGNATURE to signature))
             payloadToGraph(result)
         } catch (e: PlumeTransactionException) {
             logger.warn("${e.message}. This may be a result of the method not being present in the graph.")
@@ -293,12 +294,12 @@ class TigerGraphDriver : IOverridenIdDriver {
 
     override fun deleteEdge(src: NewNodeBuilder, tgt: NewNodeBuilder, edge: String) {
         if (!exists(src, tgt, edge)) return
-        delete("graph/$GRAPH_NAME/edges/CPG_VERT/${src.id()}/$edge/CPG_VERT/${tgt.id()}")
+        delete("graph/$GRAPH_NAME/edges/CPG_VERT/${src.id()}/_$edge/CPG_VERT/${tgt.id()}")
     }
 
     override fun deleteMethod(fullName: String, signature: String) {
         try {
-            get("query/$GRAPH_NAME/deleteMethod", mapOf("FULL_NAME" to fullName, "SIGNATURE" to signature))
+            get("query/$GRAPH_NAME/deleteMethod", mapOf(FULL_NAME to fullName, SIGNATURE to signature))
         } catch (e: PlumeTransactionException) {
             logger.warn("${e.message}. This may be a result of the method not being present in the graph.")
         }
@@ -307,7 +308,7 @@ class TigerGraphDriver : IOverridenIdDriver {
     override fun updateVertexProperty(id: Long, label: String?, key: String, value: Any) {
         if (!checkVertexExists(id, label)) return
         val lbl = if (label == META_DATA) "META_DATA_VERT" else "CPG_VERT"
-        val payload = mapOf("vertices" to mapOf(lbl to mapOf(id to mapOf(key to mapOf("value" to value)))))
+        val payload = mapOf("vertices" to mapOf(lbl to mapOf(id to mapOf("_$key" to mapOf("value" to value)))))
         post("graph/$GRAPH_NAME", payload)
     }
 
@@ -350,10 +351,8 @@ class TigerGraphDriver : IOverridenIdDriver {
     private fun connectEdge(vertices: Map<Long, Node>, edgePayload: JSONObject) {
         val src = vertices[edgePayload["from_id"].toString().toLong()]
         val tgt = vertices[edgePayload["to_id"].toString().toLong()]
-        val edge = edgePayload["e_type"].toString()
-        if (src != null && tgt != null) {
-            src.addEdge(edge, tgt)
-        }
+        val edge = edgePayload["e_type"].toString().removePrefix("_")
+        if (src != null && tgt != null) src.addEdge(edge, tgt)
     }
 
     private fun vertexPayloadToNode(o: JSONObject): NewNodeBuilder {
@@ -393,9 +392,7 @@ class TigerGraphDriver : IOverridenIdDriver {
      * @throws IOException if the request could not be sent based on an I/O communication failure.
      */
     @Throws(PlumeTransactionException::class)
-    private fun get(endpoint: String): JSONArray {
-        return get(endpoint, emptyMap())
-    }
+    private fun get(endpoint: String): JSONArray = get(endpoint, emptyMap())
 
     /**
      * Sends a GET request to the configured REST++ server.
@@ -488,9 +485,12 @@ class TigerGraphDriver : IOverridenIdDriver {
             "-ip", "$hostname:$gsqlPort",
             "-u", username, "-p", password, payload
         )
-        println(args)
-        runCatching { com.tigergraph.client.Driver.main(args) }
-            .onFailure { e -> logger.error("Unable to post GSQL payload! Payload $payload", e) }
+        val codeControl = CodeControl()
+        runCatching {
+            codeControl.disableSystemExit()
+            com.tigergraph.v3_0_5.client.Driver.main(args)
+        }.onFailure { e -> logger.error("Unable to post GSQL payload! Payload $payload", e) }
+        codeControl.enableSystemExit()
     }
 
     private fun newOverflowGraph(): Graph = Graph.open(
@@ -499,11 +499,13 @@ class TigerGraphDriver : IOverridenIdDriver {
         EdgeFactories.allAsJava()
     )
 
-    fun buildSchema() {
-        val payload = buildSchemaPayload()
-        println(payload)
-        postGSQL(payload)
-    }
+    /**
+     * Uses the generated schema from [TigerGraphDriver.buildSchemaPayload] and remotely executes it on the database.
+     * This is done via the GSQL server using the GSQL client.
+     *
+     * **See Also:** [Using a Remote GSQL Client](https://docs.tigergraph.com/dev/using-a-remote-gsql-client)
+     */
+    fun buildSchema() = postGSQL(buildSchemaPayload())
 
     fun buildSchemaPayload(): String {
         val schema = StringBuilder(
@@ -536,11 +538,11 @@ class TigerGraphDriver : IOverridenIdDriver {
         val propertiesList =
             NodeKeys.ALL.filterNot { metaDataSpecificProps.contains(it.name) || it.name == NODE_LABEL }.toList()
         propertiesList.forEachIndexed { i: Int, key: PropertyKey<Any> ->
-            val k = "_${key.name}"
+            val k = key.name
             when {
-                booleanTypes.contains(k) -> schema.append("\t$k BOOL DEFAULT \"TRUE\"")
-                intTypes.contains(k) -> schema.append("\t$k INT DEFAULT -1")
-                else -> schema.append("\t$k STRING DEFAULT \"null\"")
+                booleanTypes.contains(k) -> schema.append("\t_$k BOOL DEFAULT \"TRUE\"")
+                intTypes.contains(k) -> schema.append("\t_$k INT DEFAULT -1")
+                else -> schema.append("\t_$k STRING DEFAULT \"null\"")
             }
             if (i < propertiesList.size - 1) schema.append(",\n") else schema.append("\n")
         }
@@ -573,6 +575,36 @@ class TigerGraphDriver : IOverridenIdDriver {
                     .forEach(schema::append)
             }
         return schema.toString()
+    }
+
+    inner class StopExitSecurityManager : SecurityManager() {
+        private val _prevMgr = System.getSecurityManager()
+
+        override fun checkPermission(perm: Permission?) {
+            if (perm is RuntimePermission) {
+                if (perm.getName().startsWith("exitVM")) {
+                    throw StopExitException()
+                }
+            }
+            _prevMgr?.checkPermission(perm)
+        }
+
+        fun getPreviousMgr(): SecurityManager? = _prevMgr
+    }
+
+    inner class StopExitException : RuntimeException()
+
+    inner class CodeControl {
+        fun disableSystemExit() {
+            val securityManager: SecurityManager = StopExitSecurityManager()
+            System.setSecurityManager(securityManager)
+        }
+
+        fun enableSystemExit() {
+            val mgr = System.getSecurityManager()
+            if (mgr != null && mgr is StopExitSecurityManager) System.setSecurityManager(mgr.getPreviousMgr())
+            else System.setSecurityManager(null)
+        }
     }
 
     companion object {

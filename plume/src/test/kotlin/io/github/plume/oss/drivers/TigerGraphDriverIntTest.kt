@@ -32,7 +32,9 @@ import io.github.plume.oss.TestDomainResources.Companion.typeRefVertex
 import io.github.plume.oss.TestDomainResources.Companion.unknownVertex
 import io.github.plume.oss.domain.exceptions.PlumeSchemaViolationException
 import io.github.plume.oss.util.SootToPlumeUtil
+import io.shiftleft.codepropertygraph.generated.EdgeTypes
 import io.shiftleft.codepropertygraph.generated.EdgeTypes.*
+import io.shiftleft.codepropertygraph.generated.NodeKeyNames
 import io.shiftleft.codepropertygraph.generated.NodeKeyNames.NAME
 import io.shiftleft.codepropertygraph.generated.NodeTypes.FILE
 import io.shiftleft.codepropertygraph.generated.nodes.*
@@ -48,17 +50,28 @@ class TigerGraphDriverIntTest {
         lateinit var driver: TigerGraphDriver
         private var testStartTime by Delegates.notNull<Long>()
 
+        private fun testPayloadContents() {
+            val payload = driver.buildSchemaPayload()
+            NodeKeyNames.ALL.filterNot { it == NodeKeyNames.NODE_LABEL }.map(payload::contains).forEach(Assertions::assertTrue)
+            EdgeTypes.ALL.map(payload::contains).forEach(Assertions::assertTrue)
+        }
+
         @JvmStatic
         @BeforeAll
         fun setUpAll() {
-            testStartTime = System.nanoTime()
             driver = (DriverFactory(GraphDatabase.TIGER_GRAPH) as TigerGraphDriver)
+                .username("tigergraph")
+                .password("tigergraph")
                 .hostname("127.0.0.1")
                 .restPpPort(9000)
+                .gsqlPort(14240)
                 .secure(false)
             assertEquals("127.0.0.1", driver.hostname)
             assertEquals(9000, driver.restPpPort)
             assertEquals(false, driver.secure)
+            testPayloadContents()
+            driver.buildSchema()
+            testStartTime = System.nanoTime()
         }
 
         @JvmStatic

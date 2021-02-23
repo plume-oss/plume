@@ -7,10 +7,8 @@ services:
       - "14022:22"
       - "9000:9000"
       - "14240:14240"
-    volumes:
-      - ../schema/tg_schema.gsql:/docker-entrypoint-initdb.d/tg_schema.gsql
     healthcheck:
-      test: ["CMD-SHELL", "curl --fail http://localhost:9000/query/cpg/status || exit 1"]
+      test: ["CMD-SHELL", "curl --fail http://localhost:9000/echo || exit 1"]
       interval: 30s
       timeout: 10s
       retries: 5

@@ -1,6 +1,5 @@
 package io.github.plume.oss.util
 
-import io.github.plume.oss.drivers.GremlinOverriddenIdDriver
 import io.github.plume.oss.drivers.IOverridenIdDriver
 import java.util.concurrent.ConcurrentHashMap
 
