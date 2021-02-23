@@ -54,10 +54,10 @@ class TigerGraphDriverIntTest {
             testStartTime = System.nanoTime()
             driver = (DriverFactory(GraphDatabase.TIGER_GRAPH) as TigerGraphDriver)
                 .hostname("127.0.0.1")
-                .port(9000)
+                .restPpPort(9000)
                 .secure(false)
             assertEquals("127.0.0.1", driver.hostname)
-            assertEquals(9000, driver.port)
+            assertEquals(9000, driver.restPpPort)
             assertEquals(false, driver.secure)
         }
 

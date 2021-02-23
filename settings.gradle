@@ -1,4 +1,4 @@
-rootProject.name = 'plume'
+rootProject.name = 'Plume'
 include 'plume'
 include 'cpgconv'
 include 'testing'

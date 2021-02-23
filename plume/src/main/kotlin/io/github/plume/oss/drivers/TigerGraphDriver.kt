@@ -4,8 +4,13 @@ import io.github.plume.oss.domain.exceptions.PlumeSchemaViolationException
 import io.github.plume.oss.domain.exceptions.PlumeTransactionException
 import io.github.plume.oss.domain.mappers.VertexMapper
 import io.github.plume.oss.domain.mappers.VertexMapper.checkSchemaConstraints
+import io.github.plume.oss.util.ExtractorConst
 import io.github.plume.oss.util.PlumeKeyProvider
+import io.shiftleft.codepropertygraph.generated.EdgeTypes
+import io.shiftleft.codepropertygraph.generated.NodeKeyNames.*
+import io.shiftleft.codepropertygraph.generated.NodeKeys
 import io.shiftleft.codepropertygraph.generated.NodeTypes.META_DATA
+import io.shiftleft.codepropertygraph.generated.NodeTypes.UNKNOWN
 import io.shiftleft.codepropertygraph.generated.nodes.NewMetaDataBuilder
 import io.shiftleft.codepropertygraph.generated.nodes.NewNodeBuilder
 import org.apache.logging.log4j.LogManager
@@ -15,7 +20,10 @@ import org.json.JSONObject
 import overflowdb.Config
 import overflowdb.Graph
 import overflowdb.Node
+import overflowdb.PropertyKey
 import scala.jdk.CollectionConverters
+import java.io.File
+import java.io.FileReader
 import java.io.IOException
 import java.lang.Thread.sleep
 import io.shiftleft.codepropertygraph.generated.edges.Factories as EdgeFactories
@@ -38,10 +46,31 @@ class TigerGraphDriver : IOverridenIdDriver {
         private set
 
     /**
-     * The TigerGraph REST++ server port number.
-     * @see DEFAULT_PORT
+     * The TigerGraph GSQL server password.
+     * @see DEFAULT_USERNAME
      */
-    var port: Int = DEFAULT_PORT
+    var username: String = DEFAULT_USERNAME
+        private set
+
+    /**
+     * The TigerGraph GSQL server username.
+     * @see DEFAULT_PASSWORD
+     */
+    var password: String = DEFAULT_PASSWORD
+        private set
+
+    /**
+     * The TigerGraph REST++ server port number.
+     * @see DEFAULT_RESTPP_PORT
+     */
+    var restPpPort: Int = DEFAULT_RESTPP_PORT
+        private set
+
+    /**
+     * The TigerGraph GSQL server port number.
+     * @see DEFAULT_GSQL_PORT
+     */
+    var gsqlPort: Int = DEFAULT_GSQL_PORT
         private set
 
     /**
@@ -58,13 +87,13 @@ class TigerGraphDriver : IOverridenIdDriver {
         private set
 
     init {
-        api = "http://$hostname:$port"
+        api = "http://$hostname:$restPpPort"
     }
 
     /**
      * Recreates the API variable based on saved configurations.
      */
-    private fun setApi() = run { api = "http${if (secure) "s" else ""}://$hostname:$port" }
+    private fun setApi() = run { api = "http${if (secure) "s" else ""}://$hostname:$restPpPort" }
 
     /**
      * Set the hostname for the TigerGraph REST++ server.
@@ -74,11 +103,32 @@ class TigerGraphDriver : IOverridenIdDriver {
     fun hostname(value: String): TigerGraphDriver = apply { hostname = value; setApi() }
 
     /**
+     * Set the hostname for the TigerGraph GSQL server.
+     *
+     * @param value the username e.g. "tigergraph".
+     */
+    fun username(value: String): TigerGraphDriver = apply { hostname = value }
+
+    /**
+     * Set the password for the TigerGraph GSQL server.
+     *
+     * @param value the password e.g. "tigergraph"
+     */
+    fun password(value: String): TigerGraphDriver = apply { password = value }
+
+    /**
      * Set the port for the TigerGraph REST++ server.
      *
      * @param value the port number e.g. 9000
      */
-    fun port(value: Int): TigerGraphDriver = apply { port = value; setApi() }
+    fun restPpPort(value: Int): TigerGraphDriver = apply { restPpPort = value; setApi() }
+
+    /**
+     * Set the port for the TigerGraph GSQL server.
+     *
+     * @param value the port number e.g. 14240
+     */
+    fun gsqlPort(value: Int): TigerGraphDriver = apply { gsqlPort = value }
 
     /**
      * Sets the secure flag when building the API path.
@@ -179,12 +229,11 @@ class TigerGraphDriver : IOverridenIdDriver {
         )
     }
 
-    private fun extractAttributesFromMap(propertyMap: MutableMap<String, Any>): MutableMap<String, Any> {
-        val attributes = VertexMapper.extractAttributesFromMap(propertyMap)
-        if (attributes.containsKey("ORDER")) attributes["AST_ORDER"] = attributes.remove("ORDER") as Any
-        attributes.forEach { attributes[it.key] = mapOf("value" to it.value) }
-        return attributes
-    }
+    private fun extractAttributesFromMap(propertyMap: MutableMap<String, Any>): MutableMap<String, Any> =
+        VertexMapper.extractAttributesFromMap(propertyMap)
+            .mapKeys { if (it.key != "label") "_${it.key}" else it.key }
+            .mapValues { mapOf("value" to it.value) }
+            .toMutableMap()
 
     private fun createEdgePayload(from: NewNodeBuilder, to: NewNodeBuilder, edge: String): Map<String, Any> {
         val fromPayload = createVertexPayload(from)
@@ -313,7 +362,7 @@ class TigerGraphDriver : IOverridenIdDriver {
         attributes.keySet().filter { attributes[it] != "" }
             .map {
                 if (it == "id") Pair(it, attributes[it].toString().toLong())
-                else Pair(if (it == "AST_ORDER") "ORDER" else it, attributes[it])
+                else Pair(it.removePrefix("_"), attributes[it])
             }
             .forEach { vertexMap[it.first] = it.second }
         return VertexMapper.mapToVertex(vertexMap)
@@ -329,10 +378,10 @@ class TigerGraphDriver : IOverridenIdDriver {
         PlumeKeyProvider.clearKeyPools()
     }
 
-    private fun headers(): Map<String, String> = if (authKey == null) {
-        mapOf("Content-Type" to "application/json")
+    private fun headers(contentType: String = "application/json"): Map<String, String> = if (authKey == null) {
+        mapOf("Content-Type" to contentType)
     } else {
-        mapOf("Content-Type" to "application/json", "Authorization" to "Bearer $authKey")
+        mapOf("Content-Type" to contentType, "Authorization" to "Bearer $authKey")
     }
 
     /**
@@ -434,30 +483,131 @@ class TigerGraphDriver : IOverridenIdDriver {
         }
     }
 
+    private fun postGSQL(payload: String) {
+        val args = arrayOf(
+            "-ip", "$hostname:$gsqlPort",
+            "-u", username, "-p", password, payload
+        )
+        println(args)
+        runCatching { com.tigergraph.client.Driver.main(args) }
+            .onFailure { e -> logger.error("Unable to post GSQL payload! Payload $payload", e) }
+    }
+
     private fun newOverflowGraph(): Graph = Graph.open(
         Config.withDefaults(),
         NodeFactories.allAsJava(),
         EdgeFactories.allAsJava()
     )
 
+    fun buildSchema() {
+        val payload = buildSchemaPayload()
+        println(payload)
+        postGSQL(payload)
+    }
+
+    fun buildSchemaPayload(): String {
+        val schema = StringBuilder(
+            """
+            DROP ALL
+            
+            CREATE VERTEX CPG_VERT (
+                PRIMARY_ID id UINT,
+                label STRING DEFAULT "$UNKNOWN",
+        """.trimIndent()
+        )
+        schema.append("\n")
+        val booleanTypes = setOf(
+            HAS_MAPPING,
+            IS_METHOD_NEVER_OVERRIDDEN,
+            IS_EXTERNAL
+        )
+        val intTypes = setOf(
+            COLUMN_NUMBER,
+            DEPTH_FIRST_ORDER,
+            ARGUMENT_INDEX,
+            ORDER,
+            LINE_NUMBER,
+            LINE_NUMBER_END,
+            INTERNAL_FLAGS,
+            COLUMN_NUMBER_END
+        )
+        // Handle vertices
+        val metaDataSpecificProps = listOf(LANGUAGE, VERSION, OVERLAYS)
+        val propertiesList =
+            NodeKeys.ALL.filterNot { metaDataSpecificProps.contains(it.name) || it.name == NODE_LABEL }.toList()
+        propertiesList.forEachIndexed { i: Int, key: PropertyKey<Any> ->
+            val k = "_${key.name}"
+            when {
+                booleanTypes.contains(k) -> schema.append("\t$k BOOL DEFAULT \"TRUE\"")
+                intTypes.contains(k) -> schema.append("\t$k INT DEFAULT -1")
+                else -> schema.append("\t$k STRING DEFAULT \"null\"")
+            }
+            if (i < propertiesList.size - 1) schema.append(",\n") else schema.append("\n")
+        }
+        schema.append(
+            """
+            ) WITH primary_id_as_attribute="true"
+            
+            CREATE VERTEX META_DATA_VERT (
+                PRIMARY_ID id UINT,
+                label STRING DEFAULT "$META_DATA",
+                _$LANGUAGE STRING DEFAULT "${ExtractorConst.LANGUAGE_FRONTEND}",
+                _$VERSION STRING DEFAULT "${ExtractorConst.LANGUAGE_FRONTEND_VERSION}",
+                _$OVERLAYS STRING DEFAULT "null",
+                _$HASH STRING DEFAULT "null"
+            ) WITH primary_id_as_attribute="true"
+        """.trimIndent()
+        )
+        schema.append("\n\n")
+        // Handle edges
+        EdgeTypes.ALL.forEach { schema.append("CREATE DIRECTED EDGE _$it (FROM CPG_VERT, TO CPG_VERT)\n") }
+        schema.append("\nCREATE GRAPH cpg (*)\n")
+        // Get queries
+        val payload = javaClass.getResource("/schema/tg_queries.gsql")
+        if (payload == null)
+            logger.warn("TigerGraph queries are missing in the resource bundle, only schema will be installed.")
+        else
+            FileReader(File(payload.toURI())).use { fr ->
+                fr.readLines()
+                    .map { it.replace("<GRAPH_NAME>", GRAPH_NAME).plus("\n") }
+                    .forEach(schema::append)
+            }
+        return schema.toString()
+    }
+
     companion object {
         /**
-         * Default hostname for a locally running TigerGraph server with a value of 127.0.0.1.
+         * Default hostname for the TigerGraph server with a value of 127.0.0.1.
          */
         private const val DEFAULT_HOSTNAME = "127.0.0.1"
 
         /**
-         * Default port number for a locally running TigerGraph server with a value of 9000.
+         * Default username for the TigerGraph server with a value of "tigergraph".
          */
-        private const val DEFAULT_PORT = 9000
+        private const val DEFAULT_USERNAME = "tigergraph"
 
         /**
-         * Default graph name for a TigerGraph server a with value of cpg.
+         * Default hostname for the TigerGraph server with a value of 127.0.0.1.
+         */
+        private const val DEFAULT_PASSWORD = "tigergraph"
+
+        /**
+         * Default Rest++ port number the TigerGraph server with a value of 9000.
+         */
+        private const val DEFAULT_RESTPP_PORT = 9000
+
+        /**
+         * Default GSQL port number for the TigerGraph server with a value of 14240.
+         */
+        private const val DEFAULT_GSQL_PORT = 14240
+
+        /**
+         * Default graph name for the TigerGraph server a with value of cpg.
          */
         private const val GRAPH_NAME = "cpg"
 
         /**
-         * Default number of request retries for a TigerGraph server with a value of 5.
+         * Default number of request retries for the TigerGraph server with a value of 5.
          */
         private const val MAX_RETRY = 5
     }
