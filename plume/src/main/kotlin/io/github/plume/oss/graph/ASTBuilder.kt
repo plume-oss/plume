@@ -472,10 +472,10 @@ class ASTBuilder(private val driver: IDriver) : IGraphBuilder {
     private fun projectCastExpr(expr: CastExpr, childIdx: Int): NewCallBuilder {
         val castVertices = mutableListOf<NewNodeBuilder>()
         val castBlock = NewCallBuilder()
-            .name(CAST)
-            .code("(${expr.castType.toQuotedString()})")
+            .name(Operators.cast)
+            .code(expr.toString())
             .signature("(${expr.castType.toQuotedString()}) ${expr.op.type.toQuotedString()}")
-            .methodFullName("(${expr.castType.toQuotedString()})")
+            .methodFullName(Operators.cast)
             .dispatchType(STATIC_DISPATCH)
             .dynamicTypeHintFullName(createScalaList(expr.op.type.toQuotedString()))
             .order(childIdx)
