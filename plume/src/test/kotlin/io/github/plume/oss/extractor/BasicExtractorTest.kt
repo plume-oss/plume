@@ -5,6 +5,7 @@ import io.github.plume.oss.drivers.DriverFactory
 import io.github.plume.oss.drivers.GraphDatabase
 import io.github.plume.oss.drivers.OverflowDbDriver
 import io.github.plume.oss.graphio.GraphMLWriter
+import io.shiftleft.codepropertygraph.generated.Operators
 import io.shiftleft.codepropertygraph.generated.nodes.Call
 import io.shiftleft.codepropertygraph.generated.nodes.Local
 import io.shiftleft.codepropertygraph.generated.nodes.Method
@@ -68,7 +69,7 @@ class BasicExtractorTest {
             .let { assertNotNull(it); assertEquals("byte", it!!.typeFullName()) }
         ns.filterIsInstance<Local>().find { it.name() == "c" }
             .let { assertNotNull(it); assertEquals("int", it!!.typeFullName()) }
-        ns.filterIsInstance<Call>().find { it.name() == "ADD" }.let { assertNotNull(it) }
+        ns.filterIsInstance<Call>().find { it.name() == Operators.plus }.let { assertNotNull(it) }
     }
 
     @Test
@@ -88,7 +89,7 @@ class BasicExtractorTest {
             .let { assertNotNull(it); assertEquals("byte", it!!.typeFullName()) }
         ns.filterIsInstance<Local>().find { it.name() == "l3" }
             .let { assertNotNull(it); assertEquals("int", it!!.typeFullName()) }
-        ns.filterIsInstance<Call>().find { it.name() == "ADD" }.let { assertNotNull(it) }
+        ns.filterIsInstance<Call>().find { it.name() == Operators.plus }.let { assertNotNull(it) }
     }
 
     @Test

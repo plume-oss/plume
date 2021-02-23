@@ -4,6 +4,7 @@ import io.github.plume.oss.Extractor
 import io.github.plume.oss.drivers.DriverFactory
 import io.github.plume.oss.drivers.GraphDatabase
 import io.github.plume.oss.drivers.TinkerGraphDriver
+import io.shiftleft.codepropertygraph.generated.Operators
 import io.shiftleft.codepropertygraph.generated.nodes.*
 import io.shiftleft.codepropertygraph.generated.nodes.File as ODBFile
 import org.junit.jupiter.api.AfterEach
@@ -67,7 +68,7 @@ class BasicIntraproceduralTest {
             .let { assertNotNull(it); assertEquals("byte", it!!.typeFullName()) }
         ns.filterIsInstance<Local>().find { it.name() == "c" }
             .let { assertNotNull(it); assertEquals("int", it!!.typeFullName()) }
-        ns.filterIsInstance<Call>().find { it.name() == "ADD" }.let { assertNotNull(it) }
+        ns.filterIsInstance<Call>().find { it.name() == Operators.plus }.let { assertNotNull(it) }
     }
 
     @Test
@@ -84,7 +85,7 @@ class BasicIntraproceduralTest {
             .let { assertNotNull(it); assertEquals("double", it!!.typeFullName()) }
         ns.filterIsInstance<Local>().find { it.name() == "c" }
             .let { assertNotNull(it); assertEquals("double", it!!.typeFullName()) }
-        ns.filterIsInstance<Call>().find { it.name() == "ADD" }.let { assertNotNull(it) }
+        ns.filterIsInstance<Call>().find { it.name() == Operators.plus }.let { assertNotNull(it) }
     }
 
     @Test
@@ -101,7 +102,7 @@ class BasicIntraproceduralTest {
             .let { assertNotNull(it); assertEquals("short", it!!.typeFullName()) }
         ns.filterIsInstance<Local>().find { it.name() == "c" }
             .let { assertNotNull(it); assertEquals("long", it!!.typeFullName()) }
-        ns.filterIsInstance<Call>().find { it.name() == "ADD" }.let { assertNotNull(it) }
+        ns.filterIsInstance<Call>().find { it.name() == Operators.plus }.let { assertNotNull(it) }
     }
 
     @Test

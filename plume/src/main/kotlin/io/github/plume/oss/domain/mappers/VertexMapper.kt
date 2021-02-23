@@ -214,6 +214,7 @@ object VertexMapper {
                 .argumentIndex(map[ARGUMENT_INDEX] as Int)
                 .name(map[NAME] as String)
             ControlStructure.Label() -> NewControlStructureBuilder()
+                .controlStructureType(map[CONTROL_STRUCTURE_TYPE] as String)
                 .code(map[CODE] as String)
                 .order(map[ORDER] as Int)
                 .lineNumber(Option.apply(map[LINE_NUMBER] as Int))

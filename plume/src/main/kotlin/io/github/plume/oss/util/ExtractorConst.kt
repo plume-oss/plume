@@ -27,10 +27,8 @@ object ExtractorConst {
     )
 
     // block bodies
-    const val ASSIGN = "ASSIGN"
     const val CAST = "CAST"
     const val ENTRYPOINT = "BODY"
-    const val IF_ROOT = "IF"
     const val TABLE_SWITCH = "TABLE_SWITCH"
     const val LOOKUP_ROOT = "LOOKUP_SWITCH"
     const val TRUE_TARGET = "TRUE"

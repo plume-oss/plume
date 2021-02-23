@@ -25,15 +25,13 @@ import io.shiftleft.codepropertygraph.generated.EdgeTypes.*
 import io.shiftleft.codepropertygraph.generated.NodeKeyNames.FULL_NAME
 import io.shiftleft.codepropertygraph.generated.NodeKeyNames.NAME
 import io.shiftleft.codepropertygraph.generated.NodeTypes.*
+import io.shiftleft.codepropertygraph.generated.Operators
 import io.shiftleft.codepropertygraph.generated.nodes.*
 import org.apache.logging.log4j.LogManager
 import scala.Option
 import scala.jdk.CollectionConverters
 import soot.*
-import soot.jimple.ArrayRef
-import soot.jimple.Constant
-import soot.jimple.FieldRef
-import soot.jimple.NewExpr
+import soot.jimple.*
 import soot.toolkits.graph.BriefUnitGraph
 
 /**
@@ -491,5 +489,38 @@ object SootToPlumeUtil {
     fun <T> createScalaList(vararg item: T): scala.collection.immutable.List<T> {
         val list = listOf(*item)
         return CollectionConverters.ListHasAsScala(list).asScala().toList() as scala.collection.immutable.List<T>
+    }
+
+    fun parseBinopExpr(op: BinopExpr): String = parseBinopExpr(op.symbol.trim())
+
+    fun parseBinopExpr(sym: String): String {
+        return when {
+            sym.contains("cmp") -> Operators.compare
+            sym == "+" -> Operators.plus
+            sym == "-" -> Operators.minus
+            sym == "/" -> Operators.division
+            sym == "*" -> Operators.multiplication
+            sym == "%" -> Operators.modulo
+            sym == "&" -> Operators.logicalAnd
+            sym == "&&" -> Operators.and
+            sym == "|" -> Operators.logicalOr
+            sym == "||" -> Operators.or
+            sym == "^" -> Operators.xor
+            sym == "<<" -> Operators.shiftLeft
+            sym == ">>" -> Operators.logicalShiftRight
+            sym == ">>>" ->  Operators.arithmeticShiftRight
+            sym == "==" -> Operators.equals
+            sym == "<" -> Operators.lessThan
+            sym == ">" -> Operators.greaterThan
+            sym == "!=" -> Operators.notEquals
+            sym == "~" -> Operators.logicalNot
+            sym == "<=" -> Operators.lessEqualsThan
+            sym == ">=" -> Operators.greaterEqualsThan
+            else -> {
+                println("Unknown $sym")
+                logger.warn("Unknown binary operator $sym")
+                sym
+            }
+        }
     }
 }

@@ -19,17 +19,17 @@ import io.github.plume.oss.Extractor.Companion.addSootToPlumeAssociation
 import io.github.plume.oss.Extractor.Companion.getSootAssociation
 import io.github.plume.oss.drivers.IDriver
 import io.github.plume.oss.util.ExtractorConst
-import io.github.plume.oss.util.ExtractorConst.ASSIGN
-import io.github.plume.oss.util.ExtractorConst.BIN_OPS
 import io.github.plume.oss.util.ExtractorConst.CAST
 import io.github.plume.oss.util.ExtractorConst.FALSE_TARGET
 import io.github.plume.oss.util.ExtractorConst.TRUE_TARGET
 import io.github.plume.oss.util.SootParserUtil
 import io.github.plume.oss.util.SootToPlumeUtil
 import io.github.plume.oss.util.SootToPlumeUtil.createScalaList
+import io.shiftleft.codepropertygraph.generated.ControlStructureTypes.IF
 import io.shiftleft.codepropertygraph.generated.DispatchTypes.DYNAMIC_DISPATCH
 import io.shiftleft.codepropertygraph.generated.DispatchTypes.STATIC_DISPATCH
 import io.shiftleft.codepropertygraph.generated.EdgeTypes.*
+import io.shiftleft.codepropertygraph.generated.Operators
 import io.shiftleft.codepropertygraph.generated.nodes.*
 import org.apache.logging.log4j.LogManager
 import scala.Option
@@ -315,7 +315,8 @@ class ASTBuilder(private val driver: IDriver) : IGraphBuilder {
      */
     private fun projectIfRootAndCondition(unit: IfStmt, childIdx: Int): NewControlStructureBuilder {
         val ifRootVertex = NewControlStructureBuilder()
-            .code(ExtractorConst.IF_ROOT)
+            .controlStructureType(IF)
+            .code(unit.toString())
             .lineNumber(Option.apply(unit.javaSourceStartLineNumber))
             .columnNumber(Option.apply(unit.javaSourceStartColumnNumber))
             .order(childIdx)
@@ -341,10 +342,10 @@ class ASTBuilder(private val driver: IDriver) : IGraphBuilder {
         val leftOp = unit.leftOp
         val rightOp = unit.rightOp
         val assignBlock = NewCallBuilder()
-            .name(ASSIGN)
-            .code("=")
+            .name(Operators.assignment)
+            .code(unit.toString())
             .signature("${leftOp.type} = ${rightOp.type}")
-            .methodFullName("=")
+            .methodFullName(Operators.assignment)
             .dispatchType(STATIC_DISPATCH)
             .dynamicTypeHintFullName(createScalaList(unit.rightOp.type.toQuotedString()))
             .order(childIdx)
@@ -399,17 +400,12 @@ class ASTBuilder(private val driver: IDriver) : IGraphBuilder {
      */
     private fun projectBinopExpr(expr: BinopExpr, childIdx: Int): NewCallBuilder {
         val binopVertices = mutableListOf<NewNodeBuilder>()
-        val binOpExpr = if (BIN_OPS.containsKey(expr.symbol.trim())) {
-            BIN_OPS[expr.symbol.trim()]
-        } else {
-            logger.warn("Unknown binary operator $expr")
-            expr.symbol.trim()
-        }
+        val binOpExpr = SootToPlumeUtil.parseBinopExpr(expr)
         val binOpBlock = NewCallBuilder()
             .name(binOpExpr)
-            .code(expr.symbol.trim())
+            .code(expr.toString())
             .signature("${expr.op1.type.toQuotedString()}${expr.symbol}${expr.op2.type.toQuotedString()}")
-            .methodFullName(expr.symbol.trim())
+            .methodFullName(binOpExpr)
             .dispatchType(STATIC_DISPATCH)
             .dynamicTypeHintFullName(createScalaList(expr.op2.type.toQuotedString()))
             .order(childIdx)
@@ -440,12 +436,11 @@ class ASTBuilder(private val driver: IDriver) : IGraphBuilder {
     private fun projectFlippedConditionalExpr(expr: ConditionExpr): NewCallBuilder {
         val conditionVertices = mutableListOf<NewNodeBuilder>()
         val operator = SootParserUtil.parseAndFlipEquality(expr.symbol.trim())
-        val symbol = BIN_OPS.filter { it.value == operator }.keys.first()
         val binOpBlock = NewCallBuilder()
             .name(operator)
-            .code(symbol)
-            .signature("${expr.op1.type} $symbol ${expr.op2.type}")
-            .methodFullName(symbol)
+            .code(expr.toString())
+            .signature("${expr.op1.type} $operator ${expr.op2.type}")
+            .methodFullName(operator)
             .dispatchType(STATIC_DISPATCH)
             .order(3)
             .argumentIndex(3) // under an if-condition, the condition child will be after the two paths
