@@ -18,7 +18,6 @@ package io.github.plume.oss.graph
 import io.github.plume.oss.Extractor.Companion.addSootToPlumeAssociation
 import io.github.plume.oss.Extractor.Companion.getSootAssociation
 import io.github.plume.oss.drivers.IDriver
-import io.github.plume.oss.util.ExtractorConst.CAST
 import io.github.plume.oss.util.ExtractorConst.FALSE_TARGET
 import io.github.plume.oss.util.ExtractorConst.TRUE_TARGET
 import io.github.plume.oss.util.SootParserUtil
