@@ -18,7 +18,6 @@ package io.github.plume.oss.graph
 import io.github.plume.oss.Extractor.Companion.addSootToPlumeAssociation
 import io.github.plume.oss.Extractor.Companion.getSootAssociation
 import io.github.plume.oss.drivers.IDriver
-import io.github.plume.oss.util.ExtractorConst
 import io.github.plume.oss.util.ExtractorConst.CAST
 import io.github.plume.oss.util.ExtractorConst.FALSE_TARGET
 import io.github.plume.oss.util.ExtractorConst.TRUE_TARGET
@@ -26,6 +25,7 @@ import io.github.plume.oss.util.SootParserUtil
 import io.github.plume.oss.util.SootToPlumeUtil
 import io.github.plume.oss.util.SootToPlumeUtil.createScalaList
 import io.shiftleft.codepropertygraph.generated.ControlStructureTypes.IF
+import io.shiftleft.codepropertygraph.generated.ControlStructureTypes.SWITCH
 import io.shiftleft.codepropertygraph.generated.DispatchTypes.DYNAMIC_DISPATCH
 import io.shiftleft.codepropertygraph.generated.DispatchTypes.STATIC_DISPATCH
 import io.shiftleft.codepropertygraph.generated.EdgeTypes.*
@@ -188,7 +188,8 @@ class ASTBuilder(private val driver: IDriver) : IGraphBuilder {
      */
     private fun projectTableSwitch(unit: TableSwitchStmt, childIdx: Int): NewControlStructureBuilder {
         val switchVertex = NewControlStructureBuilder()
-            .code(ExtractorConst.TABLE_SWITCH)
+            .controlStructureType(SWITCH)
+            .code(unit.toString())
             .lineNumber(Option.apply(currentLine))
             .columnNumber(Option.apply(currentCol))
             .order(childIdx)
@@ -221,7 +222,8 @@ class ASTBuilder(private val driver: IDriver) : IGraphBuilder {
      */
     private fun projectLookupSwitch(unit: LookupSwitchStmt, childIdx: Int): NewControlStructureBuilder {
         val switchVertex = NewControlStructureBuilder()
-            .code(ExtractorConst.LOOKUP_ROOT)
+            .controlStructureType(SWITCH)
+            .code(unit.toString())
             .lineNumber(Option.apply(unit.javaSourceStartLineNumber))
             .columnNumber(Option.apply(unit.javaSourceStartColumnNumber))
             .order(childIdx)
