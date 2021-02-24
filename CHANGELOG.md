@@ -7,12 +7,16 @@ and this project adheres to [Semantic Versioning](http://semver.org/).
 ## [Unreleased] - yyyy-mm-dd
 
 ### Added
-- `ISchemeSafeDriver` interface for drivers who can install schemas on the database
-- `buildSchema` to `JanusGraphDriver`
 
 ### Changed
 
 ### Fixed
+
+## [0.2.2] - 2021-02-24
+
+### Added
+- `ISchemeSafeDriver` interface for drivers who can install schemas on the database
+- `JanusGraphDriver::buildSchema` to dynamically build and install JanusGraph schema
 
 ## [0.2.1] - 2021-02-24
 
