@@ -70,7 +70,7 @@ class JanusGraphDriver : GremlinDriver(), ISchemaSafeDriver {
     }
 
     override fun prepareVertexProperties(v: NewNodeBuilder): Map<String, Any> =
-        super.prepareVertexProperties(v).mapKeys { "_$it" }.toMap()
+        super.prepareVertexProperties(v).mapKeys { "_${it.key}" }.toMap()
 
     override fun mapVertexKeys(props: MutableMap<Any, Any>) = props.mapKeys { it.key.toString().removePrefix("_") }
 

@@ -152,7 +152,10 @@ abstract class GremlinDriver : IDriver {
     override fun getMethod(fullName: String, signature: String, includeBody: Boolean): overflowdb.Graph {
         if (includeBody) return getMethodWithBody(fullName, signature)
         val methodSubgraph = g.V().hasLabel(Method.Label())
-            .has(FULL_NAME, fullName).has(SIGNATURE, signature)
+            .let {
+                if (this !is JanusGraphDriver) it.has(FULL_NAME, fullName).has(SIGNATURE, signature)
+                else it.has("_$FULL_NAME", fullName).has("_$SIGNATURE", signature)
+            }
             .outE(AST)
             .subgraph("sg")
             .cap<Graph>("sg")
@@ -162,7 +165,10 @@ abstract class GremlinDriver : IDriver {
 
     private fun getMethodWithBody(fullName: String, signature: String): overflowdb.Graph {
         val methodSubgraph = g.V().hasLabel(Method.Label())
-            .has(FULL_NAME, fullName).has(SIGNATURE, signature)
+            .let {
+                if (this !is JanusGraphDriver) it.has(FULL_NAME, fullName).has(SIGNATURE, signature)
+                else it.has("_$FULL_NAME", fullName).has("_$SIGNATURE", signature)
+            }
             .repeat(un.outE(AST).inV()).emit()
             .inE()
             .subgraph("sg")
@@ -223,7 +229,10 @@ abstract class GremlinDriver : IDriver {
 
     override fun deleteMethod(fullName: String, signature: String) {
         val methodV = g.V().hasLabel(METHOD)
-            .has(FULL_NAME, fullName).has(SIGNATURE, signature)
+            .let {
+                if (this !is JanusGraphDriver) it.has(FULL_NAME, fullName).has(SIGNATURE, signature)
+                else it.has("_$FULL_NAME", fullName).has("_$SIGNATURE", signature)
+            }
             .tryNext()
         if (methodV.isPresent) {
             g.V(methodV.get()).aggregate("x")
