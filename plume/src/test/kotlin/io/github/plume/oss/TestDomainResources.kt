@@ -36,7 +36,7 @@ class TestDomainResources {
                 .dynamicTypeHintFullName(createScalaList(STRING_1))
                 .name(STRING_1).signature(STRING_1).code(STRING_1).order(INT_1).lineNumber(Option.apply(INT_1))
                 .columnNumber(Option.apply(INT_1)),
-            NewControlStructureBuilder().code(STRING_1).lineNumber(Option.apply(INT_1))
+            NewControlStructureBuilder().controlStructureType(STRING_2).code(STRING_1).lineNumber(Option.apply(INT_1))
                 .columnNumber(Option.apply(INT_1)).order(INT_1).argumentIndex(INT_1),
             NewFieldIdentifierBuilder().canonicalName(STRING_1).code(STRING_1).argumentIndex(INT_1).order(INT_1)
                 .lineNumber(Option.apply(INT_1)).columnNumber(Option.apply(INT_1)),
@@ -115,7 +115,7 @@ class TestDomainResources {
             NewNamespaceBlockBuilder().name(STRING_2).fullName(STRING_2).order(INT_1).filename(STRING_2)
         val metaDataVertex: NewMetaDataBuilder = NewMetaDataBuilder().language(STRING_1).version(STRING_2)
         val controlStructureVertex: NewControlStructureBuilder =
-            NewControlStructureBuilder().code(STRING_1).lineNumber(Option.apply(INT_1))
+            NewControlStructureBuilder().controlStructureType(STRING_2).code(STRING_1).lineNumber(Option.apply(INT_1))
                 .columnNumber(Option.apply(INT_1)).order(INT_1).argumentIndex(INT_1)
         val jumpTargetVertex: NewJumpTargetBuilder =
             NewJumpTargetBuilder().name(STRING_1).argumentIndex(INT_1).code(STRING_1).order(INT_1)
