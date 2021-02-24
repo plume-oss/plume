@@ -153,7 +153,15 @@ interface IOverridenIdDriver : IDriver {
  */
 interface ISchemaSafeDriver {
     /**
-     * Builds and installs the CPG schema in the target database.
+     * Builds and installs the CPG schema in the target database. The schema executed is from
+     * [ISchemaSafeDriver.buildSchemaPayload].
+     *
+     * @see [ISchemaSafeDriver.buildSchemaPayload]
      */
     fun buildSchema()
+
+    /**
+     * Builds the schema from generated CPG code and returns it as a [String] to be executed on the database.
+     */
+    fun buildSchemaPayload(): String
 }

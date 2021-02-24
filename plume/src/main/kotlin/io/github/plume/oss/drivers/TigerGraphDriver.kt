@@ -522,7 +522,7 @@ class TigerGraphDriver : IOverridenIdDriver, ISchemaSafeDriver {
      */
     override fun buildSchema() = postGSQL(buildSchemaPayload())
 
-    fun buildSchemaPayload(): String {
+    override fun buildSchemaPayload(): String {
         val schema = StringBuilder(
             """
             DROP ALL

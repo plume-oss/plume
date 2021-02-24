@@ -7,6 +7,8 @@ and this project adheres to [Semantic Versioning](http://semver.org/).
 ## [Unreleased] - yyyy-mm-dd
 
 ### Added
+- `ISchemeSafeDriver` interface for drivers who can install schemas on the database
+- `buildSchema` to `JanusGraphDriver`
 
 ### Changed
 
