@@ -53,10 +53,11 @@ class JanusGraphDriverIntTest {
         @JvmStatic
         @BeforeAll
         fun setUpAll() {
-            testStartTime = System.nanoTime()
             driver = (DriverFactory(GraphDatabase.JANUS_GRAPH) as JanusGraphDriver).apply {
                 remoteConfig("src/test/resources/conf/remote-graph.properties").connect()
             }
+            driver.buildSchema()
+            testStartTime = System.nanoTime()
         }
 
         @JvmStatic

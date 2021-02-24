@@ -1,12 +1,16 @@
 package io.github.plume.oss.drivers
 
+import org.apache.commons.configuration.PropertiesConfiguration
 import org.apache.logging.log4j.LogManager
+import org.apache.tinkerpop.gremlin.driver.Client
+import org.apache.tinkerpop.gremlin.driver.Cluster
 import org.apache.tinkerpop.gremlin.process.traversal.AnonymousTraversalSource
+import java.io.File
 
 /**
  * The driver used to connect to a remote JanusGraph instance.
  */
-class JanusGraphDriver : GremlinDriver() {
+class JanusGraphDriver : GremlinDriver(), ISchemaSafeDriver {
     private val logger = LogManager.getLogger(JanusGraphDriver::class.java)
 
     companion object {
@@ -54,5 +58,20 @@ class JanusGraphDriver : GremlinDriver() {
      * @param remoteConfigPath the path to remote-graph.properties.
      */
     fun remoteConfig(remoteConfigPath: String) = apply { config.setProperty(REMOTE_CONFIG, remoteConfigPath) }
+
+    override fun buildSchema() {
+        val propFileConfig = PropertiesConfiguration(config.getString(REMOTE_CONFIG))
+        val cluster = Cluster.open(propFileConfig.getString("gremlin.remote.driver.clusterFile"))
+        val client = cluster.connect<Client>()
+        val results = client.submit("""
+            graph = JanusGraphFactory.open('/etc/opt/janusgraph/janusgraph.properties')
+            mgmt = graph.openManagement()
+            // TODO: Add schema
+            mgmt.commit()
+            """.trimIndent())
+        println(results.toList())
+        client.close()
+        cluster.close()
+    }
 
 }

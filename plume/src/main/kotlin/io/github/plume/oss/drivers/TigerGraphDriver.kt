@@ -31,7 +31,7 @@ import io.shiftleft.codepropertygraph.generated.nodes.Factories as NodeFactories
 /**
  * The driver used to connect to a remote TigerGraph instance.
  */
-class TigerGraphDriver : IOverridenIdDriver {
+class TigerGraphDriver : IOverridenIdDriver, ISchemaSafeDriver {
 
     private val logger = LogManager.getLogger(TigerGraphDriver::class.java)
     private val objectMapper = ObjectMapper()
@@ -519,7 +519,7 @@ class TigerGraphDriver : IOverridenIdDriver {
      *
      * **See Also:** [Using a Remote GSQL Client](https://docs.tigergraph.com/dev/using-a-remote-gsql-client)
      */
-    fun buildSchema() = postGSQL(buildSchemaPayload())
+    override fun buildSchema() = postGSQL(buildSchemaPayload())
 
     fun buildSchemaPayload(): String {
         val schema = StringBuilder(
