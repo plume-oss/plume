@@ -13,6 +13,7 @@ and this project adheres to [Semantic Versioning](http://semver.org/).
 ### Changed
 - Assigned all operator calls to `io.shiftleft.codepropertygraph.generated.Operators` constants
 - Assigned values to `ControlStructure::controlStructureType`
+- Improved logging
 
 ### Fixed
 
