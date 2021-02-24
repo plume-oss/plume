@@ -7,6 +7,14 @@ and this project adheres to [Semantic Versioning](http://semver.org/).
 ## [Unreleased] - yyyy-mm-dd
 
 ### Added
+
+### Changed
+
+### Fixed
+
+## [0.2.1] - 2021-02-24
+
+### Added
 - Dependency `com.tigergraph.client:gsql_client`
 - `TigerGraphDriver::buildSchema` to dynamically build and install GSQL schema
 
@@ -14,8 +22,6 @@ and this project adheres to [Semantic Versioning](http://semver.org/).
 - Assigned all operator calls to `io.shiftleft.codepropertygraph.generated.Operators` constants
 - Assigned values to `ControlStructure::controlStructureType`
 - Improved logging
-
-### Fixed
 
 ## [0.2.0] - 2021-02-19
 
