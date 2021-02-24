@@ -1,6 +1,7 @@
 package io.github.plume.oss.querying
 
 import io.github.plume.oss.PlumeCodeToCpgSuite
+import io.github.plume.oss.util.ExtractorConst
 import io.shiftleft.semanticcpg.language._
 
 class MetaDataTests extends PlumeCodeToCpgSuite {
@@ -11,8 +12,8 @@ class MetaDataTests extends PlumeCodeToCpgSuite {
 
   "should contain exactly one node with all mandatory fields set" in {
     val List(x) = cpg.metaData.l
-    x.language shouldBe "Plume"
-    x.version shouldBe "0.1"
+    x.language shouldBe ExtractorConst.LANGUAGE_FRONTEND
+    x.version shouldBe ExtractorConst.LANGUAGE_FRONTEND_VERSION
     x.overlays shouldBe List("semanticcpg")
   }
 
