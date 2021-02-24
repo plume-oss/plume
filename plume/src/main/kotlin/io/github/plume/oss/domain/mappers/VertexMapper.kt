@@ -214,6 +214,7 @@ object VertexMapper {
                 .argumentIndex(map[ARGUMENT_INDEX] as Int)
                 .name(map[NAME] as String)
             ControlStructure.Label() -> NewControlStructureBuilder()
+                .controlStructureType(map[CONTROL_STRUCTURE_TYPE] as String)
                 .code(map[CODE] as String)
                 .order(map[ORDER] as Int)
                 .lineNumber(Option.apply(map[LINE_NUMBER] as Int))
@@ -321,10 +322,10 @@ object VertexMapper {
         }
         propertyMap.forEach {
             val key: Optional<String> = when (it.key) {
-                "PARSER_TYPE_NAME" -> Optional.empty()
-                "POLICY_DIRECTORIES" -> Optional.empty()
-                "INHERITS_FROM_TYPE_FULL_NAME" -> Optional.empty()
-                "OVERLAYS" -> Optional.empty()
+                PARSER_TYPE_NAME -> Optional.empty()
+                POLICY_DIRECTORIES -> Optional.empty()
+                INHERITS_FROM_TYPE_FULL_NAME -> Optional.empty()
+                OVERLAYS-> Optional.empty()
                 else -> Optional.of(it.key)
             }
             if (key.isPresent) attributes[key.get()] = it.value

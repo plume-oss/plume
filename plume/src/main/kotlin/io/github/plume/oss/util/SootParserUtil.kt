@@ -1,10 +1,10 @@
 package io.github.plume.oss.util
 
 import org.objectweb.asm.Opcodes
-import io.github.plume.oss.util.ExtractorConst.BIN_OPS
 import io.github.plume.oss.util.ExtractorConst.PRIMITIVES
 import io.shiftleft.codepropertygraph.generated.EvaluationStrategies.*
 import io.shiftleft.codepropertygraph.generated.ModifierTypes.*
+import io.shiftleft.codepropertygraph.generated.Operators
 
 object SootParserUtil {
     /**
@@ -69,14 +69,14 @@ object SootParserUtil {
      */
     @JvmStatic
     fun parseAndFlipEquality(jumpStatement: String): String {
-        return when (BIN_OPS[jumpStatement]) {
-            "EQ" -> "NEQ"
-            "NEQ" -> "EQ"
-            "LT" -> "GTE"
-            "GTE" -> "LT"
-            "LTE" -> "GT"
-            "GT" -> "LTE"
-            else -> "NOP"
+        return when (SootToPlumeUtil.parseBinopExpr(jumpStatement)) {
+            Operators.equals -> Operators.notEquals
+            Operators.notEquals -> Operators.equals
+            Operators.lessThan -> Operators.greaterEqualsThan
+            Operators.greaterEqualsThan -> Operators.lessThan
+            Operators.lessEqualsThan -> Operators.greaterThan
+            Operators.greaterThan -> Operators.lessEqualsThan
+            else -> "<operator>.noOperation"
         }
     }
 

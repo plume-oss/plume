@@ -46,6 +46,7 @@ dependencies {
     implementation "org.janusgraph:janusgraph-driver:$jgVersion"
     implementation "org.neo4j.driver:neo4j-java-driver:$neo4jDriverVersion"
     implementation "khttp:khttp:$khttpVersion"
+    implementation "com.tigergraph.client:gsql_client:$tigerGraphVersion"
     implementation "com.fasterxml.jackson.core:jackson-databind:$jacksonVersion"
     implementation "io.shiftleft:codepropertygraph_2.13:$shiftleftVersion"
     implementation "io.shiftleft:dataflowengineoss_2.13:$shiftleftVersion"
@@ -68,12 +69,16 @@ dependencies {
 }
 
 sourceSets {
-    main.java.srcDirs = []
-    main.kotlin.srcDirs += "src/main/kotlin"
-    main.resources.srcDirs += "src/main/resources"
-    test.java.srcDirs = []
-    test.kotlin.srcDirs += "src/test/kotlin"
-    test.resources.srcDirs += "src/test/resources"
+    main {
+        java.srcDirs = []
+        kotlin.srcDirs = ["src/main/kotlin"]
+        resources.srcDirs = ["src/main/resources"]
+    }
+    test {
+        java.srcDirs = []
+        kotlin.srcDirs = ["src/test/kotlin"]
+        resources.srcDirs = ["src/test/resources"]
+    }
 }
 
 task allTests(

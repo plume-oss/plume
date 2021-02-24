@@ -4,6 +4,7 @@ import io.github.plume.oss.Extractor
 import io.github.plume.oss.drivers.DriverFactory
 import io.github.plume.oss.drivers.GraphDatabase
 import io.github.plume.oss.drivers.TinkerGraphDriver
+import io.shiftleft.codepropertygraph.generated.ControlStructureTypes.SWITCH
 import io.shiftleft.codepropertygraph.generated.EdgeTypes.CFG
 import io.shiftleft.codepropertygraph.generated.EdgeTypes.CONDITION
 import io.shiftleft.codepropertygraph.generated.nodes.ControlStructure
@@ -68,7 +69,7 @@ class SwitchIntraproceduralTest {
         ns.filterIsInstance<JumpTarget>().filter { it.name() == "DEFAULT" }
             .let { assertEquals(1, it.size) }
         assertEquals(4, ns.filterIsInstance<JumpTarget>().toList().size)
-        ns.filterIsInstance<ControlStructure>().filter { it.code() == "TABLE_SWITCH" }
+        ns.filterIsInstance<ControlStructure>().filter { it.controlStructureType() == SWITCH }
             .let { csv ->
                 val switchVert = csv.firstOrNull(); assertNotNull(switchVert); switchVert!!
                 assertTrue(g.V(switchVert.id()).next().outE(CONDITION).hasNext())
@@ -97,7 +98,7 @@ class SwitchIntraproceduralTest {
         ns.filterIsInstance<JumpTarget>().filter { it.name() == "DEFAULT" }
             .let { assertEquals(2, it.size) }
         assertEquals(14, ns.filterIsInstance<JumpTarget>().toList().size)
-        ns.filterIsInstance<ControlStructure>().filter { it.code() == "TABLE_SWITCH" }
+        ns.filterIsInstance<ControlStructure>().filter { it.controlStructureType() == SWITCH }
             .let { csv ->
                 val switchVert = csv.firstOrNull(); assertNotNull(switchVert); switchVert!!
                 assertTrue(g.V(switchVert.id()).next().outE(CONDITION).hasNext())
@@ -110,7 +111,7 @@ class SwitchIntraproceduralTest {
                     g.V(switchVert.id()).next().out(CFG).asSequence().filterIsInstance<JumpTarget>().toList().toList().size
                 )
             }
-        ns.filterIsInstance<ControlStructure>().filter { it.code() == "LOOKUP_SWITCH" }
+        ns.filterIsInstance<ControlStructure>().filter { it.controlStructureType() == SWITCH && it.order() == 5 }
             .let { csv ->
                 val switchVert = csv.firstOrNull(); assertNotNull(switchVert); switchVert!!
                 assertTrue(g.V(switchVert.id()).next().outE(CONDITION).hasNext())
@@ -138,7 +139,7 @@ class SwitchIntraproceduralTest {
         ns.filterIsInstance<JumpTarget>().filter { it.name() == "DEFAULT" }
             .let { assertEquals(1, it.size) }
         assertEquals(4, ns.filterIsInstance<JumpTarget>().toList().size)
-        ns.filterIsInstance<ControlStructure>().filter { it.code() == "TABLE_SWITCH" }
+        ns.filterIsInstance<ControlStructure>().filter { it.controlStructureType() == SWITCH }
             .let { csv ->
                 val switchVert = csv.firstOrNull(); assertNotNull(switchVert); switchVert!!
                 assertTrue(g.V(switchVert.id()).next().outE(CONDITION).hasNext())
@@ -168,7 +169,7 @@ class SwitchIntraproceduralTest {
         ns.filterIsInstance<JumpTarget>().filter { it.name() == "DEFAULT" }
             .let { assertEquals(1, it.size) }
         assertEquals(6, ns.filterIsInstance<JumpTarget>().toList().size)
-        ns.filterIsInstance<ControlStructure>().filter { it.code() == "LOOKUP_SWITCH" }
+        ns.filterIsInstance<ControlStructure>().filter { it.controlStructureType() == SWITCH }
             .let { csv ->
                 val switchVert = csv.firstOrNull(); assertNotNull(switchVert); switchVert!!
                 assertTrue(g.V(switchVert.id()).next().outE(CONDITION).hasNext())
@@ -196,7 +197,7 @@ class SwitchIntraproceduralTest {
         ns.filterIsInstance<JumpTarget>().filter { it.name() == "DEFAULT" }
             .let { assertEquals(1, it.size) }
         assertEquals(4, ns.filterIsInstance<JumpTarget>().toList().size)
-        ns.filterIsInstance<ControlStructure>().filter { it.code() == "TABLE_SWITCH" }
+        ns.filterIsInstance<ControlStructure>().filter { it.controlStructureType() == SWITCH }
             .let { csv ->
                 val switchVert = csv.firstOrNull(); assertNotNull(switchVert); switchVert!!
                 assertTrue(g.V(switchVert.id()).next().outE(CONDITION).hasNext())
