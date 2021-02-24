@@ -4,6 +4,7 @@ import io.github.plume.oss.domain.exceptions.PlumeSchemaViolationException
 import io.github.plume.oss.domain.exceptions.PlumeTransactionException
 import io.github.plume.oss.domain.mappers.VertexMapper
 import io.github.plume.oss.domain.mappers.VertexMapper.checkSchemaConstraints
+import io.github.plume.oss.util.CodeControl
 import io.github.plume.oss.util.ExtractorConst
 import io.github.plume.oss.util.PlumeKeyProvider
 import io.shiftleft.codepropertygraph.generated.EdgeTypes
@@ -22,11 +23,8 @@ import overflowdb.Graph
 import overflowdb.Node
 import overflowdb.PropertyKey
 import scala.jdk.CollectionConverters
-import java.io.File
-import java.io.FileReader
-import java.io.IOException
+import java.io.*
 import java.lang.Thread.sleep
-import java.security.Permission
 import io.shiftleft.codepropertygraph.generated.edges.Factories as EdgeFactories
 import io.shiftleft.codepropertygraph.generated.nodes.Factories as NodeFactories
 
@@ -487,10 +485,26 @@ class TigerGraphDriver : IOverridenIdDriver {
         )
         val codeControl = CodeControl()
         runCatching {
+            logger.debug("Posting payload \"${payload.replace("\\s".toRegex(), " ").subSequence(0, 40)}...\"")
             codeControl.disableSystemExit()
-            com.tigergraph.v3_0_5.client.Driver.main(args)
+            val output = executeGsqlClient(args)
+            logger.debug(output)
         }.onFailure { e -> logger.error("Unable to post GSQL payload! Payload $payload", e) }
         codeControl.enableSystemExit()
+    }
+
+    private fun executeGsqlClient(args: Array<String>): String {
+        val originalOut = System.out
+        val originalErr = System.err
+        val out = ByteArrayOutputStream()
+        val err = ByteArrayOutputStream()
+        System.setOut(PrintStream(out))
+        System.setErr(PrintStream(err))
+        com.tigergraph.v3_0_5.client.Driver.main(args)
+        System.setOut(originalOut)
+        System.setErr(originalErr)
+        if (err.toString().isNotBlank()) throw PlumeTransactionException(err.toString())
+        return out.toString()
     }
 
     private fun newOverflowGraph(): Graph = Graph.open(
@@ -575,36 +589,6 @@ class TigerGraphDriver : IOverridenIdDriver {
                     .forEach(schema::append)
             }
         return schema.toString()
-    }
-
-    inner class StopExitSecurityManager : SecurityManager() {
-        private val _prevMgr = System.getSecurityManager()
-
-        override fun checkPermission(perm: Permission?) {
-            if (perm is RuntimePermission) {
-                if (perm.getName().startsWith("exitVM")) {
-                    throw StopExitException()
-                }
-            }
-            _prevMgr?.checkPermission(perm)
-        }
-
-        fun getPreviousMgr(): SecurityManager? = _prevMgr
-    }
-
-    inner class StopExitException : RuntimeException()
-
-    inner class CodeControl {
-        fun disableSystemExit() {
-            val securityManager: SecurityManager = StopExitSecurityManager()
-            System.setSecurityManager(securityManager)
-        }
-
-        fun enableSystemExit() {
-            val mgr = System.getSecurityManager()
-            if (mgr != null && mgr is StopExitSecurityManager) System.setSecurityManager(mgr.getPreviousMgr())
-            else System.setSecurityManager(null)
-        }
     }
 
     companion object {
