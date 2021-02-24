@@ -32,7 +32,9 @@ import io.github.plume.oss.TestDomainResources.Companion.typeRefVertex
 import io.github.plume.oss.TestDomainResources.Companion.unknownVertex
 import io.github.plume.oss.domain.exceptions.PlumeSchemaViolationException
 import io.github.plume.oss.util.SootToPlumeUtil
+import io.shiftleft.codepropertygraph.generated.EdgeTypes
 import io.shiftleft.codepropertygraph.generated.EdgeTypes.*
+import io.shiftleft.codepropertygraph.generated.NodeKeyNames
 import io.shiftleft.codepropertygraph.generated.NodeKeyNames.NAME
 import io.shiftleft.codepropertygraph.generated.NodeTypes.FILE
 import io.shiftleft.codepropertygraph.generated.nodes.*
@@ -50,13 +52,21 @@ class JanusGraphDriverIntTest {
         lateinit var driver: JanusGraphDriver
         private var testStartTime by Delegates.notNull<Long>()
 
+        private fun testPayloadContents() {
+            val payload = driver.buildSchemaPayload()
+            NodeKeyNames.ALL.filterNot { it == NodeKeyNames.NODE_LABEL }.map(payload::contains).forEach(Assertions::assertTrue)
+            EdgeTypes.ALL.map(payload::contains).forEach(Assertions::assertTrue)
+        }
+
         @JvmStatic
         @BeforeAll
         fun setUpAll() {
-            testStartTime = System.nanoTime()
             driver = (DriverFactory(GraphDatabase.JANUS_GRAPH) as JanusGraphDriver).apply {
                 remoteConfig("src/test/resources/conf/remote-graph.properties").connect()
             }
+            testPayloadContents()
+            driver.buildSchema()
+            testStartTime = System.nanoTime()
         }
 
         @JvmStatic

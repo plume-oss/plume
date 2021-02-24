@@ -4,8 +4,13 @@ import io.github.plume.oss.domain.exceptions.PlumeSchemaViolationException
 import io.github.plume.oss.domain.mappers.VertexMapper
 import io.github.plume.oss.domain.mappers.VertexMapper.checkSchemaConstraints
 import io.shiftleft.codepropertygraph.generated.EdgeTypes.AST
+import io.shiftleft.codepropertygraph.generated.NodeKeyNames.FULL_NAME
+import io.shiftleft.codepropertygraph.generated.NodeKeyNames.SIGNATURE
 import io.shiftleft.codepropertygraph.generated.NodeTypes.*
-import io.shiftleft.codepropertygraph.generated.nodes.*
+import io.shiftleft.codepropertygraph.generated.nodes.Method
+import io.shiftleft.codepropertygraph.generated.nodes.NewMetaDataBuilder
+import io.shiftleft.codepropertygraph.generated.nodes.NewNode
+import io.shiftleft.codepropertygraph.generated.nodes.NewNodeBuilder
 import org.apache.commons.configuration.BaseConfiguration
 import org.apache.logging.log4j.LogManager
 import org.apache.tinkerpop.gremlin.process.traversal.dsl.graph.GraphTraversal
@@ -17,6 +22,7 @@ import org.apache.tinkerpop.gremlin.structure.T
 import org.apache.tinkerpop.gremlin.structure.Vertex
 import org.apache.tinkerpop.gremlin.tinkergraph.structure.TinkerGraph
 import overflowdb.Config
+import scala.collection.immutable.`$colon$colon`
 import scala.jdk.CollectionConverters
 import kotlin.streams.toList
 import io.shiftleft.codepropertygraph.generated.edges.Factories as EdgeFactories
@@ -120,16 +126,15 @@ abstract class GremlinDriver : IDriver {
         return newVertex
     }
 
-    protected open fun prepareVertexProperties(v: NewNodeBuilder): Map<String, Any> {
-        val propertyMap = CollectionConverters.MapHasAsJava(v.build().properties()).asJava().toMutableMap()
-        propertyMap.computeIfPresent("DYNAMIC_TYPE_HINT_FULL_NAME") { _, value ->
-            when (value) {
-                is scala.collection.immutable.`$colon$colon`<*> -> value.head()
-                else -> value
-            }
-        }
-        return propertyMap
-    }
+    protected open fun prepareVertexProperties(v: NewNodeBuilder): Map<String, Any> =
+        CollectionConverters.MapHasAsJava(v.build().properties()).asJava()
+            .mapValues { (_, value) ->
+                when (value) {
+                    is `$colon$colon`<*> -> value.head()
+                    else -> value
+                }
+            }.toMap()
+
 
     /**
      * Wrapper method for creating an edge between two vertices. This wrapper method assigns a random UUID as the ID
@@ -147,7 +152,10 @@ abstract class GremlinDriver : IDriver {
     override fun getMethod(fullName: String, signature: String, includeBody: Boolean): overflowdb.Graph {
         if (includeBody) return getMethodWithBody(fullName, signature)
         val methodSubgraph = g.V().hasLabel(Method.Label())
-            .has("FULL_NAME", fullName).has("SIGNATURE", signature)
+            .let {
+                if (this !is JanusGraphDriver) it.has(FULL_NAME, fullName).has(SIGNATURE, signature)
+                else it.has("_$FULL_NAME", fullName).has("_$SIGNATURE", signature)
+            }
             .outE(AST)
             .subgraph("sg")
             .cap<Graph>("sg")
@@ -157,7 +165,10 @@ abstract class GremlinDriver : IDriver {
 
     private fun getMethodWithBody(fullName: String, signature: String): overflowdb.Graph {
         val methodSubgraph = g.V().hasLabel(Method.Label())
-            .has("FULL_NAME", fullName).has("SIGNATURE", signature)
+            .let {
+                if (this !is JanusGraphDriver) it.has(FULL_NAME, fullName).has(SIGNATURE, signature)
+                else it.has("_$FULL_NAME", fullName).has("_$SIGNATURE", signature)
+            }
             .repeat(un.outE(AST).inV()).emit()
             .inE()
             .subgraph("sg")
@@ -167,7 +178,7 @@ abstract class GremlinDriver : IDriver {
     }
 
     override fun getProgramStructure(): overflowdb.Graph {
-        val sg = g.V().hasLabel(File.Label())
+        val sg = g.V().hasLabel(FILE)
             .repeat(un.outE(AST).inV()).emit()
             .inE()
             .subgraph("sg")
@@ -217,8 +228,11 @@ abstract class GremlinDriver : IDriver {
     }
 
     override fun deleteMethod(fullName: String, signature: String) {
-        val methodV = g.V().hasLabel(Method.Label())
-            .has("FULL_NAME", fullName).has("SIGNATURE", signature)
+        val methodV = g.V().hasLabel(METHOD)
+            .let {
+                if (this !is JanusGraphDriver) it.has(FULL_NAME, fullName).has(SIGNATURE, signature)
+                else it.has("_$FULL_NAME", fullName).has("_$SIGNATURE", signature)
+            }
             .tryNext()
         if (methodV.isPresent) {
             g.V(methodV.get()).aggregate("x")
@@ -237,15 +251,19 @@ abstract class GremlinDriver : IDriver {
 
     override fun getMetaData(): NewMetaDataBuilder? {
         return if (g.V().hasLabel(META_DATA).hasNext()) {
-            val props: Map<String, Any> = g.V().hasLabel(META_DATA).valueMap<String>()
-                .by(un.unfold<Any>())
-                .with(WithOptions.tokens)
-                .next().mapKeys { it.key.toString() }
+            val props: Map<String, Any> = mapVertexKeys(
+                g.V().hasLabel(META_DATA).valueMap<Any>()
+                    .by(un.unfold<Any>())
+                    .with(WithOptions.tokens)
+                    .next()
+            )
             VertexMapper.mapToVertex(props) as NewMetaDataBuilder
         } else {
             null
         }
     }
+
+    protected open fun mapVertexKeys(props: MutableMap<Any, Any>) = props.mapKeys { it.key.toString() }
 
     /**
      * Converts a [GraphTraversalSource] instance to a [overflowdb.Graph] instance.
@@ -256,17 +274,18 @@ abstract class GremlinDriver : IDriver {
     private fun gremlinToPlume(g: GraphTraversalSource): overflowdb.Graph {
         val overflowGraph = newOverflowGraph()
         val f = { gt: GraphTraversal<Edge, Vertex> ->
-            gt.valueMap<String>()
-                .by(un.unfold<Any>())
-                .with(WithOptions.tokens)
-                .next()
-                .mapKeys { k -> k.key.toString() }
+            mapVertexKeys(
+                gt.valueMap<Any>()
+                    .by(un.unfold<Any>())
+                    .with(WithOptions.tokens)
+                    .next()
+            )
         }
         val vertices = g.V().valueMap<Any>()
             .with(WithOptions.tokens)
             .by(un.unfold<Any>()).toStream()
             .map { props ->
-                val nodeBuilder = VertexMapper.mapToVertex(props.mapKeys { it.key.toString() })
+                val nodeBuilder = VertexMapper.mapToVertex(mapVertexKeys(props))
                 val builtNode = nodeBuilder.build()
                 val n = overflowGraph.addNode(nodeBuilder.id(), builtNode.label())
                 builtNode.properties().foreachEntry { key, value -> n.setProperty(key, value) }

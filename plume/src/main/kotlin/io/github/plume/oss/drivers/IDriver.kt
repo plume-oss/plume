@@ -132,3 +132,36 @@ interface IDriver : AutoCloseable {
     fun getMetaData(): NewMetaDataBuilder?
 
 }
+
+/**
+ * Interface for drivers on top of databases which don't use Long IDs by default and need to be overridden.
+ */
+interface IOverridenIdDriver : IDriver {
+
+    /**
+     * Given a lower bound and an upper bound, return all vertex IDs which fall between these ranges in the database.
+     *
+     * @param lowerBound The lower bound for the result set.
+     * @param upperBound The upper bound for the result set.
+     */
+    fun getVertexIds(lowerBound: Long, upperBound: Long): Set<Long>
+
+}
+
+/**
+ * Interface for drivers on top of databases that allow for schemas to be set.
+ */
+interface ISchemaSafeDriver {
+    /**
+     * Builds and installs the CPG schema in the target database. The schema executed is from
+     * [ISchemaSafeDriver.buildSchemaPayload].
+     *
+     * @see [ISchemaSafeDriver.buildSchemaPayload]
+     */
+    fun buildSchema()
+
+    /**
+     * Builds the schema from generated CPG code and returns it as a [String] to be executed on the database.
+     */
+    fun buildSchemaPayload(): String
+}
