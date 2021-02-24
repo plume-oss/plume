@@ -6,10 +6,12 @@ import io.github.plume.oss.domain.mappers.VertexMapper
 import io.github.plume.oss.domain.mappers.VertexMapper.checkSchemaConstraints
 import io.github.plume.oss.util.CodeControl
 import io.github.plume.oss.util.ExtractorConst
+import io.github.plume.oss.util.ExtractorConst.BOOLEAN_TYPES
+import io.github.plume.oss.util.ExtractorConst.INT_TYPES
 import io.github.plume.oss.util.PlumeKeyProvider
 import io.shiftleft.codepropertygraph.generated.EdgeTypes
+import io.shiftleft.codepropertygraph.generated.NodeKeyNames
 import io.shiftleft.codepropertygraph.generated.NodeKeyNames.*
-import io.shiftleft.codepropertygraph.generated.NodeKeys
 import io.shiftleft.codepropertygraph.generated.NodeTypes.META_DATA
 import io.shiftleft.codepropertygraph.generated.NodeTypes.UNKNOWN
 import io.shiftleft.codepropertygraph.generated.nodes.NewMetaDataBuilder
@@ -21,7 +23,6 @@ import org.json.JSONObject
 import overflowdb.Config
 import overflowdb.Graph
 import overflowdb.Node
-import overflowdb.PropertyKey
 import scala.jdk.CollectionConverters
 import java.io.*
 import java.lang.Thread.sleep
@@ -532,30 +533,13 @@ class TigerGraphDriver : IOverridenIdDriver, ISchemaSafeDriver {
         """.trimIndent()
         )
         schema.append("\n")
-        val booleanTypes = setOf(
-            HAS_MAPPING,
-            IS_METHOD_NEVER_OVERRIDDEN,
-            IS_EXTERNAL
-        )
-        val intTypes = setOf(
-            COLUMN_NUMBER,
-            DEPTH_FIRST_ORDER,
-            ARGUMENT_INDEX,
-            ORDER,
-            LINE_NUMBER,
-            LINE_NUMBER_END,
-            INTERNAL_FLAGS,
-            COLUMN_NUMBER_END
-        )
         // Handle vertices
-        val metaDataSpecificProps = listOf(LANGUAGE, VERSION, OVERLAYS)
-        val propertiesList =
-            NodeKeys.ALL.filterNot { metaDataSpecificProps.contains(it.name) || it.name == NODE_LABEL }.toList()
-        propertiesList.forEachIndexed { i: Int, key: PropertyKey<Any> ->
-            val k = key.name
+        val cpgNodeBlacklist = listOf(LANGUAGE, VERSION, OVERLAYS, NODE_LABEL)
+        val propertiesList = NodeKeyNames.ALL.filterNot(cpgNodeBlacklist::contains).toList()
+        propertiesList.forEachIndexed { i: Int, k: String->
             when {
-                booleanTypes.contains(k) -> schema.append("\t_$k BOOL DEFAULT \"TRUE\"")
-                intTypes.contains(k) -> schema.append("\t_$k INT DEFAULT -1")
+                BOOLEAN_TYPES.contains(k) -> schema.append("\t_$k BOOL DEFAULT \"TRUE\"")
+                INT_TYPES.contains(k) -> schema.append("\t_$k INT DEFAULT -1")
                 else -> schema.append("\t_$k STRING DEFAULT \"null\"")
             }
             if (i < propertiesList.size - 1) schema.append(",\n") else schema.append("\n")

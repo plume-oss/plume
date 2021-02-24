@@ -1,11 +1,15 @@
 package io.github.plume.oss.drivers
 
+import io.github.plume.oss.util.ExtractorConst
+import io.shiftleft.codepropertygraph.generated.EdgeTypes
+import io.shiftleft.codepropertygraph.generated.NodeKeyNames
+import io.shiftleft.codepropertygraph.generated.NodeKeyNames.*
+import io.shiftleft.codepropertygraph.generated.NodeTypes
 import org.apache.commons.configuration.PropertiesConfiguration
 import org.apache.logging.log4j.LogManager
 import org.apache.tinkerpop.gremlin.driver.Client
 import org.apache.tinkerpop.gremlin.driver.Cluster
 import org.apache.tinkerpop.gremlin.process.traversal.AnonymousTraversalSource
-import java.io.File
 
 /**
  * The driver used to connect to a remote JanusGraph instance.
@@ -63,15 +67,39 @@ class JanusGraphDriver : GremlinDriver(), ISchemaSafeDriver {
         val propFileConfig = PropertiesConfiguration(config.getString(REMOTE_CONFIG))
         val cluster = Cluster.open(propFileConfig.getString("gremlin.remote.driver.clusterFile"))
         val client = cluster.connect<Client>()
-        val results = client.submit("""
-            graph = JanusGraphFactory.open('/etc/opt/janusgraph/janusgraph.properties')
-            mgmt = graph.openManagement()
-            // TODO: Add schema
-            mgmt.commit()
-            """.trimIndent())
+        val results = client.submit(buildSchemaPayload())
         println(results.toList())
         client.close()
         cluster.close()
+    }
+
+    fun buildSchemaPayload(): String {
+        val schema = StringBuilder("""
+            graph = JanusGraphFactory.open('/etc/opt/janusgraph/janusgraph.properties')
+            mgmt = graph.openManagement()
+        """.trimIndent())
+        schema.append("\n// Vertex labels\n")
+        NodeTypes.ALL.forEach { schema.append("mgmt.containsVertexLabel('$it') ?: mgmt.makeVertexLabel('$it').make()\n")  }
+        schema.append("// Edge labels\n")
+        EdgeTypes.ALL.forEach { schema.append("mgmt.containsEdgeLabel('$it') ?: mgmt.makeEdgeLabel('$it').make()\n")  }
+        schema.append("// Properties\n")
+        NodeKeyNames.ALL.forEach { k ->
+            schema.append("mgmt.containsPropertyKey('$k') ?: mgmt.makePropertyKey('$k')")
+            when {
+                ExtractorConst.BOOLEAN_TYPES.contains(k) -> schema.append(".dataType(Boolean.class)")
+                ExtractorConst.INT_TYPES.contains(k) -> schema.append(".dataType(Integer.class)")
+                else -> schema.append(".dataType(String.class)")
+            }
+            schema.append(".cardinality(org.janusgraph.core.Cardinality.SINGLE).make()\n")
+        }
+        schema.append("""
+            // Indexes
+            mgmt.getGraphIndex("byFullName") != null ?: mgmt.buildIndex("byFullName", Vertex.class).addKey(mgmt.getPropertyKey($FULL_NAME)).buildCompositeIndex()
+            mgmt.getGraphIndex("bySignature") != null ?: mgmt.buildIndex("bySignature", Vertex.class).addKey(mgmt.getPropertyKey($SIGNATURE)).buildCompositeIndex()
+            mgmt.getGraphIndex("byHash") != null ?: mgmt.buildIndex("byHash", Vertex.class).addKey(mgmt.getPropertyKey($HASH)).buildCompositeIndex()
+            mgmt.commit()
+        """.trimIndent())
+        return schema.toString()
     }
 
 }
