@@ -107,7 +107,7 @@ class TigerGraphDriver internal constructor() : IOverridenIdDriver, ISchemaSafeD
      *
      * @param value the username e.g. "tigergraph".
      */
-    fun username(value: String): TigerGraphDriver = apply { hostname = value }
+    fun username(value: String): TigerGraphDriver = apply { username = value }
 
     /**
      * Set the password for the TigerGraph GSQL server.
