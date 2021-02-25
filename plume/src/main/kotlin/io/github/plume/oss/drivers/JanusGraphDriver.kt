@@ -15,7 +15,7 @@ import org.apache.tinkerpop.gremlin.process.traversal.AnonymousTraversalSource
 /**
  * The driver used to connect to a remote JanusGraph instance.
  */
-class JanusGraphDriver : GremlinDriver(), ISchemaSafeDriver {
+internal class JanusGraphDriver : GremlinDriver(), ISchemaSafeDriver {
     private val logger = LogManager.getLogger(JanusGraphDriver::class.java)
 
     companion object {

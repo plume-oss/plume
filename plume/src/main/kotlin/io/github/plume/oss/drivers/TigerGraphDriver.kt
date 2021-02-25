@@ -32,7 +32,7 @@ import io.shiftleft.codepropertygraph.generated.nodes.Factories as NodeFactories
 /**
  * The driver used to connect to a remote TigerGraph instance.
  */
-class TigerGraphDriver : IOverridenIdDriver, ISchemaSafeDriver {
+internal class TigerGraphDriver : IOverridenIdDriver, ISchemaSafeDriver {
 
     private val logger = LogManager.getLogger(TigerGraphDriver::class.java)
     private val objectMapper = ObjectMapper()

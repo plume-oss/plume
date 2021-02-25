@@ -23,7 +23,7 @@ import io.shiftleft.codepropertygraph.generated.nodes.Factories as NodeFactories
 /**
  * The driver used to connect to a remote Neo4j instance.
  */
-class Neo4jDriver : IDriver {
+internal class Neo4jDriver : IDriver {
 
     private val logger = LogManager.getLogger(Neo4jDriver::class.java)
     private lateinit var driver: Driver

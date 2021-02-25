@@ -8,7 +8,7 @@ import java.io.File
 /**
  * The driver used to connect to an in-memory TinkerGraph instance.
  */
-class TinkerGraphDriver : GremlinDriver() {
+internal class TinkerGraphDriver : GremlinDriver() {
 
     /**
      * Add or update a [BaseConfiguration] key-value pair.

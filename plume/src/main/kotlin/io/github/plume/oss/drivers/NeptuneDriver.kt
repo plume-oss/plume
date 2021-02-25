@@ -13,7 +13,7 @@ import org.apache.tinkerpop.gremlin.structure.Vertex
 /**
  * The driver used to connect to a remote Amazon Neptune instance.
  */
-class NeptuneDriver : GremlinOverriddenIdDriver() {
+internal class NeptuneDriver : GremlinOverriddenIdDriver() {
     private val logger = LogManager.getLogger(NeptuneDriver::class.java)
 
     private val builder: Cluster.Builder = Cluster.build()

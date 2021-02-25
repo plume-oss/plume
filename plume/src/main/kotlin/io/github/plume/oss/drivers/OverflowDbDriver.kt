@@ -15,7 +15,7 @@ import io.shiftleft.codepropertygraph.generated.nodes.Factories as NodeFactories
 /**
  * Driver to create an OverflowDB database file from Plume's domain classes.
  */
-class OverflowDbDriver : IDriver {
+internal class OverflowDbDriver : IDriver {
 
     private val logger = LogManager.getLogger(OverflowDbDriver::class.java)
 
