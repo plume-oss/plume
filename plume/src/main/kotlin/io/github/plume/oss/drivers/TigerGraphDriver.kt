@@ -562,16 +562,8 @@ class TigerGraphDriver internal constructor() : IOverridenIdDriver, ISchemaSafeD
         // Handle edges
         EdgeTypes.ALL.forEach { schema.append("CREATE DIRECTED EDGE _$it (FROM CPG_VERT, TO CPG_VERT)\n") }
         schema.append("\nCREATE GRAPH cpg (*)\n")
-        // Get queries
-        val payload = javaClass.getResource("/schema/tg_queries.gsql")
-        if (payload == null)
-            logger.warn("TigerGraph queries are missing in the resource bundle, only schema will be installed.")
-        else
-            FileReader(File(payload.toURI())).use { fr ->
-                fr.readLines()
-                    .map { it.replace("<GRAPH_NAME>", GRAPH_NAME).plus("\n") }
-                    .forEach(schema::append)
-            }
+        // Set queries
+        schema.append(QUERIES.replace("<GRAPH_NAME>", GRAPH_NAME))
         return schema.toString()
     }
 
@@ -610,5 +602,137 @@ class TigerGraphDriver internal constructor() : IOverridenIdDriver, ISchemaSafeD
          * Default number of request retries for the TigerGraph server with a value of 5.
          */
         private const val MAX_RETRY = 5
+
+        private const val QUERIES = """
+            CREATE QUERY areVerticesJoinedByEdge(VERTEX<CPG_VERT> V_FROM, VERTEX<CPG_VERT> V_TO, STRING EDGE_LABEL) FOR GRAPH <GRAPH_NAME> {
+              bool result;
+              setFrom = {ANY};
+              temp = SELECT tgt
+                      FROM setFrom:src -(:e)- :tgt
+                      WHERE src == V_FROM
+                        AND tgt == V_TO
+                        AND e.type == EDGE_LABEL;
+              result = (temp.size() > 0);
+              PRINT result;
+            }
+            
+            CREATE QUERY showAll() FOR GRAPH <GRAPH_NAME> {
+              SetAccum<EDGE> @@edges;
+              allVert = {ANY};
+              result = SELECT s
+                       FROM allVert:s -(:e)-> :t
+                       ACCUM @@edges += e;
+              PRINT allVert;
+              PRINT @@edges;
+            }
+            
+            CREATE QUERY getMethodHead(STRING FULL_NAME, STRING SIGNATURE) FOR GRAPH <GRAPH_NAME> {
+              SetAccum<EDGE> @@edges;
+              allV = {ANY};
+              start = SELECT src
+                      FROM allV:src
+                      WHERE src._FULL_NAME == FULL_NAME AND src._SIGNATURE == SIGNATURE;
+              allVert = start;
+            
+              start = SELECT t
+                      FROM start:s -(_AST:e)-> :t
+                      ACCUM @@edges += e;
+              allVert = allVert UNION start;
+            
+              PRINT allVert;
+              PRINT @@edges;
+            }
+            
+            CREATE QUERY getMethod(STRING FULL_NAME, STRING SIGNATURE) FOR GRAPH <GRAPH_NAME> SYNTAX v2 {
+              SetAccum<EDGE> @@edges;
+              allV = {ANY};
+              # Get method
+              start = SELECT src
+                      FROM allV:src
+                      WHERE src._FULL_NAME == FULL_NAME AND src._SIGNATURE == SIGNATURE;
+              allVert = start;
+              # Get method's body vertices
+              start = SELECT t
+                      FROM start:s -((_AST>|_REF>|_CFG>|_ARGUMENT>|_CAPTURED_BY>|_BINDS_TO>|_RECEIVER>|_CONDITION>|_BINDS>)*) - :t;
+              allVert = allVert UNION start;
+              # Get edges between body methods
+              finalEdges = SELECT t
+                           FROM allVert -((_AST>|_REF>|_CFG>|_ARGUMENT>|_CAPTURED_BY>|_BINDS_TO>|_RECEIVER>|_CONDITION>|_BINDS>):e)-:t
+                           ACCUM @@edges += e;
+              PRINT allVert;
+              PRINT @@edges;
+            }
+            
+            CREATE QUERY getProgramStructure() FOR GRAPH <GRAPH_NAME> SYNTAX v2 {
+              SetAccum<EDGE> @@edges;
+            
+              start = {CPG_VERT.*};
+              start = SELECT s
+                      FROM start:s
+                      WHERE s.label == "FILE" OR s.label == "TYPE_DECL" OR s.label == "NAMESPACE_BLOCK";
+              allVert = start;
+            
+              start = SELECT t
+                      FROM start:s -(_AST>*)- :t
+                      WHERE t.label == "NAMESPACE_BLOCK";
+              allVert = allVert UNION start;
+            
+              finalEdges = SELECT t
+                           FROM allVert -(_AST>:e)- :t
+                           WHERE t.label == "NAMESPACE_BLOCK"
+                           ACCUM @@edges += e;
+              start = {CPG_VERT.*};
+            
+              PRINT allVert;
+              PRINT @@edges;
+            }
+            
+            CREATE QUERY getNeighbours(VERTEX<CPG_VERT> SOURCE) FOR GRAPH <GRAPH_NAME> SYNTAX v2 {
+              SetAccum<EDGE> @@edges;
+              seed = {CPG_VERT.*};
+              sourceSet = {SOURCE};
+              outVert = SELECT tgt
+                        FROM seed:src -(:e)- CPG_VERT:tgt
+                        WHERE src == SOURCE
+                        ACCUM @@edges += e;
+              allVert = outVert UNION sourceSet;
+            
+              PRINT allVert;
+              PRINT @@edges;
+            }
+            
+            CREATE QUERY deleteMethod(STRING FULL_NAME, STRING SIGNATURE) FOR GRAPH <GRAPH_NAME> SYNTAX v2 {
+              allV = {ANY};
+              # Get method
+              start = SELECT src
+                      FROM allV:src
+                      WHERE src._FULL_NAME == FULL_NAME AND src._SIGNATURE == SIGNATURE;
+              allVert = start;
+              # Get method's body vertices
+              start = SELECT t
+                      FROM start:s -((_AST>|_REF>|_CFG>|_ARGUMENT>|_CAPTURED_BY>|_BINDS_TO>|_RECEIVER>|_CONDITION>|_BINDS>)*) - :t;
+              allVert = allVert UNION start;
+            
+              DELETE s FROM allVert:s;
+            }
+            
+            CREATE QUERY getVertexIds(INT LOWER_BOUND, INT UPPER_BOUND) FOR GRAPH <GRAPH_NAME> {
+              SetAccum<INT> @@ids;
+              start = {ANY};
+              result = SELECT src
+                  FROM start:src
+                  WHERE src.id >= LOWER_BOUND AND src.id <= UPPER_BOUND
+                  ACCUM @@ids += src.id;
+              PRINT @@ids;
+            }
+            
+            CREATE QUERY status() FOR GRAPH <GRAPH_NAME> {
+              INT status = 0;
+              PRINT status;
+            }
+            
+            INSTALL QUERY ALL
+
+        """
     }
 }

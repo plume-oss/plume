@@ -72,7 +72,6 @@ sourceSets {
     main {
         java.srcDirs = []
         kotlin.srcDirs = ["src/main/kotlin"]
-        resources.srcDirs = ["src/main/resources"]
     }
     test {
         java.srcDirs = []
@@ -178,7 +177,7 @@ dockerCompose {
 def artifactDesc = "Plume is a code property graph analysis library with options to extract the CPG from" +
         " Java bytecode and store the result in various graph databases."
 def repoUrl = "https://github.com/plume-oss/plume.git"
-def artifactVersion = "0.2.3"
+def artifactVersion = "0.2.3.1"
 def website = "https://plume-oss.github.io/plume-docs/"
 
 group = "io.github.plume-oss"
