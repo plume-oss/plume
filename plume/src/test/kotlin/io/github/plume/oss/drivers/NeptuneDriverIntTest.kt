@@ -52,12 +52,11 @@ class NeptuneDriverIntTest {
         @BeforeAll
         fun setUpAll() {
             testStartTime = System.nanoTime()
-            driver = (DriverFactory(GraphDatabase.NEPTUNE) as NeptuneDriver).apply {
-                this.addHostnames(System.getenv("NEPTUNE_HOSTNAME") ?: "localhost")
-                    .port(8182)
-                    .keyCertChainFile("src/test/resources/conf/SFSRootCAG2.pem")
-                    .connect()
-            }
+            driver = (DriverFactory(GraphDatabase.NEPTUNE) as NeptuneDriver)
+                .addHostnames(System.getenv("NEPTUNE_HOSTNAME") ?: "localhost")
+                .port(8182)
+                .keyCertChainFile("src/test/resources/conf/SFSRootCAG2.pem")
+                .connect()
         }
 
         @JvmStatic

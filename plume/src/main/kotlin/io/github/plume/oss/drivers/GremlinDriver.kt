@@ -59,7 +59,7 @@ abstract class GremlinDriver : IDriver {
      *
      * @throws IllegalArgumentException if the graph database is already connected to.
      */
-    open fun connect() {
+    open fun connect(): GremlinDriver = apply {
         require(!connected) { "Please close the graph before trying to make another connection." }
         graph = TinkerGraph.open(config)
         g = graph.traversal()

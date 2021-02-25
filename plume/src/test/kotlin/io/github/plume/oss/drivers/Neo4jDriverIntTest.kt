@@ -52,14 +52,13 @@ class Neo4jDriverIntTest {
         @BeforeAll
         fun setUpAll() = run {
             testStartTime = System.nanoTime()
-            driver = (DriverFactory(GraphDatabase.NEO4J) as Neo4jDriver).apply {
-                this.hostname("localhost")
-                    .port(7687)
-                    .username("neo4j")
-                    .password("neo4j123")
-                    .database("neo4j")
-                    .connect()
-            }
+            driver = (DriverFactory(GraphDatabase.NEO4J) as Neo4jDriver)
+                .hostname("localhost")
+                .port(7687)
+                .username("neo4j")
+                .password("neo4j123")
+                .database("neo4j")
+                .connect()
             assertEquals("localhost", driver.hostname)
             assertEquals(7687, driver.port)
             assertEquals("neo4j", driver.username)

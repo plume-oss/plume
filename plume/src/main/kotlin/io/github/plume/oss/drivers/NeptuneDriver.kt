@@ -13,7 +13,7 @@ import org.apache.tinkerpop.gremlin.structure.Vertex
 /**
  * The driver used to connect to a remote Amazon Neptune instance.
  */
-internal class NeptuneDriver : GremlinOverriddenIdDriver() {
+class NeptuneDriver internal constructor() : GremlinOverriddenIdDriver() {
     private val logger = LogManager.getLogger(NeptuneDriver::class.java)
 
     private val builder: Cluster.Builder = Cluster.build()
@@ -53,7 +53,7 @@ internal class NeptuneDriver : GremlinOverriddenIdDriver() {
      *
      * @throws IllegalArgumentException if the graph database is already connected.
      */
-    override fun connect() {
+    override fun connect(): NeptuneDriver = apply {
         require(!connected) { "Please close the graph before trying to make another connection." }
         cluster = builder.create()
         super.g = traversal().withRemote(DriverRemoteConnection.using(cluster))
