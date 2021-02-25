@@ -15,7 +15,7 @@ import org.apache.tinkerpop.gremlin.process.traversal.AnonymousTraversalSource
 /**
  * The driver used to connect to a remote JanusGraph instance.
  */
-class JanusGraphDriver : GremlinDriver(), ISchemaSafeDriver {
+class JanusGraphDriver internal constructor() : GremlinDriver(), ISchemaSafeDriver {
     private val logger = LogManager.getLogger(JanusGraphDriver::class.java)
 
     companion object {
@@ -36,7 +36,7 @@ class JanusGraphDriver : GremlinDriver(), ISchemaSafeDriver {
      * @throws IllegalArgumentException if the graph database is already connected to or if the remote config path is
      * not set.
      */
-    override fun connect() {
+    override fun connect(): JanusGraphDriver = apply {
         require(!connected) { "Please close the graph before trying to make another connection." }
         require(config.containsKey(REMOTE_CONFIG)) { "Remote config path not set! See the config field in JanusGraphDriver with key REMOTE_CONFIG." }
         // Test that the connection works and then close again

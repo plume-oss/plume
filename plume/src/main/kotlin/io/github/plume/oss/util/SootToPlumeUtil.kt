@@ -517,7 +517,6 @@ object SootToPlumeUtil {
             sym == "<=" -> Operators.lessEqualsThan
             sym == ">=" -> Operators.greaterEqualsThan
             else -> {
-                println("Unknown $sym")
                 logger.warn("Unknown binary operator $sym")
                 sym
             }

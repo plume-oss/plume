@@ -32,7 +32,7 @@ import io.shiftleft.codepropertygraph.generated.nodes.Factories as NodeFactories
 /**
  * The driver used to connect to a remote TigerGraph instance.
  */
-class TigerGraphDriver : IOverridenIdDriver, ISchemaSafeDriver {
+class TigerGraphDriver internal constructor() : IOverridenIdDriver, ISchemaSafeDriver {
 
     private val logger = LogManager.getLogger(TigerGraphDriver::class.java)
     private val objectMapper = ObjectMapper()
@@ -83,7 +83,7 @@ class TigerGraphDriver : IOverridenIdDriver, ISchemaSafeDriver {
      * The authorization key used for TigerGraph servers with token authorization turned on. This is placed under
      * the Authorization header when making requests.
      */
-    var authKey: String? = null
+    var authKey: String = ""
         private set
 
     init {
@@ -376,7 +376,7 @@ class TigerGraphDriver : IOverridenIdDriver, ISchemaSafeDriver {
         PlumeKeyProvider.clearKeyPools()
     }
 
-    private fun headers(contentType: String = "application/json"): Map<String, String> = if (authKey == null) {
+    private fun headers(contentType: String = "application/json"): Map<String, String> = if (authKey.isBlank()) {
         mapOf("Content-Type" to contentType)
     } else {
         mapOf("Content-Type" to contentType, "Authorization" to "Bearer $authKey")

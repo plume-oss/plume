@@ -36,11 +36,9 @@ import io.shiftleft.codepropertygraph.generated.EdgeTypes.*
 import io.shiftleft.codepropertygraph.generated.NodeKeyNames.NAME
 import io.shiftleft.codepropertygraph.generated.NodeTypes.FILE
 import io.shiftleft.codepropertygraph.generated.nodes.*
-import io.shiftleft.proto.cpg.Cpg
 import org.apache.logging.log4j.LogManager
 import org.junit.jupiter.api.*
 import org.junit.jupiter.api.Assertions.*
-import overflowdb.Config
 import overflowdb.Graph
 import scala.Option
 import java.io.File
@@ -62,7 +60,7 @@ class TinkerGraphDriverIntTest {
         @BeforeAll
         fun setUpAll() = run {
             testStartTime = System.nanoTime()
-            driver = (DriverFactory(GraphDatabase.TINKER_GRAPH) as TinkerGraphDriver).apply { connect() }
+            driver = (DriverFactory(GraphDatabase.TINKER_GRAPH) as TinkerGraphDriver).connect()
         }
 
         @AfterAll

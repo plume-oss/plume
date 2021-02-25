@@ -56,13 +56,12 @@ class OverflowDbDriverIntTest {
         @BeforeAll
         fun setUpAll() {
             testStartTime = System.nanoTime()
-            driver = (DriverFactory(GraphDatabase.OVERFLOWDB) as OverflowDbDriver).apply {
-                serializationStatsEnabled = false
-                overflow = true
-                heapPercentageThreshold = 90
-                storageLocation = OverflowDbDriverIntTest.storageLocation
-                connect()
-            }
+            driver = (DriverFactory(GraphDatabase.OVERFLOWDB) as OverflowDbDriver)
+                .serializationStatsEnabled(false)
+                .overflow(true)
+                .heapPercentageThreshold(90)
+                .storageLocation(storageLocation)
+                .connect()
             assertFalse(driver.serializationStatsEnabled)
             assertTrue(driver.overflow)
             assertEquals(90, driver.heapPercentageThreshold)

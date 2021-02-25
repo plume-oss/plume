@@ -9,6 +9,11 @@ and this project adheres to [Semantic Versioning](http://semver.org/).
 ### Added
 
 ### Changed
+- `TigerGraphDriver::authKey` never null and now just blank if not set
+- Removed `log4f2.properties` under the main artifact
+- Made the visibility of driver constructors module specific so that users are forced
+to use the `DriverFactory`
+- `connect` methods on drivers now return the driver instead of nothing. 
 
 ### Fixed
 

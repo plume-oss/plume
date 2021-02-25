@@ -15,7 +15,7 @@ import io.shiftleft.codepropertygraph.generated.nodes.Factories as NodeFactories
 /**
  * Driver to create an OverflowDB database file from Plume's domain classes.
  */
-class OverflowDbDriver : IDriver {
+class OverflowDbDriver internal constructor() : IDriver {
 
     private val logger = LogManager.getLogger(OverflowDbDriver::class.java)
 
@@ -30,23 +30,55 @@ class OverflowDbDriver : IDriver {
      * Where the database will be serialize/deserialize and overflow to disk.
      */
     var storageLocation: String = ""
+        private set
 
     /**
      * Specifies if OverflowDb should write to disk when memory is constrained.
      */
     var overflow: Boolean = true
+        private set
 
     /**
      * Percentage of the heap from when overflowing should begin to occur. Default is 80%.
      */
     var heapPercentageThreshold: Int = 80
+        private set
 
     /**
      * If specified, OverflowDB will measure and report serialization/deserialization timing averages.
      */
     var serializationStatsEnabled: Boolean = false
+        private set
 
-    fun connect() {
+    /**
+     * Set the storage location.
+     *
+     * @param value the storage location to overflow to e.g. /tmp/cpg.bin
+     */
+    fun storageLocation(value: String): OverflowDbDriver = apply { storageLocation = value }
+
+    /**
+     * Set whether the database overflows or not.
+     *
+     * @param value true to overflow, false to remain in memory.
+     */
+    fun overflow(value: Boolean): OverflowDbDriver = apply { overflow = value }
+
+    /**
+     * Set the percentage threshold before overflowing.
+     *
+     * @param value the percentage of the heap space.
+     */
+    fun heapPercentageThreshold(value: Int): OverflowDbDriver = apply { heapPercentageThreshold = value }
+
+    /**
+     * To set if serialization/deserialization timing averages should be reported.
+     *
+     * @param value true to report averages, false to not.
+     */
+    fun serializationStatsEnabled(value: Boolean): OverflowDbDriver = apply { serializationStatsEnabled = value }
+
+    fun connect(): OverflowDbDriver = apply {
         require(!connected) { "Please close the graph before trying to make another connection." }
         val odbConfig = Config.withDefaults()
             .apply {
