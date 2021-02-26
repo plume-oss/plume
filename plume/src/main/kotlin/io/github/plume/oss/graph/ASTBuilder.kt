@@ -520,27 +520,15 @@ class ASTBuilder(private val driver: IDriver) : IGraphBuilder {
         }
     }
 
-    private fun createNewArrayExpr(expr: NewArrayExpr, childIdx: Int = 0): NewTypeRefBuilder {
-        val newArrayExprVertices = mutableListOf<NewNodeBuilder>()
-        val typeRef = NewTypeRefBuilder()
-            .typeFullName(expr.type.toQuotedString())
+    private fun createNewArrayExpr(expr: NewArrayExpr, childIdx: Int = 0) =
+        NewArrayInitializerBuilder()
+            .order(childIdx + 1)
+            .argumentIndex(childIdx + 1)
             .code(expr.toString())
-            .argumentIndex(childIdx)
-            .order(childIdx)
             .lineNumber(Option.apply(currentLine))
             .columnNumber(Option.apply(currentCol))
             .apply { addSootToPlumeAssociation(expr, this) }
-        NewArrayInitializerBuilder()
-            .order(childIdx)
-            .let {
-                runCatching {
-                    driver.addEdge(typeRef, it, AST)
-                }.onFailure { e -> logger.warn(e.message) }
-                newArrayExprVertices.add(it)
-            }
-        addSootToPlumeAssociation(expr, newArrayExprVertices)
-        return typeRef
-    }
+
 
     private fun projectReturnVertex(ret: ReturnStmt, childIdx: Int): NewReturnBuilder {
         val retV = NewReturnBuilder()

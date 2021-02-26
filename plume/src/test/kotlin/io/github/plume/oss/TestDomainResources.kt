@@ -27,7 +27,8 @@ class TestDomainResources {
         val BOOL_1 = false
 
         val vertices = listOf<NewNodeBuilder>(
-            NewArrayInitializerBuilder().order(INT_1),
+            NewArrayInitializerBuilder().order(INT_1).code(STRING_1).lineNumber(Option.apply(INT_1))
+                .columnNumber(Option.apply(INT_1)),
             NewBindingBuilder().name(STRING_1).signature(STRING_2),
             NewBlockBuilder().typeFullName(STRING_1).code(STRING_1).order(INT_1).argumentIndex(INT_1)
                 .lineNumber(Option.apply(INT_1)).columnNumber(Option.apply(INT_1)),
