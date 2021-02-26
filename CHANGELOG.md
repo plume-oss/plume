@@ -9,8 +9,6 @@ and this project adheres to [Semantic Versioning](http://semver.org/).
 ### Added
 - `code`, `lineNumber`, `columnNumber` to `ArrayInitializer`
 
-### Changed
-
 ### Fixed
 - Escape " (quotes) to fix Neo4j bug where strings containing quotes fail vertex insertion
 - `TypeDecl` to `ArrayInitializer` edge warning
