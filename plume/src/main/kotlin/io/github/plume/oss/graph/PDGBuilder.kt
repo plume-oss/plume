@@ -19,10 +19,7 @@ import io.github.plume.oss.Extractor.Companion.getSootAssociation
 import io.github.plume.oss.drivers.IDriver
 import io.shiftleft.codepropertygraph.generated.EdgeTypes.ARGUMENT
 import io.shiftleft.codepropertygraph.generated.EdgeTypes.REF
-import io.shiftleft.codepropertygraph.generated.nodes.NewCallBuilder
-import io.shiftleft.codepropertygraph.generated.nodes.NewIdentifierBuilder
-import io.shiftleft.codepropertygraph.generated.nodes.NewLocalBuilder
-import io.shiftleft.codepropertygraph.generated.nodes.NewMethodParameterInBuilder
+import io.shiftleft.codepropertygraph.generated.nodes.*
 import org.apache.logging.log4j.LogManager
 import soot.Local
 import soot.jimple.*
@@ -62,9 +59,9 @@ class PDGBuilder(private val driver: IDriver) : IGraphBuilder {
 
     private fun projectCallArg(value: Any) {
         getSootAssociation(value)?.firstOrNull { it is NewCallBuilder }?.let { src ->
-            getSootAssociation(value)?.filter { it != src }?.forEach {
+            getSootAssociation(value)?.filterNot { it == src || it is NewArrayInitializerBuilder }?.forEach { tgt ->
                 runCatching {
-                    driver.addEdge(src, it, ARGUMENT)
+                    driver.addEdge(src, tgt, ARGUMENT)
                 }.onFailure { e -> logger.warn(e.message) }
             }
         }
