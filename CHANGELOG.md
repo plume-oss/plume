@@ -7,11 +7,13 @@ and this project adheres to [Semantic Versioning](http://semver.org/).
 ## [0.2.4] - 2021-02-26
 
 ### Added
+- `code`, `lineNumber`, `columnNumber` to `ArrayInitializer`
 
 ### Changed
 
 ### Fixed
-- Escape " (quotes) to fix Neo4j bug where strings containing quotes fail vertex insertion 
+- Escape " (quotes) to fix Neo4j bug where strings containing quotes fail vertex insertion
+- `TypeDecl` to `ArrayInitializer` edge warning
 
 ## [0.2.3] - 2021-02-25
 

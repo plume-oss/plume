@@ -58,6 +58,9 @@ object VertexMapper {
         return when (map["label"] as String) {
             ArrayInitializer.Label() -> NewArrayInitializerBuilder()
                 .order(map[ORDER] as Int)
+                .code(map[CODE] as String)
+                .lineNumber(Option.apply(map[LINE_NUMBER] as Int))
+                .columnNumber(Option.apply(map[COLUMN_NUMBER] as Int))
             Binding.Label() -> NewBindingBuilder()
                 .name(map[NAME] as String)
                 .signature(map[SIGNATURE] as String)
