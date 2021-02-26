@@ -174,14 +174,32 @@ dockerCompose {
     }
 }
 
+class ProjectVersion {
+    def major
+    def minor
+    def patch
+
+    ProjectVersion(String rawVersion) {
+        def vArr = rawVersion.split('.')
+        println(rawVersion)
+        major = Integer.valueOf(vArr[0])
+        minor = Integer.valueOf(vArr[1])
+        patch = Integer.valueOf(vArr[2])
+    }
+
+    String toString() {
+        return "${major}.${minor}.${patch}"
+    }
+}
+
 def artifactDesc = "Plume is a code property graph analysis library with options to extract the CPG from" +
         " Java bytecode and store the result in various graph databases."
 def repoUrl = "https://github.com/plume-oss/plume.git"
-def artifactVersion = "0.2.4"
+def artifactVersion = rootProject.file('VERSION.md').text.trim()
 def website = "https://plume-oss.github.io/plume-docs/"
 
 group = "io.github.plume-oss"
-version = artifactVersion
+version = new ProjectVersion(artifactVersion)
 description = artifactDesc
 
 orchid {
@@ -231,6 +249,15 @@ jar {
         exclude "META-INF/*.DSA"
         exclude "META-INF/*.RSA"
         include "io/github/plume/oss/**"
+    }
+}
+
+publishToMavenLocal {
+    doLast {
+        version.patch += 1
+        new File("VERSION.md").withWriter('utf-8') {
+            writer -> writer.writeLine version.toString()
+        }
     }
 }
 
