@@ -4,13 +4,14 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](http://keepachangelog.com/)
 and this project adheres to [Semantic Versioning](http://semver.org/).
 
-## [Unreleased] - yyyy-mm-dd
+## [0.2.4] - 2021-02-26
 
 ### Added
 
 ### Changed
 
 ### Fixed
+- Escape " (quotes) to fix Neo4j bug where strings containing quotes fail vertex insertion 
 
 ## [0.2.3] - 2021-02-25
 

@@ -128,6 +128,16 @@ class Neo4jDriver internal constructor() : IDriver {
         return attributes
     }
 
+    private fun sanitizePayload(p: String): String =
+        p.replace("\\", "\\\\")
+            .replace("\"", "\\\"")
+            .replace("\'", "\\\'")
+            .replace("\n", "\\\n")
+            .replace("\t", "\\\t")
+            .replace("\b", "\\\b")
+            .replace("\r", "\\\r")
+            .replace("\\f", "\\\\f")
+
     override fun addVertex(v: NewNodeBuilder) {
         val node = v.build()
         val propertyMap = CollectionConverters.MapHasAsJava(node.properties()).asJava().toMutableMap()
@@ -137,7 +147,9 @@ class Neo4jDriver internal constructor() : IDriver {
             val attributeList = extractAttributesFromMap(propertyMap).toList()
             attributeList.forEachIndexed { i: Int, e: Pair<String, Any> ->
                 payload.append("${e.first}:")
-                if (e.second is String) payload.append("\"${e.second}\"") else payload.append(e.second)
+                val p = e.second
+                if (p is String) payload.append("\"${sanitizePayload(p)}\"")
+                else payload.append(p)
                 if (i < attributeList.size - 1) payload.append(",")
             }
             payload.append("}")
