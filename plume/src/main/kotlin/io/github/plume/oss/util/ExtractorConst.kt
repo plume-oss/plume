@@ -4,7 +4,7 @@ import io.shiftleft.codepropertygraph.generated.NodeKeyNames
 
 object ExtractorConst {
     const val LANGUAGE_FRONTEND = "Plume"
-    const val LANGUAGE_FRONTEND_VERSION = "0.2.3.2"
+    const val LANGUAGE_FRONTEND_VERSION = "0.2.4"
     val PRIMITIVES = listOf("boolean", "byte", "char", "double", "float", "int", "long", "null", "short", "void")
     // block bodies
     const val ENTRYPOINT = "BODY"
