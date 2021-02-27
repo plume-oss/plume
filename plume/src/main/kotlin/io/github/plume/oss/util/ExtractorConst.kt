@@ -4,7 +4,7 @@ import io.shiftleft.codepropertygraph.generated.NodeKeyNames
 
 object ExtractorConst {
     const val LANGUAGE_FRONTEND = "Plume"
-    val LANGUAGE_FRONTEND_VERSION: String by lazy { javaClass.`package`.implementationVersion ?: "X.X.X" }
+    val plumeVersion: String by lazy { javaClass.`package`.implementationVersion ?: "X.X.X" }
     val PRIMITIVES = listOf("boolean", "byte", "char", "double", "float", "int", "long", "null", "short", "void")
     // block bodies
     const val ENTRYPOINT = "BODY"

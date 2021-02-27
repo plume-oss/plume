@@ -13,7 +13,7 @@ class MetaDataTests extends PlumeCodeToCpgSuite {
   "should contain exactly one node with all mandatory fields set" in {
     val List(x) = cpg.metaData.l
     x.language shouldBe ExtractorConst.LANGUAGE_FRONTEND
-    x.version shouldBe ExtractorConst.LANGUAGE_FRONTEND_VERSION
+    x.version shouldBe ExtractorConst.INSTANCE.getPlumeVersion
     x.overlays shouldBe List("semanticcpg")
   }
 

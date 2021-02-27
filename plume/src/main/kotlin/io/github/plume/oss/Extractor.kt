@@ -29,7 +29,7 @@ import io.github.plume.oss.graph.PDGBuilder
 import io.github.plume.oss.options.ExtractorOptions
 import io.github.plume.oss.util.DiffGraphUtil
 import io.github.plume.oss.util.ExtractorConst.LANGUAGE_FRONTEND
-import io.github.plume.oss.util.ExtractorConst.LANGUAGE_FRONTEND_VERSION
+import io.github.plume.oss.util.ExtractorConst.plumeVersion
 import io.github.plume.oss.util.ResourceCompilationUtil.COMP_DIR
 import io.github.plume.oss.util.ResourceCompilationUtil.compileJavaFiles
 import io.github.plume.oss.util.ResourceCompilationUtil.moveClassFiles
@@ -277,12 +277,12 @@ class Extractor(val driver: IDriver) {
         val maybeMetaData = driver.getMetaData()
         if (maybeMetaData != null) {
             val metaData = maybeMetaData.build()
-            if (metaData.language() != LANGUAGE_FRONTEND || metaData.version() != LANGUAGE_FRONTEND_VERSION) {
+            if (metaData.language() != LANGUAGE_FRONTEND || metaData.version() != plumeVersion) {
                 driver.deleteVertex(maybeMetaData.id(), META_DATA)
-                driver.addVertex(NewMetaDataBuilder().language(LANGUAGE_FRONTEND).version(LANGUAGE_FRONTEND_VERSION))
+                driver.addVertex(NewMetaDataBuilder().language(LANGUAGE_FRONTEND).version(plumeVersion))
             }
         } else {
-            driver.addVertex(NewMetaDataBuilder().language(LANGUAGE_FRONTEND).version(LANGUAGE_FRONTEND_VERSION))
+            driver.addVertex(NewMetaDataBuilder().language(LANGUAGE_FRONTEND).version(plumeVersion))
         }
     }
 
