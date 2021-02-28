@@ -4,6 +4,14 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](http://keepachangelog.com/)
 and this project adheres to [Semantic Versioning](http://semver.org/).
 
+## [0.2.5] - 2021-02-28
+
+### Changed
+- Log4j-Core is now only added as a `testImplementation` since this is used as a library and
+  not an application 
+- `ExtractorConst::getPlumeVersion` now used to get package version
+- `VERSION.md` is now where the build obtains version details
+
 ## [0.2.4] - 2021-02-26
 
 ### Added
