@@ -4,7 +4,6 @@ import io.github.plume.oss.Extractor
 import io.github.plume.oss.drivers.DriverFactory
 import io.github.plume.oss.drivers.GraphDatabase
 import io.github.plume.oss.drivers.OverflowDbDriver
-import io.github.plume.oss.graphio.GraphMLWriter
 import io.shiftleft.codepropertygraph.generated.Operators
 import io.shiftleft.codepropertygraph.generated.nodes.Call
 import io.shiftleft.codepropertygraph.generated.nodes.Local
@@ -16,7 +15,6 @@ import org.junit.jupiter.api.BeforeAll
 import org.junit.jupiter.api.Test
 import overflowdb.Graph
 import java.io.File
-import java.io.FileWriter
 import io.shiftleft.codepropertygraph.generated.nodes.File as ODBFile
 
 class BasicExtractorTest {

@@ -552,7 +552,7 @@ class TigerGraphDriver internal constructor() : IOverridenIdDriver, ISchemaSafeD
                 PRIMARY_ID id UINT,
                 label STRING DEFAULT "$META_DATA",
                 _$LANGUAGE STRING DEFAULT "${ExtractorConst.LANGUAGE_FRONTEND}",
-                _$VERSION STRING DEFAULT "${ExtractorConst.LANGUAGE_FRONTEND_VERSION}",
+                _$VERSION STRING DEFAULT "${ExtractorConst.plumeVersion}",
                 _$OVERLAYS STRING DEFAULT "null",
                 _$HASH STRING DEFAULT "null"
             ) WITH primary_id_as_attribute="true"
