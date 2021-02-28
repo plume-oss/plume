@@ -223,6 +223,10 @@ task dokkaJar(type: Jar) {
     dependsOn(tasks.dokka)
 }
 
+dokka {
+    reportNotDocumented = false
+}
+
 // Binds the main project and Scala layer into one Jar
 jar {
     duplicatesStrategy = DuplicatesStrategy.EXCLUDE

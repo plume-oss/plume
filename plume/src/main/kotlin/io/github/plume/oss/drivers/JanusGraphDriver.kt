@@ -41,6 +41,7 @@ class JanusGraphDriver internal constructor() : GremlinDriver(), ISchemaSafeDriv
         require(config.containsKey(REMOTE_CONFIG)) { "Remote config path not set! See the config field in JanusGraphDriver with key REMOTE_CONFIG." }
         // Test that the connection works and then close again
         super.g = AnonymousTraversalSource.traversal().withRemote(config.getString(REMOTE_CONFIG))
+        super.graph = super.g.graph
         connected = true
     }
 

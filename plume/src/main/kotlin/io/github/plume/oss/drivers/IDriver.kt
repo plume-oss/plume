@@ -151,7 +151,7 @@ interface IOverridenIdDriver : IDriver {
 /**
  * Interface for drivers on top of databases that allow for schemas to be set.
  */
-interface ISchemaSafeDriver {
+interface ISchemaSafeDriver : IDriver {
     /**
      * Builds and installs the CPG schema in the target database. The schema executed is from
      * [ISchemaSafeDriver.buildSchemaPayload].
