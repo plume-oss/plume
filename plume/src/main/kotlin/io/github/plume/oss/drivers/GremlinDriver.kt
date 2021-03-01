@@ -173,7 +173,10 @@ abstract class GremlinDriver : IDriver {
         return gremlinToPlume(methodSubgraph)
     }
 
-    override fun getMethodNames(): List<String> = g.V().hasLabel(METHOD).values<String>(FULL_NAME).toList()
+    override fun getMethodNames(): List<String> =
+        g.V().hasLabel(METHOD)
+            .values<String>("${if (this is JanusGraphDriver) "_" else ""}$FULL_NAME")
+            .toList()
 
     private fun getMethodWithBody(fullName: String): overflowdb.Graph {
         val methodSubgraph = g.V().hasLabel(Method.Label())
