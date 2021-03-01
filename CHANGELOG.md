@@ -8,8 +8,10 @@ and this project adheres to [Semantic Versioning](http://semver.org/).
 
 ### Changed
 - Changed subgraph-style results to list of edge results in order to improve performance in `GremlinDriver`
+- Switched to using `SLF4J` as the logging API
 
 ### Fixed
+- Fixed issue where `${sys:LOG_DIR}` is generated when there is no `log4j2` config file
 - `Call` vertices not containing consistent full names and signatures as `Method` vertices. Resolves #76.
 
 ## [0.2.5] - 2021-02-28
