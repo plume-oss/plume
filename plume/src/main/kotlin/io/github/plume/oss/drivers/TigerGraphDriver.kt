@@ -270,9 +270,17 @@ class TigerGraphDriver internal constructor() : IOverridenIdDriver, ISchemaSafeD
         }
     }
 
+    override fun getMethodNames(): List<String> {
+        TODO("Not yet implemented")
+    }
+
     override fun getProgramStructure(): Graph {
         val result = get("query/$GRAPH_NAME/getProgramStructure")
         return payloadToGraph(result)
+    }
+
+    override fun getProgramTypeData(): Graph {
+        TODO("Not yet implemented")
     }
 
     override fun getNeighbours(v: NewNodeBuilder): Graph {

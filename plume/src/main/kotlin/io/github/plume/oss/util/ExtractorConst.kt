@@ -1,6 +1,8 @@
 package io.github.plume.oss.util
 
+import io.shiftleft.codepropertygraph.generated.EdgeTypes
 import io.shiftleft.codepropertygraph.generated.NodeKeyNames
+import io.shiftleft.codepropertygraph.generated.NodeTypes
 
 object ExtractorConst {
     const val LANGUAGE_FRONTEND = "Plume"
@@ -25,4 +27,25 @@ object ExtractorConst {
         NodeKeyNames.INTERNAL_FLAGS,
         NodeKeyNames.COLUMN_NUMBER_END
     )
+    val TYPE_REFERENCED_NODES = arrayOf(
+        NodeTypes.TYPE_DECL,
+        NodeTypes.TYPE,
+        NodeTypes.TYPE_ARGUMENT,
+        NodeTypes.TYPE_PARAMETER,
+        NodeTypes.TYPE_REF,
+        NodeTypes.METHOD,
+        NodeTypes.METHOD_PARAMETER_IN,
+        NodeTypes.METHOD_PARAMETER_OUT,
+        NodeTypes.METHOD_RETURN,
+        NodeTypes.MEMBER,
+        NodeTypes.LITERAL, NodeTypes.CALL,
+        NodeTypes.LOCAL,
+        NodeTypes.IDENTIFIER,
+        NodeTypes.BLOCK,
+        NodeTypes.METHOD_REF,
+        NodeTypes.TYPE_REF,
+        NodeTypes.NAMESPACE_BLOCK,
+        NodeTypes.UNKNOWN
+    )
+    val TYPE_REFERENCED_EDGES = arrayOf(EdgeTypes.AST, EdgeTypes.REF, EdgeTypes.ALIAS_OF, EdgeTypes.INHERITS_FROM)
 }

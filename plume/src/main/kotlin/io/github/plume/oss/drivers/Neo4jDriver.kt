@@ -4,7 +4,10 @@ import io.github.plume.oss.domain.exceptions.PlumeSchemaViolationException
 import io.github.plume.oss.domain.mappers.VertexMapper
 import io.github.plume.oss.domain.mappers.VertexMapper.checkSchemaConstraints
 import io.github.plume.oss.domain.mappers.VertexMapper.mapToVertex
+import io.github.plume.oss.util.ExtractorConst.TYPE_REFERENCED_EDGES
+import io.github.plume.oss.util.ExtractorConst.TYPE_REFERENCED_NODES
 import io.shiftleft.codepropertygraph.generated.EdgeTypes.AST
+import io.shiftleft.codepropertygraph.generated.NodeKeyNames.FULL_NAME
 import io.shiftleft.codepropertygraph.generated.NodeTypes.*
 import io.shiftleft.codepropertygraph.generated.nodes.NewMetaDataBuilder
 import io.shiftleft.codepropertygraph.generated.nodes.NewNodeBuilder
@@ -316,6 +319,19 @@ class Neo4jDriver internal constructor() : IDriver {
         return plumeGraph
     }
 
+    override fun getMethodNames(): List<String> {
+        driver.session().use { session ->
+            return session.writeTransaction { tx ->
+                tx.run(
+                    """
+                    MATCH (m:$METHOD)
+                    RETURN m.$FULL_NAME as x
+                    """.trimIndent()
+                ).list().map { it["x"].asString() }.toList()
+            }
+        }
+    }
+
     override fun getProgramStructure(): Graph {
         val graph = newOverflowGraph()
         driver.session().use { session ->
@@ -344,6 +360,40 @@ class Neo4jDriver internal constructor() : IDriver {
                 ).list()
             }
             typeDecl.flatMap { listOf(it["m"].asNode(), it["n"].asNode(), it["o"].asNode()) }
+                .map { mapToVertex(it.asMap() + mapOf("id" to it.id())) }
+                .filter { graph.node(it.id()) == null }
+                .forEach { addNodeToGraph(graph, it) }
+        }
+        return graph
+    }
+
+    override fun getProgramTypeData(): Graph {
+        val graph = newOverflowGraph()
+        driver.session().use { session ->
+            val result = session.writeTransaction { tx ->
+                tx.run(
+                    """
+                    MATCH (n)-(e)-(m)
+                    WHERE (${TYPE_REFERENCED_NODES.joinToString(" OR ") { "n:$it" }})
+                        AND 
+                        (${TYPE_REFERENCED_NODES.joinToString(" OR ") { "m:$it" }})
+                        AND
+                        (${TYPE_REFERENCED_EDGES.joinToString(" OR ") { "e:$it" }})
+                    RETURN e
+                    """.trimIndent()
+                ).list().map { it["e"] }
+            }
+            neo4jToOverflowGraph(result, graph)
+            val typeDecl = session.writeTransaction { tx ->
+                tx.run(
+                    """
+                    MATCH (n)
+                    WHERE ${TYPE_REFERENCED_NODES.joinToString(" OR ") { "n:$it" }}
+                    RETURN n
+                    """.trimIndent()
+                ).list()
+            }
+            typeDecl.map { it["n"].asNode() }
                 .map { mapToVertex(it.asMap() + mapOf("id" to it.id())) }
                 .filter { graph.node(it.id()) == null }
                 .forEach { addNodeToGraph(graph, it) }

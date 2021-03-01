@@ -42,10 +42,8 @@ import io.shiftleft.codepropertygraph.generated.NodeKeyNames.*
 import io.shiftleft.codepropertygraph.generated.NodeTypes.*
 import io.shiftleft.codepropertygraph.generated.nodes.*
 import io.shiftleft.dataflowengineoss.passes.reachingdef.ReachingDefPass
-import io.shiftleft.semanticcpg.passes.FileCreationPass
 import io.shiftleft.semanticcpg.passes.languagespecific.fuzzyc.TypeDeclStubCreator
 import io.shiftleft.semanticcpg.passes.linking.linker.Linker
-import io.shiftleft.semanticcpg.passes.trim.TrimPass
 import org.apache.logging.log4j.LogManager
 import org.apache.logging.log4j.Logger
 import overflowdb.Graph
@@ -329,26 +327,26 @@ class Extractor(val driver: IDriver) {
      * to be called beforehand.
      */
     fun postProject(): Extractor {
-        driver.getWholeGraph().use { g ->
+        driver.getProgramTypeData().use { g ->
             val cpg = Cpg.apply(g)
-            // Run io.shiftleft.passes.CpgPass
             listOf(
                 TypeDeclStubCreator(cpg),
-                FileCreationPass(cpg),
                 Linker(cpg),
-//                NamespaceCreator(cpg), TODO: This conflicts with what Plume is doing in SootToPlumeUtil.kt
             ).map { it.run() }
                 .map(CollectionConverters::IteratorHasAsJava)
                 .flatMap { it.asJava().asSequence() }
                 .forEach { DiffGraphUtil.processDiffGraph(driver, it) }
-            // Run io.shiftleft.passes.ParallelCpgPass
-            val reachingDefPass = ReachingDefPass(cpg)
-            g.nodes(METHOD).asSequence().filterIsInstance<Method>()
-                .map(reachingDefPass::runOnPart)
-                .map(CollectionConverters::IteratorHasAsJava)
-                .flatMap { it.asJava().asSequence() }
-                .forEach { DiffGraphUtil.processDiffGraph(driver, it) }
-            TrimPass(cpg).run().foreach { DiffGraphUtil.processDiffGraph(driver, it) }
+        }
+        driver.getMethodNames().forEach { mName ->
+            driver.getMethod(mName).use { g ->
+                val cpg = Cpg.apply(g)
+                val reachingDefPass = ReachingDefPass(cpg)
+                g.nodes(METHOD).asSequence().filterIsInstance<Method>()
+                    .map(reachingDefPass::runOnPart)
+                    .map(CollectionConverters::IteratorHasAsJava)
+                    .flatMap { it.asJava().asSequence() }
+                    .forEach { DiffGraphUtil.processDiffGraph(driver, it) }
+            }
         }
         return this
     }

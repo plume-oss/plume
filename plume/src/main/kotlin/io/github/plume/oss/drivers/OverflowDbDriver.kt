@@ -4,6 +4,8 @@ import io.github.plume.oss.Traversals
 import io.github.plume.oss.domain.exceptions.PlumeSchemaViolationException
 import io.github.plume.oss.domain.mappers.VertexMapper
 import io.github.plume.oss.domain.mappers.VertexMapper.checkSchemaConstraints
+import io.github.plume.oss.util.ExtractorConst.TYPE_REFERENCED_EDGES
+import io.github.plume.oss.util.ExtractorConst.TYPE_REFERENCED_NODES
 import io.shiftleft.codepropertygraph.generated.nodes.*
 import org.apache.logging.log4j.LogManager
 import overflowdb.*
@@ -139,6 +141,8 @@ class OverflowDbDriver internal constructor() : IDriver {
         return deepCopyGraph(Traversals.getMethodStub(graph, fullName))
     }
 
+    override fun getMethodNames(): List<String> = Traversals.getMethodNames(graph)
+
     private fun deepCopyGraph(edges: List<Edge>): Graph {
         val graph = newOverflowGraph()
         deepCopyVertices(graph, edges)
@@ -176,6 +180,22 @@ class OverflowDbDriver internal constructor() : IDriver {
                 t.propertyMap().forEach { (key, value) -> node.setProperty(key, value) }
             }
         return g
+    }
+
+    override fun getProgramTypeData(): Graph {
+        val pg = newOverflowGraph()
+        graph.nodes(*TYPE_REFERENCED_NODES).asSequence().map { n ->
+            // Add vertices
+            val node = pg.addNode(n.id(), n.label())
+            n.propertyMap().forEach { (key, value) -> node.setProperty(key, value) }
+            n
+        }.forEach {
+            // Connect vertices
+            it.bothE(*TYPE_REFERENCED_EDGES).forEachRemaining { e ->
+                pg.node(e.outNode().id()).addEdge(it.label(), pg.node(e.inNode().id()))
+            }
+        }
+        return pg
     }
 
     override fun getNeighbours(v: NewNodeBuilder): Graph = deepCopyGraph(Traversals.getNeighbours(graph, v.id()))

@@ -521,6 +521,16 @@ class NeptuneDriverIntTest {
         }
 
         @Test
+        fun testGetMethodNames() {
+            g = driver.getProgramStructure() // just to make sure the lateinit passes
+            assertEquals(listOf(STRING_1), driver.getMethodNames())
+            driver.addVertex(methodVertex.fullName(STRING_2).id(1200))
+            val newNames = driver.getMethodNames()
+            assertTrue(newNames.contains(STRING_1))
+            assertTrue(newNames.contains(STRING_2))
+        }
+
+        @Test
         fun testGetProgramStructure() {
             val unknown = io.shiftleft.semanticcpg.language.types.structure.File.UNKNOWN()
             driver.addVertex(NewFileBuilder().name(unknown).order(0).hash(Option.apply(unknown)))

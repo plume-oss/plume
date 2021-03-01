@@ -3,9 +3,10 @@ package io.github.plume.oss.drivers
 import io.github.plume.oss.domain.exceptions.PlumeSchemaViolationException
 import io.github.plume.oss.domain.mappers.VertexMapper
 import io.github.plume.oss.domain.mappers.VertexMapper.checkSchemaConstraints
+import io.github.plume.oss.util.ExtractorConst.TYPE_REFERENCED_EDGES
+import io.github.plume.oss.util.ExtractorConst.TYPE_REFERENCED_NODES
 import io.shiftleft.codepropertygraph.generated.EdgeTypes.AST
 import io.shiftleft.codepropertygraph.generated.NodeKeyNames.FULL_NAME
-import io.shiftleft.codepropertygraph.generated.NodeKeyNames.SIGNATURE
 import io.shiftleft.codepropertygraph.generated.NodeTypes.*
 import io.shiftleft.codepropertygraph.generated.nodes.Method
 import io.shiftleft.codepropertygraph.generated.nodes.NewMetaDataBuilder
@@ -172,6 +173,8 @@ abstract class GremlinDriver : IDriver {
         return gremlinToPlume(methodSubgraph)
     }
 
+    override fun getMethodNames(): List<String> = g.V().hasLabel(METHOD).values<String>(FULL_NAME).toList()
+
     private fun getMethodWithBody(fullName: String): overflowdb.Graph {
         val methodSubgraph = g.V().hasLabel(Method.Label())
             .let {
@@ -199,6 +202,29 @@ abstract class GremlinDriver : IDriver {
             .by(un.unfold<Any>())
             .toList()
             .forEach { addNodeToODB(graph, VertexMapper.mapToVertex(mapVertexKeys(it))) }
+        return graph
+    }
+
+    override fun getProgramTypeData(): overflowdb.Graph {
+        val tes = g.V().hasLabel(
+            TYPE_REFERENCED_NODES.first(),
+            *TYPE_REFERENCED_NODES.copyOfRange(1, TYPE_REFERENCED_NODES.size)
+        )
+            .bothE(
+                TYPE_REFERENCED_EDGES.first(),
+                *TYPE_REFERENCED_EDGES.copyOfRange(1, TYPE_REFERENCED_EDGES.size)
+            )
+            .toList()
+        val graph = gremlinToPlume(tes)
+        g.V().hasLabel(
+            TYPE_REFERENCED_NODES.first(),
+            *TYPE_REFERENCED_NODES.copyOfRange(1, TYPE_REFERENCED_NODES.size)
+        )
+            .unfold<Vertex>()
+            .valueMap<String>()
+            .with(WithOptions.tokens)
+            .by(un.unfold<Any>())
+            .toList().forEach { addNodeToODB(graph, VertexMapper.mapToVertex(mapVertexKeys(it))) }
         return graph
     }
 
