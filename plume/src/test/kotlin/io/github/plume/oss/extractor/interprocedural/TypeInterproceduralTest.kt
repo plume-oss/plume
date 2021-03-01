@@ -59,8 +59,8 @@ class TypeInterproceduralTest {
             assertNotNull(localList.firstOrNull { it.name() == "\$stack4" && it.typeFullName() == "java.util.LinkedList" })
         }
         ns.filterIsInstance<Call>().filter { it.name() == "<init>" }.let { callList ->
-            assertNotNull(callList.firstOrNull { it.methodFullName() == "java.util.LinkedList: void <init>()" })
-            assertNotNull(callList.firstOrNull { it.methodFullName() == "java.lang.Object: void <init>()" })
+            assertNotNull(callList.firstOrNull { it.methodFullName() == "java.util.LinkedList.<init>:void()" })
+            assertNotNull(callList.firstOrNull { it.methodFullName() == "java.lang.Object.<init>:void()" })
         }
         ns.filterIsInstance<TypeRef>().filter { it.typeFullName() == "java.util.LinkedList" }
             .let { typeRefs -> assertEquals(2, typeRefs.toList().size) }

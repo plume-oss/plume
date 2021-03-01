@@ -147,11 +147,12 @@ class BasicIntraproceduralTest {
             assertNotNull(mrv.find { it.fullName() == "java.lang.String[]" })
             assertEquals(5, mrv.toList().size)
         }
+        driver.exportGraph("/tmp/plume/x.xml")
         ns.filterIsInstance<Method>().let { mv ->
-            assertNotNull(mv.find { it.fullName() == "intraprocedural.basic.Basic5.main" })
-            assertNotNull(mv.find { it.fullName() == "intraprocedural.basic.basic5.Basic5.main" })
-            assertNotNull(mv.find { it.fullName() == "intraprocedural.basic.Basic5.<init>" })
-            assertNotNull(mv.find { it.fullName() == "intraprocedural.basic.basic5.Basic5.<init>" })
+            assertNotNull(mv.find { it.fullName() == "intraprocedural.basic.Basic5.main:void(java.lang.String[])" })
+            assertNotNull(mv.find { it.fullName() == "intraprocedural.basic.basic5.Basic5.main:void(java.lang.String[])" })
+            assertNotNull(mv.find { it.fullName() == "intraprocedural.basic.Basic5.<init>:void()" })
+            assertNotNull(mv.find { it.fullName() == "intraprocedural.basic.basic5.Basic5.<init>:void()" })
             assertEquals(4, mv.toList().size)
         }
     }

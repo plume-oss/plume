@@ -50,16 +50,15 @@ class BasicInterproceduralTest {
 
     @Test
     fun basicCall1Test() {
-        driver.exportGraph("/tmp/plume/x.xml")
         val ns = g.nodes().asSequence().toList()
         val mainMethod = ns.filterIsInstance<Method>()
-            .find { it.fullName() == "interprocedural.basic.Basic1.main" }
+            .find { it.fullName() == "interprocedural.basic.Basic1.main:void(java.lang.String[])" }
             .apply { assertNotNull(this) }
         val fMethod = ns.filterIsInstance<Method>()
-            .find { it.fullName() == "interprocedural.basic.Basic1.f" }
+            .find { it.fullName() == "interprocedural.basic.Basic1.f:void()" }
             .apply { assertNotNull(this) }
         val gMethod = ns.filterIsInstance<Method>()
-            .find { it.fullName() == "interprocedural.basic.Basic1.g" }
+            .find { it.fullName() == "interprocedural.basic.Basic1.g:void()" }
             .apply { assertNotNull(this) }
         val fCall =
             ns.filterIsInstance<Call>().find { it.name() == "f" }.apply { assertNotNull(this) }
@@ -74,10 +73,10 @@ class BasicInterproceduralTest {
     fun basicCall2Test() {
         val ns = g.nodes().asSequence().toList()
         val mainMethod = ns.filterIsInstance<Method>()
-            .find { it.fullName() == "interprocedural.basic.Basic2.main" }
+            .find { it.fullName() == "interprocedural.basic.Basic2.main:void(java.lang.String[])" }
             .apply { assertNotNull(this) }
         val fMethod = ns.filterIsInstance<Method>()
-            .find { it.fullName() == "interprocedural.basic.Basic2.f" }
+            .find { it.fullName() == "interprocedural.basic.Basic2.f:int(int)" }
             .apply { assertNotNull(this) }
         val fCall = ns.filterIsInstance<Call>().find { it.name() == "f" }.apply { assertNotNull(this) }
         mainMethod!!; fMethod!!; fCall!!
@@ -93,16 +92,16 @@ class BasicInterproceduralTest {
         val ns = g.nodes().asSequence().toList()
         ns.filterIsInstance<TypeDecl>().find { it.fullName() == "java.lang.Object" }
             .apply { assertNotNull(this) }
-        ns.filterIsInstance<Method>().find { it.fullName() == "java.lang.Object.<init>" }
+        ns.filterIsInstance<Method>().find { it.fullName() == "java.lang.Object.<init>:void()" }
             .apply { assertNotNull(this) }
         val mainMethod = ns.filterIsInstance<Method>()
-            .find { it.fullName() == "interprocedural.basic.Basic3.main" }
+            .find { it.fullName() == "interprocedural.basic.Basic3.main:void(java.lang.String[])" }
             .apply { assertNotNull(this) }
         val initMethod = ns.filterIsInstance<Call>()
-            .find { it.methodFullName() == "java.lang.Object: void <init>()" }
+            .find { it.methodFullName() == "java.lang.Object.<init>:void()" }
             .apply { assertNotNull(this) }
         val fMethod = ns.filterIsInstance<Method>()
-            .find { it.fullName() == "interprocedural.basic.Basic3.f" }
+            .find { it.fullName() == "interprocedural.basic.Basic3.f:int(int)" }
             .apply { assertNotNull(this) }
         val fCall = ns.filterIsInstance<Call>().find { it.name() == "f" }.apply { assertNotNull(this) }
         mainMethod!!; initMethod!!; fCall!!; fMethod!!
@@ -124,15 +123,15 @@ class BasicInterproceduralTest {
                     .find { it.name() == "\$stack1" }.apply { assertNotNull(this) }
             }
         ns.filterIsInstance<TypeDecl>().find { it.fullName() == "java.lang.Object" }.apply { assertNotNull(this) }
-        ns.filterIsInstance<Method>().find { it.fullName() == "java.lang.Object.<init>" }.apply { assertNotNull(this) }
+        ns.filterIsInstance<Method>().find { it.fullName() == "java.lang.Object.<init>:void()" }.apply { assertNotNull(this) }
         val mainMethod = ns.filterIsInstance<Method>()
-            .find { it.fullName() == "interprocedural.basic.Basic4.main" }
+            .find { it.fullName() == "interprocedural.basic.Basic4.main:void(java.lang.String[])" }
             .apply { assertNotNull(this) }
         val initMethod = ns.filterIsInstance<Call>()
-            .find { it.methodFullName() == "java.lang.Object: void <init>()" }
+            .find { it.methodFullName() == "java.lang.Object.<init>:void()" }
             .apply { assertNotNull(this) }
         val fMethod = ns.filterIsInstance<Method>()
-            .find { it.fullName() == "interprocedural.basic.Basic4.f" }
+            .find { it.fullName() == "interprocedural.basic.Basic4.f:int(int,int)" }
             .apply { assertNotNull(this) }
         val fCall =
             ns.filterIsInstance<Call>().find { it.name() == "f" }.apply { assertNotNull(this) }
@@ -154,7 +153,7 @@ class BasicInterproceduralTest {
     fun basicCall5Test() {
         val ns = g.nodes().asSequence().toList()
         ns.filterIsInstance<TypeRef>()
-            .find { it.typeFullName() == "interprocedural.basic.Basic5" }
+            .find { it.typeFullName() == "interprocedural.basic.Basic5:void(java.lang.String[])" }
             ?.let { trv ->
                 assertNotNull(trv)
                 val assignVert = g.V(trv.id()).next().`in`(AST).asSequence().firstOrNull().apply { assertNotNull(this) }
@@ -163,15 +162,15 @@ class BasicInterproceduralTest {
                     .find { it.name() == "\$stack1" }.apply { assertNotNull(this) }
             }
         ns.filterIsInstance<TypeDecl>().find { it.fullName() == "java.lang.Object" }.apply { assertNotNull(this) }
-        ns.filterIsInstance<Method>().find { it.fullName() == "java.lang.Object.<init>" }.apply { assertNotNull(this) }
+        ns.filterIsInstance<Method>().find { it.fullName() == "java.lang.Object.<init>:void()" }.apply { assertNotNull(this) }
         val mainMethod = ns.filterIsInstance<Method>()
-            .find { it.fullName() == "interprocedural.basic.Basic5.main" }
+            .find { it.fullName() == "interprocedural.basic.Basic5.main:void(java.lang.String[])" }
             .apply { assertNotNull(this) }
         val initMethod = ns.filterIsInstance<Call>()
-            .find { it.methodFullName() == "java.lang.Object: void <init>()" }
+            .find { it.methodFullName() == "java.lang.Object.<init>:void()" }
             .apply { assertNotNull(this) }
         val fMethod = ns.filterIsInstance<Method>()
-            .find { it.fullName() == "interprocedural.basic.Basic5.f" }
+            .find { it.fullName() == "interprocedural.basic.Basic5.f:java.lang.String(java.lang.String,java.lang.String)" }
             .apply { assertNotNull(this) }
         val fCall = ns.filterIsInstance<Call>().find { it.name() == "f" }.apply { assertNotNull(this) }
         mainMethod!!; initMethod!!; fCall!!; fMethod!!
