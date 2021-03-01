@@ -8,12 +8,13 @@ import io.github.plume.oss.util.CodeControl
 import io.github.plume.oss.util.ExtractorConst
 import io.github.plume.oss.util.ExtractorConst.BOOLEAN_TYPES
 import io.github.plume.oss.util.ExtractorConst.INT_TYPES
+import io.github.plume.oss.util.ExtractorConst.TYPE_REFERENCED_EDGES
+import io.github.plume.oss.util.ExtractorConst.TYPE_REFERENCED_NODES
 import io.github.plume.oss.util.PlumeKeyProvider
 import io.shiftleft.codepropertygraph.generated.EdgeTypes
 import io.shiftleft.codepropertygraph.generated.NodeKeyNames
 import io.shiftleft.codepropertygraph.generated.NodeKeyNames.*
-import io.shiftleft.codepropertygraph.generated.NodeTypes.META_DATA
-import io.shiftleft.codepropertygraph.generated.NodeTypes.UNKNOWN
+import io.shiftleft.codepropertygraph.generated.NodeTypes.*
 import io.shiftleft.codepropertygraph.generated.nodes.NewMetaDataBuilder
 import io.shiftleft.codepropertygraph.generated.nodes.NewNodeBuilder
 import org.apache.logging.log4j.LogManager
@@ -24,7 +25,9 @@ import overflowdb.Config
 import overflowdb.Graph
 import overflowdb.Node
 import scala.jdk.CollectionConverters
-import java.io.*
+import java.io.ByteArrayOutputStream
+import java.io.IOException
+import java.io.PrintStream
 import java.lang.Thread.sleep
 import io.shiftleft.codepropertygraph.generated.edges.Factories as EdgeFactories
 import io.shiftleft.codepropertygraph.generated.nodes.Factories as NodeFactories
@@ -271,7 +274,8 @@ class TigerGraphDriver internal constructor() : IOverridenIdDriver, ISchemaSafeD
     }
 
     override fun getMethodNames(): List<String> {
-        TODO("Not yet implemented")
+        val result = get("query/$GRAPH_NAME/getMethodNames").first() as JSONObject
+        return (result["@@names"] as JSONArray?)?.map { it.toString() }?.toList() ?: emptyList()
     }
 
     override fun getProgramStructure(): Graph {
@@ -280,7 +284,8 @@ class TigerGraphDriver internal constructor() : IOverridenIdDriver, ISchemaSafeD
     }
 
     override fun getProgramTypeData(): Graph {
-        TODO("Not yet implemented")
+        val result = get("query/$GRAPH_NAME/getProgramTypeData")
+        return payloadToGraph(result)
     }
 
     override fun getNeighbours(v: NewNodeBuilder): Graph {
@@ -544,7 +549,7 @@ class TigerGraphDriver internal constructor() : IOverridenIdDriver, ISchemaSafeD
         // Handle vertices
         val cpgNodeBlacklist = listOf(LANGUAGE, VERSION, OVERLAYS, NODE_LABEL)
         val propertiesList = NodeKeyNames.ALL.filterNot(cpgNodeBlacklist::contains).toList()
-        propertiesList.forEachIndexed { i: Int, k: String->
+        propertiesList.forEachIndexed { i: Int, k: String ->
             when {
                 BOOLEAN_TYPES.contains(k) -> schema.append("\t_$k BOOL DEFAULT \"TRUE\"")
                 INT_TYPES.contains(k) -> schema.append("\t_$k INT DEFAULT -1")
@@ -611,136 +616,171 @@ class TigerGraphDriver internal constructor() : IOverridenIdDriver, ISchemaSafeD
          */
         private const val MAX_RETRY = 5
 
-        private const val QUERIES = """
-            CREATE QUERY areVerticesJoinedByEdge(VERTEX<CPG_VERT> V_FROM, VERTEX<CPG_VERT> V_TO, STRING EDGE_LABEL) FOR GRAPH <GRAPH_NAME> {
-              bool result;
-              setFrom = {ANY};
-              temp = SELECT tgt
-                      FROM setFrom:src -(:e)- :tgt
-                      WHERE src == V_FROM
-                        AND tgt == V_TO
-                        AND e.type == EDGE_LABEL;
-              result = (temp.size() > 0);
-              PRINT result;
-            }
-            
-            CREATE QUERY showAll() FOR GRAPH <GRAPH_NAME> {
-              SetAccum<EDGE> @@edges;
-              allVert = {ANY};
-              result = SELECT s
-                       FROM allVert:s -(:e)-> :t
-                       ACCUM @@edges += e;
-              PRINT allVert;
-              PRINT @@edges;
-            }
-            
-            CREATE QUERY getMethodHead(STRING FULL_NAME) FOR GRAPH <GRAPH_NAME> {
-              SetAccum<EDGE> @@edges;
-              allV = {ANY};
-              start = SELECT src
-                      FROM allV:src
-                      WHERE src._FULL_NAME == FULL_NAME AND src.label == "METHOD";
-              allVert = start;
-            
-              start = SELECT t
-                      FROM start:s -(_AST:e)-> :t
-                      ACCUM @@edges += e;
-              allVert = allVert UNION start;
-            
-              PRINT allVert;
-              PRINT @@edges;
-            }
-            
-            CREATE QUERY getMethod(STRING FULL_NAME) FOR GRAPH <GRAPH_NAME> SYNTAX v2 {
-              SetAccum<EDGE> @@edges;
-              allV = {ANY};
-              # Get method
-              start = SELECT src
-                      FROM allV:src
-                      WHERE src._FULL_NAME == FULL_NAME AND src.label == "METHOD";
-              allVert = start;
-              # Get method's body vertices
-              start = SELECT t
-                      FROM start:s -((_AST>|_REF>|_CFG>|_ARGUMENT>|_CAPTURED_BY>|_BINDS_TO>|_RECEIVER>|_CONDITION>|_BINDS>)*) - :t;
-              allVert = allVert UNION start;
-              # Get edges between body methods
-              finalEdges = SELECT t
-                           FROM allVert -((_AST>|_REF>|_CFG>|_ARGUMENT>|_CAPTURED_BY>|_BINDS_TO>|_RECEIVER>|_CONDITION>|_BINDS>):e)-:t
-                           ACCUM @@edges += e;
-              PRINT allVert;
-              PRINT @@edges;
-            }
-            
-            CREATE QUERY getProgramStructure() FOR GRAPH <GRAPH_NAME> SYNTAX v2 {
-              SetAccum<EDGE> @@edges;
-            
-              start = {CPG_VERT.*};
-              start = SELECT s
-                      FROM start:s
-                      WHERE s.label == "FILE" OR s.label == "TYPE_DECL" OR s.label == "NAMESPACE_BLOCK";
-              allVert = start;
-            
-              start = SELECT t
-                      FROM start:s -(_AST>*)- :t
-                      WHERE t.label == "NAMESPACE_BLOCK";
-              allVert = allVert UNION start;
-            
-              finalEdges = SELECT t
-                           FROM allVert -(_AST>:e)- :t
-                           WHERE t.label == "NAMESPACE_BLOCK"
-                           ACCUM @@edges += e;
-              start = {CPG_VERT.*};
-            
-              PRINT allVert;
-              PRINT @@edges;
-            }
-            
-            CREATE QUERY getNeighbours(VERTEX<CPG_VERT> SOURCE) FOR GRAPH <GRAPH_NAME> SYNTAX v2 {
-              SetAccum<EDGE> @@edges;
-              seed = {CPG_VERT.*};
-              sourceSet = {SOURCE};
-              outVert = SELECT tgt
-                        FROM seed:src -(:e)- CPG_VERT:tgt
-                        WHERE src == SOURCE
-                        ACCUM @@edges += e;
-              allVert = outVert UNION sourceSet;
-            
-              PRINT allVert;
-              PRINT @@edges;
-            }
-            
-            CREATE QUERY deleteMethod(STRING FULL_NAME) FOR GRAPH <GRAPH_NAME> SYNTAX v2 {
-              allV = {ANY};
-              # Get method
-              start = SELECT src
-                      FROM allV:src
-                      WHERE src._FULL_NAME == FULL_NAME;
-              allVert = start;
-              # Get method's body vertices
-              start = SELECT t
-                      FROM start:s -((_AST>|_REF>|_CFG>|_ARGUMENT>|_CAPTURED_BY>|_BINDS_TO>|_RECEIVER>|_CONDITION>|_BINDS>)*) - :t;
-              allVert = allVert UNION start;
-            
-              DELETE s FROM allVert:s;
-            }
-            
-            CREATE QUERY getVertexIds(INT LOWER_BOUND, INT UPPER_BOUND) FOR GRAPH <GRAPH_NAME> {
-              SetAccum<INT> @@ids;
-              start = {ANY};
-              result = SELECT src
-                  FROM start:src
-                  WHERE src.id >= LOWER_BOUND AND src.id <= UPPER_BOUND
-                  ACCUM @@ids += src.id;
-              PRINT @@ids;
-            }
-            
-            CREATE QUERY status() FOR GRAPH <GRAPH_NAME> {
-              INT status = 0;
-              PRINT status;
-            }
-            
-            INSTALL QUERY ALL
+        private val QUERIES: String by lazy {
+            """
+CREATE QUERY areVerticesJoinedByEdge(VERTEX<CPG_VERT> V_FROM, VERTEX<CPG_VERT> V_TO, STRING EDGE_LABEL) FOR GRAPH <GRAPH_NAME> {
+  bool result;
+  setFrom = {ANY};
+  temp = SELECT tgt
+          FROM setFrom:src -(:e)- :tgt
+          WHERE src == V_FROM
+            AND tgt == V_TO
+            AND e.type == EDGE_LABEL;
+  result = (temp.size() > 0);
+  PRINT result;
+}
+
+CREATE QUERY showAll() FOR GRAPH <GRAPH_NAME> {
+  SetAccum<EDGE> @@edges;
+  allVert = {ANY};
+  result = SELECT s
+           FROM allVert:s -(:e)-> :t
+           ACCUM @@edges += e;
+  PRINT allVert;
+  PRINT @@edges;
+}
+
+CREATE QUERY getMethodHead(STRING FULL_NAME) FOR GRAPH <GRAPH_NAME> {
+  SetAccum<EDGE> @@edges;
+  allV = {ANY};
+  start = SELECT src
+          FROM allV:src
+          WHERE src._FULL_NAME == FULL_NAME AND src.label == "METHOD";
+  allVert = start;
+
+  start = SELECT t
+          FROM start:s -(_AST:e)-> :t
+          ACCUM @@edges += e;
+  allVert = allVert UNION start;
+
+  PRINT allVert;
+  PRINT @@edges;
+}
+
+CREATE QUERY getMethod(STRING FULL_NAME) FOR GRAPH <GRAPH_NAME> SYNTAX v2 {
+  SetAccum<EDGE> @@edges;
+  allV = {ANY};
+  # Get method
+  start = SELECT src
+          FROM allV:src
+          WHERE src._FULL_NAME == FULL_NAME AND src.label == "METHOD";
+  allVert = start;
+  # Get method's body vertices
+  start = SELECT t
+          FROM start:s -((_AST>|_REF>|_CFG>|_ARGUMENT>|_CAPTURED_BY>|_BINDS_TO>|_RECEIVER>|_CONDITION>|_BINDS>)*) - :t;
+  allVert = allVert UNION start;
+  # Get edges between body methods
+  finalEdges = SELECT t
+               FROM allVert -((_AST>|_REF>|_CFG>|_ARGUMENT>|_CAPTURED_BY>|_BINDS_TO>|_RECEIVER>|_CONDITION>|_BINDS>):e)-:t
+               ACCUM @@edges += e;
+  PRINT allVert;
+  PRINT @@edges;
+}
+
+CREATE QUERY getMethodNames() FOR GRAPH <GRAPH_NAME> {
+  SetAccum<STRING> @@names;
+  allV = {ANY};
+  
+  result = SELECT s
+           FROM allV:s
+           WHERE s.label == "$METHOD"
+           ACCUM @@names += s._$FULL_NAME;
+  PRINT @@names;
+}
+
+CREATE QUERY getProgramStructure() FOR GRAPH <GRAPH_NAME> SYNTAX v2 {
+  SetAccum<EDGE> @@edges;
+
+  start = {CPG_VERT.*};
+  start = SELECT s
+          FROM start:s
+          WHERE s.label == "FILE" OR s.label == "TYPE_DECL" OR s.label == "NAMESPACE_BLOCK";
+  allVert = start;
+
+  start = SELECT t
+          FROM start:s -(_AST>*)- :t
+          WHERE t.label == "NAMESPACE_BLOCK";
+  allVert = allVert UNION start;
+
+  finalEdges = SELECT t
+               FROM allVert -(_AST>:e)- :t
+               WHERE t.label == "NAMESPACE_BLOCK"
+               ACCUM @@edges += e;
+
+  PRINT allVert;
+  PRINT @@edges;
+}
+
+CREATE QUERY getProgramTypeData() FOR GRAPH <GRAPH_NAME> SYNTAX v2 {
+  SetAccum<EDGE> @@edges;
+
+  start = {CPG_VERT.*};
+  start = SELECT s
+          FROM start:s
+          WHERE ${TYPE_REFERENCED_NODES.joinToString(" OR ") { "s.label == \"$it\"" }};
+  allVert = start;
+
+  start = SELECT t
+          FROM start:s -((${TYPE_REFERENCED_EDGES.joinToString("|") { s -> "_$s>" }}):e)- :t
+          WHERE ${TYPE_REFERENCED_NODES.joinToString(" OR ") { "t.label == \"$it\"" }};
+  allVert = allVert UNION start;
+
+  finalEdges = SELECT t
+               FROM allVert -((${TYPE_REFERENCED_EDGES.joinToString("|") { s -> "_$s>" }}):e)- :t
+               WHERE ${TYPE_REFERENCED_NODES.joinToString(" OR ") { "t.label == \"$it\"" }}
+               ACCUM @@edges += e;
+
+  PRINT allVert;
+  PRINT @@edges;
+}
+
+CREATE QUERY getNeighbours(VERTEX<CPG_VERT> SOURCE) FOR GRAPH <GRAPH_NAME> SYNTAX v2 {
+  SetAccum<EDGE> @@edges;
+  seed = {CPG_VERT.*};
+  sourceSet = {SOURCE};
+  outVert = SELECT tgt
+            FROM seed:src -(:e)- CPG_VERT:tgt
+            WHERE src == SOURCE
+            ACCUM @@edges += e;
+  allVert = outVert UNION sourceSet;
+
+  PRINT allVert;
+  PRINT @@edges;
+}
+
+CREATE QUERY deleteMethod(STRING FULL_NAME) FOR GRAPH <GRAPH_NAME> SYNTAX v2 {
+  allV = {ANY};
+  # Get method
+  start = SELECT src
+          FROM allV:src
+          WHERE src._FULL_NAME == FULL_NAME;
+  allVert = start;
+  # Get method's body vertices
+  start = SELECT t
+          FROM start:s -((_AST>|_REF>|_CFG>|_ARGUMENT>|_CAPTURED_BY>|_BINDS_TO>|_RECEIVER>|_CONDITION>|_BINDS>)*) - :t;
+  allVert = allVert UNION start;
+
+  DELETE s FROM allVert:s;
+}
+
+CREATE QUERY getVertexIds(INT LOWER_BOUND, INT UPPER_BOUND) FOR GRAPH <GRAPH_NAME> {
+  SetAccum<INT> @@ids;
+  start = {ANY};
+  result = SELECT src
+      FROM start:src
+      WHERE src.id >= LOWER_BOUND AND src.id <= UPPER_BOUND
+      ACCUM @@ids += src.id;
+  PRINT @@ids;
+}
+
+CREATE QUERY status() FOR GRAPH <GRAPH_NAME> {
+  INT status = 0;
+  PRINT status;
+}
+
+INSTALL QUERY ALL
 
         """
+        }
     }
 }

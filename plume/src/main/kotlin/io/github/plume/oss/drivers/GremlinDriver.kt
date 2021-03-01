@@ -213,8 +213,7 @@ abstract class GremlinDriver : IDriver {
             .bothE(
                 TYPE_REFERENCED_EDGES.first(),
                 *TYPE_REFERENCED_EDGES.copyOfRange(1, TYPE_REFERENCED_EDGES.size)
-            )
-            .toList()
+            ).dedup().toList()
         val graph = gremlinToPlume(tes)
         g.V().hasLabel(
             TYPE_REFERENCED_NODES.first(),

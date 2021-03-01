@@ -184,16 +184,30 @@ class OverflowDbDriver internal constructor() : IDriver {
 
     override fun getProgramTypeData(): Graph {
         val pg = newOverflowGraph()
-        graph.nodes(*TYPE_REFERENCED_NODES).asSequence().map { n ->
+        graph.nodes(*TYPE_REFERENCED_NODES).asSequence().forEach { n ->
             // Add vertices
-            val node = pg.addNode(n.id(), n.label())
-            n.propertyMap().forEach { (key, value) -> node.setProperty(key, value) }
-            n
-        }.forEach {
-            // Connect vertices
-            it.bothE(*TYPE_REFERENCED_EDGES).forEachRemaining { e ->
-                pg.node(e.outNode().id()).addEdge(it.label(), pg.node(e.inNode().id()))
+            if (pg.node(n.id()) == null) {
+                val node = pg.addNode(n.id(), n.label())
+                n.propertyMap().forEach { (key, value) -> node.setProperty(key, value) }
             }
+        }
+        TYPE_REFERENCED_EDGES.forEach { tre ->
+            graph.edges(tre).asSequence()
+                .map { e ->
+                    val srcNode = if (pg.node(e.outNode().id()) == null) {
+                        val s = pg.addNode(e.outNode().id(), e.outNode().label())
+                        e.outNode().propertyMap().forEach { (key, value) -> s.setProperty(key as String, value) }; s
+                    } else {
+                        pg.node(e.outNode().id())
+                    }
+                    val dstNode = if (pg.node(e.inNode().id()) == null) {
+                        val d = pg.addNode(e.inNode().id(), e.inNode().label())
+                        e.inNode().propertyMap().forEach { (key, value) -> d.setProperty(key as String, value) }; d
+                    } else {
+                        pg.node(e.inNode().id())
+                    }
+                    Triple(srcNode, dstNode, e.label())
+                }.forEach { (src, dst, e) -> pg.node(src.id()).addEdge(e, pg.node(dst.id())) }
         }
         return pg
     }
