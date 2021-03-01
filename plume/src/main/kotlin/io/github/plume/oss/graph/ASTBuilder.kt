@@ -135,15 +135,17 @@ class ASTBuilder(private val driver: IDriver) : IGraphBuilder {
      * @return the [NewCall] constructed.
      */
     private fun projectCallVertex(unit: InvokeExpr, childIdx: Int): NewNodeBuilder {
+        val signature = "${unit.type}(${unit.methodRef.parameterTypes.joinToString(separator = ",")})"
+        val code = "${unit.methodRef.name}(${unit.args.joinToString(separator = ", ")})"
         val callVertex = NewCallBuilder()
             .name(unit.methodRef.name)
-            .signature(unit.methodRef.signature)
-            .code("${unit.methodRef.name}(${unit.args.joinToString()})")
+            .methodFullName("${unit.methodRef.declaringClass}.${unit.methodRef.name}:$signature")
+            .signature(signature)
+            .code(code)
             .order(childIdx)
             .dynamicTypeHintFullName(createScalaList(unit.methodRef.returnType.toQuotedString()))
             .lineNumber(Option.apply(currentLine))
             .columnNumber(Option.apply(currentCol))
-            .methodFullName(unit.methodRef.toString().removeSurrounding("<", ">"))
             .argumentIndex(childIdx)
             .dispatchType(if (unit.methodRef.isStatic) STATIC_DISPATCH else DYNAMIC_DISPATCH)
             .typeFullName(unit.type.toString())

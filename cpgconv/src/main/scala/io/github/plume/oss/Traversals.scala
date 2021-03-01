@@ -12,25 +12,23 @@ import scala.jdk.CollectionConverters._
 
 object Traversals {
 
-  def deleteMethod(graph: Graph, fullName: String, signature: String): Unit = {
-    val nodesToDelete = Cpg(graph).method.fullNameExact(fullName).signatureExact(signature).ast.l
+  def deleteMethod(graph: Graph, fullName: String): Unit = {
+    val nodesToDelete = Cpg(graph).method.fullNameExact(fullName).ast.l
     nodesToDelete.foreach(v => graph.remove(v))
   }
 
-  def getMethod(graph: Graph, fullName: String, signature: String): util.List[Edge] = {
+  def getMethod(graph: Graph, fullName: String): util.List[Edge] = {
     Cpg(graph).method
       .fullNameExact(fullName)
-      .signatureExact(signature)
       .ast
       .outE(EdgeTypes.AST, EdgeTypes.CFG, EdgeTypes.ARGUMENT, EdgeTypes.REF)
       .l
       .asJava
   }
 
-  def getMethodStub(graph: Graph, fullName: String, signature: String): util.List[Edge] = {
+  def getMethodStub(graph: Graph, fullName: String): util.List[Edge] = {
     Cpg(graph).method
       .fullNameExact(fullName)
-      .signatureExact(signature)
       .outE(EdgeTypes.AST)
       .l
       .asJava

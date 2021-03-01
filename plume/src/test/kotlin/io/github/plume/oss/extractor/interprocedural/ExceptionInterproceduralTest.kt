@@ -45,8 +45,7 @@ class ExceptionInterproceduralTest {
         val f = File(resourceDir)
         extractor.load(f).project().postProject()
         g = driver.getMethod(
-            "intraprocedural.exception.Exception$currentTestNumber.main",
-            "void main(java.lang.String[])",
+            "intraprocedural.exception.Exception$currentTestNumber.main:void(java.lang.String[])",
             includeBody = true
         )
     }

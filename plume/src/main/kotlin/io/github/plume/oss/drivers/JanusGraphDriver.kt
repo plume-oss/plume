@@ -41,6 +41,7 @@ class JanusGraphDriver internal constructor() : GremlinDriver(), ISchemaSafeDriv
         require(config.containsKey(REMOTE_CONFIG)) { "Remote config path not set! See the config field in JanusGraphDriver with key REMOTE_CONFIG." }
         // Test that the connection works and then close again
         super.g = AnonymousTraversalSource.traversal().withRemote(config.getString(REMOTE_CONFIG))
+        super.graph = super.g.graph
         connected = true
     }
 
@@ -72,7 +73,7 @@ class JanusGraphDriver internal constructor() : GremlinDriver(), ISchemaSafeDriv
     override fun prepareVertexProperties(v: NewNodeBuilder): Map<String, Any> =
         super.prepareVertexProperties(v).mapKeys { "_${it.key}" }.toMap()
 
-    override fun mapVertexKeys(props: MutableMap<Any, Any>) = props.mapKeys { it.key.toString().removePrefix("_") }
+    override fun mapVertexKeys(props: Map<Any, Any>) = props.mapKeys { it.key.toString().removePrefix("_") }
 
     override fun buildSchema() {
         val propFileConfig = PropertiesConfiguration(config.getString(REMOTE_CONFIG))

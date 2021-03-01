@@ -285,14 +285,14 @@ class Neo4jDriver internal constructor() : IDriver {
         return sNode
     }
 
-    override fun getMethod(fullName: String, signature: String, includeBody: Boolean): Graph {
+    override fun getMethod(fullName: String, includeBody: Boolean): Graph {
         val queryHead = if (!includeBody) """
-            MATCH (root:$METHOD {FULL_NAME:'$fullName', SIGNATURE:'$signature'})-[r1:$AST]->(child)
+            MATCH (root:$METHOD {FULL_NAME:'$fullName'})-[r1:$AST]->(child)
                     WITH DISTINCT r1 AS coll
         """.trimIndent()
         else
             """
-            MATCH (root:$METHOD {FULL_NAME:'$fullName', SIGNATURE:'$signature'})-[r1:$AST*0..]->(child)-[r2]->(n1) 
+            MATCH (root:$METHOD {FULL_NAME:'$fullName'})-[r1:$AST*0..]->(child)-[r2]->(n1) 
                 WHERE NOT (child)-[:SOURCE_FILE]-(n1)
             OPTIONAL MATCH (root)-[r3]->(n2) WHERE NOT (root)-[:SOURCE_FILE]-(n2)  
             WITH DISTINCT (r1 + r2 + r3) AS coll
@@ -423,13 +423,13 @@ class Neo4jDriver internal constructor() : IDriver {
         }
     }
 
-    override fun deleteMethod(fullName: String, signature: String) {
+    override fun deleteMethod(fullName: String) {
         driver.session().use { session ->
             session.writeTransaction { tx ->
                 tx.run(
                     """
                     MATCH (a)-[r:${AST}*]->(t)
-                    WHERE a.FULL_NAME = "$fullName" AND a.SIGNATURE = "$signature"
+                    WHERE a.FULL_NAME = "$fullName"
                     FOREACH (x IN r | DELETE x)
                     DETACH DELETE a, t
                     """.trimIndent()

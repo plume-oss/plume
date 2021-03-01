@@ -18,13 +18,12 @@ import org.apache.tinkerpop.gremlin.process.traversal.dsl.graph.GraphTraversalSo
 import org.apache.tinkerpop.gremlin.process.traversal.step.util.WithOptions
 import org.apache.tinkerpop.gremlin.structure.Edge
 import org.apache.tinkerpop.gremlin.structure.Graph
-import org.apache.tinkerpop.gremlin.structure.T
 import org.apache.tinkerpop.gremlin.structure.Vertex
 import org.apache.tinkerpop.gremlin.tinkergraph.structure.TinkerGraph
 import overflowdb.Config
+import overflowdb.Node
 import scala.collection.immutable.`$colon$colon`
 import scala.jdk.CollectionConverters
-import kotlin.streams.toList
 import io.shiftleft.codepropertygraph.generated.edges.Factories as EdgeFactories
 import io.shiftleft.codepropertygraph.generated.nodes.Factories as NodeFactories
 import org.apache.tinkerpop.gremlin.process.traversal.dsl.graph.`__` as un
@@ -147,43 +146,50 @@ abstract class GremlinDriver : IDriver {
      */
     private fun createEdge(v1: Vertex, edge: String, v2: Vertex) = g.V(v1.id()).addE(edge).to(g.V(v2.id())).next()
 
-    override fun getWholeGraph(): overflowdb.Graph = gremlinToPlume(g)
-
-    override fun getMethod(fullName: String, signature: String, includeBody: Boolean): overflowdb.Graph {
-        if (includeBody) return getMethodWithBody(fullName, signature)
-        val methodSubgraph = g.V().hasLabel(Method.Label())
-            .let {
-                if (this !is JanusGraphDriver) it.has(FULL_NAME, fullName).has(SIGNATURE, signature)
-                else it.has("_$FULL_NAME", fullName).has("_$SIGNATURE", signature)
+    override fun getWholeGraph(): overflowdb.Graph {
+        val graph = newOverflowGraph()
+        g.V().valueMap<Any>()
+            .by(un.unfold<Any>())
+            .with(WithOptions.tokens).toList().map { VertexMapper.mapToVertex(mapVertexKeys(it)) }
+            .forEach { addNodeToODB(graph, it) }
+        g.E().toList()
+            .map { Triple(graph.node(it.outVertex().id() as Long), graph.node(it.inVertex().id() as Long), it.label()) }
+            .forEach { (src, dst, e) ->
+                src?.addEdge(e, dst)
             }
-            .outE(AST)
-            .subgraph("sg")
-            .cap<Graph>("sg")
-            .next()
-        return gremlinToPlume(methodSubgraph.traversal())
+        return graph
     }
 
-    private fun getMethodWithBody(fullName: String, signature: String): overflowdb.Graph {
+    override fun getMethod(fullName: String, includeBody: Boolean): overflowdb.Graph {
+        if (includeBody) return getMethodWithBody(fullName)
         val methodSubgraph = g.V().hasLabel(Method.Label())
             .let {
-                if (this !is JanusGraphDriver) it.has(FULL_NAME, fullName).has(SIGNATURE, signature)
-                else it.has("_$FULL_NAME", fullName).has("_$SIGNATURE", signature)
+                if (this !is JanusGraphDriver) it.has(FULL_NAME, fullName)
+                else it.has("_$FULL_NAME", fullName)
+            }
+            .outE(AST)
+            .toList()
+        return gremlinToPlume(methodSubgraph)
+    }
+
+    private fun getMethodWithBody(fullName: String): overflowdb.Graph {
+        val methodSubgraph = g.V().hasLabel(Method.Label())
+            .let {
+                if (this !is JanusGraphDriver) it.has(FULL_NAME, fullName)
+                else it.has("_$FULL_NAME", fullName)
             }
             .repeat(un.outE(AST).inV()).emit()
             .inE()
-            .subgraph("sg")
-            .cap<Graph>("sg")
-            .next()
-        return gremlinToPlume(methodSubgraph.traversal())
+            .toList()
+        return gremlinToPlume(methodSubgraph)
     }
 
     override fun getProgramStructure(): overflowdb.Graph {
-        val sg = g.V().hasLabel(FILE)
+        val fes = g.V().hasLabel(FILE)
             .repeat(un.outE(AST).inV()).emit()
             .inE()
-            .subgraph("sg")
-            .cap<Graph>("sg")
-            .next()
+            .toList()
+        val graph = gremlinToPlume(fes)
         // Transfer type decl vertices to the result, this needs to be done with the tokens step to get all properties
         // from the remote server
         g.V().hasLabel(TYPE_DECL, FILE, NAMESPACE_BLOCK)
@@ -191,14 +197,9 @@ abstract class GremlinDriver : IDriver {
             .valueMap<String>()
             .with(WithOptions.tokens)
             .by(un.unfold<Any>())
-            .toStream()
-            .filter { !sg.traversal().V(it[T.id]).hasNext() }
-            .map { Pair(sg.addVertex(T.label, it[T.label], T.id, it[T.id]), it as Map<*, *>) }
-            .forEach { (v, map) ->
-                map.filter { it.key != T.id && it.key != T.label }
-                    .forEach { (key, value) -> v.property(key.toString(), value) }
-            }
-        return gremlinToPlume(sg.traversal())
+            .toList()
+            .forEach { addNodeToODB(graph, VertexMapper.mapToVertex(mapVertexKeys(it))) }
+        return graph
     }
 
     override fun getNeighbours(v: NewNodeBuilder): overflowdb.Graph {
@@ -211,10 +212,8 @@ abstract class GremlinDriver : IDriver {
             .repeat(un.outE(AST).bothV())
             .times(1)
             .inE()
-            .subgraph("sg")
-            .cap<Graph>("sg")
-            .next()
-        return gremlinToPlume(neighbourSubgraph.traversal())
+            .toList()
+        return gremlinToPlume(neighbourSubgraph)
     }
 
     override fun deleteVertex(id: Long, label: String?) {
@@ -227,11 +226,11 @@ abstract class GremlinDriver : IDriver {
         g.V(src.id()).outE(edge).where(un.otherV().hasId(tgt.id())).drop().iterate()
     }
 
-    override fun deleteMethod(fullName: String, signature: String) {
+    override fun deleteMethod(fullName: String) {
         val methodV = g.V().hasLabel(METHOD)
             .let {
-                if (this !is JanusGraphDriver) it.has(FULL_NAME, fullName).has(SIGNATURE, signature)
-                else it.has("_$FULL_NAME", fullName).has("_$SIGNATURE", signature)
+                if (this !is JanusGraphDriver) it.has(FULL_NAME, fullName)
+                else it.has("_$FULL_NAME", fullName)
             }
             .tryNext()
         if (methodV.isPresent) {
@@ -263,44 +262,33 @@ abstract class GremlinDriver : IDriver {
         }
     }
 
-    protected open fun mapVertexKeys(props: MutableMap<Any, Any>) = props.mapKeys { it.key.toString() }
+    protected open fun mapVertexKeys(props: Map<Any, Any>) = props.mapKeys { it.key.toString() }
 
-    /**
-     * Converts a [GraphTraversalSource] instance to a [overflowdb.Graph] instance.
-     *
-     * @param g A [GraphTraversalSource] from the subgraph to convert.
-     * @return The resulting [overflowdb.Graph].
-     */
-    private fun gremlinToPlume(g: GraphTraversalSource): overflowdb.Graph {
+    private fun gremlinToPlume(es: List<Edge>): overflowdb.Graph {
         val overflowGraph = newOverflowGraph()
-        val f = { gt: GraphTraversal<Edge, Vertex> ->
-            mapVertexKeys(
-                gt.valueMap<Any>()
-                    .by(un.unfold<Any>())
-                    .with(WithOptions.tokens)
-                    .next()
+        es.map {
+            Triple(
+                g.V(it.outVertex().id()).valueMap<Any>().with(WithOptions.tokens).by(un.unfold<Any>()).next(),
+                g.V(it.inVertex().id()).valueMap<Any>().with(WithOptions.tokens).by(un.unfold<Any>()).next(),
+                it.label()
             )
-        }
-        val vertices = g.V().valueMap<Any>()
-            .with(WithOptions.tokens)
-            .by(un.unfold<Any>()).toStream()
-            .map { props ->
-                val nodeBuilder = VertexMapper.mapToVertex(mapVertexKeys(props))
-                val builtNode = nodeBuilder.build()
-                val n = overflowGraph.addNode(nodeBuilder.id(), builtNode.label())
-                builtNode.properties().foreachEntry { key, value -> n.setProperty(key, value) }
-                Pair(n.id(), n)
-            }.toList().toMap()
-        g.E().barrier().valueMap<String>()
-            .with(WithOptions.tokens)
-            .by(un.unfold<Any>())
-            .forEach {
-                val edgeLabel = it[T.label].toString()
-                val plumeSrc = vertices[VertexMapper.mapToVertex(f(g.E(it[T.id]).outV())).id()]
-                val plumeTgt = vertices[VertexMapper.mapToVertex(f(g.E(it[T.id]).inV())).id()]
-                plumeSrc?.addEdge(edgeLabel, plumeTgt)
-            }
+        }.map { (src, dst, e) ->
+            Triple(
+                addNodeToODB(overflowGraph, VertexMapper.mapToVertex(mapVertexKeys(src))),
+                addNodeToODB(overflowGraph, VertexMapper.mapToVertex(mapVertexKeys(dst))),
+                e
+            )
+        }.forEach { (src, dst, e) -> src?.addEdge(e, dst) }
         return overflowGraph
+    }
+
+    private fun addNodeToODB(graph: overflowdb.Graph, nBuilder: NewNodeBuilder): Node? {
+        val n = nBuilder.build()
+        val maybeNode = graph.node(nBuilder.id())
+        return if (maybeNode != null) return maybeNode
+        else graph.addNode(nBuilder.id(), n.label()).apply {
+            n.properties().foreachEntry { key, value -> this.setProperty(key, value) }
+        }
     }
 
     private fun newOverflowGraph(): overflowdb.Graph = overflowdb.Graph.open(

@@ -18,10 +18,7 @@ package io.github.plume.oss
 import io.github.plume.oss.domain.exceptions.PlumeCompileException
 import io.github.plume.oss.domain.files.*
 import io.github.plume.oss.domain.mappers.VertexMapper.mapToVertex
-import io.github.plume.oss.drivers.GremlinDriver
-import io.github.plume.oss.drivers.IDriver
-import io.github.plume.oss.drivers.Neo4jDriver
-import io.github.plume.oss.drivers.OverflowDbDriver
+import io.github.plume.oss.drivers.*
 import io.github.plume.oss.graph.ASTBuilder
 import io.github.plume.oss.graph.CFGBuilder
 import io.github.plume.oss.graph.CallGraphBuilder
@@ -159,22 +156,19 @@ class Extractor(val driver: IDriver) {
          * Saves call graph edges to the [NewMethod] from the [NewCall].
          *
          * @param fullName The method full name.
-         * @param signature The method signature.
          * @param call The source [NewCall].
          */
-        fun saveCallGraphEdge(fullName: String, signature: String, call: NewCallBuilder) {
-            val key = "$fullName$signature"
-            if (!savedCallGraphEdges.containsKey(key)) savedCallGraphEdges[key] = mutableListOf(call)
-            else savedCallGraphEdges[key]?.add(call)
+        fun saveCallGraphEdge(fullName: String, call: NewCallBuilder) {
+            if (!savedCallGraphEdges.containsKey(fullName)) savedCallGraphEdges[fullName] = mutableListOf(call)
+            else savedCallGraphEdges[fullName]?.add(call)
         }
 
         /**
          * Retrieves all the incoming [NewCall]s from the given [NewMethod].
          *
          * @param fullName The method full name.
-         * @param signature The method signature.
          */
-        fun getIncomingCallGraphEdges(fullName: String, signature: String) = savedCallGraphEdges["$fullName$signature"]
+        fun getIncomingCallGraphEdges(fullName: String) = savedCallGraphEdges[fullName]
     }
 
     /**
@@ -504,7 +498,7 @@ class Extractor(val driver: IDriver) {
                             "Deleting method and saving incoming call graph edges for " +
                                     "${mtd1.fullName()} ${mtd1.signature()}"
                         )
-                        driver.getMethod(mtd1.fullName(), mtd1.signature(), false).use { g ->
+                        driver.getMethod(mtd1.fullName(), false).use { g ->
                             g.nodes { it == Method.Label() }.asSequence().firstOrNull()?.let { mtdV: Node ->
                                 val mtd2 = mapToVertex(mtdV) as NewMethodBuilder
                                 val builtMtd2 = mtd2.build()
@@ -515,7 +509,6 @@ class Extractor(val driver: IDriver) {
                                             .forEach {
                                                 saveCallGraphEdge(
                                                     builtMtd2.fullName(),
-                                                    builtMtd2.signature(),
                                                     mapToVertex(it) as NewCallBuilder
                                                 )
                                             }
@@ -523,7 +516,7 @@ class Extractor(val driver: IDriver) {
                                 }
                             }
                         }
-                        driver.deleteMethod(mtd1.fullName(), mtd1.signature())
+                        driver.deleteMethod(mtd1.fullName())
                     }
                 }
                 logger.debug("Deleting $fileV")

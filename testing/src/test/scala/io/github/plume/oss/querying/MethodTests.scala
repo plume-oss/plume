@@ -4,7 +4,7 @@ import io.shiftleft.semanticcpg.language._
 
 class MethodTests extends PlumeCodeToCpgSuite {
 
-  override val code =
+  override val code: String =
     """ class Foo {
       |  int foo(int param1, int param2) {
       | return 1;
@@ -15,9 +15,9 @@ class MethodTests extends PlumeCodeToCpgSuite {
   "should contain exactly one method node with correct fields" in {
     val List(x) = cpg.method.nameNot("<init>").l
     x.name shouldBe "foo"
-    x.fullName shouldBe "Foo.foo"
-    // x.code shouldBe "int foo (int param1,int param2)"
-    x.signature shouldBe "int foo(int,int)"
+    x.fullName shouldBe "Foo.foo:int(int,int)"
+    x.code shouldBe "int foo(int param1, int param2)"
+    x.signature shouldBe "int(int,int)"
     x.isExternal shouldBe false
     x.order shouldBe 1
     x.filename.startsWith("/") shouldBe true

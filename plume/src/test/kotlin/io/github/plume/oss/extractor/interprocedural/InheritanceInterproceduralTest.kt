@@ -51,24 +51,24 @@ class InheritanceInterproceduralTest {
         val ns = g.nodes().asSequence().toList()
         val mtd = ns.filterIsInstance<Method>()
         val calls = ns.filterIsInstance<Call>()
-        mtd.first { it.fullName() == "interprocedural.inheritance.Base.<init>" && it.signature() == "void <init>()" }
+        mtd.first { it.fullName() == "interprocedural.inheritance.Base.<init>:void()" }
             .apply { assertNotNull(this) }
-        mtd.first { it.fullName() == "interprocedural.inheritance.Derived.<init>" && it.signature() == "void <init>()" }
+        mtd.first { it.fullName() == "interprocedural.inheritance.Derived.<init>:void()" }
             .apply { assertNotNull(this) }
-        mtd.first { it.fullName() == "interprocedural.inheritance.Base.show" && it.signature() == "void show()" }
+        mtd.first { it.fullName() == "interprocedural.inheritance.Base.show:void()" }
             .apply { assertNotNull(this) }
-        mtd.first { it.fullName() == "interprocedural.inheritance.Derived.show" && it.signature() == "void show()" }
+        mtd.first { it.fullName() == "interprocedural.inheritance.Derived.show:void()" }
             .apply { assertNotNull(this) }
-        calls.filter { it.methodFullName() == "interprocedural.inheritance.Base: void <init>()" }
+        calls.filter { it.methodFullName() == "interprocedural.inheritance.Base.<init>:void()" }
             .apply { assertEquals(2, this.toList().size) }
             .forEach { assertFalse(g.V(it.id()).next().outE(CALL).hasNext()) }
-        calls.filter { it.methodFullName() == "interprocedural.inheritance.Derived: void <init>()" }
+        calls.filter { it.methodFullName() == "interprocedural.inheritance.Derived.<init>:void()" }
             .apply { assertEquals(2, this.toList().size) }
             .forEach { assertFalse(g.V(it.id()).next().outE(CALL).hasNext()) }
-        calls.filter { it.methodFullName() == "interprocedural.inheritance.Base: void show()" }
+        calls.filter { it.methodFullName() == "interprocedural.inheritance.Base.show:void()" }
             .apply { assertEquals(2, this.toList().size) }
             .forEach { assertFalse(g.V(it.id()).next().outE(CALL).hasNext()) }
-        calls.filter { it.methodFullName() == "interprocedural.inheritance.Derived: void show()" }
+        calls.filter { it.methodFullName() == "interprocedural.inheritance.Derived.show:void()" }
             .apply { assertEquals(1, this.toList().size) }
             .forEach { assertFalse(g.V(it.id()).next().outE(CALL).hasNext()) }
     }
@@ -87,24 +87,24 @@ class InheritanceInterproceduralTest {
         val mtd = ns.filterIsInstance<Method>()
         val calls = ns.filterIsInstance<Call>()
         val baseInit =
-            mtd.first { it.fullName() == "interprocedural.inheritance.Base.<init>" && it.signature() == "void <init>()" }
+            mtd.first { it.fullName() == "interprocedural.inheritance.Base.<init>:void()" }
                 .apply { assertNotNull(this) }
         val derivedInit =
-            mtd.first { it.fullName() == "interprocedural.inheritance.Derived.<init>" && it.signature() == "void <init>()" }
+            mtd.first { it.fullName() == "interprocedural.inheritance.Derived.<init>:void()" }
                 .apply { assertNotNull(this) }
         val baseShow =
-            mtd.first { it.fullName() == "interprocedural.inheritance.Base.show" && it.signature() == "void show()" }
+            mtd.first { it.fullName() == "interprocedural.inheritance.Base.show:void()" }
                 .apply { assertNotNull(this) }
         val derivedShow =
-            mtd.first { it.fullName() == "interprocedural.inheritance.Derived.show" && it.signature() == "void show()" }
+            mtd.first { it.fullName() == "interprocedural.inheritance.Derived.show:void()" }
                 .apply { assertNotNull(this) }
-        calls.filter { it.methodFullName() == "interprocedural.inheritance.Base: void <init>()" }
+        calls.filter { it.methodFullName() == "interprocedural.inheritance.Base.<init>:void()" }
             .apply { assertEquals(2, this.toList().size) }
             .forEach { assertTrue(g.V(it.id()).next().out(CALL).asSequence().any { c -> c.id() == baseInit.id() }) }
-        calls.filter { it.methodFullName() == "interprocedural.inheritance.Derived: void <init>()" }
+        calls.filter { it.methodFullName() == "interprocedural.inheritance.Derived.<init>:void()" }
             .apply { assertEquals(2, this.toList().size) }
             .forEach { assertTrue(g.V(it.id()).next().out(CALL).asSequence().any { c -> c.id() == derivedInit.id() }) }
-        calls.filter { it.methodFullName() == "interprocedural.inheritance.Base: void show()" }
+        calls.filter { it.methodFullName() == "interprocedural.inheritance.Base.show:void()" }
             .apply { assertEquals(2, this.toList().size) }
             .forEach { call ->
                 val cs = g.V(call.id()).next().out(CALL).asSequence().toList()
@@ -115,7 +115,7 @@ class InheritanceInterproceduralTest {
                     assertTrue(cs.any { it.id() == derivedShow.id() })
                 }
             }
-        calls.filter { it.methodFullName() == "interprocedural.inheritance.Derived: void show()" }
+        calls.filter { it.methodFullName() == "interprocedural.inheritance.Derived.show:void()" }
             .apply { assertEquals(1, this.toList().size) }
             .forEach { c -> assertTrue(g.V(c.id()).next().out(CALL).asSequence().any { it.id() == derivedShow.id() }) }
     }
@@ -134,24 +134,24 @@ class InheritanceInterproceduralTest {
         val mtd = ns.filterIsInstance<Method>()
         val calls = ns.filterIsInstance<Call>()
         val baseInit =
-            mtd.first { it.fullName() == "interprocedural.inheritance.Base.<init>" && it.signature() == "void <init>()" }
+            mtd.first { it.fullName() == "interprocedural.inheritance.Base.<init>:void()" }
                 .apply { assertNotNull(this) }
         val derivedInit =
-            mtd.first { it.fullName() == "interprocedural.inheritance.Derived.<init>" && it.signature() == "void <init>()" }
+            mtd.first { it.fullName() == "interprocedural.inheritance.Derived.<init>:void()" }
                 .apply { assertNotNull(this) }
         val baseShow =
-            mtd.first { it.fullName() == "interprocedural.inheritance.Base.show" && it.signature() == "void show()" }
+            mtd.first { it.fullName() == "interprocedural.inheritance.Base.show:void()" }
                 .apply { assertNotNull(this) }
         val derivedShow =
-            mtd.first { it.fullName() == "interprocedural.inheritance.Derived.show" && it.signature() == "void show()" }
+            mtd.first { it.fullName() == "interprocedural.inheritance.Derived.show:void()" }
                 .apply { assertNotNull(this) }
-        calls.filter { it.methodFullName() == "interprocedural.inheritance.Base: void <init>()" }
+        calls.filter { it.methodFullName() == "interprocedural.inheritance.Base.<init>:void()" }
             .apply { assertEquals(2, this.toList().size) }
             .forEach { c -> assertTrue(g.V(c.id()).next().out(CALL).asSequence().any { it.id() == baseInit.id() }) }
-        calls.filter { it.methodFullName() == "interprocedural.inheritance.Derived: void <init>()" }
+        calls.filter { it.methodFullName() == "interprocedural.inheritance.Derived.<init>:void()" }
             .apply { assertEquals(2, this.toList().size) }
             .forEach { c -> assertTrue(g.V(c.id()).next().out(CALL).asSequence().any { it.id() == derivedInit.id() }) }
-        calls.filter { it.methodFullName() == "interprocedural.inheritance.Base: void show()" }
+        calls.filter { it.methodFullName() == "interprocedural.inheritance.Base.show:void()" }
             .apply { assertEquals(2, this.toList().size) }
             .let { cs ->
                 assertTrue(cs.any { c ->
@@ -159,7 +159,7 @@ class InheritanceInterproceduralTest {
                 })
                 assertTrue(cs.any { c -> g.V(c.id()).next().out(CALL).asSequence().any { it.id() == baseShow.id() } })
             }
-        calls.filter { it.methodFullName() == "interprocedural.inheritance.Derived: void show()" }
+        calls.filter { it.methodFullName() == "interprocedural.inheritance.Derived.show:void()" }
             .apply { assertEquals(1, this.toList().size) }
             .let { cs ->
                 assertTrue(cs.any { c ->

@@ -67,12 +67,11 @@ interface IDriver : AutoCloseable {
     /**
      * Given the full signature of a method, returns the subgraph of the method body.
      *
-     * @param fullName The fully qualified name e.g. interprocedural.basic.Basic4.f
-     * @param signature The method signature e.g. int f(int, int)
+     * @param fullName The fully qualified name with signature e.g. interprocedural.basic.Basic4.f:int(int,int)
      * @param includeBody True if the body should be included, false if only method head should be included.
      * @return The [Graph] containing the method graph.
      */
-    fun getMethod(fullName: String, signature: String, includeBody: Boolean = false): Graph
+    fun getMethod(fullName: String, includeBody: Boolean = false): Graph
 
     /**
      * Obtains all program structure related vertices. These are NAMESPACE_BLOCK, FILE, and TYPE_DECL vertices.
@@ -100,10 +99,9 @@ interface IDriver : AutoCloseable {
     /**
      * Given the full signature of a method, removes the method and its body from the graph.
      *
-     * @param fullName The fully qualified name e.g. interprocedural.basic.Basic4.f
-     * @param signature The method signature e.g. int f(int, int)
+     * @param fullName The fully qualified name with signature e.g. interprocedural.basic.Basic4.f:int(int,int)
      */
-    fun deleteMethod(fullName: String, signature: String)
+    fun deleteMethod(fullName: String)
 
     /**
      * Given two vertices and an edge label.
@@ -151,7 +149,7 @@ interface IOverridenIdDriver : IDriver {
 /**
  * Interface for drivers on top of databases that allow for schemas to be set.
  */
-interface ISchemaSafeDriver {
+interface ISchemaSafeDriver : IDriver {
     /**
      * Builds and installs the CPG schema in the target database. The schema executed is from
      * [ISchemaSafeDriver.buildSchemaPayload].

@@ -494,7 +494,7 @@ class TinkerGraphDriverIntTest {
         @Test
         fun testGetEmptyMethodBody() {
             driver.clearGraph()
-            g = driver.getMethod(methodVertex.build().fullName(), methodVertex.build().signature())
+            g = driver.getMethod(methodVertex.build().fullName())
             val ns = g.nodes().asSequence().toList()
             val es = g.edges().asSequence().toList()
             assertEquals(0, ns.size)
@@ -503,7 +503,7 @@ class TinkerGraphDriverIntTest {
 
         @Test
         fun testGetMethodHeadOnly() {
-            g = driver.getMethod(methodVertex.build().fullName(), methodVertex.build().signature(), false)
+            g = driver.getMethod(methodVertex.build().fullName(), false)
             val ns = g.nodes().asSequence().toList()
             val es = g.edges().asSequence().toList()
             assertEquals(6, ns.size)
@@ -531,7 +531,7 @@ class TinkerGraphDriverIntTest {
 
         @Test
         fun testGetMethodBody() {
-            g = driver.getMethod(methodVertex.build().fullName(), methodVertex.build().signature(), true)
+            g = driver.getMethod(methodVertex.build().fullName(), true)
             val ns = g.nodes().asSequence().toList()
             val es = g.edges().asSequence().toList()
             assertEquals(15, ns.size)
@@ -660,7 +660,7 @@ class TinkerGraphDriverIntTest {
         @Test
         fun testMethodDelete() {
             assertTrue(driver.exists(methodVertex))
-            driver.deleteMethod(methodVertex.build().fullName(), methodVertex.build().signature())
+            driver.deleteMethod(methodVertex.build().fullName())
             assertFalse(driver.exists(methodVertex))
             assertFalse(driver.exists(literalVertex))
             assertFalse(driver.exists(returnVertex))
@@ -669,7 +669,7 @@ class TinkerGraphDriverIntTest {
             assertFalse(driver.exists(blockVertex))
             assertFalse(driver.exists(callVertex))
             // Check that deleting a method doesn't throw any error
-            driver.deleteMethod(methodVertex.build().fullName(), methodVertex.build().signature())
+            driver.deleteMethod(methodVertex.build().fullName())
         }
     }
 

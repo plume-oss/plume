@@ -134,9 +134,9 @@ class OverflowDbDriver internal constructor() : IDriver {
         return result
     }
 
-    override fun getMethod(fullName: String, signature: String, includeBody: Boolean): Graph {
-        if (includeBody) return deepCopyGraph(Traversals.getMethod(graph, fullName, signature))
-        return deepCopyGraph(Traversals.getMethodStub(graph, fullName, signature))
+    override fun getMethod(fullName: String, includeBody: Boolean): Graph {
+        if (includeBody) return deepCopyGraph(Traversals.getMethod(graph, fullName))
+        return deepCopyGraph(Traversals.getMethodStub(graph, fullName))
     }
 
     private fun deepCopyGraph(edges: List<Edge>): Graph {
@@ -190,7 +190,7 @@ class OverflowDbDriver internal constructor() : IDriver {
         if (e?.inNode()?.id() == tgt.id()) e.remove()
     }
 
-    override fun deleteMethod(fullName: String, signature: String) = Traversals.deleteMethod(graph, fullName, signature)
+    override fun deleteMethod(fullName: String) = Traversals.deleteMethod(graph, fullName)
 
     override fun updateVertexProperty(id: Long, label: String?, key: String, value: Any) {
         val node = graph.node(id) ?: return

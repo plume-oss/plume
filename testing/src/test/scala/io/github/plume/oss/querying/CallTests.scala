@@ -7,7 +7,7 @@ import io.shiftleft.semanticcpg.language._
 
 class CallTests extends PlumeCodeToCpgSuite {
 
-  implicit val resolver = NoResolve
+  implicit val resolver: ICallResolver = NoResolve
 
   override val code = """
        class Foo {
@@ -27,9 +27,9 @@ class CallTests extends PlumeCodeToCpgSuite {
     x.name shouldBe "add"
     x.order shouldBe 1
     x.methodInstFullName shouldBe None // Deprecated
-    x.methodFullName shouldBe "Foo: int add(int,int)"
+    x.methodFullName shouldBe "Foo.add:int(int,int)"
+    x.signature shouldBe "int(int,int)"
     x.argumentIndex shouldBe 1
-    // TODO x.signature
     // x.typeFullName : deprecated
     x.lineNumber shouldBe Some(8)
   }
