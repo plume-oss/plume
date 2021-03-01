@@ -4,7 +4,7 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](http://keepachangelog.com/)
 and this project adheres to [Semantic Versioning](http://semver.org/).
 
-## [0.2.6] - xxxx-xx-xx
+## [0.2.6] - 2021-03-01
 
 ### Changed
 - Changed subgraph-style results to list of edge results in order to improve performance in `GremlinDriver`
