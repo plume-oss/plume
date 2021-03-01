@@ -4,6 +4,14 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](http://keepachangelog.com/)
 and this project adheres to [Semantic Versioning](http://semver.org/).
 
+## [0.2.6] - xxxx-xx-xx
+
+### Changed
+- Changed subgraph-style results to list of edge results in order to improve performance in `GremlinDriver`
+
+### Fixed
+- `Call` vertices not containing consistent full names and signatures as `Method` vertices. Resolves #76.
+
 ## [0.2.5] - 2021-02-28
 
 ### Changed
