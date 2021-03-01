@@ -18,6 +18,7 @@ package io.github.plume.oss.graph
 import io.github.plume.oss.Extractor
 import io.github.plume.oss.Extractor.Companion.getSootAssociation
 import io.github.plume.oss.drivers.IDriver
+import io.github.plume.oss.util.SootToPlumeUtil
 import io.github.plume.oss.util.SootToPlumeUtil.constructPhantom
 import io.shiftleft.codepropertygraph.generated.EdgeTypes.CALL
 import io.shiftleft.codepropertygraph.generated.NodeTypes.METHOD
@@ -79,11 +80,7 @@ class CallGraphBuilder(private val driver: IDriver) : IGraphBuilder {
                 if (g.node(callV.id())?.outE(CALL)?.hasNext() != true) {
                     val v = callV.build()
                     if (!g.nodes(METHOD).hasNext() && v.methodFullName().length > 1) {
-                        val signature = v.methodFullName().substringAfter(' ')
-                        val fullName = "${v.methodFullName().substringBefore(':')}.${
-                            signature.substringAfter(' ').substringBefore('(')
-                        }"
-                        driver.getMethod(fullName, signature).use { mg ->
+                        driver.getMethod(v.methodFullName()).use { mg ->
                             if (mg.nodes(METHOD).hasNext()) {
                                 val mtdV = mg.nodes(METHOD).next()
                                 // Since this method already exists, we don't need to build a new method, only provide
@@ -99,7 +96,7 @@ class CallGraphBuilder(private val driver: IDriver) : IGraphBuilder {
 
     private fun reconnectPriorCallGraphEdges(mtdV: NewMethodBuilder) {
         val mtd = mtdV.build()
-        Extractor.getIncomingCallGraphEdges(mtd.fullName(), mtd.signature())?.let { incomingVs ->
+        Extractor.getIncomingCallGraphEdges(mtd.fullName())?.let { incomingVs ->
             if (incomingVs.isNotEmpty()) {
                 logger.debug("Saved call graph edges found - reconnecting incoming call graph edges")
                 incomingVs.forEach { inV ->

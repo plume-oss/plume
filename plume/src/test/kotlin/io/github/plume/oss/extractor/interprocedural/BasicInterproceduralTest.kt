@@ -50,6 +50,7 @@ class BasicInterproceduralTest {
 
     @Test
     fun basicCall1Test() {
+        driver.exportGraph("/tmp/plume/x.xml")
         val ns = g.nodes().asSequence().toList()
         val mainMethod = ns.filterIsInstance<Method>()
             .find { it.fullName() == "interprocedural.basic.Basic1.main" }

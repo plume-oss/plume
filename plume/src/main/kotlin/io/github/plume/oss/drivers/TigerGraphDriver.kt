@@ -259,10 +259,10 @@ class TigerGraphDriver internal constructor() : IOverridenIdDriver, ISchemaSafeD
         return payloadToGraph(result)
     }
 
-    override fun getMethod(fullName: String, signature: String, includeBody: Boolean): Graph {
+    override fun getMethod(fullName: String, includeBody: Boolean): Graph {
         val path = if (!includeBody) "getMethodHead" else "getMethod"
         return try {
-            val result = get("query/$GRAPH_NAME/$path", mapOf(FULL_NAME to fullName, SIGNATURE to signature))
+            val result = get("query/$GRAPH_NAME/$path", mapOf(FULL_NAME to fullName))
             payloadToGraph(result)
         } catch (e: PlumeTransactionException) {
             logger.warn("${e.message}. This may be a result of the method not being present in the graph.")
@@ -296,9 +296,9 @@ class TigerGraphDriver internal constructor() : IOverridenIdDriver, ISchemaSafeD
         delete("graph/$GRAPH_NAME/edges/CPG_VERT/${src.id()}/_$edge/CPG_VERT/${tgt.id()}")
     }
 
-    override fun deleteMethod(fullName: String, signature: String) {
+    override fun deleteMethod(fullName: String) {
         try {
-            get("query/$GRAPH_NAME/deleteMethod", mapOf(FULL_NAME to fullName, SIGNATURE to signature))
+            get("query/$GRAPH_NAME/deleteMethod", mapOf(FULL_NAME to fullName))
         } catch (e: PlumeTransactionException) {
             logger.warn("${e.message}. This may be a result of the method not being present in the graph.")
         }
@@ -626,12 +626,12 @@ class TigerGraphDriver internal constructor() : IOverridenIdDriver, ISchemaSafeD
               PRINT @@edges;
             }
             
-            CREATE QUERY getMethodHead(STRING FULL_NAME, STRING SIGNATURE) FOR GRAPH <GRAPH_NAME> {
+            CREATE QUERY getMethodHead(STRING FULL_NAME) FOR GRAPH <GRAPH_NAME> {
               SetAccum<EDGE> @@edges;
               allV = {ANY};
               start = SELECT src
                       FROM allV:src
-                      WHERE src._FULL_NAME == FULL_NAME AND src._SIGNATURE == SIGNATURE;
+                      WHERE src._FULL_NAME == FULL_NAME AND src.label == "METHOD";
               allVert = start;
             
               start = SELECT t
@@ -643,13 +643,13 @@ class TigerGraphDriver internal constructor() : IOverridenIdDriver, ISchemaSafeD
               PRINT @@edges;
             }
             
-            CREATE QUERY getMethod(STRING FULL_NAME, STRING SIGNATURE) FOR GRAPH <GRAPH_NAME> SYNTAX v2 {
+            CREATE QUERY getMethod(STRING FULL_NAME) FOR GRAPH <GRAPH_NAME> SYNTAX v2 {
               SetAccum<EDGE> @@edges;
               allV = {ANY};
               # Get method
               start = SELECT src
                       FROM allV:src
-                      WHERE src._FULL_NAME == FULL_NAME AND src._SIGNATURE == SIGNATURE;
+                      WHERE src._FULL_NAME == FULL_NAME AND src.label == "METHOD";
               allVert = start;
               # Get method's body vertices
               start = SELECT t
@@ -701,12 +701,12 @@ class TigerGraphDriver internal constructor() : IOverridenIdDriver, ISchemaSafeD
               PRINT @@edges;
             }
             
-            CREATE QUERY deleteMethod(STRING FULL_NAME, STRING SIGNATURE) FOR GRAPH <GRAPH_NAME> SYNTAX v2 {
+            CREATE QUERY deleteMethod(STRING FULL_NAME) FOR GRAPH <GRAPH_NAME> SYNTAX v2 {
               allV = {ANY};
               # Get method
               start = SELECT src
                       FROM allV:src
-                      WHERE src._FULL_NAME == FULL_NAME AND src._SIGNATURE == SIGNATURE;
+                      WHERE src._FULL_NAME == FULL_NAME;
               allVert = start;
               # Get method's body vertices
               start = SELECT t

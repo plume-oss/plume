@@ -101,13 +101,14 @@ object SootToPlumeUtil {
         val currentLine = mtd.javaSourceStartLineNumber
         val currentCol = mtd.javaSourceStartColumnNumber
         var childIdx = 1
+        val (fullName, signature, code) = parseMethodToStrings(mtd)
         // Method vertex
         val mtdVertex = NewMethodBuilder()
             .name(mtd.name)
-            .fullName("${mtd.declaringClass}.${mtd.name}")
+            .fullName(fullName)
+            .signature(signature)
             .filename(sootClassToFileName(mtd.declaringClass))
-            .signature(mtd.subSignature)
-            .code(mtd.declaration)
+            .code(code)
             .lineNumber(Option.apply(currentLine))
             .columnNumber(Option.apply(currentCol))
             .order(childIdx++)
@@ -131,6 +132,13 @@ object SootToPlumeUtil {
             .map { NewModifierBuilder().modifierType(it).order(childIdx++) }
             .forEach { driver.addEdge(mtdVertex, it, AST) }
         return mtdVertex
+    }
+
+    private fun parseMethodToStrings(mtd: SootMethod): Triple<String, String, String> {
+        val signature = "${mtd.returnType}(${mtd.parameterTypes.joinToString(separator = ",")})"
+        val code = "${mtd.returnType} ${mtd.name}(${mtd.parameterTypes.zip( 1..mtd.parameterCount).joinToString() { (p, i) -> "$p param$i" }})"
+        val fullName = "${mtd.declaringClass}.${mtd.name}:$signature"
+        return Triple(fullName, signature, code)
     }
 
     /**
@@ -393,10 +401,9 @@ object SootToPlumeUtil {
      * @return The method vertex if found, null if otherwise.
      */
     fun getMethodFromSootMethod(mtd: SootMethod, driver: IDriver): NewMethodBuilder? {
-        val fullName = "${mtd.declaringClass}.${mtd.name}"
-        val signature = mtd.subSignature
+        val (fullName, _, _) = parseMethodToStrings(mtd)
         var returnMtd: NewMethodBuilder? = null
-        driver.getMethod(fullName, signature).use { g ->
+        driver.getMethod(fullName).use { g ->
             if (g.nodes(METHOD).hasNext()) returnMtd = mapToVertex(g.nodes(METHOD).next()) as NewMethodBuilder
         }
         return returnMtd

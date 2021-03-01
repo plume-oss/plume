@@ -160,23 +160,23 @@ abstract class GremlinDriver : IDriver {
         return graph
     }
 
-    override fun getMethod(fullName: String, signature: String, includeBody: Boolean): overflowdb.Graph {
-        if (includeBody) return getMethodWithBody(fullName, signature)
+    override fun getMethod(fullName: String, includeBody: Boolean): overflowdb.Graph {
+        if (includeBody) return getMethodWithBody(fullName)
         val methodSubgraph = g.V().hasLabel(Method.Label())
             .let {
-                if (this !is JanusGraphDriver) it.has(FULL_NAME, fullName).has(SIGNATURE, signature)
-                else it.has("_$FULL_NAME", fullName).has("_$SIGNATURE", signature)
+                if (this !is JanusGraphDriver) it.has(FULL_NAME, fullName)
+                else it.has("_$FULL_NAME", fullName)
             }
             .outE(AST)
             .toList()
         return gremlinToPlume(methodSubgraph)
     }
 
-    private fun getMethodWithBody(fullName: String, signature: String): overflowdb.Graph {
+    private fun getMethodWithBody(fullName: String): overflowdb.Graph {
         val methodSubgraph = g.V().hasLabel(Method.Label())
             .let {
-                if (this !is JanusGraphDriver) it.has(FULL_NAME, fullName).has(SIGNATURE, signature)
-                else it.has("_$FULL_NAME", fullName).has("_$SIGNATURE", signature)
+                if (this !is JanusGraphDriver) it.has(FULL_NAME, fullName)
+                else it.has("_$FULL_NAME", fullName)
             }
             .repeat(un.outE(AST).inV()).emit()
             .inE()
@@ -226,11 +226,11 @@ abstract class GremlinDriver : IDriver {
         g.V(src.id()).outE(edge).where(un.otherV().hasId(tgt.id())).drop().iterate()
     }
 
-    override fun deleteMethod(fullName: String, signature: String) {
+    override fun deleteMethod(fullName: String) {
         val methodV = g.V().hasLabel(METHOD)
             .let {
-                if (this !is JanusGraphDriver) it.has(FULL_NAME, fullName).has(SIGNATURE, signature)
-                else it.has("_$FULL_NAME", fullName).has("_$SIGNATURE", signature)
+                if (this !is JanusGraphDriver) it.has(FULL_NAME, fullName)
+                else it.has("_$FULL_NAME", fullName)
             }
             .tryNext()
         if (methodV.isPresent) {
@@ -263,44 +263,6 @@ abstract class GremlinDriver : IDriver {
     }
 
     protected open fun mapVertexKeys(props: Map<Any, Any>) = props.mapKeys { it.key.toString() }
-
-    /**
-     * Converts a [GraphTraversalSource] instance to a [overflowdb.Graph] instance.
-     *
-     * @param g A [GraphTraversalSource] from the subgraph to convert.
-     * @return The resulting [overflowdb.Graph].
-     */
-//    private fun gremlinToPlume(g: GraphTraversalSource): overflowdb.Graph {
-//        val overflowGraph = newOverflowGraph()
-//        val f = { gt: GraphTraversal<Edge, Vertex> ->
-//            mapVertexKeys(
-//                gt.valueMap<Any>()
-//                    .by(un.unfold<Any>())
-//                    .with(WithOptions.tokens)
-//                    .next()
-//            )
-//        }
-//        val vertices = g.V().valueMap<Any>()
-//            .with(WithOptions.tokens)
-//            .by(un.unfold<Any>()).toStream()
-//            .map { props ->
-//                val nodeBuilder = VertexMapper.mapToVertex(mapVertexKeys(props))
-//                val builtNode = nodeBuilder.build()
-//                val n = overflowGraph.addNode(nodeBuilder.id(), builtNode.label())
-//                builtNode.properties().foreachEntry { key, value -> n.setProperty(key, value) }
-//                Pair(n.id(), n)
-//            }.toList().toMap()
-//        g.E().barrier().valueMap<String>()
-//            .with(WithOptions.tokens)
-//            .by(un.unfold<Any>())
-//            .forEach {
-//                val edgeLabel = it[T.label].toString()
-//                val plumeSrc = vertices[VertexMapper.mapToVertex(f(g.E(it[T.id]).outV())).id()]
-//                val plumeTgt = vertices[VertexMapper.mapToVertex(f(g.E(it[T.id]).inV())).id()]
-//                plumeSrc?.addEdge(edgeLabel, plumeTgt)
-//            }
-//        return overflowGraph
-//    }
 
     private fun gremlinToPlume(es: List<Edge>): overflowdb.Graph {
         val overflowGraph = newOverflowGraph()

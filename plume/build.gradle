@@ -36,8 +36,7 @@ dependencies {
     implementation "org.jetbrains.kotlin:kotlin-reflect:$kotlinVersion"
 
     // Logging
-    runtime "org.slf4j:slf4j-log4j12:$slf4jVersion"
-    testRuntime "org.apache.logging.log4j:log4j-core:$log4jVersion"
+    testImplementation "org.apache.logging.log4j:log4j-slf4j-impl:$log4jVersion"
 
     // Core dependencies
     implementation "org.apache.tinkerpop:gremlin-core:$gremlinVersion"
