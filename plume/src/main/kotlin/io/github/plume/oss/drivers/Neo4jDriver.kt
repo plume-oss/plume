@@ -7,6 +7,7 @@ import io.github.plume.oss.domain.mappers.VertexMapper.mapToVertex
 import io.github.plume.oss.util.ExtractorConst.TYPE_REFERENCED_EDGES
 import io.github.plume.oss.util.ExtractorConst.TYPE_REFERENCED_NODES
 import io.shiftleft.codepropertygraph.generated.EdgeTypes.AST
+import io.shiftleft.codepropertygraph.generated.EdgeTypes.SOURCE_FILE
 import io.shiftleft.codepropertygraph.generated.NodeKeyNames.FULL_NAME
 import io.shiftleft.codepropertygraph.generated.NodeTypes.*
 import io.shiftleft.codepropertygraph.generated.nodes.NewMetaDataBuilder
@@ -296,8 +297,8 @@ class Neo4jDriver internal constructor() : IDriver {
         else
             """
             MATCH (root:$METHOD {FULL_NAME:'$fullName'})-[r1:$AST*0..]->(child)-[r2]->(n1) 
-                WHERE NOT (child)-[:SOURCE_FILE]-(n1)
-            OPTIONAL MATCH (root)-[r3]->(n2) WHERE NOT (root)-[:SOURCE_FILE]-(n2)  
+                WHERE NOT (child)-[:$SOURCE_FILE]-(n1)
+            OPTIONAL MATCH (root)-[r3]->(n2) WHERE NOT (root)-[:$SOURCE_FILE]-(n2)  
             WITH DISTINCT (r1 + r2 + r3) AS coll
             """.trimIndent()
         val plumeGraph = newOverflowGraph()
@@ -370,20 +371,23 @@ class Neo4jDriver internal constructor() : IDriver {
     override fun getProgramTypeData(): Graph {
         val graph = newOverflowGraph()
         driver.session().use { session ->
-            val result = session.writeTransaction { tx ->
-                tx.run(
-                    """
-                    MATCH (n)-(e)-(m)
+            TYPE_REFERENCED_EDGES.forEach { e ->
+                val result = session.writeTransaction { tx ->
+                    tx.run(
+                        """
+                    MATCH (n)-[e1:$e]-(m)
                     WHERE (${TYPE_REFERENCED_NODES.joinToString(" OR ") { "n:$it" }})
-                        AND 
-                        (${TYPE_REFERENCED_NODES.joinToString(" OR ") { "m:$it" }})
-                        AND
-                        (${TYPE_REFERENCED_EDGES.joinToString(" OR ") { "e:$it" }})
-                    RETURN e
+                        OR
+                          (${TYPE_REFERENCED_NODES.joinToString(" OR ") { "m:$it" }})
+                    WITH DISTINCT e1
+                    WITH [r in collect(e1) | {rel: type(r), src: startNode(r), tgt: endNode(r)} ] as e2
+                    UNWIND e2 as x
+                    RETURN x
                     """.trimIndent()
-                ).list().map { it["e"] }
+                    ).list().map { it["x"] }
+                }
+                neo4jToOverflowGraph(result, graph)
             }
-            neo4jToOverflowGraph(result, graph)
             val typeDecl = session.writeTransaction { tx ->
                 tx.run(
                     """
