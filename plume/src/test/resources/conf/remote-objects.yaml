@@ -3,6 +3,6 @@ port: 8182
 serializer: {
   className: org.apache.tinkerpop.gremlin.driver.ser.GryoMessageSerializerV3d0,
   config: {
-    ioRegistries: [org.janusgraph.graphdb.tinkerpop.JanusGraphIoRegistry, org.apache.tinkerpop.gremlin.tinkergraph.structure.TinkerIoRegistryV3d0]
+    ioRegistries: [org.janusgraph.graphdb.tinkerpop.JanusGraphIoRegistry]
   }
 }

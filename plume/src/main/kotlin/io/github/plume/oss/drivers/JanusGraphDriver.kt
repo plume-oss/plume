@@ -73,7 +73,7 @@ class JanusGraphDriver internal constructor() : GremlinDriver(), ISchemaSafeDriv
     override fun prepareVertexProperties(v: NewNodeBuilder): Map<String, Any> =
         super.prepareVertexProperties(v).mapKeys { "_${it.key}" }.toMap()
 
-    override fun mapVertexKeys(props: MutableMap<Any, Any>) = props.mapKeys { it.key.toString().removePrefix("_") }
+    override fun mapVertexKeys(props: Map<Any, Any>) = props.mapKeys { it.key.toString().removePrefix("_") }
 
     override fun buildSchema() {
         val propFileConfig = PropertiesConfiguration(config.getString(REMOTE_CONFIG))
