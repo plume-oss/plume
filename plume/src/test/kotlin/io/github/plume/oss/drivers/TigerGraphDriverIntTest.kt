@@ -37,6 +37,7 @@ import io.shiftleft.codepropertygraph.generated.EdgeTypes.*
 import io.shiftleft.codepropertygraph.generated.NodeKeyNames
 import io.shiftleft.codepropertygraph.generated.NodeKeyNames.NAME
 import io.shiftleft.codepropertygraph.generated.NodeTypes.FILE
+import io.shiftleft.codepropertygraph.generated.NodeTypes.NAMESPACE_BLOCK
 import io.shiftleft.codepropertygraph.generated.nodes.*
 import org.junit.jupiter.api.*
 import org.junit.jupiter.api.Assertions.*
@@ -537,6 +538,16 @@ class TigerGraphDriverIntTest {
         }
 
         @Test
+        fun testGetMethodNames() {
+            g = driver.getProgramStructure() // just to make sure the lateinit passes
+            assertEquals(listOf(STRING_1), driver.getMethodNames())
+            driver.addVertex(methodVertex.fullName(STRING_2).id(1200))
+            val newNames = driver.getMethodNames()
+            assertTrue(newNames.contains(STRING_1))
+            assertTrue(newNames.contains(STRING_2))
+        }
+
+        @Test
         fun testGetProgramStructure() {
             val unknown = io.shiftleft.semanticcpg.language.types.structure.File.UNKNOWN()
             driver.addVertex(NewFileBuilder().name(unknown).order(0).hash(Option.apply(unknown)))
@@ -556,6 +567,19 @@ class TigerGraphDriverIntTest {
             // Check that vertices are connected by AST edges
             assertTrue(file.out(AST).asSequence().any { it.id() == namespaceBlockVertex1.id() })
             assertTrue(ns1.out(AST).asSequence().any { it.id() == namespaceBlockVertex2.id() })
+        }
+
+        @Test
+        fun testGetProgramTypeData() {
+            g = driver.getProgramTypeData()
+            val nodeCounts = g.nodes().asSequence().groupBy { it.label() }.mapValues { it.value.count() }.toMutableMap()
+            assertEquals(2, nodeCounts.remove(NAMESPACE_BLOCK))
+            nodeCounts.forEach { (_, u) -> assertEquals(1, u) }
+            val edgeCounts = g.edges().asSequence().groupBy { it.label() }.mapValues { it.value.count() }.toMutableMap()
+            assertEquals(17, edgeCounts[AST])
+            assertEquals(1, edgeCounts[REF])
+            assertEquals(20, g.nodeCount())
+            assertEquals(18, g.edgeCount())
         }
 
         @Test

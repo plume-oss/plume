@@ -2,11 +2,10 @@ package io.github.plume.oss
 
 import java.util
 import io.shiftleft.codepropertygraph.Cpg
-import io.shiftleft.codepropertygraph.generated.EdgeTypes
+import io.shiftleft.codepropertygraph.generated.{EdgeTypes, NodeKeyNames, nodes}
 import io.shiftleft.codepropertygraph.generated.nodes.{AstNode, File, HasOrder, MetaData, NamespaceBlock, StoredNode, TypeDecl}
 import io.shiftleft.semanticcpg.language._
 import overflowdb.{Edge, Graph}
-import io.shiftleft.codepropertygraph.generated.nodes
 
 import scala.jdk.CollectionConverters._
 
@@ -32,6 +31,10 @@ object Traversals {
       .outE(EdgeTypes.AST)
       .l
       .asJava
+  }
+
+  def getMethodNames(graph: Graph): util.List[String] = {
+    Cpg(graph).method.iterator.map(_.property(NodeKeyNames.FULL_NAME).asInstanceOf[String]).toList.asJava
   }
 
   import overflowdb.traversal._
