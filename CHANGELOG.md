@@ -7,10 +7,10 @@ and this project adheres to [Semantic Versioning](http://semver.org/).
 ## [0.2.7] - 2021-03-02
 
 ### Added
-- Added `getMethodNames` and `testGetProgramTypeData` to `IDriver`
+- Added `getMethodNames` and `getProgramTypeData` to `IDriver`
 
 ### Changed
-- Used `getMethodNames` and `testGetProgramTypeData` to reduce the sub-graphs in `Extractor::postProject`
+- Used `getMethodNames` and `getProgramTypeData` to reduce the sub-graphs in `Extractor::postProject`
 
 ## [0.2.6] - 2021-03-01
 
