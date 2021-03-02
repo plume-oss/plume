@@ -4,6 +4,14 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](http://keepachangelog.com/)
 and this project adheres to [Semantic Versioning](http://semver.org/).
 
+## [0.2.7] - 2021-03-02
+
+### Added
+- Added `getMethodNames` and `testGetProgramTypeData` to `IDriver`
+
+### Changed
+- Used `getMethodNames` and `testGetProgramTypeData` to reduce the sub-graphs in `Extractor::postProject`
+
 ## [0.2.6] - 2021-03-01
 
 ### Changed
