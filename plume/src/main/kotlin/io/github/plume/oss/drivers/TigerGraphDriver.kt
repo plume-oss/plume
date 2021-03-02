@@ -713,22 +713,30 @@ CREATE QUERY getProgramStructure() FOR GRAPH <GRAPH_NAME> SYNTAX v2 {
 
 CREATE QUERY getProgramTypeData() FOR GRAPH <GRAPH_NAME> SYNTAX v2 {
   SetAccum<EDGE> @@edges;
+  ListAccum<STRING> @@nodeKeys;
+  @@nodeKeys += [${TYPE_REFERENCED_NODES.joinToString(", ") { "\"$it\"" }}];
 
   start = {CPG_VERT.*};
   start = SELECT s
           FROM start:s
-          WHERE ${TYPE_REFERENCED_NODES.joinToString(" OR ") { "s.label == \"$it\"" }};
+          WHERE @@nodeKeys.contains(s.label);
   allVert = start;
 
   start = SELECT t
-          FROM start:s -((${TYPE_REFERENCED_EDGES.joinToString("|") { s -> "_$s>" }}):e)- :t
-          WHERE ${TYPE_REFERENCED_NODES.joinToString(" OR ") { "t.label == \"$it\"" }};
+          FROM start:s -((${TYPE_REFERENCED_EDGES.joinToString("|") { s -> "_$s>" }}|${TYPE_REFERENCED_EDGES.joinToString("|") { s -> "<_$s" }}):e)- :t
+          WHERE @@nodeKeys.contains(t.label)
+          ACCUM @@edges += e;
+  allVert = allVert UNION start;
+  start = SELECT s
+          FROM start:s -((${TYPE_REFERENCED_EDGES.joinToString("|") { s -> "_$s>" }}|${TYPE_REFERENCED_EDGES.joinToString("|") { s -> "<_$s" }}):e)- :t
+          WHERE @@nodeKeys.contains(t.label)
+          ACCUM @@edges += e;
   allVert = allVert UNION start;
 
   finalEdges = SELECT t
-               FROM allVert -((${TYPE_REFERENCED_EDGES.joinToString("|") { s -> "_$s>" }}):e)- :t
-               WHERE ${TYPE_REFERENCED_NODES.joinToString(" OR ") { "t.label == \"$it\"" }}
+               FROM allVert -((${TYPE_REFERENCED_EDGES.joinToString("|") { s -> "_$s>" }}|${TYPE_REFERENCED_EDGES.joinToString("|") { s -> "<_$s" }}):e)- :t
                ACCUM @@edges += e;
+  allVert = allVert UNION finalEdges;
 
   PRINT allVert;
   PRINT @@edges;
