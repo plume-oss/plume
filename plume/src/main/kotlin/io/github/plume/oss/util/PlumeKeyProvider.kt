@@ -7,9 +7,10 @@ object PlumeKeyProvider {
 
     /**
      * The size of IDs to acquire per thread. Once this is finished, the thread will acquire another pool of IDs of this
-     * size.
+     * size. This value can never be set to < 0 and if the value overflows it will default to 1000.
      */
     var keyPoolSize = 1000
+        set(value) { if (value > 0) field = value; if (field < 0) field = 1000  }
 
     /**
      * This holds the key pools assigned to each thread. Writes will happen only on initialization or once a pool is
@@ -21,7 +22,7 @@ object PlumeKeyProvider {
     /**
      * Returns a new ID for the current thread to assign a vertex to.
      *
-     *  @param d The driver to check for available IDs with.
+     * @param d The driver to check for available IDs with.
      * @return a new ID.
      */
     fun getNewId(d: IOverridenIdDriver): Long {
@@ -33,18 +34,20 @@ object PlumeKeyProvider {
 
     private fun generateNewIdPool(d: IOverridenIdDriver): MutableList<Long> {
         // Find the max ID among the pools
-        val currentMax = keyPoolMap.values.flatten().maxOrNull() ?: 0
+        var currentMax = keyPoolMap.values.flatten().maxOrNull() ?: -1L
         val freeIds = mutableSetOf<Long>()
+        var oldSize: Int
         while (freeIds.size < keyPoolSize) {
             // Choose a lower bound, the max among the pools or the max among the free IDs found
-            val currentSetMax = (freeIds.maxOrNull() ?: -1L) + 1
-            val lowerBound = if (currentMax > currentSetMax) currentMax else currentSetMax
+            val lowerBound = currentMax + 1
             val upperBound = lowerBound + keyPoolSize
             // Take the difference of the range and taken IDs to add available IDs
             val xs = (lowerBound..upperBound).toSet()
             val takenIds = d.getVertexIds(lowerBound, upperBound)
             val availableIds = xs.minus(takenIds)
+            oldSize = freeIds.size
             freeIds.addAll(availableIds)
+            if (freeIds.size == oldSize) currentMax += keyPoolSize + 1
         }
         return freeIds.toMutableList()
     }
