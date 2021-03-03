@@ -32,6 +32,7 @@ class PlumeKeyProviderTest {
 
     @Test
     fun testPlumeKeyPoolSet() {
+        PlumeKeyProvider.keyPoolSize = 1000
         assertEquals(1000, PlumeKeyProvider.keyPoolSize)
         PlumeKeyProvider.keyPoolSize = -5
         assertEquals(1000, PlumeKeyProvider.keyPoolSize)
