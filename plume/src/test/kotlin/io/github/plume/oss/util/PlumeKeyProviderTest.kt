@@ -31,6 +31,15 @@ class PlumeKeyProviderTest {
     }
 
     @Test
+    fun testPlumeKeyPoolSet() {
+        assertEquals(1000, PlumeKeyProvider.keyPoolSize)
+        PlumeKeyProvider.keyPoolSize = -5
+        assertEquals(1000, PlumeKeyProvider.keyPoolSize)
+        PlumeKeyProvider.keyPoolSize = 5
+        assertEquals(5, PlumeKeyProvider.keyPoolSize)
+    }
+
+    @Test
     fun testPlumeIdAllocation() {
         PlumeKeyProvider.keyPoolSize = 5
         assertEquals(6, PlumeKeyProvider.getNewId(mockDriver))

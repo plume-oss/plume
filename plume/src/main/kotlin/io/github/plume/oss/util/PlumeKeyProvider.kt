@@ -10,7 +10,7 @@ object PlumeKeyProvider {
      * size. This value can never be set to < 0 and if the value overflows it will default to 1000.
      */
     var keyPoolSize = 1000
-        set(value) { if (value > 0) field = value; if (field < 0) field = 1000  }
+        set(value) { if (value > 0) field = value  }
 
     /**
      * This holds the key pools assigned to each thread. Writes will happen only on initialization or once a pool is
