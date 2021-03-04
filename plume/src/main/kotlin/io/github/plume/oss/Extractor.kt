@@ -42,6 +42,8 @@ import io.shiftleft.codepropertygraph.generated.NodeKeyNames.*
 import io.shiftleft.codepropertygraph.generated.NodeTypes.*
 import io.shiftleft.codepropertygraph.generated.nodes.*
 import io.shiftleft.dataflowengineoss.passes.reachingdef.ReachingDefPass
+import io.shiftleft.passes.ParallelCpgPass
+import io.shiftleft.semanticcpg.passes.containsedges.ContainsEdgePass
 import io.shiftleft.semanticcpg.passes.languagespecific.fuzzyc.TypeDeclStubCreator
 import io.shiftleft.semanticcpg.passes.linking.linker.Linker
 import org.apache.logging.log4j.LogManager
@@ -340,15 +342,21 @@ class Extractor(val driver: IDriver) {
         driver.getMethodNames().forEach { mName ->
             driver.getMethod(mName).use { g ->
                 val cpg = Cpg.apply(g)
+                val containsEdgePass = ContainsEdgePass(cpg)
                 val reachingDefPass = ReachingDefPass(cpg)
-                g.nodes(METHOD).asSequence().filterIsInstance<Method>()
-                    .map(reachingDefPass::runOnPart)
-                    .map(CollectionConverters::IteratorHasAsJava)
-                    .flatMap { it.asJava().asSequence() }
-                    .forEach { DiffGraphUtil.processDiffGraph(driver, it) }
+                val methods = g.nodes(METHOD).asSequence()
+                runParallelPass(methods.filterIsInstance<AstNode>(), containsEdgePass)
+                runParallelPass(methods.filterIsInstance<Method>(), reachingDefPass)
             }
         }
         return this
+    }
+
+    private fun <T> runParallelPass(parts: Sequence<T>, pass: ParallelCpgPass<T>) {
+        parts.map(pass::runOnPart)
+            .map(CollectionConverters::IteratorHasAsJava)
+            .flatMap { it.asJava().asSequence() }
+            .forEach { DiffGraphUtil.processDiffGraph(driver, it) }
     }
 
     /**
