@@ -313,9 +313,11 @@ class Extractor(val driver: IDriver) {
         )
         // Construct the CPGs for methods
         graphs.map(this::constructCPG)
-            .toList().asSequence()
+            .asSequence()
             .map(this::constructCallGraphEdges)
-            .map { it.declaringClass }.distinct().toList()
+            .map { it.declaringClass }
+            .distinct()
+            .filter(classStream::contains)
             .forEach(this::constructStructure)
         // Connect methods to their type declarations and source files (if present)
         graphs.forEach { SootToPlumeUtil.connectMethodToTypeDecls(it.body.method, driver) }
