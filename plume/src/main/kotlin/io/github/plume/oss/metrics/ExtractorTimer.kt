@@ -7,7 +7,7 @@ object ExtractorTimer {
         ExtractorTimeKey.UNIT_GRAPH_BUILDING to 0L,
         ExtractorTimeKey.DATABASE_WRITE to 0L,
         ExtractorTimeKey.DATABASE_READ to 0L,
-        ExtractorTimeKey.CPG_PASSES to 0L
+        ExtractorTimeKey.SCPG_PASSES to 0L
     )
 
     private val stopwatch = mutableMapOf(
@@ -15,7 +15,7 @@ object ExtractorTimer {
         ExtractorTimeKey.UNIT_GRAPH_BUILDING to System.nanoTime(),
         ExtractorTimeKey.DATABASE_WRITE to System.nanoTime(),
         ExtractorTimeKey.DATABASE_READ to System.nanoTime(),
-        ExtractorTimeKey.CPG_PASSES to System.nanoTime()
+        ExtractorTimeKey.SCPG_PASSES to System.nanoTime()
     )
 
     fun startTimerOn(vararg key: ExtractorTimeKey) = apply {
@@ -48,6 +48,6 @@ enum class ExtractorTimeKey {
     BASE_CPG_BUILDING,
     DATABASE_WRITE,
     DATABASE_READ,
-    CPG_PASSES
+    SCPG_PASSES
 }
 

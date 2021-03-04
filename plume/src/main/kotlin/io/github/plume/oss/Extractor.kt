@@ -335,7 +335,7 @@ class Extractor(val driver: IDriver) {
             .forEach(this::constructStructure)
         // Connect methods to their type declarations and source files (if present)
         graphs.forEach { SootToPlumeUtil.connectMethodToTypeDecls(it.body.method, driver) }
-        ExtractorTimer.stopTimerOn(ExtractorTimeKey.DATABASE_WRITE, ExtractorTimeKey.BASE_CPG_BUILDING)
+        ExtractorTimer.stopAll()
         clear()
         return this
     }
@@ -348,7 +348,7 @@ class Extractor(val driver: IDriver) {
     fun postProject(): Extractor {
         ExtractorTimer.startTimerOn(ExtractorTimeKey.DATABASE_READ)
         driver.getProgramTypeData().use { g ->
-            ExtractorTimer.stopTimerOn(ExtractorTimeKey.DATABASE_READ).startTimerOn(ExtractorTimeKey.CPG_PASSES)
+            ExtractorTimer.stopTimerOn(ExtractorTimeKey.DATABASE_READ).startTimerOn(ExtractorTimeKey.SCPG_PASSES)
             val cpg = Cpg.apply(g)
             listOf(
                 TypeDeclStubCreator(cpg),
@@ -357,21 +357,22 @@ class Extractor(val driver: IDriver) {
                 .map(CollectionConverters::IteratorHasAsJava)
                 .flatMap { it.asJava().asSequence() }
                 .forEach { DiffGraphUtil.processDiffGraph(driver, it) }
-            ExtractorTimer.stopTimerOn(ExtractorTimeKey.CPG_PASSES)
+            ExtractorTimer.stopTimerOn(ExtractorTimeKey.SCPG_PASSES)
         }
         driver.getMethodNames().forEach { mName ->
             ExtractorTimer.startTimerOn(ExtractorTimeKey.DATABASE_READ)
             driver.getMethod(mName).use { g ->
-                ExtractorTimer.stopTimerOn(ExtractorTimeKey.DATABASE_READ).startTimerOn(ExtractorTimeKey.CPG_PASSES)
+                ExtractorTimer.stopTimerOn(ExtractorTimeKey.DATABASE_READ).startTimerOn(ExtractorTimeKey.SCPG_PASSES)
                 val cpg = Cpg.apply(g)
                 val containsEdgePass = ContainsEdgePass(cpg)
                 val reachingDefPass = ReachingDefPass(cpg)
                 val methods = g.nodes(METHOD).asSequence().toList()
                 runParallelPass(methods.filterIsInstance<AstNode>(), containsEdgePass)
                 runParallelPass(methods.filterIsInstance<Method>(), reachingDefPass)
-                ExtractorTimer.stopTimerOn(ExtractorTimeKey.CPG_PASSES)
+                ExtractorTimer.stopTimerOn(ExtractorTimeKey.SCPG_PASSES)
             }
         }
+        ExtractorTimer.stopAll()
         return this
     }
 
