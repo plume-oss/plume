@@ -18,30 +18,36 @@ object ExtractorTimer {
         ExtractorTimeKey.CPG_PASSES to System.nanoTime()
     )
 
-    fun startTimerOn(key: ExtractorTimeKey) {
-        stopwatch[key] = System.nanoTime()
+    fun startTimerOn(vararg key: ExtractorTimeKey) = apply {
+        key.forEach { stopwatch[it] = System.nanoTime() }
     }
 
-    fun stopTimerOn(key: ExtractorTimeKey) {
-        totalTimes.computeIfPresent(key) { u, t -> t + (System.nanoTime() - stopwatch.getOrDefault(u, System.nanoTime())) }
+    fun stopTimerOn(vararg key: ExtractorTimeKey) = apply {
+        key.forEach {
+            totalTimes.computeIfPresent(it) { u, t ->
+                t + (System.nanoTime() - stopwatch.getOrDefault(u, System.nanoTime()))
+            }
+        }
     }
 
-    fun stopAll() {
-        ExtractorTimeKey.values().forEach(this::stopTimerOn)
+    fun stopAll() = apply {
+        this.stopTimerOn(*ExtractorTimeKey.values())
     }
 
-    fun reset() {
+    fun reset() = apply {
         ExtractorTimeKey.values().forEach { totalTimes[it] = 0L }
     }
 
     fun getTimes(): Map<ExtractorTimeKey, Long> = totalTimes.toMap()
 
-    enum class ExtractorTimeKey {
-        LOADING_AND_COMPILING,
-        UNIT_GRAPH_BUILDING,
-        DATABASE_WRITE,
-        DATABASE_READ,
-        CPG_PASSES
-    }
+}
+
+enum class ExtractorTimeKey {
+    LOADING_AND_COMPILING,
+    UNIT_GRAPH_BUILDING,
+    BASE_CPG_BUILDING,
+    DATABASE_WRITE,
+    DATABASE_READ,
+    CPG_PASSES
 }
 
