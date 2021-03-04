@@ -344,7 +344,7 @@ class Extractor(val driver: IDriver) {
                 val cpg = Cpg.apply(g)
                 val containsEdgePass = ContainsEdgePass(cpg)
                 val reachingDefPass = ReachingDefPass(cpg)
-                val methods = g.nodes(METHOD).asSequence()
+                val methods = g.nodes(METHOD).asSequence().toList()
                 runParallelPass(methods.filterIsInstance<AstNode>(), containsEdgePass)
                 runParallelPass(methods.filterIsInstance<Method>(), reachingDefPass)
             }
@@ -352,7 +352,7 @@ class Extractor(val driver: IDriver) {
         return this
     }
 
-    private fun <T> runParallelPass(parts: Sequence<T>, pass: ParallelCpgPass<T>) {
+    private fun <T> runParallelPass(parts: List<T>, pass: ParallelCpgPass<T>) {
         parts.map(pass::runOnPart)
             .map(CollectionConverters::IteratorHasAsJava)
             .flatMap { it.asJava().asSequence() }
