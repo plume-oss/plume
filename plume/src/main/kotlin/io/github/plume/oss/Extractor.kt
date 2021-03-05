@@ -80,12 +80,10 @@ class Extractor(val driver: IDriver) {
     private val logger: Logger = LogManager.getLogger(Extractor::javaClass)
 
     private val loadedFiles: HashSet<PlumeFile> = HashSet()
-    private val callGraphBuilder: CGPass
 
     init {
         File(COMP_DIR).let { f -> if (f.exists()) f.deleteRecursively(); f.deleteOnExit() }
         checkDriverConnection(driver)
-        callGraphBuilder = CGPass(driver)
         PlumeTimer.reset()
     }
 
@@ -244,6 +242,7 @@ class Extractor(val driver: IDriver) {
             Build external type and method stubs
          */
         PlumeTimer.measure(ExtractorTimeKey.BASE_CPG_BUILDING) {
+            // TODO: Use phantoms to build external types/methods/etc
             val allTypes =
                 classStream.asSequence().map { it.fields }.flatten().map { it.type } + sootUnitGraphs.asSequence()
                     .map { it.body.locals + it.body.parameterLocals }.flatten().map { it.type }
@@ -385,7 +384,6 @@ class Extractor(val driver: IDriver) {
         return gs
     }
 
-
     /**
      * Once the method bodies are constructed, this function then connects calls to the called methods if present.
      *
@@ -393,7 +391,10 @@ class Extractor(val driver: IDriver) {
      * @return The method from the given graph.
      */
     private fun constructCallGraphEdges(gs: List<BriefUnitGraph>): List<BriefUnitGraph> {
-        if (ExtractorOptions.callGraphAlg != ExtractorOptions.CallGraphAlg.NONE) gs.forEach(callGraphBuilder::runPass)
+        if (ExtractorOptions.callGraphAlg != ExtractorOptions.CallGraphAlg.NONE) {
+            val callGraphBuilder = CGPass(driver)
+            gs.forEach(callGraphBuilder::runPass)
+        }
         return gs
     }
 

@@ -15,7 +15,6 @@
  */
 package io.github.plume.oss.passes.method
 
-import io.github.plume.oss.Extractor
 import io.github.plume.oss.Extractor.Companion.getSootAssociation
 import io.github.plume.oss.drivers.IDriver
 import io.github.plume.oss.metrics.ExtractorTimeKey
