@@ -23,6 +23,8 @@ import io.github.plume.oss.graph.ASTBuilder
 import io.github.plume.oss.graph.CFGBuilder
 import io.github.plume.oss.graph.CallGraphBuilder
 import io.github.plume.oss.graph.PDGBuilder
+import io.github.plume.oss.metrics.ExtractorTimeKey
+import io.github.plume.oss.metrics.PlumeTimer
 import io.github.plume.oss.options.ExtractorOptions
 import io.github.plume.oss.util.DiffGraphUtil
 import io.github.plume.oss.util.ExtractorConst.LANGUAGE_FRONTEND
@@ -42,6 +44,8 @@ import io.shiftleft.codepropertygraph.generated.NodeKeyNames.*
 import io.shiftleft.codepropertygraph.generated.NodeTypes.*
 import io.shiftleft.codepropertygraph.generated.nodes.*
 import io.shiftleft.dataflowengineoss.passes.reachingdef.ReachingDefPass
+import io.shiftleft.passes.ParallelCpgPass
+import io.shiftleft.semanticcpg.passes.containsedges.ContainsEdgePass
 import io.shiftleft.semanticcpg.passes.languagespecific.fuzzyc.TypeDeclStubCreator
 import io.shiftleft.semanticcpg.passes.linking.linker.Linker
 import org.apache.logging.log4j.LogManager
@@ -90,6 +94,7 @@ class Extractor(val driver: IDriver) {
         cfgBuilder = CFGBuilder(driver)
         pdgBuilder = PDGBuilder(driver)
         callGraphBuilder = CallGraphBuilder(driver)
+        PlumeTimer.reset()
     }
 
     /**
@@ -192,6 +197,7 @@ class Extractor(val driver: IDriver) {
      */
     @Throws(PlumeCompileException::class, NullPointerException::class, IOException::class)
     fun load(f: File): Extractor {
+        PlumeTimer.startTimerOn(ExtractorTimeKey.LOADING_AND_COMPILING)
         File(COMP_DIR).let { c -> if (!c.exists()) c.mkdirs() }
         if (!f.exists()) {
             throw NullPointerException("File '${f.name}' does not exist!")
@@ -210,6 +216,7 @@ class Extractor(val driver: IDriver) {
                 loadedFiles.add(FileFactory(f))
             }
         }
+        PlumeTimer.stopTimerOn(ExtractorTimeKey.LOADING_AND_COMPILING)
         return this
     }
 
@@ -282,6 +289,7 @@ class Extractor(val driver: IDriver) {
      * Projects all loaded classes to a base CPG.
      */
     fun project(): Extractor {
+        PlumeTimer.startTimerOn(ExtractorTimeKey.LOADING_AND_COMPILING)
         configureSoot()
         val compiledFiles = compileLoadedFiles(loadedFiles)
         val classStream = loadClassesIntoSoot(compiledFiles)
@@ -290,16 +298,24 @@ class Extractor(val driver: IDriver) {
             ExtractorOptions.CallGraphAlg.SPARK -> SparkTransformer.v().transform("", ExtractorOptions.sparkOpts)
             else -> Unit
         }
+        PlumeTimer.stopTimerOn(ExtractorTimeKey.LOADING_AND_COMPILING).startTimerOn(ExtractorTimeKey.DATABASE_READ)
         // Initialize program structure graph and scan for an existing CPG
         programStructure = driver.getProgramStructure()
+        PlumeTimer.startTimerOn(ExtractorTimeKey.BASE_CPG_BUILDING)
         classStream.forEach(this::analyseExistingCPGs)
+        PlumeTimer.stopTimerOn(ExtractorTimeKey.BASE_CPG_BUILDING).startTimerOn(ExtractorTimeKey.DATABASE_READ)
         // Update program structure after sub-graphs which will change are discarded
         programStructure.close()
         programStructure = driver.getProgramStructure()
+        PlumeTimer.stopTimerOn(ExtractorTimeKey.DATABASE_READ)
+            .startTimerOn(ExtractorTimeKey.DATABASE_READ, ExtractorTimeKey.DATABASE_WRITE)
         // Setup defaults
         setUpDefaultStructure()
         // Load all methods to construct the CPG from and convert them to UnitGraph objects
+        PlumeTimer.startTimerOn(ExtractorTimeKey.UNIT_GRAPH_BUILDING)
         val graphs = constructUnitGraphs(classStream)
+        PlumeTimer.stopTimerOn(ExtractorTimeKey.UNIT_GRAPH_BUILDING, ExtractorTimeKey.DATABASE_READ, ExtractorTimeKey.DATABASE_WRITE)
+            .startTimerOn(ExtractorTimeKey.DATABASE_WRITE, ExtractorTimeKey.BASE_CPG_BUILDING)
         // Build external types from fields and locals
         createExternalTypes(
             classStream = classStream,
@@ -311,12 +327,15 @@ class Extractor(val driver: IDriver) {
         )
         // Construct the CPGs for methods
         graphs.map(this::constructCPG)
-            .toList().asSequence()
+            .asSequence()
             .map(this::constructCallGraphEdges)
-            .map { it.declaringClass }.distinct().toList()
+            .map { it.declaringClass }
+            .distinct()
+            .filter(classStream::contains)
             .forEach(this::constructStructure)
         // Connect methods to their type declarations and source files (if present)
         graphs.forEach { SootToPlumeUtil.connectMethodToTypeDecls(it.body.method, driver) }
+        PlumeTimer.stopAll()
         clear()
         return this
     }
@@ -327,7 +346,9 @@ class Extractor(val driver: IDriver) {
      * to be called beforehand.
      */
     fun postProject(): Extractor {
+        PlumeTimer.startTimerOn(ExtractorTimeKey.DATABASE_READ)
         driver.getProgramTypeData().use { g ->
+            PlumeTimer.stopTimerOn(ExtractorTimeKey.DATABASE_READ).startTimerOn(ExtractorTimeKey.SCPG_PASSES)
             val cpg = Cpg.apply(g)
             listOf(
                 TypeDeclStubCreator(cpg),
@@ -336,19 +357,31 @@ class Extractor(val driver: IDriver) {
                 .map(CollectionConverters::IteratorHasAsJava)
                 .flatMap { it.asJava().asSequence() }
                 .forEach { DiffGraphUtil.processDiffGraph(driver, it) }
+            PlumeTimer.stopTimerOn(ExtractorTimeKey.SCPG_PASSES)
         }
+        PlumeTimer.stopTimerOn(ExtractorTimeKey.DATABASE_READ)
         driver.getMethodNames().forEach { mName ->
+            PlumeTimer.startTimerOn(ExtractorTimeKey.DATABASE_READ)
             driver.getMethod(mName).use { g ->
+                PlumeTimer.stopTimerOn(ExtractorTimeKey.DATABASE_READ).startTimerOn(ExtractorTimeKey.SCPG_PASSES)
                 val cpg = Cpg.apply(g)
+                val containsEdgePass = ContainsEdgePass(cpg)
                 val reachingDefPass = ReachingDefPass(cpg)
-                g.nodes(METHOD).asSequence().filterIsInstance<Method>()
-                    .map(reachingDefPass::runOnPart)
-                    .map(CollectionConverters::IteratorHasAsJava)
-                    .flatMap { it.asJava().asSequence() }
-                    .forEach { DiffGraphUtil.processDiffGraph(driver, it) }
+                val methods = g.nodes(METHOD).asSequence().toList()
+                runParallelPass(methods.filterIsInstance<AstNode>(), containsEdgePass)
+                runParallelPass(methods.filterIsInstance<Method>(), reachingDefPass)
+                PlumeTimer.stopTimerOn(ExtractorTimeKey.SCPG_PASSES)
             }
         }
+        PlumeTimer.stopAll()
         return this
+    }
+
+    private fun <T> runParallelPass(parts: List<T>, pass: ParallelCpgPass<T>) {
+        parts.map(pass::runOnPart)
+            .map(CollectionConverters::IteratorHasAsJava)
+            .flatMap { it.asJava().asSequence() }
+            .forEach { DiffGraphUtil.processDiffGraph(driver, it) }
     }
 
     /**

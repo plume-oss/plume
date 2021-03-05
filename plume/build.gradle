@@ -36,7 +36,12 @@ dependencies {
     implementation "org.jetbrains.kotlin:kotlin-reflect:$kotlinVersion"
 
     // Logging
-    implementation "org.apache.logging.log4j:log4j-slf4j-impl:$log4jVersion"
+    compile "org.apache.logging.log4j:log4j-api:$log4jVersion"
+    compile "org.apache.logging.log4j:log4j-core:$log4jVersion"
+    compile "org.apache.logging.log4j:log4j-slf4j-impl:$log4jVersion"
+    compile "org.slf4j:jul-to-slf4j:$slf4jVersion" // JUL bridge
+    compile "org.slf4j:jcl-over-slf4j:$slf4jVersion" // Apache Commons Logging (JCL) bridge
+    compile "org.slf4j:log4j-over-slf4j:$slf4jVersion" // log4j1.2 bridge
 
     // Core dependencies
     implementation "org.apache.tinkerpop:gremlin-core:$gremlinVersion"

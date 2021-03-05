@@ -6,6 +6,11 @@ and this project adheres to [Semantic Versioning](http://semver.org/).
 
 ## [0.2.8] - XXXX-XX-XX
 
+### Added
+- `ContainsEdgePass` added before `ReachingDefPass`
+- `PlumeTimer` to measure various intervals of the projection process
+- Added a filter step before `constructStructure` call in `Extractor::project` as not to duplicate types
+
 ### Fixed
 - Fixed `PlumeKeyProvider` infinite loop and added proper tests for `getNewId`
 - Added a check in the setter for `keyPoolSize` to not allow anything less than 1
