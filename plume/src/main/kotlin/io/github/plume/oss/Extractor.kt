@@ -16,8 +16,14 @@
 package io.github.plume.oss
 
 import io.github.plume.oss.domain.exceptions.PlumeCompileException
-import io.github.plume.oss.domain.files.*
-import io.github.plume.oss.drivers.*
+import io.github.plume.oss.domain.files.FileFactory
+import io.github.plume.oss.domain.files.JVMClassFile
+import io.github.plume.oss.domain.files.PlumeFile
+import io.github.plume.oss.domain.files.UnsupportedFile
+import io.github.plume.oss.drivers.GremlinDriver
+import io.github.plume.oss.drivers.IDriver
+import io.github.plume.oss.drivers.Neo4jDriver
+import io.github.plume.oss.drivers.OverflowDbDriver
 import io.github.plume.oss.metrics.ExtractorTimeKey
 import io.github.plume.oss.metrics.PlumeTimer
 import io.github.plume.oss.options.ExtractorOptions
@@ -39,7 +45,7 @@ import io.github.plume.oss.util.SootToPlumeUtil.obtainModifiersFromTypeDeclVert
 import io.shiftleft.codepropertygraph.Cpg
 import io.shiftleft.codepropertygraph.generated.EdgeTypes.AST
 import io.shiftleft.codepropertygraph.generated.EdgeTypes.SOURCE_FILE
-import io.shiftleft.codepropertygraph.generated.NodeKeyNames.*
+import io.shiftleft.codepropertygraph.generated.NodeKeyNames.FULL_NAME
 import io.shiftleft.codepropertygraph.generated.NodeTypes.*
 import io.shiftleft.codepropertygraph.generated.nodes.*
 import io.shiftleft.dataflowengineoss.passes.reachingdef.ReachingDefPass
@@ -252,43 +258,34 @@ class Extractor(val driver: IDriver) {
         return this
     }
 
-    private fun <T> pipeline(vararg functions: (T) -> T): (T) -> T =
-        { functions.fold(it) { output, stage -> stage.invoke(output) } }
-
     /**
      * Adds additional data calculated from the graph using passes from [io.shiftleft.semanticcpg.passes] and
      * [io.shiftleft.dataflowengineoss.passes]. This is constructed from the base CPG and requires [Extractor.project]
      * to be called beforehand.
      */
     fun postProject(): Extractor {
-        PlumeTimer.startTimerOn(ExtractorTimeKey.DATABASE_READ)
         driver.getProgramTypeData().use { g ->
-            PlumeTimer.stopTimerOn(ExtractorTimeKey.DATABASE_READ).startTimerOn(ExtractorTimeKey.SCPG_PASSES)
-            val cpg = Cpg.apply(g)
-            listOf(
-                TypeDeclStubCreator(cpg),
-                Linker(cpg),
-            ).map { it.run() }
-                .map(CollectionConverters::IteratorHasAsJava)
-                .flatMap { it.asJava().asSequence() }
-                .forEach { DiffGraphUtil.processDiffGraph(driver, it) }
-            PlumeTimer.stopTimerOn(ExtractorTimeKey.SCPG_PASSES)
-        }
-        PlumeTimer.stopTimerOn(ExtractorTimeKey.DATABASE_READ)
-        driver.getMethodNames().forEach { mName ->
-            PlumeTimer.startTimerOn(ExtractorTimeKey.DATABASE_READ)
-            driver.getMethod(mName).use { g ->
-                PlumeTimer.stopTimerOn(ExtractorTimeKey.DATABASE_READ).startTimerOn(ExtractorTimeKey.SCPG_PASSES)
+            PlumeTimer.measure(ExtractorTimeKey.SCPG_PASSES) {
                 val cpg = Cpg.apply(g)
-                val containsEdgePass = ContainsEdgePass(cpg)
-                val reachingDefPass = ReachingDefPass(cpg)
-                val methods = g.nodes(METHOD).asSequence().toList()
-                runParallelPass(methods.filterIsInstance<AstNode>(), containsEdgePass)
-                runParallelPass(methods.filterIsInstance<Method>(), reachingDefPass)
-                PlumeTimer.stopTimerOn(ExtractorTimeKey.SCPG_PASSES)
+                listOf(
+                    TypeDeclStubCreator(cpg),
+                    Linker(cpg),
+                ).map { it.run() }
+                    .map(CollectionConverters::IteratorHasAsJava)
+                    .flatMap { it.asJava().asSequence() }
+                    .forEach { DiffGraphUtil.processDiffGraph(driver, it) }
             }
         }
-        PlumeTimer.stopAll()
+        driver.getMethodNames().forEach { mName ->
+            driver.getMethod(mName).use { g ->
+                PlumeTimer.measure(ExtractorTimeKey.SCPG_PASSES) {
+                    val cpg = Cpg.apply(g)
+                    val methods = g.nodes(METHOD).asSequence().toList()
+                    runParallelPass(methods.filterIsInstance<AstNode>(), ContainsEdgePass(cpg))
+                    runParallelPass(methods.filterIsInstance<Method>(), ReachingDefPass(cpg))
+                }
+            }
+        }
         return this
     }
 
@@ -298,6 +295,9 @@ class Extractor(val driver: IDriver) {
             .flatMap { it.asJava().asSequence() }
             .forEach { DiffGraphUtil.processDiffGraph(driver, it) }
     }
+
+    private fun <T> pipeline(vararg functions: (T) -> T): (T) -> T =
+        { functions.fold(it) { output, stage -> stage.invoke(output) } }
 
     /**
      * Creates [TypeDecl] from external [soot.Type]s. This also links the [TypeDecl]s to their modifiers and the
