@@ -359,6 +359,7 @@ class Extractor(val driver: IDriver) {
                 .forEach { DiffGraphUtil.processDiffGraph(driver, it) }
             ExtractorTimer.stopTimerOn(ExtractorTimeKey.SCPG_PASSES)
         }
+        ExtractorTimer.stopTimerOn(ExtractorTimeKey.DATABASE_READ)
         driver.getMethodNames().forEach { mName ->
             ExtractorTimer.startTimerOn(ExtractorTimeKey.DATABASE_READ)
             driver.getMethod(mName).use { g ->

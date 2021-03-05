@@ -25,8 +25,11 @@ object ExtractorTimer {
     fun stopTimerOn(vararg key: ExtractorTimeKey) = apply {
         key.forEach {
             totalTimes.computeIfPresent(it) { u, t ->
-                t + (System.nanoTime() - stopwatch.getOrDefault(u, System.nanoTime()))
+                val stopTime = stopwatch.getOrDefault(u, 0L)
+                if (stopTime != 0L) t + (System.nanoTime() - stopTime)
+                else t
             }
+            stopwatch[it] = 0L
         }
     }
 

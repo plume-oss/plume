@@ -9,7 +9,7 @@ object PlumeKeyProvider {
      * The size of IDs to acquire per thread. Once this is finished, the thread will acquire another pool of IDs of this
      * size. This value can never be set to < 0 and if the value overflows it will default to 1000.
      */
-    var keyPoolSize = 1000
+    var keyPoolSize = 100000
         set(value) { if (value > 0) field = value  }
 
     /**
