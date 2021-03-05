@@ -13,7 +13,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package io.github.plume.oss.graph
+package io.github.plume.oss.passes
 
 import io.github.plume.oss.Extractor.Companion.addSootToPlumeAssociation
 import io.github.plume.oss.Extractor.Companion.getSootAssociation
@@ -40,18 +40,18 @@ import soot.jimple.internal.JimpleLocalBox
 import soot.toolkits.graph.BriefUnitGraph
 
 /**
- * The [IGraphBuilder] that constructs the vertices of the package/file/method hierarchy and connects the AST edges.
+ * The [IMethodPass] that constructs the vertices of the package/file/method hierarchy and connects the AST edges.
  *
  * @param driver The driver to build the AST with.
  */
-class ASTBuilder(private val driver: IDriver) : IGraphBuilder {
-    private val logger = LogManager.getLogger(ASTBuilder::javaClass)
+class ASTPass(private val driver: IDriver) : IMethodPass {
+    private val logger = LogManager.getLogger(ASTPass::javaClass)
 
     private var currentLine = -1
     private var currentCol = -1
     private lateinit var graph: BriefUnitGraph
 
-    override fun buildMethodBody(graph: BriefUnitGraph) {
+    override fun runPass(graph: BriefUnitGraph) {
         val mtd = graph.body.method
         this.graph = graph
         logger.debug("Building AST for ${mtd.declaration}")

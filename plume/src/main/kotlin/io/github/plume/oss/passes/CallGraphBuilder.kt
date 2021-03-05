@@ -13,7 +13,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package io.github.plume.oss.graph
+package io.github.plume.oss.passes
 
 import io.github.plume.oss.Extractor
 import io.github.plume.oss.Extractor.Companion.getSootAssociation
@@ -35,15 +35,15 @@ import soot.jimple.toolkits.callgraph.Edge
 import soot.toolkits.graph.BriefUnitGraph
 
 /**
- * The [IGraphBuilder] that constructs the interprocedural call edges.
+ * The [IMethodPass] that constructs the interprocedural call edges.
  *
  * @param driver The driver to build the call edges with.
  */
-class CallGraphBuilder(private val driver: IDriver) : IGraphBuilder {
+class CallGraphBuilder(private val driver: IDriver) : IMethodPass {
     private val logger = LogManager.getLogger(CallGraphBuilder::javaClass)
     private lateinit var graph: BriefUnitGraph
 
-    override fun buildMethodBody(graph: BriefUnitGraph) {
+    override fun runPass(graph: BriefUnitGraph) {
         val mtd = graph.body.method
         logger.debug("Building call graph edges for ${mtd.declaration}")
         // If this was an updated method, connect call graphs

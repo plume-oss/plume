@@ -13,7 +13,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package io.github.plume.oss.graph
+package io.github.plume.oss.passes
 
 import io.github.plume.oss.Extractor.Companion.getSootAssociation
 import io.github.plume.oss.drivers.IDriver
@@ -27,15 +27,15 @@ import soot.jimple.*
 import soot.toolkits.graph.BriefUnitGraph
 
 /**
- * The [IGraphBuilder] that constructs the dependence edges in the graph.
+ * The [IMethodPass] that constructs the dependence edges in the graph.
  *
  * @param driver The driver to build the CFG with.
  */
-class CFGBuilder(private val driver: IDriver) : IGraphBuilder {
-    private val logger = LogManager.getLogger(CFGBuilder::javaClass)
+class CFGPass(private val driver: IDriver) : IMethodPass {
+    private val logger = LogManager.getLogger(CFGPass::javaClass)
     private lateinit var graph: BriefUnitGraph
 
-    override fun buildMethodBody(graph: BriefUnitGraph) {
+    override fun runPass(graph: BriefUnitGraph) {
         val mtd = graph.body.method
         logger.debug("Building CFG for ${mtd.declaration}")
         this.graph = graph

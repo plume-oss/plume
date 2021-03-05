@@ -13,7 +13,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package io.github.plume.oss.graph
+package io.github.plume.oss.passes
 
 import io.github.plume.oss.Extractor.Companion.getSootAssociation
 import io.github.plume.oss.drivers.IDriver
@@ -26,15 +26,15 @@ import soot.jimple.*
 import soot.toolkits.graph.BriefUnitGraph
 
 /**
- * The [IGraphBuilder] that constructs the program dependence edges in the graph.
+ * The [IMethodPass] that constructs the program dependence edges in the graph.
  *
  * @param driver The driver to build the PDG with.
  */
-class PDGBuilder(private val driver: IDriver) : IGraphBuilder {
-    private val logger = LogManager.getLogger(PDGBuilder::javaClass)
+class PDGPass(private val driver: IDriver) : IMethodPass {
+    private val logger = LogManager.getLogger(PDGPass::javaClass)
     private lateinit var graph: BriefUnitGraph
 
-    override fun buildMethodBody(graph: BriefUnitGraph) {
+    override fun runPass(graph: BriefUnitGraph) {
         val mtd = graph.body.method
         logger.debug("Building PDG for ${mtd.declaration}")
         this.graph = graph

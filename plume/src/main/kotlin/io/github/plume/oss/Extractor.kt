@@ -19,13 +19,10 @@ import io.github.plume.oss.domain.exceptions.PlumeCompileException
 import io.github.plume.oss.domain.files.*
 import io.github.plume.oss.domain.mappers.VertexMapper.mapToVertex
 import io.github.plume.oss.drivers.*
-import io.github.plume.oss.graph.ASTBuilder
-import io.github.plume.oss.graph.CFGBuilder
-import io.github.plume.oss.graph.CallGraphBuilder
-import io.github.plume.oss.graph.PDGBuilder
 import io.github.plume.oss.metrics.ExtractorTimeKey
 import io.github.plume.oss.metrics.PlumeTimer
 import io.github.plume.oss.options.ExtractorOptions
+import io.github.plume.oss.passes.*
 import io.github.plume.oss.util.DiffGraphUtil
 import io.github.plume.oss.util.ExtractorConst.LANGUAGE_FRONTEND
 import io.github.plume.oss.util.ExtractorConst.plumeVersion
@@ -81,18 +78,18 @@ class Extractor(val driver: IDriver) {
     private val logger: Logger = LogManager.getLogger(Extractor::javaClass)
 
     private val loadedFiles: HashSet<PlumeFile> = HashSet()
-    private val astBuilder: ASTBuilder
-    private val cfgBuilder: CFGBuilder
-    private val pdgBuilder: PDGBuilder
+    private val astBuilder: ASTPass
+    private val cfgBuilder: CFGPass
+    private val pdgBuilder: PDGPass
     private val callGraphBuilder: CallGraphBuilder
     private lateinit var programStructure: Graph
 
     init {
         File(COMP_DIR).let { f -> if (f.exists()) f.deleteRecursively(); f.deleteOnExit() }
         checkDriverConnection(driver)
-        astBuilder = ASTBuilder(driver)
-        cfgBuilder = CFGBuilder(driver)
-        pdgBuilder = PDGBuilder(driver)
+        astBuilder = ASTPass(driver)
+        cfgBuilder = CFGPass(driver)
+        pdgBuilder = PDGPass(driver)
         callGraphBuilder = CallGraphBuilder(driver)
         PlumeTimer.reset()
     }
@@ -302,7 +299,8 @@ class Extractor(val driver: IDriver) {
         // Initialize program structure graph and scan for an existing CPG
         programStructure = driver.getProgramStructure()
         PlumeTimer.startTimerOn(ExtractorTimeKey.BASE_CPG_BUILDING)
-        classStream.forEach(this::analyseExistingCPGs)
+        val rebuildPass = MarkForRebuildPass(driver)
+        val classesToBuild = rebuildPass.runPass(classStream)
         PlumeTimer.stopTimerOn(ExtractorTimeKey.BASE_CPG_BUILDING).startTimerOn(ExtractorTimeKey.DATABASE_READ)
         // Update program structure after sub-graphs which will change are discarded
         programStructure.close()
@@ -313,7 +311,7 @@ class Extractor(val driver: IDriver) {
         setUpDefaultStructure()
         // Load all methods to construct the CPG from and convert them to UnitGraph objects
         PlumeTimer.startTimerOn(ExtractorTimeKey.UNIT_GRAPH_BUILDING)
-        val graphs = constructUnitGraphs(classStream)
+        val graphs = constructUnitGraphs(classesToBuild)
         PlumeTimer.stopTimerOn(ExtractorTimeKey.UNIT_GRAPH_BUILDING, ExtractorTimeKey.DATABASE_READ, ExtractorTimeKey.DATABASE_WRITE)
             .startTimerOn(ExtractorTimeKey.DATABASE_WRITE, ExtractorTimeKey.BASE_CPG_BUILDING)
         // Build external types from fields and locals
@@ -505,69 +503,15 @@ class Extractor(val driver: IDriver) {
             // Build head
             SootToPlumeUtil.buildMethodHead(graph.body.method, driver)
             // Build body
-            astBuilder.buildMethodBody(graph)
-            cfgBuilder.buildMethodBody(graph)
-            pdgBuilder.buildMethodBody(graph)
+            astBuilder.runPass(graph)
+            cfgBuilder.runPass(graph)
+            pdgBuilder.runPass(graph)
         } else {
             logger.debug("${graph.body.method} source file found in CPG, no need to build")
         }
         return graph
     }
 
-    private fun analyseExistingCPGs(cls: SootClass) {
-        val currentFileHash = getFileHashPair(cls)
-        val files = programStructure.nodes { it == FILE }.asSequence()
-        logger.debug("Looking for existing file vertex for ${cls.name} from given file hash $currentFileHash")
-        files.firstOrNull { it.property(NAME) == SootToPlumeUtil.sootClassToFileName(cls) }?.let { fileV ->
-            if (fileV.property(HASH) != currentFileHash) {
-                logger.debug("Existing class was found and file hashes do not match, marking for rebuild.")
-                // Rebuild
-                driver.getNeighbours(mapToVertex(fileV)).use { neighbours ->
-                    neighbours.nodes { it == Method.Label() }.forEach { mtdV: Node ->
-                        val mtd1 = (mapToVertex(mtdV) as NewMethodBuilder).build()
-                        logger.debug(
-                            "Deleting method and saving incoming call graph edges for " +
-                                    "${mtd1.fullName()} ${mtd1.signature()}"
-                        )
-                        driver.getMethod(mtd1.fullName(), false).use { g ->
-                            g.nodes { it == Method.Label() }.asSequence().firstOrNull()?.let { mtdV: Node ->
-                                val mtd2 = mapToVertex(mtdV) as NewMethodBuilder
-                                val builtMtd2 = mtd2.build()
-                                driver.getNeighbours(mtd2).use { ns ->
-                                    if (ns.V(mtdV.id()).hasNext()) {
-                                        ns.V(mtdV.id()).next().`in`(CALL).asSequence()
-                                            .filterIsInstance<Call>()
-                                            .forEach {
-                                                saveCallGraphEdge(
-                                                    builtMtd2.fullName(),
-                                                    mapToVertex(it) as NewCallBuilder
-                                                )
-                                            }
-                                    }
-                                }
-                            }
-                        }
-                        driver.deleteMethod(mtd1.fullName())
-                    }
-                }
-                logger.debug("Deleting $fileV")
-                driver.deleteVertex(fileV.id(), fileV.label())
-                // Delete TypeDecls
-                programStructure.nodes { it == TYPE_DECL }.asSequence()
-                    .filter { it.property(FULL_NAME) == cls.type.toQuotedString() }
-                    .forEach { typeDecl ->
-                        logger.debug("Deleting $typeDecl")
-                        driver.getNeighbours(NewTypeDeclBuilder().id(typeDecl.id())).use { g ->
-                            g.nodes(typeDecl.id()).next().out(AST)
-                                .forEach { logger.debug("Deleting $it"); driver.deleteVertex(it.id(), it.label()) }
-                        }
-                        driver.deleteVertex(typeDecl.id(), TYPE_DECL)
-                    }
-            } else {
-                logger.debug("Existing class was found and file hashes match, no need to rebuild.")
-            }
-        }
-    }
 
     /**
      * Once the method bodies are constructed, this function then connects calls to the called methods if present.
@@ -576,7 +520,7 @@ class Extractor(val driver: IDriver) {
      * @return The method from the given graph.
      */
     private fun constructCallGraphEdges(graph: BriefUnitGraph): SootMethod {
-        if (ExtractorOptions.callGraphAlg != ExtractorOptions.CallGraphAlg.NONE) callGraphBuilder.buildMethodBody(graph)
+        if (ExtractorOptions.callGraphAlg != ExtractorOptions.CallGraphAlg.NONE) callGraphBuilder.runPass(graph)
         return graph.body.method
     }
 

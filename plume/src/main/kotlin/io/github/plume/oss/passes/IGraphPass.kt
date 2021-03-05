@@ -13,18 +13,31 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package io.github.plume.oss.graph
+package io.github.plume.oss.passes
 
+import soot.SootClass
 import soot.toolkits.graph.BriefUnitGraph
 
 /**
- * The interface for classes which build the code property graph from Soot data should implement.
+ * A builder that builds CPG method bodies from [BriefUnitGraph] objects.
  */
-interface IGraphBuilder {
+interface IMethodPass {
     /**
-     * Builds the graph implementing the interface.
+     * Builds the method body.
      *
      * @param graph The [BriefUnitGraph] of a method body to build the graph off of.
      */
-    fun buildMethodBody(graph: BriefUnitGraph)
+    fun runPass(graph: BriefUnitGraph)
+}
+
+/**
+ * A builder that builds CPG program structure from [SootClass] objects.
+ */
+interface IProgramStructurePass {
+    /**
+     * Builds the program structure.
+     *
+     * @param cs The list of [SootClass] to build the graph off of.
+     */
+    fun runPass(cs: List<SootClass>): List<SootClass>
 }
