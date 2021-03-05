@@ -13,10 +13,11 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package io.github.plume.oss.passes
+package io.github.plume.oss.passes.method
 
 import io.github.plume.oss.Extractor.Companion.getSootAssociation
 import io.github.plume.oss.drivers.IDriver
+import io.github.plume.oss.passes.IMethodPass
 import io.github.plume.oss.util.ExtractorConst.FALSE_TARGET
 import io.github.plume.oss.util.ExtractorConst.TRUE_TARGET
 import io.shiftleft.codepropertygraph.generated.EdgeTypes.CFG
@@ -35,7 +36,7 @@ class CFGPass(private val driver: IDriver) : IMethodPass {
     private val logger = LogManager.getLogger(CFGPass::javaClass)
     private lateinit var graph: BriefUnitGraph
 
-    override fun runPass(graph: BriefUnitGraph) {
+    override fun runPass(graph: BriefUnitGraph): BriefUnitGraph {
         val mtd = graph.body.method
         logger.debug("Building CFG for ${mtd.declaration}")
         this.graph = graph
@@ -57,6 +58,7 @@ class CFGPass(private val driver: IDriver) : IMethodPass {
         }
         // Connect all units to their successors
         this.graph.body.units.filterNot { it is IdentityStmt }.forEach(this::projectUnit)
+        return graph
     }
 
     private fun projectUnit(unit: Unit) {

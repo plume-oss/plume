@@ -13,13 +13,14 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package io.github.plume.oss.passes
+package io.github.plume.oss.passes.method
 
 import io.github.plume.oss.Extractor
 import io.github.plume.oss.Extractor.Companion.getSootAssociation
 import io.github.plume.oss.drivers.IDriver
 import io.github.plume.oss.metrics.ExtractorTimeKey
 import io.github.plume.oss.metrics.PlumeTimer
+import io.github.plume.oss.passes.IMethodPass
 import io.github.plume.oss.util.SootToPlumeUtil.constructPhantom
 import io.shiftleft.codepropertygraph.generated.EdgeTypes.CALL
 import io.shiftleft.codepropertygraph.generated.NodeTypes.METHOD
@@ -39,18 +40,17 @@ import soot.toolkits.graph.BriefUnitGraph
  *
  * @param driver The driver to build the call edges with.
  */
-class CallGraphBuilder(private val driver: IDriver) : IMethodPass {
-    private val logger = LogManager.getLogger(CallGraphBuilder::javaClass)
+class CGPass(private val driver: IDriver) : IMethodPass {
+    private val logger = LogManager.getLogger(CGPass::javaClass)
     private lateinit var graph: BriefUnitGraph
 
-    override fun runPass(graph: BriefUnitGraph) {
+    override fun runPass(graph: BriefUnitGraph): BriefUnitGraph {
         val mtd = graph.body.method
         logger.debug("Building call graph edges for ${mtd.declaration}")
-        // If this was an updated method, connect call graphs
-        getSootAssociation(mtd)?.filterIsInstance<NewMethodBuilder>()?.first()?.let { reconnectPriorCallGraphEdges(it) }
         this.graph = graph
         // Connect all units to their successors
         this.graph.body.units.filterNot { it is IdentityStmt }.forEach(this::projectUnit)
+        return graph
     }
 
     private fun projectUnit(unit: Unit) {
@@ -94,22 +94,6 @@ class CallGraphBuilder(private val driver: IDriver) : IMethodPass {
                 }
             }
             PlumeTimer.stopTimerOn(ExtractorTimeKey.DATABASE_READ)
-        }
-    }
-
-    private fun reconnectPriorCallGraphEdges(mtdV: NewMethodBuilder) {
-        val mtd = mtdV.build()
-        Extractor.getIncomingCallGraphEdges(mtd.fullName())?.let { incomingVs ->
-            if (incomingVs.isNotEmpty()) {
-                logger.debug("Saved call graph edges found - reconnecting incoming call graph edges")
-                incomingVs.forEach { inV ->
-                    runCatching {
-                        driver.addEdge(inV, mtdV, CALL)
-                    }.onFailure { e -> logger.warn(e.message) }
-                }
-            } else {
-                logger.debug("No previous call graph edges were found")
-            }
         }
     }
 

@@ -1,10 +1,9 @@
-package io.github.plume.oss.passes
+package io.github.plume.oss.passes.structure
 
 import io.github.plume.oss.Extractor
 import io.github.plume.oss.domain.mappers.VertexMapper
 import io.github.plume.oss.drivers.IDriver
-import io.github.plume.oss.metrics.ExtractorTimeKey
-import io.github.plume.oss.metrics.PlumeTimer
+import io.github.plume.oss.passes.IProgramStructurePass
 import io.github.plume.oss.util.SootToPlumeUtil
 import io.shiftleft.codepropertygraph.generated.EdgeTypes
 import io.shiftleft.codepropertygraph.generated.NodeKeyNames

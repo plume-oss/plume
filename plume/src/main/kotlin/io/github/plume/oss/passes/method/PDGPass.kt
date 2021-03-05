@@ -13,10 +13,11 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package io.github.plume.oss.passes
+package io.github.plume.oss.passes.method
 
 import io.github.plume.oss.Extractor.Companion.getSootAssociation
 import io.github.plume.oss.drivers.IDriver
+import io.github.plume.oss.passes.IMethodPass
 import io.shiftleft.codepropertygraph.generated.EdgeTypes.ARGUMENT
 import io.shiftleft.codepropertygraph.generated.EdgeTypes.REF
 import io.shiftleft.codepropertygraph.generated.nodes.*
@@ -34,7 +35,7 @@ class PDGPass(private val driver: IDriver) : IMethodPass {
     private val logger = LogManager.getLogger(PDGPass::javaClass)
     private lateinit var graph: BriefUnitGraph
 
-    override fun runPass(graph: BriefUnitGraph) {
+    override fun runPass(graph: BriefUnitGraph): BriefUnitGraph {
         val mtd = graph.body.method
         logger.debug("Building PDG for ${mtd.declaration}")
         this.graph = graph
@@ -55,6 +56,7 @@ class PDGPass(private val driver: IDriver) : IMethodPass {
             .filterIsInstance<InvokeStmt>()
             .map { it.invokeExpr as InvokeExpr }
             .forEach(this::projectCallArg)
+        return graph
     }
 
     private fun projectCallArg(value: Any) {

@@ -27,7 +27,7 @@ interface IMethodPass {
      *
      * @param graph The [BriefUnitGraph] of a method body to build the graph off of.
      */
-    fun runPass(graph: BriefUnitGraph)
+    fun runPass(graph: BriefUnitGraph): BriefUnitGraph
 }
 
 /**

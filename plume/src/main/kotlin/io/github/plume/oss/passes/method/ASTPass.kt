@@ -13,11 +13,12 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package io.github.plume.oss.passes
+package io.github.plume.oss.passes.method
 
 import io.github.plume.oss.Extractor.Companion.addSootToPlumeAssociation
 import io.github.plume.oss.Extractor.Companion.getSootAssociation
 import io.github.plume.oss.drivers.IDriver
+import io.github.plume.oss.passes.IMethodPass
 import io.github.plume.oss.util.ExtractorConst.FALSE_TARGET
 import io.github.plume.oss.util.ExtractorConst.TRUE_TARGET
 import io.github.plume.oss.util.SootParserUtil
@@ -51,7 +52,7 @@ class ASTPass(private val driver: IDriver) : IMethodPass {
     private var currentCol = -1
     private lateinit var graph: BriefUnitGraph
 
-    override fun runPass(graph: BriefUnitGraph) {
+    override fun runPass(graph: BriefUnitGraph): BriefUnitGraph {
         val mtd = graph.body.method
         this.graph = graph
         logger.debug("Building AST for ${mtd.declaration}")
@@ -75,6 +76,7 @@ class ASTPass(private val driver: IDriver) : IMethodPass {
                         }.onFailure { e -> logger.warn(e.message) }
                     }
             }
+        return graph
     }
 
     private fun buildLocals(graph: BriefUnitGraph, mtdVertex: NewMethodBuilder): MutableList<NewNodeBuilder> {
