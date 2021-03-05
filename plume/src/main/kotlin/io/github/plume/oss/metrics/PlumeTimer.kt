@@ -46,6 +46,12 @@ object PlumeTimer {
         }
     }
 
+    fun measure(vararg key: ExtractorTimeKey, f: () -> Unit) {
+        startTimerOn(*key)
+        f()
+        stopTimerOn(*key)
+    }
+
     /**
      * Stops all timers.
      */

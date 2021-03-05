@@ -21,7 +21,13 @@ import io.github.plume.oss.drivers.*
 import io.github.plume.oss.metrics.ExtractorTimeKey
 import io.github.plume.oss.metrics.PlumeTimer
 import io.github.plume.oss.options.ExtractorOptions
-import io.github.plume.oss.passes.*
+import io.github.plume.oss.passes.method.ASTPass
+import io.github.plume.oss.passes.method.CFGPass
+import io.github.plume.oss.passes.method.CGPass
+import io.github.plume.oss.passes.method.PDGPass
+import io.github.plume.oss.passes.structure.FileAndPackagePass
+import io.github.plume.oss.passes.structure.MarkForRebuildPass
+import io.github.plume.oss.passes.structure.TypeDeclPass
 import io.github.plume.oss.util.DiffGraphUtil
 import io.github.plume.oss.util.ExtractorConst.LANGUAGE_FRONTEND
 import io.github.plume.oss.util.ExtractorConst.plumeVersion
@@ -43,7 +49,6 @@ import io.shiftleft.semanticcpg.passes.languagespecific.fuzzyc.TypeDeclStubCreat
 import io.shiftleft.semanticcpg.passes.linking.linker.Linker
 import org.apache.logging.log4j.LogManager
 import org.apache.logging.log4j.Logger
-import overflowdb.Graph
 import scala.jdk.CollectionConverters
 import soot.*
 import soot.jimple.spark.SparkTransformer
@@ -69,19 +74,12 @@ class Extractor(val driver: IDriver) {
     private val logger: Logger = LogManager.getLogger(Extractor::javaClass)
 
     private val loadedFiles: HashSet<PlumeFile> = HashSet()
-    private val astBuilder: ASTPass
-    private val cfgBuilder: CFGPass
-    private val pdgBuilder: PDGPass
-    private val callGraphBuilder: CallGraphBuilder
-    private lateinit var programStructure: Graph
+    private val callGraphBuilder: CGPass
 
     init {
         File(COMP_DIR).let { f -> if (f.exists()) f.deleteRecursively(); f.deleteOnExit() }
         checkDriverConnection(driver)
-        astBuilder = ASTPass(driver)
-        cfgBuilder = CFGPass(driver)
-        pdgBuilder = PDGPass(driver)
-        callGraphBuilder = CallGraphBuilder(driver)
+        callGraphBuilder = CGPass(driver)
         PlumeTimer.reset()
     }
 
@@ -207,49 +205,51 @@ class Extractor(val driver: IDriver) {
      * Projects all loaded classes to a base CPG.
      */
     fun project(): Extractor {
-        PlumeTimer.startTimerOn(ExtractorTimeKey.LOADING_AND_COMPILING)
-        configureSoot()
-        val compiledFiles = ResourceCompilationUtil.compileLoadedFiles(loadedFiles)
-        if (compiledFiles.isNotEmpty()) addMetaDataInfo() else return this
-        val classStream = loadClassesIntoSoot(compiledFiles)
-        PlumeTimer.stopTimerOn(ExtractorTimeKey.LOADING_AND_COMPILING).startTimerOn(ExtractorTimeKey.DATABASE_READ)
-        // Initialize program structure graph and scan for an existing CPG
-        PlumeTimer.startTimerOn(ExtractorTimeKey.BASE_CPG_BUILDING)
-        val classesToBuild = runProgramStructurePasses(classStream)
-        PlumeTimer.stopTimerOn(ExtractorTimeKey.BASE_CPG_BUILDING).startTimerOn(ExtractorTimeKey.DATABASE_READ)
-        // Update program structure after sub-graphs which will change are discarded
-        programStructure = driver.getProgramStructure()
-        PlumeTimer.stopTimerOn(ExtractorTimeKey.DATABASE_READ)
-            .startTimerOn(ExtractorTimeKey.DATABASE_READ, ExtractorTimeKey.DATABASE_WRITE)
-        // Load all methods to construct the CPG from and convert them to UnitGraph objects
-        PlumeTimer.startTimerOn(ExtractorTimeKey.UNIT_GRAPH_BUILDING)
-        val sootUnitGraphs = constructUnitGraphs(classesToBuild)
-        PlumeTimer.stopTimerOn(ExtractorTimeKey.UNIT_GRAPH_BUILDING)
-            .startTimerOn(ExtractorTimeKey.DATABASE_WRITE, ExtractorTimeKey.BASE_CPG_BUILDING)
-        // Build external types from fields and locals
-        val allTypes =
-            classStream.asSequence().map { it.fields }.flatten().map { it.type } + sootUnitGraphs.asSequence()
-                .map { it.body.locals + it.body.parameterLocals }.flatten().map { it.type }
-        createExternalTypes(classStream, allTypes)
-        // Construct the CPGs for methods
-        sootUnitGraphs.map(this::constructCPG).forEach(this::constructCallGraphEdges)
-//            .map { it.declaringClass }
-//            .distinct()
-//            .filter(classStream::contains)
-//            .forEach(this::constructStructure)
-        // Connect methods to their type declarations and source files (if present)
-        sootUnitGraphs.forEach { SootToPlumeUtil.connectMethodToTypeDecls(it.body.method, driver) }
-        PlumeTimer.stopAll()
+        /*
+            Load and compile files then feed them into Soot
+         */
+        val classStream = mutableListOf<SootClass>()
+        PlumeTimer.measure(ExtractorTimeKey.LOADING_AND_COMPILING) {
+            configureSoot()
+            val compiledFiles = ResourceCompilationUtil.compileLoadedFiles(loadedFiles)
+            if (compiledFiles.isNotEmpty()) addMetaDataInfo()
+            loadClassesIntoSoot(compiledFiles).toCollection(classStream)
+        }
+        if (classStream.isEmpty()) return this
+        /*
+            Build program structure and remove sub-graphs which need to be rebuilt
+         */
+        val classesToBuild = mutableListOf<SootClass>()
+        PlumeTimer.measure(ExtractorTimeKey.BASE_CPG_BUILDING) {
+            pipeline(
+                MarkForRebuildPass(driver)::runPass,
+                FileAndPackagePass(driver)::runPass,
+                TypeDeclPass(driver)::runPass
+            ).invoke(classStream).toCollection(classesToBuild)
+        }
+        /*
+            Build Soot Unit graphs
+         */
+        val sootUnitGraphs = mutableListOf<BriefUnitGraph>()
+        PlumeTimer.measure(ExtractorTimeKey.UNIT_GRAPH_BUILDING) {
+            constructUnitGraphs(classesToBuild).toCollection(sootUnitGraphs)
+        }
+        /*
+            Build external type and method stubs
+         */
+        PlumeTimer.measure(ExtractorTimeKey.BASE_CPG_BUILDING) {
+            val allTypes =
+                classStream.asSequence().map { it.fields }.flatten().map { it.type } + sootUnitGraphs.asSequence()
+                    .map { it.body.locals + it.body.parameterLocals }.flatten().map { it.type }
+            createExternalTypes(classStream, allTypes)
+            // Construct the CPGs for methods
+            pipeline(
+                ::baseCPGPass,
+                ::constructCallGraphEdges,
+            ).invoke(sootUnitGraphs)
+        }
         clear()
         return this
-    }
-
-    private fun runProgramStructurePasses(classStream: List<SootClass>): List<SootClass> {
-        return pipeline(
-            MarkForRebuildPass(driver)::runPass,
-            FileAndPackagePass(driver)::runPass,
-            TypeDeclPass(driver)::runPass
-        ).invoke(classStream)
     }
 
     private fun <T> pipeline(vararg functions: (T) -> T): (T) -> T =
@@ -307,22 +307,24 @@ class Extractor(val driver: IDriver) {
      * @param typeStream The stream of all [soot.Type]s.
      */
     private fun createExternalTypes(classStream: List<SootClass>, typeStream: Sequence<soot.Type>) {
-        typeStream.distinct()
-            .filter { t -> !classStream.any { it.name == t.toString() } }
-            .filter {
-                !programStructure.nodes(TYPE_DECL).asSequence().any { n -> n.property(FULL_NAME) == it.toString() }
-            }
-            .map { t -> buildTypeDeclaration(t).apply { driver.addVertex(this) } }
-            .forEach { t ->
-                // Connect external type decls to the unknown file vert
-                getSootAssociation(io.shiftleft.semanticcpg.language.types.structure.File.UNKNOWN())?.let {
-                    it.firstOrNull()?.let { f -> driver.addEdge(t, f, SOURCE_FILE) }
+        driver.getProgramStructure().use { g ->
+            typeStream.distinct()
+                .filter { t -> !classStream.any { it.name == t.toString() } }
+                .filter {
+                    !g.nodes(TYPE_DECL).asSequence().any { n -> n.property(FULL_NAME) == it.toString() }
                 }
-                // Connect type decls to their modifiers
-                obtainModifiersFromTypeDeclVert(t).forEachIndexed { i, m ->
-                    driver.addEdge(t, NewModifierBuilder().modifierType(m).order(i + 1), AST)
+                .map { t -> buildTypeDeclaration(t).apply { driver.addVertex(this) } }
+                .forEach { t ->
+                    // Connect external type decls to the unknown file vert
+                    getSootAssociation(io.shiftleft.semanticcpg.language.types.structure.File.UNKNOWN())?.let {
+                        it.firstOrNull()?.let { f -> driver.addEdge(t, f, SOURCE_FILE) }
+                    }
+                    // Connect type decls to their modifiers
+                    obtainModifiersFromTypeDeclVert(t).forEachIndexed { i, m ->
+                        driver.addEdge(t, NewModifierBuilder().modifierType(m).order(i + 1), AST)
+                    }
                 }
-            }
+        }
     }
 
     /**
@@ -362,30 +364,37 @@ class Extractor(val driver: IDriver) {
     /**
      * Constructs the code-property graph from a method's [BriefUnitGraph].
      *
-     * @param graph The [BriefUnitGraph] to construct the method head and body CPG from.
+     * @param gs The [BriefUnitGraph] to construct the method head and body CPG from.
      * @return The given graph.
      */
-    private fun constructCPG(graph: BriefUnitGraph): BriefUnitGraph {
-        logger.debug("Projecting ${graph.body.method}")
-        // Build head
-        SootToPlumeUtil.buildMethodHead(graph.body.method, driver)
-        // Build body
-        astBuilder.runPass(graph)
-        cfgBuilder.runPass(graph)
-        pdgBuilder.runPass(graph)
-        return graph
+    private fun baseCPGPass(gs: List<BriefUnitGraph>): List<BriefUnitGraph> {
+        val astPass = ASTPass(driver)
+        val cfgPass = CFGPass(driver)
+        val pdgPass = PDGPass(driver)
+        gs.forEach { g ->
+            logger.debug("Projecting ${g.body.method}")
+            // Build head
+            SootToPlumeUtil.buildMethodHead(g.body.method, driver)
+            // Build body
+            pipeline(
+                astPass::runPass,
+                cfgPass::runPass,
+                pdgPass::runPass,
+            ).invoke(g)
+        }
+        return gs
     }
 
 
     /**
      * Once the method bodies are constructed, this function then connects calls to the called methods if present.
      *
-     * @param graph The [BriefUnitGraph] from which calls are checked and connected to their referred methods.
+     * @param gs The [BriefUnitGraph] from which calls are checked and connected to their referred methods.
      * @return The method from the given graph.
      */
-    private fun constructCallGraphEdges(graph: BriefUnitGraph): SootMethod {
-        if (ExtractorOptions.callGraphAlg != ExtractorOptions.CallGraphAlg.NONE) callGraphBuilder.runPass(graph)
-        return graph.body.method
+    private fun constructCallGraphEdges(gs: List<BriefUnitGraph>): List<BriefUnitGraph> {
+        if (ExtractorOptions.callGraphAlg != ExtractorOptions.CallGraphAlg.NONE) gs.forEach(callGraphBuilder::runPass)
+        return gs
     }
 
     /**
@@ -432,6 +441,7 @@ class Extractor(val driver: IDriver) {
      * @return the given class files as a list of [SootClass].
      */
     private fun loadClassesIntoSoot(classNames: HashSet<JVMClassFile>): List<SootClass> {
+        if (classNames.isEmpty()) return emptyList()
         classNames.map(this::getQualifiedClassPath).forEach(Scene.v()::addBasicClass)
         Scene.v().loadBasicClasses()
         Scene.v().loadDynamicClasses()
@@ -459,7 +469,6 @@ class Extractor(val driver: IDriver) {
         classToFileHash.clear()
         sootToPlume.clear()
         savedCallGraphEdges.clear()
-        programStructure.close()
         File(COMP_DIR).deleteRecursively()
         G.reset()
         G.v().resetSpark()
