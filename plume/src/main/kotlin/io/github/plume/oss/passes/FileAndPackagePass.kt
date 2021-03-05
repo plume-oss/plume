@@ -17,6 +17,13 @@ import soot.SootClass
  */
 class FileAndPackagePass(private val driver: IDriver) : IProgramStructurePass {
 
+    /**
+     * This pass will build and link file and namespace information, i.e.
+     *
+     *     NAMESPACE_BLOCK -REF-> NAMESPACE
+     *     FILE -AST-> NAMESPACE_BLOCK
+     *     NAMESPACE_BLOCK -SOURCE_FILE-> FILE
+     */
     override fun runPass(cs: List<SootClass>): List<SootClass> {
         createUnknownIfNotExists()
         val ns = cs.map { it.packageName }.distinct().map { NewNamespaceBuilder().name(it).order(-1) }.toList()
