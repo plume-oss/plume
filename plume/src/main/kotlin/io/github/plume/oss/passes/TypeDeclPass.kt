@@ -1,10 +1,120 @@
 package io.github.plume.oss.passes
 
+import io.github.plume.oss.Extractor
 import io.github.plume.oss.drivers.IDriver
+import io.github.plume.oss.util.SootParserUtil
+import io.github.plume.oss.util.SootToPlumeUtil
+import io.shiftleft.codepropertygraph.generated.EdgeTypes
+import io.shiftleft.codepropertygraph.generated.EdgeTypes.*
+import io.shiftleft.codepropertygraph.generated.NodeKeyNames.NAME
+import io.shiftleft.codepropertygraph.generated.NodeTypes
+import io.shiftleft.codepropertygraph.generated.NodeTypes.FILE
+import io.shiftleft.codepropertygraph.generated.nodes.*
+import org.apache.logging.log4j.LogManager
+import org.apache.logging.log4j.Logger
 import soot.SootClass
+import soot.SootField
 
+/**
+ * Builds type declaration vertices for internal (application) types.
+ */
 class TypeDeclPass(private val driver: IDriver) : IProgramStructurePass {
+    private val logger: Logger = LogManager.getLogger(TypeDeclPass::javaClass)
+
+    /**
+     * This pass will build type declarations, their modifiers and members and linking them to
+     * their neighbour files. i.e.
+     *
+     *     TYPE_DECL -(SOURCE_FILE)-> FILE
+     *     TYPE_DECL <-(CONTAINS)- FILE
+     *     TYPE_DECL -(AST)-> *MEMBER
+     *     TYPE_DECL -(AST)-> *MODIFIER
+     *     TYPE_DECL -(REF)-> TYPE
+     *     TYPE_DECL <-(INHERITS_FROM)- TYPE
+     */
     override fun runPass(cs: List<SootClass>): List<SootClass> {
-        TODO("Not yet implemented")
+        cs.forEach { c ->
+            logger.debug("Building type declaration, modifiers and fields for ${c.type}")
+            buildTypeDeclaration(c.type).let { t ->
+                linkModifiers(c, t)
+                linkMembers(c, t)
+                linkSourceFile(c, t)
+            }
+        }
+        return cs
     }
+
+    /*
+     * TYPE_DECL -(SOURCE_FILE)-> FILE
+     * TYPE_DECL <-(CONTAINS)- FILE
+     */
+    private fun linkSourceFile(c: SootClass, t: NewTypeDeclBuilder) {
+        val fileName = SootToPlumeUtil.sootClassToFileName(c)
+        driver.getProgramStructure().use { g ->
+            g.nodes(FILE).asSequence().filterIsInstance<File>()
+                .find { it.property(NAME) == fileName }?.let { f ->
+                    driver.addEdge(t, NewFileBuilder().id(f.id()), SOURCE_FILE)
+                    driver.addEdge(NewFileBuilder().id(f.id()), t, CONTAINS)
+                }
+        }
+    }
+
+    /*
+     * TYPE_DECL -(AST)-> MEMBER
+     */
+    private fun linkMembers(c: SootClass, t: NewTypeDeclBuilder) {
+        c.fields.forEachIndexed { i, field ->
+            projectMember(field, i + 1).let { memberVertex ->
+                driver.addEdge(t, memberVertex, EdgeTypes.AST)
+                Extractor.addSootToPlumeAssociation(field, memberVertex)
+            }
+        }
+    }
+
+    /*
+     * TYPE_DECL -(AST)-> MODIFIER
+     */
+    private fun linkModifiers(c: SootClass, t: NewTypeDeclBuilder) {
+        SootParserUtil.determineModifiers(c.modifiers)
+            .mapIndexed { i, m -> NewModifierBuilder().modifierType(m).order(i + 1) }
+            .forEach { m -> driver.addEdge(t, m, EdgeTypes.AST) }
+    }
+
+    /*
+     * TYPE_DECL -(REF)-> TYPE
+     * TYPE -(INHERITS_FROM)-> TYPE_DECL
+     */
+    private fun buildTypeDeclaration(type: soot.Type): NewTypeDeclBuilder {
+        val filename = if (type.toQuotedString().contains('.')) "/${
+            type.toQuotedString().replace(".", "/").removeSuffix("[]")
+        }.class"
+        else type.toQuotedString()
+        val parentType = if (type.toQuotedString().contains('.')) type.toQuotedString().substringBeforeLast(".")
+        else type.toQuotedString()
+        val shortName = if (type.toQuotedString().contains('.')) type.toQuotedString().substringAfterLast('.')
+        else type.toQuotedString()
+
+        val t = NewTypeBuilder().name(shortName)
+            .fullName(type.toQuotedString())
+            .typeDeclFullName(type.toQuotedString())
+        val td = NewTypeDeclBuilder()
+            .name(shortName)
+            .fullName(type.toQuotedString())
+            .filename(filename)
+            .astParentFullName(parentType)
+            .astParentType(NodeTypes.NAMESPACE_BLOCK)
+            .order(1)
+            .isExternal(false)
+        driver.addEdge(td, t, REF)
+        driver.addEdge(t, td, INHERITS_FROM)
+        return td
+    }
+
+    private fun projectMember(field: SootField, childIdx: Int): NewMemberBuilder =
+        NewMemberBuilder()
+            .name(field.name)
+            .code(field.declaration)
+            .typeFullName(field.type.toQuotedString())
+            .order(childIdx)
+
 }

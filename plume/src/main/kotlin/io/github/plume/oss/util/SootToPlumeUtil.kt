@@ -164,7 +164,6 @@ object SootToPlumeUtil {
         )
         // Create program structure
         val cls = mtd.declaringClass
-        buildClassStructure(cls, driver)
         val typeDecl = buildTypeDeclaration(cls.type)
         determineModifiers(cls.modifiers)
             .mapIndexed { i, m -> NewModifierBuilder().modifierType(m).order(i + 1) }
@@ -227,41 +226,6 @@ object SootToPlumeUtil {
     }
 
     /**
-     * Constructs the file, package, and type information from the given [SootClass].
-     *
-     * @param cls The [SootClass] from which the file and package information is constructed from.
-     */
-    fun buildClassStructure(cls: SootClass, driver: IDriver): NewFileBuilder {
-        val classChildrenVertices = mutableListOf<NewNodeBuilder>()
-        val fileHash = Extractor.getFileHashPair(cls)
-        val filename = sootClassToFileName(cls)
-        var nbv: NewNamespaceBlockBuilder? = null
-        if (cls.packageName.isNotEmpty()) {
-            // Populate namespace block chain
-            val namespaceList = arrayOf(cls.packageName)
-            // TODO : the CPG spec doesn't know these chains, simplify
-            if (namespaceList.isNotEmpty()) nbv = populateNamespaceChain(namespaceList, filename, driver)
-        }
-        val order = if (nbv != null) {
-            driver.getNeighbours(nbv).use { ns ->
-                ns.node(nbv.id())?.outE()?.asSequence()?.toList()?.size ?: 1
-            }
-        } else 1
-        return NewFileBuilder()
-            .name(sootClassToFileName(cls))
-            .hash(Option.apply(fileHash.toString()))
-            .order(order)
-            .apply {
-                // Join FILE and NAMESPACE_BLOCK if namespace is present
-                if (nbv != null) {
-                    driver.addEdge(this, nbv, AST); classChildrenVertices.add(nbv)
-                }
-                classChildrenVertices.add(0, this)
-                addSootToPlumeAssociation(cls, classChildrenVertices)
-            }
-    }
-
-    /**
      * Derive a file name from an object of type `SootClass`
      * @param cls the soot class
      * @return the filename in string form
@@ -273,57 +237,6 @@ object SootToPlumeUtil {
         } else {
             io.shiftleft.semanticcpg.language.types.structure.File.UNKNOWN()
         }
-    }
-
-    /**
-     * Creates a change of [NewNamespaceBlockBuilder]s and returns the final one in the chain.
-     *
-     * @param namespaceList A list of package names.
-     * @return The final [NewNamespaceBlockBuilder] in the chain (the one associated with the file).
-     */
-    private fun populateNamespaceChain(
-        namespaceList: Array<String>,
-        filename: String,
-        driver: IDriver
-    ): NewNamespaceBlockBuilder {
-        var prevNamespaceBlock: NewNamespaceBlockBuilder
-        var currNamespaceBlock: NewNamespaceBlockBuilder? = null
-        driver.getProgramStructure().use { programStructure ->
-            val maybePrevNamespaceBlock = programStructure.nodes { it == NamespaceBlock.Label() }.asSequence()
-                .firstOrNull {
-                    it.property(FULL_NAME) == namespaceList[0] && it.property(NAME) == namespaceList[0]
-                }?.let { mapToVertex(it) } as NewNamespaceBlockBuilder?
-            prevNamespaceBlock = maybePrevNamespaceBlock
-                ?: NewNamespaceBlockBuilder()
-                    .name(namespaceList[0])
-                    .fullName(namespaceList[0])
-                    .filename(filename)
-                    .order(1)
-            if (namespaceList.size == 1) return prevNamespaceBlock
-
-            val namespaceBuilder = StringBuilder(namespaceList[0])
-            for (i in 1 until namespaceList.size) {
-                namespaceBuilder.append("." + namespaceList[i])
-                val order: Int
-                driver.getNeighbours(prevNamespaceBlock).use { ns ->
-                    order = 1 + (ns.node(prevNamespaceBlock.id())?.outE()?.asSequence()?.toList()?.size ?: 0)
-                }
-                val maybeCurrNamespaceBlock = programStructure.nodes { it == NamespaceBlock.Label() }.asSequence()
-                    .firstOrNull {
-                        it.property(FULL_NAME) == namespaceBuilder.toString() && it.property(NAME) == namespaceList[i]
-                    }?.let { mapToVertex(it) } as NewNamespaceBlockBuilder?
-                currNamespaceBlock = maybeCurrNamespaceBlock ?: NewNamespaceBlockBuilder()
-                    .name(namespaceList[i])
-                    .fullName(namespaceBuilder.toString())
-                    .filename(filename)
-                    .order(order)
-                if (currNamespaceBlock != null) {
-                    driver.addEdge(currNamespaceBlock!!, prevNamespaceBlock, AST)
-                    prevNamespaceBlock = currNamespaceBlock as NewNamespaceBlockBuilder
-                }
-            }
-        }
-        return currNamespaceBlock ?: prevNamespaceBlock
     }
 
     /**
@@ -347,6 +260,10 @@ object SootToPlumeUtil {
         val shortName = if (type.toQuotedString().contains('.')) type.toQuotedString().substringAfterLast('.')
         else type.toQuotedString()
 
+        val t = NewTypeBuilder().name(shortName)
+            .fullName(type.toQuotedString())
+            .typeDeclFullName(type.toQuotedString())
+
         return NewTypeDeclBuilder()
             .name(shortName)
             .fullName(type.toQuotedString())
@@ -355,7 +272,9 @@ object SootToPlumeUtil {
             .astParentType(NAMESPACE_BLOCK)
             .order(if (isExternal) -1 else 1)
             .isExternal(isExternal)
-            .apply { addSootToPlumeAssociation(type, this) }
+            .apply {
+                addSootToPlumeAssociation(type, this)
+            }
     }
 
     /**

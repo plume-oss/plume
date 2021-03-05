@@ -17,7 +17,10 @@ package io.github.plume.oss.util
 
 import io.github.plume.oss.domain.exceptions.PlumeCompileException
 import io.github.plume.oss.domain.files.JVMClassFile
+import io.github.plume.oss.domain.files.JavaFile
 import io.github.plume.oss.domain.files.PlumeFile
+import io.github.plume.oss.domain.files.SupportedFile
+import org.apache.logging.log4j.LogManager
 import org.objectweb.asm.ClassReader
 import org.objectweb.asm.ClassReader.SKIP_CODE
 import org.objectweb.asm.ClassVisitor
@@ -27,13 +30,17 @@ import java.io.FileInputStream
 import java.nio.file.Files
 import java.nio.file.StandardCopyOption
 import java.util.*
+import java.util.zip.ZipFile
 import javax.tools.JavaCompiler
 import javax.tools.JavaFileObject
 import javax.tools.StandardLocation
 import javax.tools.ToolProvider
+import kotlin.streams.toList
 
 
 object ResourceCompilationUtil {
+    private val logger = LogManager.getLogger(ResourceCompilationUtil::class.java)
+
     val COMP_DIR = "${System.getProperty("java.io.tmpdir")}${File.separator}plume${File.separator}build"
 
     /**
@@ -109,5 +116,54 @@ object ResourceCompilationUtil {
             ?: throw PlumeCompileException("Unable to find a Java compiler on the system!")
         if (javac.sourceVersions.none { it.ordinal >= 8 }) throw PlumeCompileException("Plume requires JDK version >= 8. Please install a suitable JDK and re-run the process.")
         return javac
+    }
+
+    fun unzipArchive(zf: ZipFile) = sequence {
+        zf.use { zip ->
+            // Copy zipped files across
+            zip.entries().asSequence().filter { !it.isDirectory }.forEach { entry ->
+                val destFile = File(COMP_DIR + File.separator + entry.name)
+                val dirName = destFile.absolutePath.substringBeforeLast('/')
+                // Create directory path
+                File(dirName).mkdirs()
+                runCatching {
+                    destFile.createNewFile()
+                }.onSuccess {
+                    zip.getInputStream(entry)
+                        .use { input -> destFile.outputStream().use { output -> input.copyTo(output) } }
+                }.onFailure {
+                    logger.warn("Encountered an error while extracting entry ${entry.name} from archive ${zf.name}.")
+                }
+                yield(destFile)
+            }
+        }
+    }
+
+    /**
+     * Will compile all supported source files loaded in the given set.
+     *
+     * @param files [PlumeFile] pointers to source files.
+     * @return A set of [PlumeFile] pointers to the compiled class files.
+     */
+    fun compileLoadedFiles(files: HashSet<PlumeFile>): HashSet<JVMClassFile> {
+        val splitFiles = mapOf<SupportedFile, MutableList<PlumeFile>>(
+            SupportedFile.JAVA to mutableListOf(),
+            SupportedFile.JVM_CLASS to mutableListOf()
+        )
+        // Organize file in the map. Perform this sequentially if there are less than 100,000 files.
+        files.stream().let { if (files.size >= 100000) it.parallel() else it.sequential() }
+            .toList().stream().forEach {
+                when (it) {
+                    is JavaFile -> splitFiles[SupportedFile.JAVA]?.add(it)
+                    is JVMClassFile -> splitFiles[SupportedFile.JVM_CLASS]?.add(it)
+                }
+            }
+        return splitFiles.keys.map {
+            val filesToCompile = (splitFiles[it] ?: emptyList<JVMClassFile>()).toList()
+            return@map when (it) {
+                SupportedFile.JAVA -> compileJavaFiles(filesToCompile)
+                SupportedFile.JVM_CLASS -> moveClassFiles(filesToCompile.map { f -> f as JVMClassFile }.toList())
+            }
+        }.asSequence().flatten().toHashSet()
     }
 }
