@@ -19,8 +19,7 @@ import io.github.plume.oss.Extractor
 import io.github.plume.oss.Extractor.Companion.getSootAssociation
 import io.github.plume.oss.drivers.IDriver
 import io.github.plume.oss.metrics.ExtractorTimeKey
-import io.github.plume.oss.metrics.ExtractorTimer
-import io.github.plume.oss.util.SootToPlumeUtil
+import io.github.plume.oss.metrics.PlumeTimer
 import io.github.plume.oss.util.SootToPlumeUtil.constructPhantom
 import io.shiftleft.codepropertygraph.generated.EdgeTypes.CALL
 import io.shiftleft.codepropertygraph.generated.NodeTypes.METHOD
@@ -77,7 +76,7 @@ class CallGraphBuilder(private val driver: IDriver) : IGraphBuilder {
             is InvokeStmt -> getSootAssociation(unit.invokeExpr)?.filterIsInstance<NewCallBuilder>()?.firstOrNull()
             else -> null
         }?.let { callV ->
-            ExtractorTimer.startTimerOn(ExtractorTimeKey.DATABASE_READ)
+            PlumeTimer.startTimerOn(ExtractorTimeKey.DATABASE_READ)
             driver.getNeighbours(callV).use { g ->
                 // If there is no outgoing call edge from this call, then we should attempt to find it's target method
                 if (g.node(callV.id())?.outE(CALL)?.hasNext() != true) {
@@ -94,7 +93,7 @@ class CallGraphBuilder(private val driver: IDriver) : IGraphBuilder {
                     }
                 }
             }
-            ExtractorTimer.stopTimerOn(ExtractorTimeKey.DATABASE_READ)
+            PlumeTimer.stopTimerOn(ExtractorTimeKey.DATABASE_READ)
         }
     }
 

@@ -1,6 +1,9 @@
 package io.github.plume.oss.metrics
 
-object ExtractorTimer {
+/**
+ * Timer to track time elapsed for Plume operations.
+ */
+object PlumeTimer {
 
     private val totalTimes = mutableMapOf(
         ExtractorTimeKey.LOADING_AND_COMPILING to 0L,
@@ -18,10 +21,20 @@ object ExtractorTimer {
         ExtractorTimeKey.SCPG_PASSES to System.nanoTime()
     )
 
+    /**
+     * Starts a timer for the given operation as per [ExtractorTimeKey].
+     *
+     * @param key The key(s) on which to start the timer on.
+     */
     fun startTimerOn(vararg key: ExtractorTimeKey) = apply {
         key.forEach { stopwatch[it] = System.nanoTime() }
     }
 
+    /**
+     * Stops a timer for the given operation as per [ExtractorTimeKey].
+     *
+     * @param key The key(s) on which to stop the timer on.
+     */
     fun stopTimerOn(vararg key: ExtractorTimeKey) = apply {
         key.forEach {
             totalTimes.computeIfPresent(it) { u, t ->
@@ -33,14 +46,23 @@ object ExtractorTimer {
         }
     }
 
+    /**
+     * Stops all timers.
+     */
     fun stopAll() = apply {
         this.stopTimerOn(*ExtractorTimeKey.values())
     }
 
+    /**
+     * Resets all timers.
+     */
     fun reset() = apply {
         ExtractorTimeKey.values().forEach { totalTimes[it] = 0L }
     }
 
+    /**
+     * Gets all the recorded times.
+     */
     fun getTimes(): Map<ExtractorTimeKey, Long> = totalTimes.toMap()
 
 }
