@@ -5,8 +5,8 @@ import io.github.plume.oss.drivers.IDriver
 import io.github.plume.oss.passes.IProgramStructurePass
 import io.github.plume.oss.util.SootToPlumeUtil
 import io.shiftleft.codepropertygraph.generated.EdgeTypes.*
-import io.shiftleft.codepropertygraph.generated.NodeKeyNames.NAME
-import io.shiftleft.codepropertygraph.generated.NodeTypes.FILE
+import io.shiftleft.codepropertygraph.generated.NodeKeyNames
+import io.shiftleft.codepropertygraph.generated.NodeTypes
 import io.shiftleft.codepropertygraph.generated.nodes.NewFileBuilder
 import io.shiftleft.codepropertygraph.generated.nodes.NewNamespaceBlockBuilder
 import io.shiftleft.codepropertygraph.generated.nodes.NewNamespaceBuilder
@@ -14,7 +14,7 @@ import scala.Option
 import soot.SootClass
 
 /**
- * Builds all the namespace blocks from the list of classes.
+ * Builds all file and package information for classes.
  */
 class FileAndPackagePass(private val driver: IDriver) : IProgramStructurePass {
 
@@ -29,20 +29,6 @@ class FileAndPackagePass(private val driver: IDriver) : IProgramStructurePass {
         createUnknownIfNotExists()
         val ns = cs.map { it.packageName }.distinct().map { NewNamespaceBuilder().name(it).order(-1) }.toList()
         return cs.map { c -> buildFileAndPackage(c, ns) }.toList()
-    }
-
-    private fun createUnknownIfNotExists() {
-        val unknown = io.shiftleft.semanticcpg.language.types.structure.File.UNKNOWN()
-        driver.getProgramStructure().use { g ->
-            if (g.nodes(FILE).asSequence().none { f -> f.property(NAME) == unknown }) {
-                val unknownFile = NewFileBuilder().name(unknown).order(0).hash(Option.apply(unknown))
-                driver.addVertex(unknownFile)
-                val fileNode = unknownFile.build()
-                g.addNode(unknownFile.id(), fileNode.label()).let { n ->
-                    fileNode.properties().foreach { e -> n.setProperty(e._1, e._2) }
-                }
-            }
-        }
     }
 
     private fun buildFileAndPackage(c: SootClass, ns: List<NewNamespaceBuilder>): SootClass {
@@ -74,5 +60,19 @@ class FileAndPackagePass(private val driver: IDriver) : IProgramStructurePass {
             .name(fileName)
             .order(1)
             .hash(Option.apply(fileHash))
+    }
+
+    private fun createUnknownIfNotExists() {
+        val unknown = io.shiftleft.semanticcpg.language.types.structure.File.UNKNOWN()
+        driver.getProgramStructure().use { g ->
+            if (g.nodes(NodeTypes.FILE).asSequence().none { f -> f.property(NodeKeyNames.NAME) == unknown }) {
+                val unknownFile = NewFileBuilder().name(unknown).order(0).hash(Option.apply(unknown))
+                driver.addVertex(unknownFile)
+                val fileNode = unknownFile.build()
+                g.addNode(unknownFile.id(), fileNode.label()).let { n ->
+                    fileNode.properties().foreach { e -> n.setProperty(e._1, e._2) }
+                }
+            }
+        }
     }
 }

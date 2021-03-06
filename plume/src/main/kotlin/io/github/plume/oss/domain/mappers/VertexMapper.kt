@@ -3,6 +3,8 @@ package io.github.plume.oss.domain.mappers
 import io.github.plume.oss.util.SootToPlumeUtil.createScalaList
 import io.shiftleft.codepropertygraph.generated.NodeKeyNames.*
 import io.shiftleft.codepropertygraph.generated.nodes.*
+import org.apache.logging.log4j.LogManager
+import org.apache.logging.log4j.Logger
 import overflowdb.Node
 import scala.Option
 import scala.collection.immutable.`$colon$colon`
@@ -16,6 +18,7 @@ import kotlin.collections.HashMap
  * Responsible for marshalling and unmarshalling vertex properties to and from [NewNode] objects to [Map] objects.
  */
 object VertexMapper {
+    private val logger: Logger = LogManager.getLogger(VertexMapper::javaClass)
 
     /**
      * Converts a [Node] to its respective [NewNodeBuilder] object.
@@ -243,7 +246,7 @@ object VertexMapper {
      * @return true if the edge complies with the CPG schema, false if otherwise.
      */
     fun checkSchemaConstraints(fromV: NewNodeBuilder, toV: NewNodeBuilder, edge: String) =
-        checkSchemaConstraints(fromV.build().label(), edge, toV.build().label())
+        checkSchemaConstraints(fromV.build().label(), toV.build().label(), edge)
 
     /**
      * Checks if the given edge complies with the CPG schema given the from and two vertices.
@@ -253,7 +256,7 @@ object VertexMapper {
      * @param edge the edge label between the two vertices.
      * @return true if the edge complies with the CPG schema, false if otherwise.
      */
-    fun checkSchemaConstraints(fromLabel: String, edge: String, toLabel: String): Boolean {
+    fun checkSchemaConstraints(fromLabel: String, toLabel: String, edge: String): Boolean {
         val outRule = when (fromLabel) {
             ArrayInitializer.Label() -> ArrayInitializer.`Edges$`.`MODULE$`.Out().contains(edge)
             Binding.Label() -> Binding.`Edges$`.`MODULE$`.Out().contains(edge)
@@ -281,7 +284,10 @@ object VertexMapper {
             TypeRef.Label() -> TypeRef.`Edges$`.`MODULE$`.Out().contains(edge)
             JumpTarget.Label() -> JumpTarget.`Edges$`.`MODULE$`.Out().contains(edge)
             ControlStructure.Label() -> ControlStructure.`Edges$`.`MODULE$`.Out().contains(edge)
-            else -> Unknown.`Edges$`.`MODULE$`.Out().contains(edge)
+            Unknown.Label() -> Unknown.`Edges$`.`MODULE$`.Out().contains(edge)
+            else -> {
+                logger.warn("Unknown node label $fromLabel"); false
+            }
         }
         val toRule = when (toLabel) {
             ArrayInitializer.Label() -> ArrayInitializer.`Edges$`.`MODULE$`.In().contains(edge)
@@ -310,7 +316,10 @@ object VertexMapper {
             TypeRef.Label() -> TypeRef.`Edges$`.`MODULE$`.In().contains(edge)
             JumpTarget.Label() -> JumpTarget.`Edges$`.`MODULE$`.In().contains(edge)
             ControlStructure.Label() -> ControlStructure.`Edges$`.`MODULE$`.In().contains(edge)
-            else -> Unknown.`Edges$`.`MODULE$`.In().contains(edge)
+            Unknown.Label() -> Unknown.`Edges$`.`MODULE$`.In().contains(edge)
+            else -> {
+                logger.warn("Unknown node label $fromLabel"); false
+            }
         }
         return outRule && toRule
     }
@@ -329,7 +338,7 @@ object VertexMapper {
                 PARSER_TYPE_NAME -> Optional.empty()
                 POLICY_DIRECTORIES -> Optional.empty()
                 INHERITS_FROM_TYPE_FULL_NAME -> Optional.empty()
-                OVERLAYS-> Optional.empty()
+                OVERLAYS -> Optional.empty()
                 else -> Optional.of(it.key)
             }
             if (key.isPresent) attributes[key.get()] = it.value

@@ -17,6 +17,7 @@ import io.shiftleft.codepropertygraph.generated.NodeKeyNames.*
 import io.shiftleft.codepropertygraph.generated.NodeTypes.*
 import io.shiftleft.codepropertygraph.generated.nodes.NewMetaDataBuilder
 import io.shiftleft.codepropertygraph.generated.nodes.NewNodeBuilder
+import khttp.responses.Response
 import org.apache.logging.log4j.LogManager
 import org.apache.tinkerpop.shaded.jackson.databind.ObjectMapper
 import org.json.JSONArray
@@ -429,14 +430,7 @@ class TigerGraphDriver internal constructor() : IOverridenIdDriver, ISchemaSafeD
         while (++tryCount < MAX_RETRY) {
             logger.debug("Get ${response.url}")
             logger.debug("Response ${response.text}")
-            when {
-                response.statusCode == 200 -> if (response.jsonObject["error"] as Boolean) throw PlumeTransactionException(
-                    response.jsonObject["message"] as String
-                )
-                else return response.jsonObject["results"] as JSONArray
-                tryCount >= MAX_RETRY -> throw IOException("Could not complete get request due to status code ${response.statusCode} at $api/$endpoint")
-                else -> sleep(500)
-            }
+            if (handleResponse(response, tryCount, endpoint)) return response.jsonObject["results"] as JSONArray
         }
         return JSONArray()
     }
@@ -460,15 +454,22 @@ class TigerGraphDriver internal constructor() : IOverridenIdDriver, ISchemaSafeD
             )
             logger.debug("Post ${response.url} ${response.request.data}")
             logger.debug("Response ${response.text}")
-            when {
-                response.statusCode == 200 -> if (response.jsonObject["error"] as Boolean) throw PlumeTransactionException(
-                    response.jsonObject["message"] as String
-                )
-                else return
-                tryCount >= MAX_RETRY -> throw IOException("Could not complete post request due to status code ${response.statusCode} at $api/$endpoint")
-                else -> sleep(500)
-            }
+            if (handleResponse(response, tryCount, endpoint)) return
         }
+    }
+
+    private fun handleResponse(response: Response, tryCount: Int, endpoint: String): Boolean {
+        when {
+            response.statusCode == 200 -> if (response.jsonObject["error"] as Boolean) {
+                val e = PlumeTransactionException(response.jsonObject["message"] as String)
+                logger.debug("Response failed on endpoint $endpoint with response $response", e)
+                throw e
+            }
+            else return true
+            tryCount >= MAX_RETRY -> throw IOException("Could not complete request due to status code ${response.statusCode} at $api/$endpoint")
+            else -> sleep(500)
+        }
+        return false
     }
 
     /**
@@ -723,18 +724,30 @@ CREATE QUERY getProgramTypeData() FOR GRAPH <GRAPH_NAME> SYNTAX v2 {
   allVert = start;
 
   start = SELECT t
-          FROM start:s -((${TYPE_REFERENCED_EDGES.joinToString("|") { s -> "_$s>" }}|${TYPE_REFERENCED_EDGES.joinToString("|") { s -> "<_$s" }}):e)- :t
+          FROM start:s -((${TYPE_REFERENCED_EDGES.joinToString("|") { s -> "_$s>" }}|${
+                TYPE_REFERENCED_EDGES.joinToString(
+                    "|"
+                ) { s -> "<_$s" }
+            }):e)- :t
           WHERE @@nodeKeys.contains(t.label)
           ACCUM @@edges += e;
   allVert = allVert UNION start;
   start = SELECT s
-          FROM start:s -((${TYPE_REFERENCED_EDGES.joinToString("|") { s -> "_$s>" }}|${TYPE_REFERENCED_EDGES.joinToString("|") { s -> "<_$s" }}):e)- :t
+          FROM start:s -((${TYPE_REFERENCED_EDGES.joinToString("|") { s -> "_$s>" }}|${
+                TYPE_REFERENCED_EDGES.joinToString(
+                    "|"
+                ) { s -> "<_$s" }
+            }):e)- :t
           WHERE @@nodeKeys.contains(t.label)
           ACCUM @@edges += e;
   allVert = allVert UNION start;
 
   finalEdges = SELECT t
-               FROM allVert -((${TYPE_REFERENCED_EDGES.joinToString("|") { s -> "_$s>" }}|${TYPE_REFERENCED_EDGES.joinToString("|") { s -> "<_$s" }}):e)- :t
+               FROM allVert -((${TYPE_REFERENCED_EDGES.joinToString("|") { s -> "_$s>" }}|${
+                TYPE_REFERENCED_EDGES.joinToString(
+                    "|"
+                ) { s -> "<_$s" }
+            }):e)- :t
                ACCUM @@edges += e;
   allVert = allVert UNION finalEdges;
 

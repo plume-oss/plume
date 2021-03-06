@@ -5,7 +5,6 @@ import io.github.plume.oss.drivers.IDriver
 import io.github.plume.oss.passes.IProgramStructurePass
 import io.github.plume.oss.util.SootParserUtil
 import io.github.plume.oss.util.SootToPlumeUtil
-import io.shiftleft.codepropertygraph.generated.EdgeTypes
 import io.shiftleft.codepropertygraph.generated.EdgeTypes.*
 import io.shiftleft.codepropertygraph.generated.NodeKeyNames.NAME
 import io.shiftleft.codepropertygraph.generated.NodeTypes
@@ -19,8 +18,8 @@ import soot.SootField
 /**
  * Builds type declaration vertices for internal (application) types.
  */
-class TypeDeclPass(private val driver: IDriver) : IProgramStructurePass {
-    private val logger: Logger = LogManager.getLogger(TypeDeclPass::javaClass)
+open class TypePass(private val driver: IDriver) : IProgramStructurePass {
+    private val logger: Logger = LogManager.getLogger(TypePass::javaClass)
 
     /**
      * This pass will build type declarations, their modifiers and members and linking them to
@@ -31,7 +30,6 @@ class TypeDeclPass(private val driver: IDriver) : IProgramStructurePass {
      *     TYPE_DECL -(AST)-> *MEMBER
      *     TYPE_DECL -(AST)-> *MODIFIER
      *     TYPE_DECL -(REF)-> TYPE
-     *     TYPE_DECL <-(INHERITS_FROM)- TYPE
      */
     override fun runPass(cs: List<SootClass>): List<SootClass> {
         cs.forEach { c ->
@@ -66,7 +64,7 @@ class TypeDeclPass(private val driver: IDriver) : IProgramStructurePass {
     private fun linkMembers(c: SootClass, t: NewTypeDeclBuilder) {
         c.fields.forEachIndexed { i, field ->
             projectMember(field, i + 1).let { memberVertex ->
-                driver.addEdge(t, memberVertex, EdgeTypes.AST)
+                driver.addEdge(t, memberVertex, AST)
                 Extractor.addSootToPlumeAssociation(field, memberVertex)
             }
         }
@@ -78,12 +76,26 @@ class TypeDeclPass(private val driver: IDriver) : IProgramStructurePass {
     private fun linkModifiers(c: SootClass, t: NewTypeDeclBuilder) {
         SootParserUtil.determineModifiers(c.modifiers)
             .mapIndexed { i, m -> NewModifierBuilder().modifierType(m).order(i + 1) }
-            .forEach { m -> driver.addEdge(t, m, EdgeTypes.AST) }
+            .forEach { m -> driver.addEdge(t, m, AST) }
     }
 
+    protected open fun buildTypeDecNode(
+        shortName: String,
+        fullName: String,
+        filename: String,
+        parentType: String
+    ): NewTypeDeclBuilder =
+        NewTypeDeclBuilder()
+            .name(shortName)
+            .fullName(fullName)
+            .filename(filename)
+            .astParentFullName(parentType)
+            .astParentType(NodeTypes.NAMESPACE_BLOCK)
+            .order(1)
+            .isExternal(false)
+
     /*
-     * TYPE_DECL -(REF)-> TYPE
-     * TYPE -(INHERITS_FROM)-> TYPE_DECL
+     * TYPE -(REF)-> TYPE_DECL
      */
     private fun buildTypeDeclaration(type: soot.Type): NewTypeDeclBuilder {
         val filename = if (type.toQuotedString().contains('.')) "/${
@@ -98,20 +110,12 @@ class TypeDeclPass(private val driver: IDriver) : IProgramStructurePass {
         val t = NewTypeBuilder().name(shortName)
             .fullName(type.toQuotedString())
             .typeDeclFullName(type.toQuotedString())
-        val td = NewTypeDeclBuilder()
-            .name(shortName)
-            .fullName(type.toQuotedString())
-            .filename(filename)
-            .astParentFullName(parentType)
-            .astParentType(NodeTypes.NAMESPACE_BLOCK)
-            .order(1)
-            .isExternal(false)
-        driver.addEdge(td, t, REF)
-        driver.addEdge(t, td, INHERITS_FROM)
+        val td = buildTypeDecNode(shortName, type.toQuotedString(), filename, parentType)
+        driver.addEdge(t, td, REF)
         return td
     }
 
-    private fun projectMember(field: SootField, childIdx: Int): NewMemberBuilder =
+    protected open fun projectMember(field: SootField, childIdx: Int): NewMemberBuilder =
         NewMemberBuilder()
             .name(field.name)
             .code(field.declaration)
