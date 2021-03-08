@@ -42,6 +42,7 @@ import io.github.plume.oss.util.ExtractorConst.LANGUAGE_FRONTEND
 import io.github.plume.oss.util.ExtractorConst.plumeVersion
 import io.github.plume.oss.util.ResourceCompilationUtil
 import io.github.plume.oss.util.ResourceCompilationUtil.COMP_DIR
+import io.github.plume.oss.util.ResourceCompilationUtil.TEMP_DIR
 import io.shiftleft.codepropertygraph.Cpg
 import io.shiftleft.codepropertygraph.generated.NodeKeyNames.FULL_NAME
 import io.shiftleft.codepropertygraph.generated.NodeTypes.META_DATA
@@ -387,6 +388,8 @@ class Extractor(val driver: IDriver) {
         // ignore library code
         Options.v().set_no_bodies_for_excluded(true)
         Options.v().set_allow_phantom_refs(true)
+        // Soot output to Plume temp folder
+        Options.v().set_output_dir("$TEMP_DIR${File.separator}/sootOutput")
         // keep variable names
         PhaseOptions.v().setPhaseOption("jb", "use-original-names:true")
         // call graph options
