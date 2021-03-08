@@ -41,3 +41,15 @@ interface IProgramStructurePass {
      */
     fun runPass(cs: List<SootClass>): List<SootClass>
 }
+
+/**
+ * A builder that builds CPG type sub-graphs from [soot.Type] objects.
+ */
+interface ITypePass {
+    /**
+     * Builds the program type structure.
+     *
+     * @param ts The list of [soot.Type] to build the graph off of.
+     */
+    fun runPass(ts: List<soot.Type>): List<soot.Type>
+}
