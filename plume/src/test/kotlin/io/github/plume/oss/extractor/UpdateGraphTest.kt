@@ -53,6 +53,7 @@ class UpdateGraphTest {
         testFile2 = rewriteFileContents(testFile2, testFile2Update)
         listOf(testFile1, testFile2).forEach { extractor.load(it) }
         extractor.project().postProject()
+        driver.exportGraph("/tmp/plume/g2.xml")
         val g2 = driver.getWholeGraph()
         val literalsG1 = g1.nodes().asSequence().filterIsInstance<Literal>().toList()
         val literalsG2 = g2.nodes().asSequence().filterIsInstance<Literal>().toList()

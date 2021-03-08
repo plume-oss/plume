@@ -6,12 +6,14 @@ import io.github.plume.oss.drivers.IDriver
 import io.github.plume.oss.passes.IProgramStructurePass
 import io.github.plume.oss.util.SootToPlumeUtil
 import io.shiftleft.codepropertygraph.generated.EdgeTypes
-import io.shiftleft.codepropertygraph.generated.NodeKeyNames
-import io.shiftleft.codepropertygraph.generated.NodeKeyNames.FULL_NAME
-import io.shiftleft.codepropertygraph.generated.NodeKeyNames.NAME
+import io.shiftleft.codepropertygraph.generated.EdgeTypes.AST
+import io.shiftleft.codepropertygraph.generated.EdgeTypes.REF
+import io.shiftleft.codepropertygraph.generated.NodeKeyNames.*
 import io.shiftleft.codepropertygraph.generated.NodeTypes.FILE
 import io.shiftleft.codepropertygraph.generated.NodeTypes.TYPE_DECL
 import io.shiftleft.codepropertygraph.generated.nodes.Method
+import io.shiftleft.codepropertygraph.generated.nodes.NewNodeBuilder
+import io.shiftleft.codepropertygraph.generated.nodes.TypeDecl
 import org.apache.logging.log4j.LogManager
 import org.apache.logging.log4j.Logger
 import overflowdb.Graph
@@ -33,11 +35,9 @@ class MarkForRebuildPass(private val driver: IDriver) : IProgramStructurePass {
      * @return a list of classes which need to be built.
      */
     override fun runPass(cs: List<SootClass>): List<SootClass> {
-        driver.getProgramStructure().use { g ->
-            val cStateList = cs.map { c -> checkIfClassNeedsAnUpdate(c, g) }.toList()
-            cStateList.filter { it.second == FileChange.UPDATE }.forEach { dropClassFromGraph(it.first, g) }
-            return cStateList.filterNot { it.second == FileChange.NOP }.map { it.first }.toList()
-        }
+        val cStateList = cs.map(::checkIfClassNeedsAnUpdate).toList()
+        cStateList.filter { it.second == FileChange.UPDATE }.forEach { dropClassFromGraph(it.first) }
+        return cStateList.filterNot { it.second == FileChange.NOP }.map { it.first }.toList()
     }
 
     /**
@@ -45,35 +45,36 @@ class MarkForRebuildPass(private val driver: IDriver) : IProgramStructurePass {
      * the hashes differ, this will mark for rebuild.
      *
      * @param c The class to check.
-     * @param g The graph to check against.
      * @return (c, UPDATE) if the class needs to be rebuilt, (c, NEW) if the class is unseen, and (c, NOP) if the given
      * class and the one in the database are the same.
      */
-    private fun checkIfClassNeedsAnUpdate(c: SootClass, g: Graph): Pair<SootClass, FileChange> {
+    private fun checkIfClassNeedsAnUpdate(c: SootClass): Pair<SootClass, FileChange> {
         val newCName = SootToPlumeUtil.sootClassToFileName(c)
-        g.nodes(FILE).asSequence().find { it.property(NAME) == newCName }?.let { oldCNode: Node ->
-            val currentCHash = Extractor.getFileHashPair(c)
-            logger.info("Found an existing class with name ${c.name}...")
-            return if (oldCNode.property(NodeKeyNames.HASH) != currentCHash) {
-                logger.info("Class hashes differ, marking ${c.name} for rebuild.")
-                Pair(c, FileChange.UPDATE)
-            } else {
-                logger.info("Classes are identical - no update necessary.")
-                Pair(c, FileChange.NOP)
+        driver.getVerticesByProperty(NAME, newCName, FILE).firstOrNull()
+            ?.let { oldCNode: NewNodeBuilder ->
+                val currentCHash = Extractor.getFileHashPair(c)
+                logger.info("Found an existing class with name ${c.name}...")
+                return if (oldCNode.build().properties().get(HASH).get() != currentCHash) {
+                    logger.info("Class hashes differ, marking ${c.name} for rebuild.")
+                    Pair(c, FileChange.UPDATE)
+                } else {
+                    logger.info("Classes are identical - no update necessary.")
+                    Pair(c, FileChange.NOP)
+                }
             }
-        }
         logger.debug("No existing class for ${c.name} found.")
         return Pair(c, FileChange.NEW)
     }
 
-    private fun dropClassFromGraph(c: SootClass, g: Graph) {
+    private fun dropClassFromGraph(c: SootClass) {
         val newCName = SootToPlumeUtil.sootClassToFileName(c)
-        g.nodes(FILE).asSequence().find { it.property(NAME) == newCName }?.let { oldCNode: Node ->
-            driver.getNeighbours(VertexMapper.mapToVertex(oldCNode)).use { neighbours ->
-                val nodes = neighbours.nodes().asSequence().toList()
+        driver.getVerticesByProperty(NAME, newCName, FILE).firstOrNull()
+            ?.let { oldCNode: NewNodeBuilder ->
+            driver.getNeighbours(oldCNode).use { fNeighbours ->
+                val nodes = fNeighbours.nodes().asSequence().toList()
                 dropMethods(nodes)
+                dropTypeDecl(nodes, c.type.toQuotedString())
                 dropFile(oldCNode)
-                dropTypeDecl(c, g)
             }
         }
     }
@@ -84,23 +85,32 @@ class MarkForRebuildPass(private val driver: IDriver) : IProgramStructurePass {
             driver.deleteMethod(it.fullName())
         }
 
-    private fun dropFile(c: Node) {
-        logger.debug("Deleting $FILE for ${c.property(FULL_NAME)}")
+    private fun dropFile(c: NewNodeBuilder) {
+        logger.debug("Deleting $FILE for ${c.build().properties().get(NAME).get()}")
         driver.deleteVertex(c.id(), FILE)
     }
 
-    private fun dropTypeDecl(c: SootClass, g: Graph) = g.nodes(TYPE_DECL).asSequence()
-        .filter { it.property(FULL_NAME) == c.type.toQuotedString() }
-        .forEach { typeDecl ->
-            logger.debug("Deleting $TYPE_DECL ${typeDecl.property(FULL_NAME)}")
-            driver.getNeighbours(VertexMapper.mapToVertex(typeDecl)).use { n ->
-                n.nodes(typeDecl.id()).next()
-                    .out(EdgeTypes.AST)
-                    .forEach {
-                        logger.debug("Deleting (${it.label()}: ${it.id()})")
-                        driver.deleteVertex(it.id(), it.label())
-                    }
+    private fun dropTypeDecl(ns: List<Node>, typeFullName: String) {
+        ns.filterIsInstance<TypeDecl>()
+            .filter { it.property(FULL_NAME) == typeFullName }
+            .forEach { typeDecl ->
+                logger.debug("Deleting $TYPE_DECL $typeFullName")
+                driver.getNeighbours(VertexMapper.mapToVertex(typeDecl)).use { n ->
+                    n.nodes(typeDecl.id()).next()
+                        .out(AST)
+                        .forEach {
+                            logger.debug("Deleting (${it.label()}: ${it.id()})")
+                            if (it is Method) driver.deleteMethod(it.fullName())
+                            else driver.deleteVertex(it.id(), it.label())
+                        }
+                    n.nodes(typeDecl.id()).next()
+                        .`in`(REF).asSequence().distinct()
+                        .forEach {
+                            logger.debug("Deleting (${it.label()}: ${it.id()})")
+                            driver.deleteVertex(it.id(), it.label())
+                        }
+                }
+                driver.deleteVertex(typeDecl.id(), TYPE_DECL)
             }
-            driver.deleteVertex(typeDecl.id(), TYPE_DECL)
-        }
+    }
 }

@@ -18,7 +18,6 @@ class ExternalTypePass(private val driver: IDriver) : TypePass(driver) {
             .filterIsInstance<NewTypeDeclBuilder>()
             .find { t -> t.build().fullName() == type.toQuotedString() }
             ?.let { return null }
-        println("Creating new external type")
         return super.buildTypeDeclaration(type)
     }
 
