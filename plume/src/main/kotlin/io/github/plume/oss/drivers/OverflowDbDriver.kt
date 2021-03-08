@@ -10,6 +10,7 @@ import io.shiftleft.codepropertygraph.generated.nodes.*
 import org.apache.logging.log4j.LogManager
 import overflowdb.*
 import java.util.*
+import kotlin.streams.asStream
 import io.shiftleft.codepropertygraph.generated.edges.Factories as EdgeFactories
 import io.shiftleft.codepropertygraph.generated.nodes.Factories as NodeFactories
 
@@ -240,12 +241,18 @@ class OverflowDbDriver internal constructor() : IDriver {
         propertyKey: String,
         propertyValue: Any,
         label: String?
-    ): List<NewNodeBuilder> {
-        TODO("Not yet implemented")
-    }
+    ): List<NewNodeBuilder> =
+        (if (label != null) graph.nodes(label) else graph.nodes()).asSequence()
+            .filter { it.property(propertyKey) == propertyValue }
+            .map(VertexMapper::mapToVertex)
+            .toList()
 
+    @Suppress("UNCHECKED_CAST")
     override fun <T> getPropertyFromVertices(propertyKey: String, label: String?): List<T> =
-        TODO("Not yet implemented")
+        (if (label != null) graph.nodes(label) else graph.nodes()).asSequence()
+            .filter { it.propertyKeys().contains(propertyKey) }
+            .map { it.property(propertyKey) as T }
+            .toList()
 
     override fun close() {
         require(connected) { "Cannot close a graph that is not already connected!" }

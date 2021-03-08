@@ -3,7 +3,7 @@ package io.github.plume.oss
 import java.util
 import io.shiftleft.codepropertygraph.Cpg
 import io.shiftleft.codepropertygraph.generated.{EdgeTypes, NodeKeyNames, nodes}
-import io.shiftleft.codepropertygraph.generated.nodes.{AstNode, File, HasOrder, MetaData, NamespaceBlock, StoredNode, TypeDecl}
+import io.shiftleft.codepropertygraph.generated.nodes.{AstNode, File, MetaData, NamespaceBlock, StoredNode, TypeDecl}
 import io.shiftleft.semanticcpg.language._
 import overflowdb.{Edge, Graph}
 
@@ -72,18 +72,6 @@ object Traversals {
       }
       .inE
       .l
-      .asJava
-  }
-
-  def getVertexIds(graph: Graph, lowerBound: Long, upperBound: Long): util.Set[Long] = {
-    Cpg(graph).all
-      .map { x =>
-        x.id()
-      }
-      .filter { id =>
-        lowerBound to upperBound contains id
-      }
-      .toSet
       .asJava
   }
 

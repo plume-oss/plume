@@ -56,6 +56,7 @@ class BasicIntraproceduralTest {
 
     @Test
     fun basic1Test() {
+        driver.exportGraph("/tmp/plume/t.xml")
         val ns = g.nodes().asSequence().toList()
         assertNotNull(ns.filterIsInstance<NamespaceBlock>().find { it.name() == "intraprocedural.basic" })
         ns.filterIsInstance<ODBFile>()
