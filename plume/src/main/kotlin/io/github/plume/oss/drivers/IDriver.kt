@@ -58,7 +58,7 @@ interface IDriver : AutoCloseable {
 
     /**
      * Returns the whole CPG as a [Graph] object. Depending on the size of the CPG, this may be very memory
-     * intensive.
+     * intensive and usually a bad idea to call.
      *
      * @return The whole CPG in the graph database.
      */
@@ -78,6 +78,7 @@ interface IDriver : AutoCloseable {
      *
      * @return A list of all method full names.
      */
+    @Deprecated("Use IDriver.getPropertyFromVertices(FULL_NAME, METHOD) instead.")
     fun getMethodNames(): List<String>
 
     /**
@@ -143,6 +144,25 @@ interface IDriver : AutoCloseable {
      * @return A [NewMetaDataBuilder] containing the meta data information, false if no information found.
      */
     fun getMetaData(): NewMetaDataBuilder?
+
+    /**
+     * Attempts to get vertex by it's fullname property.
+     *
+     * @param propertyKey The key to match with.
+     * @param propertyValue The value to match with.
+     * @param label An optional vertex label if known to further filter results by.
+     * @return A list of all vertices which match the predicates.
+     */
+    fun getVerticesByProperty(propertyKey: String, propertyValue: String, label: String? = null): List<NewNodeBuilder>
+
+    /**
+     * Get a list of the results from a given property in vertices.
+     *
+     * @param propertyKey The property to retrieve.
+     * @param label An optional vertex label if known to further filter results by.
+     * @return A list of the values from the given key using the specified type.
+     */
+    fun <T> getPropertyFromVertices(propertyKey: String, label: String? = null): List<T>
 
 }
 
