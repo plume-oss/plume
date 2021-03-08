@@ -349,16 +349,8 @@ class TigerGraphDriver internal constructor() : IOverridenIdDriver, ISchemaSafeD
                 "LABEL" to (label ?: "null")
             )
         ).first() as JSONObject)["result"] as JSONArray
-        println(get(
-            endpoint = "query/$GRAPH_NAME/$path",
-            params = mapOf(
-                "PROPERTY_KEY" to "_$propertyKey",
-                "PROPERTY_VALUE" to propertyValue.toString(),
-                "LABEL" to (label ?: "null")
-            )
-        ))
-        println(result)
         return result.map { vertexPayloadToNode(it as JSONObject) }
+            .filter { it.build().properties().keySet().contains(propertyKey) }
     }
 
     @Suppress("UNCHECKED_CAST")
