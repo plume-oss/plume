@@ -27,28 +27,29 @@ import io.github.plume.oss.drivers.OverflowDbDriver
 import io.github.plume.oss.metrics.ExtractorTimeKey
 import io.github.plume.oss.metrics.PlumeTimer
 import io.github.plume.oss.options.ExtractorOptions
-import io.github.plume.oss.passes.method.ASTPass
-import io.github.plume.oss.passes.method.CFGPass
-import io.github.plume.oss.passes.method.CGPass
-import io.github.plume.oss.passes.method.PDGPass
+import io.github.plume.oss.passes.graph.ASTPass
+import io.github.plume.oss.passes.graph.CFGPass
+import io.github.plume.oss.passes.graph.CGPass
+import io.github.plume.oss.passes.graph.PDGPass
+import io.github.plume.oss.passes.method.MethodStubPass
 import io.github.plume.oss.passes.structure.ExternalTypePass
 import io.github.plume.oss.passes.structure.FileAndPackagePass
 import io.github.plume.oss.passes.structure.MarkForRebuildPass
 import io.github.plume.oss.passes.structure.TypePass
+import io.github.plume.oss.passes.type.GlobalTypePass
 import io.github.plume.oss.util.DiffGraphUtil
 import io.github.plume.oss.util.ExtractorConst.LANGUAGE_FRONTEND
 import io.github.plume.oss.util.ExtractorConst.plumeVersion
 import io.github.plume.oss.util.ResourceCompilationUtil
 import io.github.plume.oss.util.ResourceCompilationUtil.COMP_DIR
-import io.github.plume.oss.util.SootToPlumeUtil
 import io.shiftleft.codepropertygraph.Cpg
+import io.shiftleft.codepropertygraph.generated.NodeKeyNames.FULL_NAME
 import io.shiftleft.codepropertygraph.generated.NodeTypes.META_DATA
 import io.shiftleft.codepropertygraph.generated.NodeTypes.METHOD
 import io.shiftleft.codepropertygraph.generated.nodes.*
 import io.shiftleft.dataflowengineoss.passes.reachingdef.ReachingDefPass
 import io.shiftleft.passes.ParallelCpgPass
 import io.shiftleft.semanticcpg.passes.containsedges.ContainsEdgePass
-import io.shiftleft.semanticcpg.passes.linking.linker.Linker
 import org.apache.logging.log4j.LogManager
 import org.apache.logging.log4j.Logger
 import scala.jdk.CollectionConverters
@@ -234,15 +235,21 @@ class Extractor(val driver: IDriver) {
             constructUnitGraphs(csToBuild).toCollection(sootUnitGraphs)
         }
         /*
-            Obtain all referenced types from fields and locals
+            Obtain all referenced types from fields, returns, and locals
          */
-        val fields = csToBuild.map { it.fields }.flatten().map { it.type }.toSet()
-        val locals = sootUnitGraphs.map { it.body.locals + it.body.parameterLocals }.flatten().map { it.type }.toSet()
-        val ts = (fields + locals).distinct()
+        val fieldsAndRets = csToBuild.map { c -> c.fields.map { it.type } + c.methods.map { it.returnType } }
+            .flatten().toSet()
+        val locals = sootUnitGraphs.map { it.body.locals + it.body.parameterLocals }
+            .flatten().map { it.type }.toSet()
+        val ts = (fieldsAndRets + locals).distinct()
         /*
             Build primitive type information
          */
-        PlumeTimer.measure(ExtractorTimeKey.UNIT_GRAPH_BUILDING) { globalTypesPass(ts) }
+        PlumeTimer.measure(ExtractorTimeKey.UNIT_GRAPH_BUILDING) {
+            pipeline(
+                GlobalTypePass(driver)::runPass
+            ).invoke(ts)
+        }
         /*
             TODO: Handle inheritance
         */
@@ -270,6 +277,12 @@ class Extractor(val driver: IDriver) {
             Construct the CPGs for methods
          */
         PlumeTimer.measure(ExtractorTimeKey.BASE_CPG_BUILDING) {
+            val allMs = parentToChildCs.flatMap { it.second + it.first }.flatMap { it.methods }.toList()
+            // Create method stubs
+            pipeline(
+                MethodStubPass(driver)::runPass
+            ).invoke(allMs)
+            // Create method bodies
             pipeline(
                 ::baseCPGPass,
                 ::constructCallGraphEdges,
@@ -285,18 +298,7 @@ class Extractor(val driver: IDriver) {
      * to be called beforehand.
      */
     fun postProject(): Extractor {
-        driver.getProgramTypeData().use { g ->
-            PlumeTimer.measure(ExtractorTimeKey.SCPG_PASSES) {
-                val cpg = Cpg.apply(g)
-                listOf(
-                    Linker(cpg),
-                ).map { it.run() }
-                    .map(CollectionConverters::IteratorHasAsJava)
-                    .flatMap { it.asJava().asSequence() }
-                    .forEach { DiffGraphUtil.processDiffGraph(driver, it) }
-            }
-        }
-        driver.getMethodNames().forEach { mName ->
+        driver.getPropertyFromVertices<String>(FULL_NAME, METHOD).forEach { mName ->
             driver.getMethod(mName).use { g ->
                 PlumeTimer.measure(ExtractorTimeKey.SCPG_PASSES) {
                     val cpg = Cpg.apply(g)
@@ -335,45 +337,6 @@ class Extractor(val driver: IDriver) {
         }.asSequence().filterNotNull().toList()
 
     /**
-     * Extracts all the used primitive and array types and creates their TYPE_DECL and TYPE nodes.
-     *
-     * @param ts The [soot.Type]s to construct the type information from.
-     * @return The given graphs.
-     */
-    private fun globalTypesPass(ts: List<soot.Type>) {
-        val gts = ts.filter { it is PrimType || it is ArrayType }
-        // TODO: Create prims e.g.
-        /*
-          TypeDecl(
-            id -> 228L,
-            name -> "int",
-            fullName -> "int",
-            isExternal -> false,
-            inheritsFromTypeFullName -> List(),
-            aliasTypeFullName -> None,
-            order -> null,
-            filename -> "",
-            astParentType -> "NAMESPACE_BLOCK",
-            astParentFullName -> "<global>"
-          )
-          TYPE_DECL -SOURCE_FILE- UNKNOWN
-          TYPE_DECL <-REF- TYPE
-          Type(id -> 1229782939113970110L, name -> "int", fullName -> "int", typeDeclFullName -> "int")
-          TYPE_DECL <-AST- NAMESPACE_BLOCK
-          NamespaceBlock(
-            id -> 114L,
-            name -> "<global>",
-            fullName -> "<global>",
-            order -> null,
-            filename -> ""
-           )
-           NamespaceBlock("<global>") -SOURCE_FILE-> FILE("<unknown>")
-           NamespaceBlock("<global>") -REF-> Namespace("<global>")
-           NamespaceBlock("<global>") -REF-> TypeDecl("int")
-         */
-    }
-
-    /**
      * Constructs the code-property graph from a method's [BriefUnitGraph].
      *
      * @param gs The [BriefUnitGraph] to construct the method head and body CPG from.
@@ -385,8 +348,6 @@ class Extractor(val driver: IDriver) {
         val pdgPass = PDGPass(driver)
         gs.forEach { g ->
             logger.debug("Projecting ${g.body.method}")
-            // Build head
-            SootToPlumeUtil.buildMethodHead(g.body.method, driver)
             // Build body
             pipeline(
                 astPass::runPass,

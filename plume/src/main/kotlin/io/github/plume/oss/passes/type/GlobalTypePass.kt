@@ -7,9 +7,8 @@ import io.shiftleft.codepropertygraph.generated.EdgeTypes.AST
 import io.shiftleft.codepropertygraph.generated.NodeKeyNames.NAME
 import io.shiftleft.codepropertygraph.generated.NodeTypes.NAMESPACE_BLOCK
 import io.shiftleft.codepropertygraph.generated.nodes.NewTypeDeclBuilder
-import soot.ArrayType
-import soot.PrimType
-import soot.Type
+import soot.*
+import soot.jimple.toolkits.typing.fast.BottomType
 
 /**
  * Builds all types which will be considered as global types e.g. int, array types e.g. java.lang.String[].
@@ -23,19 +22,19 @@ class GlobalTypePass(private val driver: IDriver) : ITypePass {
      */
     override fun runPass(ts: List<Type>): List<Type> {
         val n = driver.getVerticesByProperty(NAME, GLOBAL, NAMESPACE_BLOCK).first()
-        ts.filter { it is PrimType || it is ArrayType }
+        ts.filter { it is PrimType || it is ArrayType || it is VoidType || it is NullType || it is BottomType }
             .map(::buildGlobalTypeDecl)
             .forEach { t -> driver.addEdge(n, t, AST) }
         return ts
     }
 
     private fun buildGlobalTypeDecl(t: Type) = NewTypeDeclBuilder()
-            .name(t.toQuotedString())
-            .fullName(t.toQuotedString())
-            .isExternal(false)
-            .order(-1)
-            .filename("")
-            .astParentType(NAMESPACE_BLOCK)
-            .astParentFullName("<global>")
+        .name(t.toQuotedString())
+        .fullName(t.toQuotedString())
+        .isExternal(false)
+        .order(-1)
+        .filename("")
+        .astParentType(NAMESPACE_BLOCK)
+        .astParentFullName("<global>")
 
 }

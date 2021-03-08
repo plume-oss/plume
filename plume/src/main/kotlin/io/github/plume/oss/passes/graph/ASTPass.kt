@@ -13,12 +13,12 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package io.github.plume.oss.passes.method
+package io.github.plume.oss.passes.graph
 
 import io.github.plume.oss.Extractor.Companion.addSootToPlumeAssociation
 import io.github.plume.oss.Extractor.Companion.getSootAssociation
 import io.github.plume.oss.drivers.IDriver
-import io.github.plume.oss.passes.IMethodPass
+import io.github.plume.oss.passes.IUnitGraphPass
 import io.github.plume.oss.util.ExtractorConst.FALSE_TARGET
 import io.github.plume.oss.util.ExtractorConst.TRUE_TARGET
 import io.github.plume.oss.util.SootParserUtil
@@ -41,11 +41,11 @@ import soot.jimple.internal.JimpleLocalBox
 import soot.toolkits.graph.BriefUnitGraph
 
 /**
- * The [IMethodPass] that constructs the vertices of the package/file/method hierarchy and connects the AST edges.
+ * The [IUnitGraphPass] that constructs the vertices of the package/file/method hierarchy and connects the AST edges.
  *
  * @param driver The driver to build the AST with.
  */
-class ASTPass(private val driver: IDriver) : IMethodPass {
+class ASTPass(private val driver: IDriver) : IUnitGraphPass {
     private val logger = LogManager.getLogger(ASTPass::javaClass)
 
     private var currentLine = -1

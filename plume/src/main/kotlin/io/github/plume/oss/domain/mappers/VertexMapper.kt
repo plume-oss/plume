@@ -79,6 +79,7 @@ object VertexMapper {
                 .astParentType(map[AST_PARENT_TYPE] as String)
                 .name(map[NAME] as String)
                 .code(map[CODE] as String)
+                .isExternal(map[IS_EXTERNAL] as Boolean)
                 .fullName(map[FULL_NAME] as String)
                 .signature(map[SIGNATURE] as String)
                 .lineNumber(Option.apply(map[LINE_NUMBER] as Int))

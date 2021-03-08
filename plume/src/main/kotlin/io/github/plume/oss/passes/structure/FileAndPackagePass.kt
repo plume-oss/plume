@@ -3,11 +3,15 @@ package io.github.plume.oss.passes.structure
 import io.github.plume.oss.Extractor
 import io.github.plume.oss.drivers.IDriver
 import io.github.plume.oss.passes.IProgramStructurePass
+import io.github.plume.oss.util.ExtractorConst.GLOBAL
+import io.github.plume.oss.util.ExtractorConst.UNKNOWN
 import io.github.plume.oss.util.SootToPlumeUtil
 import io.shiftleft.codepropertygraph.generated.EdgeTypes.*
-import io.shiftleft.codepropertygraph.generated.NodeKeyNames
-import io.shiftleft.codepropertygraph.generated.NodeTypes
+import io.shiftleft.codepropertygraph.generated.NodeKeyNames.NAME
+import io.shiftleft.codepropertygraph.generated.NodeTypes.FILE
+import io.shiftleft.codepropertygraph.generated.NodeTypes.NAMESPACE
 import io.shiftleft.codepropertygraph.generated.nodes.NewFileBuilder
+import io.shiftleft.codepropertygraph.generated.nodes.NewNamespace
 import io.shiftleft.codepropertygraph.generated.nodes.NewNamespaceBlockBuilder
 import io.shiftleft.codepropertygraph.generated.nodes.NewNamespaceBuilder
 import scala.Option
@@ -26,7 +30,7 @@ class FileAndPackagePass(private val driver: IDriver) : IProgramStructurePass {
      *     NAMESPACE_BLOCK -SOURCE_FILE-> FILE
      */
     override fun runPass(cs: List<SootClass>): List<SootClass> {
-        createUnknownIfNotExists()
+        createDefaultVertices()
         val ns = cs.map { it.packageName }.distinct().map { NewNamespaceBuilder().name(it).order(-1) }.toList()
         return cs.map { c -> buildFileAndPackage(c, ns) }.toList()
     }
@@ -62,17 +66,15 @@ class FileAndPackagePass(private val driver: IDriver) : IProgramStructurePass {
             .hash(Option.apply(fileHash))
     }
 
-    private fun createUnknownIfNotExists() {
-        val unknown = io.shiftleft.semanticcpg.language.types.structure.File.UNKNOWN()
-        driver.getProgramStructure().use { g ->
-            if (g.nodes(NodeTypes.FILE).asSequence().none { f -> f.property(NodeKeyNames.NAME) == unknown }) {
-                val unknownFile = NewFileBuilder().name(unknown).order(0).hash(Option.apply(unknown))
-                driver.addVertex(unknownFile)
-                val fileNode = unknownFile.build()
-                g.addNode(unknownFile.id(), fileNode.label()).let { n ->
-                    fileNode.properties().foreach { e -> n.setProperty(e._1, e._2) }
-                }
-            }
+    private fun createDefaultVertices() {
+        if (driver.getVerticesByProperty(NAME, UNKNOWN, FILE).isEmpty()) {
+            val unknownFile = NewFileBuilder().name(UNKNOWN).order(-1).hash(Option.apply(UNKNOWN))
+            driver.addVertex(unknownFile)
+        }
+        if (driver.getVerticesByProperty(NAME, GLOBAL).isEmpty()) {
+            val gNamespace = NewNamespaceBuilder().name(GLOBAL).order(-1)
+            val gNamespaceBlock = NewNamespaceBlockBuilder().name(GLOBAL).fullName(GLOBAL).order(-1).filename("")
+            driver.addEdge(gNamespaceBlock, gNamespace, REF)
         }
     }
 }

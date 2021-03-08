@@ -16,12 +16,13 @@
 package io.github.plume.oss.passes
 
 import soot.SootClass
+import soot.SootMethod
 import soot.toolkits.graph.BriefUnitGraph
 
 /**
- * A builder that builds CPG method bodies from [BriefUnitGraph] objects.
+ * A pass that builds CPG method bodies from [BriefUnitGraph] objects.
  */
-interface IMethodPass {
+interface IUnitGraphPass {
     /**
      * Builds the method body.
      *
@@ -31,7 +32,20 @@ interface IMethodPass {
 }
 
 /**
- * A builder that builds CPG program structure from [SootClass] objects.
+ * A pass that builds on the CPG based on method head information.
+ */
+interface IMethodPass {
+    /**
+     * Run the pass on the method head.
+     *
+     * @param ms The [SootMethod] to build from.
+     */
+    fun runPass(ms: List<SootMethod>): List<SootMethod>
+}
+
+
+/**
+ * A pass that builds CPG program structure from [SootClass] objects.
  */
 interface IProgramStructurePass {
     /**
@@ -43,7 +57,7 @@ interface IProgramStructurePass {
 }
 
 /**
- * A builder that builds CPG type sub-graphs from [soot.Type] objects.
+ * A pass that builds CPG type sub-graphs from [soot.Type] objects.
  */
 interface ITypePass {
     /**

@@ -13,11 +13,11 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package io.github.plume.oss.passes.method
+package io.github.plume.oss.passes.graph
 
 import io.github.plume.oss.Extractor.Companion.getSootAssociation
 import io.github.plume.oss.drivers.IDriver
-import io.github.plume.oss.passes.IMethodPass
+import io.github.plume.oss.passes.IUnitGraphPass
 import io.shiftleft.codepropertygraph.generated.EdgeTypes.ARGUMENT
 import io.shiftleft.codepropertygraph.generated.EdgeTypes.REF
 import io.shiftleft.codepropertygraph.generated.nodes.*
@@ -27,11 +27,11 @@ import soot.jimple.*
 import soot.toolkits.graph.BriefUnitGraph
 
 /**
- * The [IMethodPass] that constructs the program dependence edges in the graph.
+ * The [IUnitGraphPass] that constructs the program dependence edges in the graph.
  *
  * @param driver The driver to build the PDG with.
  */
-class PDGPass(private val driver: IDriver) : IMethodPass {
+class PDGPass(private val driver: IDriver) : IUnitGraphPass {
     private val logger = LogManager.getLogger(PDGPass::javaClass)
     private lateinit var graph: BriefUnitGraph
 
