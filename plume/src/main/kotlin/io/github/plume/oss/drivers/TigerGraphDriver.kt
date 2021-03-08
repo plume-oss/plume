@@ -4,6 +4,8 @@ import io.github.plume.oss.domain.exceptions.PlumeSchemaViolationException
 import io.github.plume.oss.domain.exceptions.PlumeTransactionException
 import io.github.plume.oss.domain.mappers.VertexMapper
 import io.github.plume.oss.domain.mappers.VertexMapper.checkSchemaConstraints
+import io.github.plume.oss.metrics.ExtractorTimeKey
+import io.github.plume.oss.metrics.PlumeTimer
 import io.github.plume.oss.util.CodeControl
 import io.github.plume.oss.util.ExtractorConst
 import io.github.plume.oss.util.ExtractorConst.BOOLEAN_TYPES
@@ -380,21 +382,23 @@ class TigerGraphDriver internal constructor() : IOverridenIdDriver, ISchemaSafeD
 
     private fun payloadToGraph(a: JSONArray): Graph {
         val graph = newOverflowGraph()
-        val vs = mutableMapOf<Long, Node>()
-        a[0]?.let { res ->
-            val o = res as JSONObject
-            val vertices = o["allVert"] as JSONArray
-            vertices.map { vertexPayloadToNode(it as JSONObject) }.forEach {
-                val n = it.build()
-                val node = graph.addNode(it.id(), n.label())
-                n.properties().foreachEntry { key, value -> node.setProperty(key, value) }
-                vs[it.id()] = node
+        PlumeTimer.measure(ExtractorTimeKey.DATABASE_READ) {
+            val vs = mutableMapOf<Long, Node>()
+            a[0]?.let { res ->
+                val o = res as JSONObject
+                val vertices = o["allVert"] as JSONArray
+                vertices.map { vertexPayloadToNode(it as JSONObject) }.forEach {
+                    val n = it.build()
+                    val node = graph.addNode(it.id(), n.label())
+                    n.properties().foreachEntry { key, value -> node.setProperty(key, value) }
+                    vs[it.id()] = node
+                }
             }
-        }
-        a[1]?.let { res ->
-            val o = res as JSONObject
-            val edges = o["@@edges"] as JSONArray
-            edges.forEach { connectEdge(vs, it as JSONObject) }
+            a[1]?.let { res ->
+                val o = res as JSONObject
+                val edges = o["@@edges"] as JSONArray
+                edges.forEach { connectEdge(vs, it as JSONObject) }
+            }
         }
         return graph
     }
@@ -456,21 +460,24 @@ class TigerGraphDriver internal constructor() : IOverridenIdDriver, ISchemaSafeD
      */
     @Throws(PlumeTransactionException::class)
     private fun get(endpoint: String, params: Map<String, String>): JSONArray {
-        var tryCount = 0
-        val response = if (params.isEmpty()) khttp.get(
-            url = "${api}/$endpoint",
-            headers = headers()
-        ) else khttp.get(
-            url = "${api}/$endpoint",
-            headers = headers(),
-            params = params
-        )
-        while (++tryCount < MAX_RETRY) {
-            logger.debug("Get ${response.url}")
-            logger.debug("Response ${response.text}")
-            if (handleResponse(response, tryCount, endpoint)) return response.jsonObject["results"] as JSONArray
+        var res = JSONArray()
+        PlumeTimer.measure(ExtractorTimeKey.DATABASE_READ) {
+            var tryCount = 0
+            val response = if (params.isEmpty()) khttp.get(
+                url = "${api}/$endpoint",
+                headers = headers()
+            ) else khttp.get(
+                url = "${api}/$endpoint",
+                headers = headers(),
+                params = params
+            )
+            while (++tryCount < MAX_RETRY) {
+                logger.debug("Get ${response.url}")
+                logger.debug("Response ${response.text}")
+                if (handleResponse(response, tryCount, endpoint)) res = (response.jsonObject["results"] as JSONArray)
+            }
         }
-        return JSONArray()
+        return res
     }
 
     /**
@@ -483,16 +490,18 @@ class TigerGraphDriver internal constructor() : IOverridenIdDriver, ISchemaSafeD
      */
     @Throws(PlumeTransactionException::class)
     private fun post(endpoint: String, payload: Map<String, Any>) {
-        var tryCount = 0
-        while (++tryCount < MAX_RETRY) {
-            val response = khttp.post(
-                url = "$api/$endpoint",
-                headers = headers(),
-                data = objectMapper.writeValueAsString(payload)
-            )
-            logger.debug("Post ${response.url} ${response.request.data}")
-            logger.debug("Response ${response.text}")
-            if (handleResponse(response, tryCount, endpoint)) return
+        PlumeTimer.measure(ExtractorTimeKey.DATABASE_WRITE) {
+            var tryCount = 0
+            while (++tryCount < MAX_RETRY) {
+                val response = khttp.post(
+                    url = "$api/$endpoint",
+                    headers = headers(),
+                    data = objectMapper.writeValueAsString(payload)
+                )
+                logger.debug("Post ${response.url} ${response.request.data}")
+                logger.debug("Response ${response.text}")
+                if (handleResponse(response, tryCount, endpoint)) break
+            }
         }
     }
 
@@ -518,14 +527,16 @@ class TigerGraphDriver internal constructor() : IOverridenIdDriver, ISchemaSafeD
      */
     private fun delete(endpoint: String) {
         var tryCount = 0
-        while (++tryCount < MAX_RETRY) {
-            val response = khttp.delete(url = "$api/$endpoint", headers = headers())
-            logger.debug("Delete ${response.url}")
-            logger.debug("Response ${response.text}")
-            when {
-                response.statusCode == 200 -> return
-                tryCount >= MAX_RETRY -> throw IOException("Could not complete delete request due to status code ${response.statusCode} at $api/$endpoint")
-                else -> sleep(500)
+        PlumeTimer.measure(ExtractorTimeKey.DATABASE_WRITE) {
+            while (++tryCount < MAX_RETRY) {
+                val response = khttp.delete(url = "$api/$endpoint", headers = headers())
+                logger.debug("Delete ${response.url}")
+                logger.debug("Response ${response.text}")
+                when {
+                    response.statusCode == 200 -> break
+                    tryCount >= MAX_RETRY -> throw IOException("Could not complete delete request due to status code ${response.statusCode} at $api/$endpoint")
+                    else -> sleep(500)
+                }
             }
         }
     }

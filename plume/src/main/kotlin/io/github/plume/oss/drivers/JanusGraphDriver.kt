@@ -1,5 +1,7 @@
 package io.github.plume.oss.drivers
 
+import io.github.plume.oss.metrics.ExtractorTimeKey
+import io.github.plume.oss.metrics.PlumeTimer
 import io.github.plume.oss.util.ExtractorConst
 import io.shiftleft.codepropertygraph.generated.EdgeTypes
 import io.shiftleft.codepropertygraph.generated.NodeKeyNames
@@ -66,8 +68,12 @@ class JanusGraphDriver internal constructor() : GremlinDriver(), ISchemaSafeDriv
     fun remoteConfig(remoteConfigPath: String) = apply { config.setProperty(REMOTE_CONFIG, remoteConfigPath) }
 
     override fun updateVertexProperty(id: Long, label: String?, key: String, value: Any) {
-        if (!g.V(id).hasNext()) return
-        g.V(id).property("_$key", value).iterate()
+        var res = false
+        PlumeTimer.measure(ExtractorTimeKey.DATABASE_READ) { res = g.V(id).hasNext() }
+        if (!res) return
+        PlumeTimer.measure(ExtractorTimeKey.DATABASE_WRITE) {
+            g.V(id).property("_$key", value).iterate()
+        }
     }
 
     override fun prepareVertexProperties(v: NewNodeBuilder): Map<String, Any> =
@@ -114,9 +120,8 @@ class JanusGraphDriver internal constructor() : GremlinDriver(), ISchemaSafeDriv
         schema.append(
             """
             // Indexes
+            mgmt.getGraphIndex("byName") != null ?: mgmt.buildIndex("byName", Vertex.class).addKey(mgmt.getPropertyKey(_$NAME)).buildCompositeIndex()
             mgmt.getGraphIndex("byFullName") != null ?: mgmt.buildIndex("byFullName", Vertex.class).addKey(mgmt.getPropertyKey(_$FULL_NAME)).buildCompositeIndex()
-            mgmt.getGraphIndex("bySignature") != null ?: mgmt.buildIndex("bySignature", Vertex.class).addKey(mgmt.getPropertyKey(_$SIGNATURE)).buildCompositeIndex()
-            mgmt.getGraphIndex("byHash") != null ?: mgmt.buildIndex("byHash", Vertex.class).addKey(mgmt.getPropertyKey(_$HASH)).buildCompositeIndex()
             mgmt.commit()
         """.trimIndent()
         )

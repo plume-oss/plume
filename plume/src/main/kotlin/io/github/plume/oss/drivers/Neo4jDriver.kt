@@ -4,6 +4,8 @@ import io.github.plume.oss.domain.exceptions.PlumeSchemaViolationException
 import io.github.plume.oss.domain.mappers.VertexMapper
 import io.github.plume.oss.domain.mappers.VertexMapper.checkSchemaConstraints
 import io.github.plume.oss.domain.mappers.VertexMapper.mapToVertex
+import io.github.plume.oss.metrics.ExtractorTimeKey
+import io.github.plume.oss.metrics.PlumeTimer
 import io.github.plume.oss.util.ExtractorConst.TYPE_REFERENCED_EDGES
 import io.github.plume.oss.util.ExtractorConst.TYPE_REFERENCED_NODES
 import io.shiftleft.codepropertygraph.generated.EdgeTypes.AST
@@ -143,98 +145,112 @@ class Neo4jDriver internal constructor() : IDriver {
             .replace("\\f", "\\\\f")
 
     override fun addVertex(v: NewNodeBuilder) {
-        val node = v.build()
-        val propertyMap = CollectionConverters.MapHasAsJava(node.properties()).asJava().toMutableMap()
-        propertyMap["label"] = node.label()
-        driver.session().use { session ->
-            val payload = StringBuilder("{")
-            val attributeList = extractAttributesFromMap(propertyMap).toList()
-            attributeList.forEachIndexed { i: Int, e: Pair<String, Any> ->
-                payload.append("${e.first}:")
-                val p = e.second
-                if (p is String) payload.append("\"${sanitizePayload(p)}\"")
-                else payload.append(p)
-                if (i < attributeList.size - 1) payload.append(",")
-            }
-            payload.append("}")
-            session.writeTransaction { tx ->
-                val result = tx.run(
-                    """
+        PlumeTimer.measure(ExtractorTimeKey.DATABASE_WRITE) {
+            val node = v.build()
+            val propertyMap = CollectionConverters.MapHasAsJava(node.properties()).asJava().toMutableMap()
+            propertyMap["label"] = node.label()
+            driver.session().use { session ->
+                val payload = StringBuilder("{")
+                val attributeList = extractAttributesFromMap(propertyMap).toList()
+                attributeList.forEachIndexed { i: Int, e: Pair<String, Any> ->
+                    payload.append("${e.first}:")
+                    val p = e.second
+                    if (p is String) payload.append("\"${sanitizePayload(p)}\"")
+                    else payload.append(p)
+                    if (i < attributeList.size - 1) payload.append(",")
+                }
+                payload.append("}")
+                session.writeTransaction { tx ->
+                    val result = tx.run(
+                        """
                     CREATE (n:${node.label()} $payload)
                     RETURN ID(n) as id
                     """.trimIndent()
-                )
-                v.id(result.next()["id"].toString().toLong())
+                    )
+                    v.id(result.next()["id"].toString().toLong())
+                }
             }
-
         }
     }
 
     override fun exists(v: NewNodeBuilder): Boolean = checkVertexExist(v.id(), v.build().label())
 
     private fun checkVertexExist(id: Long, label: String? = null): Boolean {
-        driver.session().use { session ->
-            return session.writeTransaction { tx ->
-                val result = tx.run(
-                    """
+        var res = false
+        PlumeTimer.measure(ExtractorTimeKey.DATABASE_READ) {
+            driver.session().use { session ->
+                res = session.writeTransaction { tx ->
+                    val result = tx.run(
+                        """
                     MATCH (n${if (label != null) ":$label" else ""})
                     WHERE id(n) = $id
                     RETURN n
                     """.trimIndent()
-                )
-                result.list().isNotEmpty()
+                    )
+                    result.list().isNotEmpty()
+                }
             }
         }
+        return res
     }
 
     override fun exists(src: NewNodeBuilder, tgt: NewNodeBuilder, edge: String): Boolean {
-        if (!exists(src) || !exists(tgt)) return false
-        val srcN = src.build()
-        val tgtN = tgt.build()
-        driver.session().use { session ->
-            return session.writeTransaction { tx ->
-                val result = tx.run(
-                    """
+        var res = false
+        PlumeTimer.measure(ExtractorTimeKey.DATABASE_READ) { res = !exists(src) || !exists(tgt) }
+        if (!res) return false
+        PlumeTimer.measure(ExtractorTimeKey.DATABASE_READ) {
+            val srcN = src.build()
+            val tgtN = tgt.build()
+            driver.session().use { session ->
+                session.writeTransaction { tx ->
+                    val result = tx.run(
+                        """
                     MATCH (a:${srcN.label()}), (b:${tgtN.label()})
                     WHERE id(a) = ${src.id()} AND id(b) = ${tgt.id()}
                     RETURN EXISTS ((a)-[:$edge]->(b)) as edge_exists
                     """.trimIndent()
-                )
-                result.next()["edge_exists"].toString() == "TRUE"
+                    )
+                    res = result.next()["edge_exists"].toString() == "TRUE"
+                }
             }
         }
+        return res
     }
 
     override fun addEdge(src: NewNodeBuilder, tgt: NewNodeBuilder, edge: String) {
         if (!checkSchemaConstraints(src, tgt, edge)) throw PlumeSchemaViolationException(src, tgt, edge)
         if (!exists(src)) addVertex(src)
         if (!exists(tgt)) addVertex(tgt)
-        val srcN = src.build()
-        val tgtN = tgt.build()
-        driver.session().use { session ->
-            return session.writeTransaction { tx ->
-                val result = tx.run(
-                    """
+        PlumeTimer.measure(ExtractorTimeKey.DATABASE_WRITE) {
+            val srcN = src.build()
+            val tgtN = tgt.build()
+            driver.session().use { session ->
+                session.writeTransaction { tx ->
+                    val result = tx.run(
+                        """
                     MATCH (a:${srcN.label()}), (b:${tgtN.label()})
                     WHERE id(a) = ${src.id()} AND id(b) = ${tgt.id()}
                     CREATE (a)-[r:$edge]->(b)
                     RETURN r
                     """.trimIndent()
-                )
-                result.list().isNotEmpty()
+                    )
+                    result.list().isNotEmpty()
+                }
             }
         }
     }
 
     override fun clearGraph(): IDriver {
-        driver.session().use { session ->
-            session.writeTransaction { tx ->
-                tx.run(
-                    """
+        PlumeTimer.measure(ExtractorTimeKey.DATABASE_WRITE) {
+            driver.session().use { session ->
+                session.writeTransaction { tx ->
+                    tx.run(
+                        """
                     MATCH (n)
                     DETACH DELETE n
                     """.trimIndent()
-                )
+                    )
+                }
             }
         }
         return this
@@ -242,39 +258,41 @@ class Neo4jDriver internal constructor() : IDriver {
 
     override fun getWholeGraph(): Graph {
         val graph = newOverflowGraph()
-        driver.session().use { session ->
-            val orphanVertices = session.writeTransaction { tx ->
-                tx.run(
-                    """
+        PlumeTimer.measure(ExtractorTimeKey.DATABASE_READ) {
+            driver.session().use { session ->
+                val orphanVertices = session.writeTransaction { tx ->
+                    tx.run(
+                        """
                     MATCH (n)
                     WHERE NOT (n)-[]-()
                     RETURN n
                     """.trimIndent()
-                ).list()
-            }
-            orphanVertices.map { it["n"].asNode() }
-                .map { mapToVertex(it.asMap() + mapOf("id" to it.id())) }
-                .forEach { addNodeToGraph(graph, it) }
-            val edgeResult = session.writeTransaction { tx ->
-                tx.run(
-                    """
+                    ).list()
+                }
+                orphanVertices.map { it["n"].asNode() }
+                    .map { mapToVertex(it.asMap() + mapOf("id" to it.id())) }
+                    .forEach { addNodeToGraph(graph, it) }
+                val edgeResult = session.writeTransaction { tx ->
+                    tx.run(
+                        """
                     MATCH (n)-[r]->(m)
                     RETURN n AS src, m AS tgt, type(r) AS rel 
                     """.trimIndent()
-                ).list()
-            }
-            edgeResult.map { r -> Triple(r["src"].asNode(), r["tgt"].asNode(), r["rel"].asString()) }
-                .map {
-                    Triple(
-                        mapToVertex(it.first.asMap() + mapOf("id" to it.first.id())),
-                        mapToVertex(it.second.asMap() + mapOf("id" to it.second.id())),
-                        it.third
-                    )
-                }.forEach {
-                    val src = addNodeToGraph(graph, it.first)
-                    val tgt = addNodeToGraph(graph, it.second)
-                    src.addEdge(it.third, tgt)
+                    ).list()
                 }
+                edgeResult.map { r -> Triple(r["src"].asNode(), r["tgt"].asNode(), r["rel"].asString()) }
+                    .map {
+                        Triple(
+                            mapToVertex(it.first.asMap() + mapOf("id" to it.first.id())),
+                            mapToVertex(it.second.asMap() + mapOf("id" to it.second.id())),
+                            it.third
+                        )
+                    }.forEach {
+                        val src = addNodeToGraph(graph, it.first)
+                        val tgt = addNodeToGraph(graph, it.second)
+                        src.addEdge(it.third, tgt)
+                    }
+            }
         }
         return graph
     }
@@ -302,10 +320,11 @@ class Neo4jDriver internal constructor() : IDriver {
             WITH DISTINCT (r1 + r2 + r3) AS coll
             """.trimIndent()
         val plumeGraph = newOverflowGraph()
-        driver.session().use { session ->
-            session.writeTransaction { tx ->
-                val result = tx.run(
-                    """
+        PlumeTimer.measure(ExtractorTimeKey.DATABASE_READ) {
+            driver.session().use { session ->
+                session.writeTransaction { tx ->
+                    val result = tx.run(
+                        """
                     $queryHead
                     UNWIND coll AS e1
                     WITH DISTINCT e1
@@ -313,25 +332,15 @@ class Neo4jDriver internal constructor() : IDriver {
                     UNWIND e2 as x
                     RETURN x
                     """.trimIndent()
-                ).list().map { it["x"] }
-                neo4jToOverflowGraph(result, plumeGraph)
+                    ).list().map { it["x"] }
+                    neo4jToOverflowGraph(result, plumeGraph)
+                }
             }
         }
         return plumeGraph
     }
 
-    override fun getMethodNames(): List<String> {
-        driver.session().use { session ->
-            return session.writeTransaction { tx ->
-                tx.run(
-                    """
-                    MATCH (m:$METHOD)
-                    RETURN m.$FULL_NAME as x
-                    """.trimIndent()
-                ).list().map { it["x"].asString() }.toList()
-            }
-        }
-    }
+    override fun getMethodNames(): List<String> = getPropertyFromVertices(FULL_NAME, METHOD)
 
     override fun getProgramStructure(): Graph {
         val graph = newOverflowGraph()
@@ -370,11 +379,12 @@ class Neo4jDriver internal constructor() : IDriver {
 
     override fun getProgramTypeData(): Graph {
         val graph = newOverflowGraph()
-        driver.session().use { session ->
-            TYPE_REFERENCED_EDGES.forEach { e ->
-                val result = session.writeTransaction { tx ->
-                    tx.run(
-                        """
+        PlumeTimer.measure(ExtractorTimeKey.DATABASE_READ) {
+            driver.session().use { session ->
+                TYPE_REFERENCED_EDGES.forEach { e ->
+                    val result = session.writeTransaction { tx ->
+                        tx.run(
+                            """
                     MATCH (n)-[e1:$e]-(m)
                     WHERE (${TYPE_REFERENCED_NODES.joinToString(" OR ") { "n:$it" }})
                         OR
@@ -384,33 +394,35 @@ class Neo4jDriver internal constructor() : IDriver {
                     UNWIND e2 as x
                     RETURN x
                     """.trimIndent()
-                    ).list().map { it["x"] }
+                        ).list().map { it["x"] }
+                    }
+                    neo4jToOverflowGraph(result, graph)
                 }
-                neo4jToOverflowGraph(result, graph)
-            }
-            val typeDecl = session.writeTransaction { tx ->
-                tx.run(
-                    """
+                val typeDecl = session.writeTransaction { tx ->
+                    tx.run(
+                        """
                     MATCH (n)
                     WHERE ${TYPE_REFERENCED_NODES.joinToString(" OR ") { "n:$it" }}
                     RETURN n
                     """.trimIndent()
-                ).list()
+                    ).list()
+                }
+                typeDecl.map { it["n"].asNode() }
+                    .map { mapToVertex(it.asMap() + mapOf("id" to it.id())) }
+                    .filter { graph.node(it.id()) == null }
+                    .forEach { addNodeToGraph(graph, it) }
             }
-            typeDecl.map { it["n"].asNode() }
-                .map { mapToVertex(it.asMap() + mapOf("id" to it.id())) }
-                .filter { graph.node(it.id()) == null }
-                .forEach { addNodeToGraph(graph, it) }
         }
         return graph
     }
 
     override fun getNeighbours(v: NewNodeBuilder): Graph {
         val graph = newOverflowGraph()
-        driver.session().use { session ->
-            val result = session.writeTransaction { tx ->
-                tx.run(
-                    """
+        PlumeTimer.measure(ExtractorTimeKey.DATABASE_READ) {
+            driver.session().use { session ->
+                val result = session.writeTransaction { tx ->
+                    tx.run(
+                        """
                     MATCH (n:${v.build().label()})-[r1]-(m)
                     WHERE ID(n) = ${v.id()}
                     WITH DISTINCT r1 AS coll
@@ -420,9 +432,10 @@ class Neo4jDriver internal constructor() : IDriver {
                     UNWIND e2 as x
                     RETURN x
                     """.trimIndent()
-                ).list().map { it["x"] }
+                    ).list().map { it["x"] }
+                }
+                neo4jToOverflowGraph(result, graph)
             }
-            neo4jToOverflowGraph(result, graph)
         }
         return graph
     }
@@ -447,80 +460,92 @@ class Neo4jDriver internal constructor() : IDriver {
 
     override fun deleteVertex(id: Long, label: String?) {
         if (!checkVertexExist(id, label)) return
-        driver.session().use { session ->
-            session.writeTransaction { tx ->
-                tx.run(
-                    """
+        PlumeTimer.measure(ExtractorTimeKey.DATABASE_WRITE) {
+            driver.session().use { session ->
+                session.writeTransaction { tx ->
+                    tx.run(
+                        """
                     MATCH (n${if (label != null) ":$label" else ""})
                     WHERE ID(n) = $id
                     DETACH DELETE n
                     """.trimIndent()
-                )
+                    )
+                }
             }
         }
     }
 
     override fun deleteEdge(src: NewNodeBuilder, tgt: NewNodeBuilder, edge: String) {
         if (!exists(src, tgt, edge)) return
-        val srcN = src.build()
-        val tgtN = tgt.build()
-        driver.session().use { session ->
-            session.writeTransaction { tx ->
-                tx.run(
-                    """
+        PlumeTimer.measure(ExtractorTimeKey.DATABASE_WRITE) {
+            val srcN = src.build()
+            val tgtN = tgt.build()
+            driver.session().use { session ->
+                session.writeTransaction { tx ->
+                    tx.run(
+                        """
                     MATCH (s:${srcN.label()})-[r:$edge]->(t:${tgtN.label()})
                     WHERE ID(s) = ${src.id()} AND ID(t) = ${tgt.id()}  
                     DELETE r
                     """.trimIndent()
-                )
+                    )
+                }
             }
         }
     }
 
     override fun deleteMethod(fullName: String) {
-        driver.session().use { session ->
-            session.writeTransaction { tx ->
-                tx.run(
-                    """
+        PlumeTimer.measure(ExtractorTimeKey.DATABASE_WRITE) {
+            driver.session().use { session ->
+                session.writeTransaction { tx ->
+                    tx.run(
+                        """
                     MATCH (a)-[r:${AST}*]->(t)
                     WHERE a.FULL_NAME = "$fullName"
                     FOREACH (x IN r | DELETE x)
                     DETACH DELETE a, t
                     """.trimIndent()
-                )
+                    )
+                }
             }
         }
     }
 
     override fun updateVertexProperty(id: Long, label: String?, key: String, value: Any) {
         if (!checkVertexExist(id, label)) return
-        driver.session().use { session ->
-            session.writeTransaction { tx ->
-                tx.run(
-                    """
+        PlumeTimer.measure(ExtractorTimeKey.DATABASE_WRITE) {
+            driver.session().use { session ->
+                session.writeTransaction { tx ->
+                    tx.run(
+                        """
                     MATCH (n${if (label != null) ":$label" else ""})
                     WHERE ID(n) = $id
                     SET n.$key = ${if (value is String) "\"$value\"" else value}
                     """.trimIndent()
-                )
+                    )
+                }
             }
         }
     }
 
     override fun getMetaData(): NewMetaDataBuilder? {
-        driver.session().use { session ->
-            return session.writeTransaction { tx ->
-                tx.run(
-                    """
+        var meta: NewMetaDataBuilder? = null
+        PlumeTimer.measure(ExtractorTimeKey.DATABASE_WRITE) {
+            driver.session().use { session ->
+                meta = session.writeTransaction { tx ->
+                    tx.run(
+                        """
                     MATCH (n:$META_DATA)
                     RETURN n
                     LIMIT 1
                     """.trimIndent()
-                ).list().map { it["n"].asNode() }
-                    .map { mapToVertex(it.asMap() + mapOf("id" to it.id())) }
-                    .firstOrNull() as NewMetaDataBuilder?
+                    ).list().map { it["n"].asNode() }
+                        .map { mapToVertex(it.asMap() + mapOf("id" to it.id())) }
+                        .firstOrNull() as NewMetaDataBuilder?
+                }
             }
         }
+        return meta
     }
 
     override fun getVerticesByProperty(
@@ -528,34 +553,42 @@ class Neo4jDriver internal constructor() : IDriver {
         propertyValue: Any,
         label: String?
     ): List<NewNodeBuilder> {
+        val l = mutableListOf<NewNodeBuilder>()
         if (propertyKey.length != sanitizePayload(propertyKey).length || propertyKey.contains("[<|>]".toRegex())) return emptyList()
-        driver.session().use { session ->
-            return session.writeTransaction { tx ->
-                tx.run(
-                    """
+        PlumeTimer.measure(ExtractorTimeKey.DATABASE_READ) {
+            driver.session().use { session ->
+                session.writeTransaction { tx ->
+                    tx.run(
+                        """
                     MATCH (n${if (label != null) ":$label" else ""})
                     WHERE n.$propertyKey = ${if (propertyValue is String) "\"$propertyValue\"" else propertyValue}
                     RETURN n
                     """.trimIndent()
-                ).list().map { it["n"].asNode() }
-                    .map { mapToVertex(it.asMap() + mapOf("id" to it.id())) }
+                    ).list().map { it["n"].asNode() }
+                        .map { mapToVertex(it.asMap() + mapOf("id" to it.id())) }
+                }.toCollection(l)
             }
         }
+        return l
     }
 
     @Suppress("UNCHECKED_CAST")
-    override fun <T: Any> getPropertyFromVertices(propertyKey: String, label: String?): List<T> {
+    override fun <T : Any> getPropertyFromVertices(propertyKey: String, label: String?): List<T> {
+        val l = mutableListOf<T>()
         if (propertyKey.length != sanitizePayload(propertyKey).length || propertyKey.contains("[<|>]".toRegex())) return emptyList()
-        driver.session().use { session ->
-            return session.writeTransaction { tx ->
-                tx.run(
-                    """
+        PlumeTimer.measure(ExtractorTimeKey.DATABASE_READ) {
+            driver.session().use { session ->
+                session.writeTransaction { tx ->
+                    tx.run(
+                        """
                     MATCH (n${if (label != null) ":$label" else ""})
                     RETURN n.$propertyKey AS p
                     """.trimIndent()
-                ).list().map { it["p"].asObject() as T }
+                    ).list().map { it["p"].asObject() as T }
+                }.toCollection(l)
             }
         }
+        return l
     }
 
     private fun newOverflowGraph(): Graph = Graph.open(

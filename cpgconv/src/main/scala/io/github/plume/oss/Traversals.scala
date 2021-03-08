@@ -33,10 +33,6 @@ object Traversals {
       .asJava
   }
 
-  def getMethodNames(graph: Graph): util.List[String] = {
-    Cpg(graph).method.iterator.map(_.property(NodeKeyNames.FULL_NAME).asInstanceOf[String]).toList.asJava
-  }
-
   import overflowdb.traversal._
   def getProgramStructure(graph: Graph): util.List[Edge] = {
     val edgesFromFile: List[Edge] = Cpg(graph).file
