@@ -34,7 +34,7 @@ open class TypePass(private val driver: IDriver) : IProgramStructurePass {
     override fun runPass(cs: List<SootClass>): List<SootClass> {
         cs.forEach { c ->
             logger.debug("Building type declaration, modifiers and fields for ${c.type}")
-            buildTypeDeclaration(c.type).let { t ->
+            buildTypeDeclaration(c.type)?.let { t ->
                 linkModifiers(c, t)
                 linkMembers(c, t)
                 linkSourceFile(c, t)
@@ -97,7 +97,7 @@ open class TypePass(private val driver: IDriver) : IProgramStructurePass {
     /*
      * TYPE -(REF)-> TYPE_DECL
      */
-    private fun buildTypeDeclaration(type: soot.Type): NewTypeDeclBuilder {
+    protected open fun buildTypeDeclaration(type: soot.Type): NewTypeDeclBuilder? {
         val filename = if (type.toQuotedString().contains('.')) "/${
             type.toQuotedString().replace(".", "/").removeSuffix("[]")
         }.class"
