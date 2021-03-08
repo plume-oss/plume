@@ -258,15 +258,18 @@ class Extractor(val driver: IDriver) {
         /*
             Obtain all referenced types from fields, returns, and locals
          */
-        val fieldsAndRets = csToBuild.map { c -> c.fields.map { it.type } + c.methods.map { it.returnType } }
-            .flatten().toSet()
-        val locals = sootUnitGraphs.map { it.body.locals + it.body.parameterLocals }
-            .flatten().map { it.type }.toSet()
-        val ts = (fieldsAndRets + locals).distinct()
+        val ts = mutableListOf<soot.Type>()
+        PlumeTimer.measure(ExtractorTimeKey.BASE_CPG_BUILDING) {
+            val fieldsAndRets = csToBuild.map { c -> c.fields.map { it.type } + c.methods.map { it.returnType } }
+                .flatten().toSet()
+            val locals = sootUnitGraphs.map { it.body.locals + it.body.parameterLocals }
+                .flatten().map { it.type }.toSet()
+            (fieldsAndRets + locals).distinct().toCollection(ts)
+        }
         /*
             Build primitive type information
          */
-        PlumeTimer.measure(ExtractorTimeKey.UNIT_GRAPH_BUILDING) {
+        PlumeTimer.measure(ExtractorTimeKey.BASE_CPG_BUILDING) {
             pipeline(
                 GlobalTypePass(driver)::runPass
             ).invoke(ts)

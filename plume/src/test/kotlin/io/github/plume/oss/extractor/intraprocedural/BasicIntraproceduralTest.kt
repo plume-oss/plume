@@ -137,7 +137,7 @@ class BasicIntraproceduralTest {
         val ns = g.nodes().asSequence().toList()
         ns.filterIsInstance<NamespaceBlock>().let { nbv ->
             assertNotNull(nbv.find { it.name() == "intraprocedural.basic.basic5" })
-            assertEquals(7, nbv.toList().size)
+            assertEquals(5, nbv.toList().size)
         }
         ns.filterIsInstance<TypeDecl>().let { mrv ->
             assertNotNull(mrv.find { it.fullName() == "intraprocedural.basic.Basic5" })
@@ -145,14 +145,14 @@ class BasicIntraproceduralTest {
             assertNotNull(mrv.find { it.fullName() == "int" })
             assertNotNull(mrv.find { it.fullName() == "byte" })
             assertNotNull(mrv.find { it.fullName() == "java.lang.String[]" })
-            assertEquals(12, mrv.toList().size)
+            assertEquals(8, mrv.toList().size)
         }
         ns.filterIsInstance<Method>().let { mv ->
             assertNotNull(mv.find { it.fullName() == "intraprocedural.basic.Basic5.main:void(java.lang.String[])" })
             assertNotNull(mv.find { it.fullName() == "intraprocedural.basic.basic5.Basic5.main:void(java.lang.String[])" })
             assertNotNull(mv.find { it.fullName() == "intraprocedural.basic.Basic5.<init>:void()" })
             assertNotNull(mv.find { it.fullName() == "intraprocedural.basic.basic5.Basic5.<init>:void()" })
-            assertEquals(28, mv.toList().size)
+            assertEquals(16, mv.toList().size)
         }
     }
 }
