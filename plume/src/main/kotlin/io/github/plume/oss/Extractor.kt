@@ -281,14 +281,14 @@ class Extractor(val driver: IDriver) {
         PlumeTimer.measure(ExtractorTimeKey.BASE_CPG_BUILDING) {
             val allMs: List<SootMethod> = parentToChildCs.flatMap { it.second + it.first }.flatMap { it.methods }.toList()
             val existingMs: List<String> = driver.getPropertyFromVertices(FULL_NAME, METHOD)
-            // Create method stubs
+            // Create method stubs while avoiding duplication
             pipeline(
                 MethodStubPass(driver)::runPass
             ).invoke(allMs.filterNot { sm ->
                 val (fullName, _, _) = SootToPlumeUtil.methodToStrings(sm)
                 existingMs.contains(fullName)
             })
-            // Create method bodies
+            // Create method bodies while avoiding duplication
             pipeline(
                 ::baseCPGPass,
                 ::constructCallGraphEdges,

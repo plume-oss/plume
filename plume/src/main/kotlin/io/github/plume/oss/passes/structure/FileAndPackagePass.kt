@@ -22,7 +22,7 @@ import soot.SootClass
  */
 class FileAndPackagePass(private val driver: IDriver) : IProgramStructurePass {
 
-    private val nodeCache = mutableListOf<NewNodeBuilder>()
+    private val nodeCache = mutableSetOf<NewNodeBuilder>()
 
     /**
      * This pass will build and link file and namespace information, i.e.
@@ -45,7 +45,7 @@ class FileAndPackagePass(private val driver: IDriver) : IProgramStructurePass {
 
     private fun buildFileAndPackage(c: SootClass, ns: List<NewNodeBuilder>): SootClass {
         val nb = getNamespaceBlock(c)
-        val f = buildFile(c)
+        val f = getFile(c)
         // (NAMESPACE_BLOCK) -REF-> (NAMESPACE)
         ns.find { it.build().properties().get(NAME).get() == c.packageName }
             ?.let { namespace -> driver.addEdge(nb, namespace, REF) }
@@ -81,6 +81,22 @@ class FileAndPackagePass(private val driver: IDriver) : IProgramStructurePass {
             .order(1)
             .name(c.packageName)
             .fullName("$fileName:${c.packageName}")
+    }
+
+    /**
+     * This will first see if there is a FILE in the cache, if not then will look in the graph,
+     * if not then will build a new vertex.
+     */
+    private fun getFile(c: SootClass): NewNodeBuilder {
+        val fileName = SootToPlumeUtil.sootClassToFileName(c)
+        nodeCache.filterIsInstance<NewFileBuilder>()
+            .find { it.build().properties().get(NAME).get() == fileName }
+            ?.let { return it }
+        return driver.getVerticesByProperty(
+            propertyKey = NAME,
+            propertyValue = fileName,
+            label = FILE
+        ).firstOrNull() ?: buildFile(c)
     }
 
     private fun buildFile(c: SootClass): NewFileBuilder {
