@@ -6,8 +6,10 @@ import io.github.plume.oss.passes.IMethodPass
 import io.github.plume.oss.util.ExtractorConst
 import io.github.plume.oss.util.SootParserUtil
 import io.github.plume.oss.util.SootToPlumeUtil
-import io.shiftleft.codepropertygraph.generated.EdgeTypes
-import io.shiftleft.codepropertygraph.generated.NodeTypes
+import io.shiftleft.codepropertygraph.generated.EdgeTypes.AST
+import io.shiftleft.codepropertygraph.generated.EdgeTypes.CONTAINS
+import io.shiftleft.codepropertygraph.generated.NodeKeyNames.FULL_NAME
+import io.shiftleft.codepropertygraph.generated.NodeTypes.TYPE_DECL
 import io.shiftleft.codepropertygraph.generated.nodes.NewBlockBuilder
 import io.shiftleft.codepropertygraph.generated.nodes.NewMethodBuilder
 import io.shiftleft.codepropertygraph.generated.nodes.NewMethodReturnBuilder
@@ -20,12 +22,24 @@ import soot.SootMethod
  */
 class MethodStubPass(private val driver: IDriver) : IMethodPass {
 
+    /**
+     * Builds method stubs and connects them to their respective TYPE_DECLs, i.e.
+     *
+     *     TYPE_DECL -AST-> METHOD
+     *     TYPE_DECL -CONTAINS-> CONTAINS
+     */
     override fun runPass(ms: List<SootMethod>): List<SootMethod> {
-        ms.map { buildMethodStub(it) }
+        ms.map { sm -> Pair(sm, buildMethodStub(sm)) }.forEach { p ->
+            driver.getVerticesByProperty(FULL_NAME, p.first.declaringClass.type.toQuotedString(), TYPE_DECL)
+                .firstOrNull()?.let { t ->
+                    driver.addEdge(t, p.second, AST)
+                    driver.addEdge(t, p.second, CONTAINS)
+                }
+        }
         return ms
     }
 
-    private fun buildMethodStub(m: SootMethod): SootMethod {
+    private fun buildMethodStub(m: SootMethod): NewMethodBuilder {
         val currentLine = m.javaSourceStartLineNumber
         val currentCol = m.javaSourceStartColumnNumber
         var childIdx = 1
@@ -42,7 +56,7 @@ class MethodStubPass(private val driver: IDriver) : IMethodPass {
             .columnNumber(Option.apply(currentCol))
             .order(childIdx++)
             .astParentFullName("${m.declaringClass}")
-            .astParentType(NodeTypes.TYPE_DECL)
+            .astParentType(TYPE_DECL)
         Extractor.addSootToPlumeAssociation(m, mtdVertex)
         // Store method vertex
         NewBlockBuilder()
@@ -52,15 +66,15 @@ class MethodStubPass(private val driver: IDriver) : IMethodPass {
             .argumentIndex(0)
             .lineNumber(Option.apply(currentLine))
             .columnNumber(Option.apply(currentCol))
-            .apply { driver.addEdge(mtdVertex, this, EdgeTypes.AST); Extractor.addSootToPlumeAssociation(m, this) }
+            .apply { driver.addEdge(mtdVertex, this, AST); Extractor.addSootToPlumeAssociation(m, this) }
         // Store return type
         projectMethodReturnVertex(m.returnType, currentLine, currentCol, childIdx++)
-            .apply { driver.addEdge(mtdVertex, this, EdgeTypes.AST); Extractor.addSootToPlumeAssociation(m, this) }
+            .apply { driver.addEdge(mtdVertex, this, AST); Extractor.addSootToPlumeAssociation(m, this) }
         // Modifier vertices
         SootParserUtil.determineModifiers(m.modifiers, m.name)
             .map { NewModifierBuilder().modifierType(it).order(childIdx++) }
-            .forEach { driver.addEdge(mtdVertex, it, EdgeTypes.AST) }
-        return m
+            .forEach { driver.addEdge(mtdVertex, it, AST) }
+        return mtdVertex
     }
 
     private fun projectMethodReturnVertex(
