@@ -17,7 +17,7 @@ import soot.jimple.toolkits.typing.fast.BottomType
  */
 class GlobalTypePass(private val driver: IDriver) : ITypePass {
 
-    val nodeCache = mutableSetOf<NewNodeBuilder>()
+    private val nodeCache = mutableSetOf<NewNodeBuilder>()
 
     /**
      * Creates a global TYPE_DECL and connects it to the global namespace block. i.e

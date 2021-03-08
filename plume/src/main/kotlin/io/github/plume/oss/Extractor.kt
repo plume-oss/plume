@@ -290,8 +290,10 @@ class Extractor(val driver: IDriver) {
             })
             // Create method bodies while avoiding duplication
             pipeline(
-                ::baseCPGPass,
-                ::constructCallGraphEdges,
+                ASTPass(driver)::runPass,
+                CFGPass(driver)::runPass,
+                PDGPass(driver)::runPass,
+                CGPass(driver)::runPass,
             ).invoke(sootUnitGraphs.filterNot { sm ->
                 val (fullName, _, _) = SootToPlumeUtil.methodToStrings(sm.body.method)
                 existingMs.contains(fullName)
@@ -344,42 +346,6 @@ class Extractor(val driver: IDriver) {
                 .onFailure { logger.warn("Unable to get method body for method ${m.name}.") }
                 .getOrNull()
         }.asSequence().filterNotNull().toList()
-
-    /**
-     * Constructs the code-property graph from a method's [BriefUnitGraph].
-     *
-     * @param gs The [BriefUnitGraph] to construct the method head and body CPG from.
-     * @return The given graphs.
-     */
-    private fun baseCPGPass(gs: List<BriefUnitGraph>): List<BriefUnitGraph> {
-        val astPass = ASTPass(driver)
-        val cfgPass = CFGPass(driver)
-        val pdgPass = PDGPass(driver)
-        gs.forEach { g ->
-            logger.debug("Projecting ${g.body.method}")
-            // Build body
-            pipeline(
-                astPass::runPass,
-                cfgPass::runPass,
-                pdgPass::runPass,
-            ).invoke(g)
-        }
-        return gs
-    }
-
-    /**
-     * Once the method bodies are constructed, this function then connects calls to the called methods if present.
-     *
-     * @param gs The [BriefUnitGraph] from which calls are checked and connected to their referred methods.
-     * @return The method from the given graph.
-     */
-    private fun constructCallGraphEdges(gs: List<BriefUnitGraph>): List<BriefUnitGraph> {
-        if (ExtractorOptions.callGraphAlg != ExtractorOptions.CallGraphAlg.NONE) {
-            val callGraphBuilder = CGPass(driver)
-            gs.forEach(callGraphBuilder::runPass)
-        }
-        return gs
-    }
 
     /**
      * Configure Soot options for CPG transformation.

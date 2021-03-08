@@ -52,18 +52,20 @@ class ASTPass(private val driver: IDriver) : IUnitGraphPass {
     private var currentCol = -1
     private lateinit var graph: BriefUnitGraph
 
-    override fun runPass(graph: BriefUnitGraph): BriefUnitGraph {
-        val mtd = graph.body.method
-        this.graph = graph
+    override fun runPass(gs: List<BriefUnitGraph>) = gs.map(::runPassOnGraph)
+
+    private fun runPassOnGraph(g: BriefUnitGraph): BriefUnitGraph {
+        val mtd = g.body.method
+        this.graph = g
         logger.debug("Building AST for ${mtd.declaration}")
         // Connect and create parameters and locals
         getSootAssociation(mtd)?.let { mtdVs ->
             mtdVs.filterIsInstance<NewMethodBuilder>().firstOrNull()?.let { mtdVert ->
-                addSootToPlumeAssociation(mtd, buildLocals(graph, mtdVert))
+                addSootToPlumeAssociation(mtd, buildLocals(g, mtdVert))
             }
         }
         // Build body
-        graph.body.units.filterNot { it is IdentityStmt }
+        g.body.units.filterNot { it is IdentityStmt }
             .forEachIndexed { idx, u ->
                 projectUnit(u, idx + 1)
                     ?.let {
@@ -76,7 +78,7 @@ class ASTPass(private val driver: IDriver) : IUnitGraphPass {
                         }.onFailure { e -> logger.warn(e.message) }
                     }
             }
-        return graph
+        return g
     }
 
     private fun buildLocals(graph: BriefUnitGraph, mtdVertex: NewMethodBuilder): MutableList<NewNodeBuilder> {

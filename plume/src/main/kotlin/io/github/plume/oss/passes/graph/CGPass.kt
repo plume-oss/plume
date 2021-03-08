@@ -17,6 +17,7 @@ package io.github.plume.oss.passes.graph
 
 import io.github.plume.oss.Extractor.Companion.getSootAssociation
 import io.github.plume.oss.drivers.IDriver
+import io.github.plume.oss.options.ExtractorOptions
 import io.github.plume.oss.passes.IUnitGraphPass
 import io.shiftleft.codepropertygraph.generated.EdgeTypes.CALL
 import io.shiftleft.codepropertygraph.generated.NodeTypes.METHOD
@@ -40,13 +41,17 @@ class CGPass(private val driver: IDriver) : IUnitGraphPass {
     private val logger = LogManager.getLogger(CGPass::javaClass)
     private lateinit var graph: BriefUnitGraph
 
-    override fun runPass(graph: BriefUnitGraph): BriefUnitGraph {
-        val mtd = graph.body.method
+    override fun runPass(gs: List<BriefUnitGraph>) =
+        if (ExtractorOptions.callGraphAlg != ExtractorOptions.CallGraphAlg.NONE) gs.map(::runPassOnGraph)
+        else gs
+
+    private fun runPassOnGraph(g: BriefUnitGraph): BriefUnitGraph {
+        val mtd = g.body.method
         logger.debug("Building call graph edges for ${mtd.declaration}")
-        this.graph = graph
+        this.graph = g
         // Connect all units to their successors
         this.graph.body.units.filterNot { it is IdentityStmt }.forEach(this::projectUnit)
-        return graph
+        return g
     }
 
     private fun projectUnit(unit: Unit) {

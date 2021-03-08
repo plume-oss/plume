@@ -35,10 +35,12 @@ class PDGPass(private val driver: IDriver) : IUnitGraphPass {
     private val logger = LogManager.getLogger(PDGPass::javaClass)
     private lateinit var graph: BriefUnitGraph
 
-    override fun runPass(graph: BriefUnitGraph): BriefUnitGraph {
-        val mtd = graph.body.method
+    override fun runPass(gs: List<BriefUnitGraph>) = gs.map(::runPassOnGraph)
+
+    private fun runPassOnGraph(g: BriefUnitGraph): BriefUnitGraph {
+        val mtd = g.body.method
         logger.debug("Building PDG for ${mtd.declaration}")
-        this.graph = graph
+        this.graph = g
         // Identifier REF edges
         (this.graph.body.parameterLocals + this.graph.body.locals).forEach(this::projectLocalVariable)
         // Operator and Cast ARGUMENT edges
@@ -56,7 +58,7 @@ class PDGPass(private val driver: IDriver) : IUnitGraphPass {
             .filterIsInstance<InvokeStmt>()
             .map { it.invokeExpr as InvokeExpr }
             .forEach(this::projectCallArg)
-        return graph
+        return g
     }
 
     private fun projectCallArg(value: Any) {

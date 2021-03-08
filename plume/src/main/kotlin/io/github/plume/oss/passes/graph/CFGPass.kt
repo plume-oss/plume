@@ -36,15 +36,17 @@ class CFGPass(private val driver: IDriver) : IUnitGraphPass {
     private val logger = LogManager.getLogger(CFGPass::javaClass)
     private lateinit var graph: BriefUnitGraph
 
-    override fun runPass(graph: BriefUnitGraph): BriefUnitGraph {
-        val mtd = graph.body.method
+    override fun runPass(gs: List<BriefUnitGraph>) = gs.map(::runPassOnGraph)
+
+    private fun runPassOnGraph(g: BriefUnitGraph): BriefUnitGraph {
+        val mtd = g.body.method
         logger.debug("Building CFG for ${mtd.declaration}")
-        this.graph = graph
+        this.graph = g
         // Connect entrypoint to the first CFG vertex
         this.graph.heads.forEach { head ->
             // Select appropriate successor to start CFG chain at
             var startingUnit = head
-            while (startingUnit is IdentityStmt) startingUnit = graph.getSuccsOf(startingUnit).firstOrNull() ?: break
+            while (startingUnit is IdentityStmt) startingUnit = g.getSuccsOf(startingUnit).firstOrNull() ?: break
             startingUnit?.let {
                 getSootAssociation(it)?.firstOrNull()?.let { succVert ->
                     val mtdV = getSootAssociation(mtd)
@@ -58,7 +60,7 @@ class CFGPass(private val driver: IDriver) : IUnitGraphPass {
         }
         // Connect all units to their successors
         this.graph.body.units.filterNot { it is IdentityStmt }.forEach(this::projectUnit)
-        return graph
+        return g
     }
 
     private fun projectUnit(unit: Unit) {
