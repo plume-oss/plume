@@ -43,7 +43,7 @@ class MethodStubPass(private val driver: IDriver) : IMethodPass {
         val currentLine = m.javaSourceStartLineNumber
         val currentCol = m.javaSourceStartColumnNumber
         var childIdx = 1
-        val (fullName, signature, code) = SootToPlumeUtil.parseMethodToStrings(m)
+        val (fullName, signature, code) = SootToPlumeUtil.methodToStrings(m)
         // Method vertex
         val mtdVertex = NewMethodBuilder()
             .name(m.name)

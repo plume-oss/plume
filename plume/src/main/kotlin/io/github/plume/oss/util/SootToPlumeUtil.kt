@@ -15,14 +15,10 @@
  */
 package io.github.plume.oss.util
 
-import io.github.plume.oss.Extractor
 import io.github.plume.oss.Extractor.Companion.addSootToPlumeAssociation
 import io.github.plume.oss.domain.mappers.VertexMapper.mapToVertex
 import io.github.plume.oss.drivers.IDriver
 import io.github.plume.oss.util.SootParserUtil.determineEvaluationStrategy
-import io.github.plume.oss.util.SootParserUtil.determineModifiers
-import io.shiftleft.codepropertygraph.generated.EdgeTypes.*
-import io.shiftleft.codepropertygraph.generated.NodeKeyNames.FULL_NAME
 import io.shiftleft.codepropertygraph.generated.NodeTypes.*
 import io.shiftleft.codepropertygraph.generated.Operators
 import io.shiftleft.codepropertygraph.generated.nodes.*
@@ -31,7 +27,6 @@ import scala.Option
 import scala.jdk.CollectionConverters
 import soot.*
 import soot.jimple.*
-import soot.toolkits.graph.BriefUnitGraph
 
 /**
  * A utility class of methods to convert Soot objects to [NewNodeBuilder] items and construct pieces of the CPG.
@@ -76,10 +71,10 @@ object SootToPlumeUtil {
             .columnNumber(Option.apply(currentCol))
             .order(childIdx)
 
-    fun parseMethodToStrings(mtd: SootMethod): Triple<String, String, String> {
+    fun methodToStrings(mtd: SootMethod): Triple<String, String, String> {
         val signature = "${mtd.returnType}(${mtd.parameterTypes.joinToString(separator = ",")})"
         val code = "${mtd.returnType} ${mtd.name}(${
-            mtd.parameterTypes.zip(1..mtd.parameterCount).joinToString() { (p, i) -> "$p param$i" }
+            mtd.parameterTypes.zip(1..mtd.parameterCount).joinToString { (p, i) -> "$p param$i" }
         })"
         val fullName = "${mtd.declaringClass}.${mtd.name}:$signature"
         return Triple(fullName, signature, code)
@@ -118,7 +113,7 @@ object SootToPlumeUtil {
      * @return The method vertex if found, null if otherwise.
      */
     private fun getMethodFromSootMethod(mtd: SootMethod, driver: IDriver): NewMethodBuilder? {
-        val (fullName, _, _) = parseMethodToStrings(mtd)
+        val (fullName, _, _) = methodToStrings(mtd)
         var returnMtd: NewMethodBuilder? = null
         driver.getMethod(fullName).use { g ->
             if (g.nodes(METHOD).hasNext()) returnMtd = mapToVertex(g.nodes(METHOD).next()) as NewMethodBuilder

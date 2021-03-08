@@ -43,6 +43,7 @@ import io.github.plume.oss.util.ExtractorConst.plumeVersion
 import io.github.plume.oss.util.ResourceCompilationUtil
 import io.github.plume.oss.util.ResourceCompilationUtil.COMP_DIR
 import io.github.plume.oss.util.ResourceCompilationUtil.TEMP_DIR
+import io.github.plume.oss.util.SootToPlumeUtil
 import io.shiftleft.codepropertygraph.Cpg
 import io.shiftleft.codepropertygraph.generated.NodeKeyNames.FULL_NAME
 import io.shiftleft.codepropertygraph.generated.NodeTypes.META_DATA
@@ -278,16 +279,23 @@ class Extractor(val driver: IDriver) {
             Construct the CPGs for methods
          */
         PlumeTimer.measure(ExtractorTimeKey.BASE_CPG_BUILDING) {
-            val allMs = parentToChildCs.flatMap { it.second + it.first }.flatMap { it.methods }.toList()
+            val allMs: List<SootMethod> = parentToChildCs.flatMap { it.second + it.first }.flatMap { it.methods }.toList()
+            val existingMs: List<String> = driver.getPropertyFromVertices(FULL_NAME, METHOD)
             // Create method stubs
             pipeline(
                 MethodStubPass(driver)::runPass
-            ).invoke(allMs)
+            ).invoke(allMs.filterNot { sm ->
+                val (fullName, _, _) = SootToPlumeUtil.methodToStrings(sm)
+                existingMs.contains(fullName)
+            })
             // Create method bodies
             pipeline(
                 ::baseCPGPass,
                 ::constructCallGraphEdges,
-            ).invoke(sootUnitGraphs)
+            ).invoke(sootUnitGraphs.filterNot { sm ->
+                val (fullName, _, _) = SootToPlumeUtil.methodToStrings(sm.body.method)
+                existingMs.contains(fullName)
+            })
         }
         clear()
         return this
