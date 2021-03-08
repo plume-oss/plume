@@ -528,11 +528,35 @@ class Neo4jDriver internal constructor() : IDriver {
         propertyValue: Any,
         label: String?
     ): List<NewNodeBuilder> {
-        TODO("Not yet implemented")
+        if (propertyKey.length != sanitizePayload(propertyKey).length || propertyKey.contains("[<|>]".toRegex())) return emptyList()
+        driver.session().use { session ->
+            return session.writeTransaction { tx ->
+                tx.run(
+                    """
+                    MATCH (n${if (label != null) ":$label" else ""})
+                    WHERE n.$propertyKey = ${if (propertyValue is String) "\"$propertyValue\"" else propertyValue}
+                    RETURN n
+                    """.trimIndent()
+                ).list().map { it["n"].asNode() }
+                    .map { mapToVertex(it.asMap() + mapOf("id" to it.id())) }
+            }
+        }
     }
 
-    override fun <T> getPropertyFromVertices(propertyKey: String, label: String?): List<T> =
-        TODO("Not yet implemented")
+    @Suppress("UNCHECKED_CAST")
+    override fun <T> getPropertyFromVertices(propertyKey: String, label: String?): List<T> {
+        if (propertyKey.length != sanitizePayload(propertyKey).length || propertyKey.contains("[<|>]".toRegex())) return emptyList()
+        driver.session().use { session ->
+            return session.writeTransaction { tx ->
+                tx.run(
+                    """
+                    MATCH (n${if (label != null) ":$label" else ""})
+                    RETURN n.$propertyKey AS p
+                    """.trimIndent()
+                ).list().map { it["p"].asObject() as T }
+            }
+        }
+    }
 
     private fun newOverflowGraph(): Graph = Graph.open(
         Config.withDefaults(),
