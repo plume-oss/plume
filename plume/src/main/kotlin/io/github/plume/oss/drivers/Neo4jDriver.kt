@@ -196,13 +196,13 @@ class Neo4jDriver internal constructor() : IDriver {
 
     override fun exists(src: NewNodeBuilder, tgt: NewNodeBuilder, edge: String): Boolean {
         var res = false
-        PlumeTimer.measure(ExtractorTimeKey.DATABASE_READ) { res = !exists(src) || !exists(tgt) }
+        PlumeTimer.measure(ExtractorTimeKey.DATABASE_READ) { res = exists(src) && exists(tgt) }
         if (!res) return false
         PlumeTimer.measure(ExtractorTimeKey.DATABASE_READ) {
             val srcN = src.build()
             val tgtN = tgt.build()
             driver.session().use { session ->
-                session.writeTransaction { tx ->
+                res = session.writeTransaction { tx ->
                     val result = tx.run(
                         """
                     MATCH (a:${srcN.label()}), (b:${tgtN.label()})
@@ -210,7 +210,7 @@ class Neo4jDriver internal constructor() : IDriver {
                     RETURN EXISTS ((a)-[:$edge]->(b)) as edge_exists
                     """.trimIndent()
                     )
-                    res = result.next()["edge_exists"].toString() == "TRUE"
+                    result.next()["edge_exists"].toString() == "TRUE"
                 }
             }
         }
