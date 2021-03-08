@@ -78,7 +78,7 @@ interface IDriver : AutoCloseable {
      *
      * @return A list of all method full names.
      */
-    @Deprecated("Use IDriver.getPropertyFromVertices(FULL_NAME, METHOD) instead.")
+    @Deprecated("Use IDriver.getPropertyFromVertices(FULL_NAME, METHOD) instead. Will be removed in 0.4.0")
     fun getMethodNames(): List<String>
 
     /**
