@@ -15,6 +15,7 @@
  */
 package io.github.plume.oss.passes.graph
 
+import io.github.plume.oss.Extractor
 import io.github.plume.oss.Extractor.Companion.getSootAssociation
 import io.github.plume.oss.drivers.IDriver
 import io.github.plume.oss.options.ExtractorOptions
@@ -49,6 +50,8 @@ class CGPass(private val driver: IDriver) : IUnitGraphPass {
         val mtd = g.body.method
         logger.debug("Building call graph edges for ${mtd.declaration}")
         this.graph = g
+        // If this was an updated method, connect call graphs
+        getSootAssociation(mtd)?.filterIsInstance<NewMethodBuilder>()?.first()?.let { reconnectPriorCallGraphEdges(it) }
         // Connect all units to their successors
         this.graph.body.units.filterNot { it is IdentityStmt }.forEach(this::projectUnit)
         return g
@@ -100,4 +103,19 @@ class CGPass(private val driver: IDriver) : IUnitGraphPass {
         }
     }
 
+    private fun reconnectPriorCallGraphEdges(mtdV: NewMethodBuilder) {
+        val mtd = mtdV.build()
+        Extractor.getIncomingCallGraphEdges(mtd.fullName())?.let { incomingVs ->
+            if (incomingVs.isNotEmpty()) {
+                logger.debug("Saved call graph edges found - reconnecting incoming call graph edges")
+                incomingVs.forEach { inV ->
+                    runCatching {
+                        driver.addEdge(inV, mtdV, CALL)
+                    }.onFailure { e -> logger.warn(e.message) }
+                }
+            } else {
+                logger.debug("No previous call graph edges were found")
+            }
+        }
+    }
 }

@@ -1,14 +1,14 @@
 package io.github.plume.oss.extractor
 
-import org.junit.jupiter.api.AfterEach
-import org.junit.jupiter.api.BeforeAll
-import org.junit.jupiter.api.Test
 import io.github.plume.oss.Extractor
 import io.github.plume.oss.drivers.DriverFactory
 import io.github.plume.oss.drivers.GraphDatabase
 import io.github.plume.oss.drivers.TinkerGraphDriver
 import io.shiftleft.codepropertygraph.generated.nodes.Literal
+import org.junit.jupiter.api.AfterEach
 import org.junit.jupiter.api.Assertions.*
+import org.junit.jupiter.api.BeforeAll
+import org.junit.jupiter.api.Test
 import java.io.File
 import java.io.FileInputStream
 import java.io.FileOutputStream
@@ -24,7 +24,7 @@ class UpdateGraphTest {
 
         private fun getTestResource(dir: String): File {
             val resourceURL = UpdateGraphTest::class.java.classLoader.getResource(dir)
-                    ?: throw java.lang.NullPointerException("Unable to obtain test resource")
+                ?: throw java.lang.NullPointerException("Unable to obtain test resource")
             return File(resourceURL.file)
         }
 
@@ -52,10 +52,7 @@ class UpdateGraphTest {
         // Update file and do an update projection
         testFile2 = rewriteFileContents(testFile2, testFile2Update)
         listOf(testFile1, testFile2).forEach { extractor.load(it) }
-        driver.exportGraph("/tmp/plume/g1.xml")
         extractor.project().postProject()
-
-        driver.exportGraph("/tmp/plume/g2.xml")
         val g2 = driver.getWholeGraph()
         val literalsG1 = g1.nodes().asSequence().filterIsInstance<Literal>().toList()
         val literalsG2 = g2.nodes().asSequence().filterIsInstance<Literal>().toList()

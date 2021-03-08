@@ -5,18 +5,13 @@ import io.github.plume.oss.domain.mappers.VertexMapper
 import io.github.plume.oss.drivers.IDriver
 import io.github.plume.oss.passes.IProgramStructurePass
 import io.github.plume.oss.util.SootToPlumeUtil
-import io.shiftleft.codepropertygraph.generated.EdgeTypes
-import io.shiftleft.codepropertygraph.generated.EdgeTypes.AST
-import io.shiftleft.codepropertygraph.generated.EdgeTypes.REF
+import io.shiftleft.codepropertygraph.generated.EdgeTypes.*
 import io.shiftleft.codepropertygraph.generated.NodeKeyNames.*
 import io.shiftleft.codepropertygraph.generated.NodeTypes.FILE
 import io.shiftleft.codepropertygraph.generated.NodeTypes.TYPE_DECL
-import io.shiftleft.codepropertygraph.generated.nodes.Method
-import io.shiftleft.codepropertygraph.generated.nodes.NewNodeBuilder
-import io.shiftleft.codepropertygraph.generated.nodes.TypeDecl
+import io.shiftleft.codepropertygraph.generated.nodes.*
 import org.apache.logging.log4j.LogManager
 import org.apache.logging.log4j.Logger
-import overflowdb.Graph
 import overflowdb.Node
 import soot.SootClass
 
@@ -72,18 +67,37 @@ class MarkForRebuildPass(private val driver: IDriver) : IProgramStructurePass {
             ?.let { oldCNode: NewNodeBuilder ->
             driver.getNeighbours(oldCNode).use { fNeighbours ->
                 val nodes = fNeighbours.nodes().asSequence().toList()
-                dropMethods(nodes)
                 dropTypeDecl(nodes, c.type.toQuotedString())
                 dropFile(oldCNode)
             }
         }
     }
 
-    private fun dropMethods(ns: List<Node>) =
-        ns.filterIsInstance<Method>().forEach {
-            logger.debug("Deleting method for ${it.fullName()}")
-            driver.deleteMethod(it.fullName())
+    private fun dropMethod(m: Method) {
+        saveCallEdges(m)
+        driver.deleteMethod(m.fullName())
+    }
+
+    private fun saveCallEdges(m: Method) {
+        driver.getMethod(m.fullName(), false).use { g ->
+            g.nodes { it == Method.Label() }.asSequence().firstOrNull()?.let { m1: Node ->
+                val m2 = VertexMapper.mapToVertex(m1) as NewMethodBuilder
+                val m2Build = m2.build()
+                driver.getNeighbours(m2).use { ns ->
+                    if (ns.V(m1.id()).hasNext()) {
+                        ns.V(m1.id()).next().`in`(CALL).asSequence()
+                            .filterIsInstance<Call>()
+                            .forEach {
+                                Extractor.saveCallGraphEdge(
+                                    m2Build.fullName(),
+                                    VertexMapper.mapToVertex(it) as NewCallBuilder
+                                )
+                            }
+                    }
+                }
+            }
         }
+    }
 
     private fun dropFile(c: NewNodeBuilder) {
         logger.debug("Deleting $FILE for ${c.build().properties().get(NAME).get()}")
@@ -100,7 +114,7 @@ class MarkForRebuildPass(private val driver: IDriver) : IProgramStructurePass {
                         .out(AST)
                         .forEach {
                             logger.debug("Deleting (${it.label()}: ${it.id()})")
-                            if (it is Method) driver.deleteMethod(it.fullName())
+                            if (it is Method) dropMethod(it)
                             else driver.deleteVertex(it.id(), it.label())
                         }
                     n.nodes(typeDecl.id()).next()

@@ -143,6 +143,24 @@ class Extractor(val driver: IDriver) {
          * @param cls The representative [SootClass].
          */
         fun getFileHashPair(cls: SootClass) = classToFileHash[cls]
+
+        /**
+         * Saves call graph edges to the [NewMethod] from the [NewCall].
+         *
+         * @param fullName The method full name.
+         * @param call The source [NewCall].
+         */
+        fun saveCallGraphEdge(fullName: String, call: NewCallBuilder) {
+            if (!savedCallGraphEdges.containsKey(fullName)) savedCallGraphEdges[fullName] = mutableListOf(call)
+            else savedCallGraphEdges[fullName]?.add(call)
+        }
+
+        /**
+         * Retrieves all the incoming [NewCall]s from the given [NewMethod].
+         *
+         * @param fullName The method full name.
+         */
+        fun getIncomingCallGraphEdges(fullName: String) = savedCallGraphEdges[fullName]
     }
 
     /**
