@@ -295,7 +295,7 @@ abstract class GremlinDriver : IDriver {
         propertyValue: Any,
         label: String?
     ): List<NewNodeBuilder> = (if (label != null) g.V().hasLabel(label) else g.V())
-        .has(propertyKey, propertyValue)
+        .has("${if (this is JanusGraphDriver) "_" else ""}$propertyKey", propertyValue)
         .valueMap<Any>()
         .with(WithOptions.tokens)
         .by(un.unfold<Any>())
@@ -303,7 +303,7 @@ abstract class GremlinDriver : IDriver {
         .map(::mapVertexKeys)
         .map(VertexMapper::mapToVertex)
 
-    override fun <T> getPropertyFromVertices(propertyKey: String, label: String?): List<T> =
+    override fun <T: Any> getPropertyFromVertices(propertyKey: String, label: String?): List<T> =
         (if (label != null) g.V().hasLabel(label) else g.V())
             .values<T>("${if (this is JanusGraphDriver) "_" else ""}$propertyKey")
             .toList()

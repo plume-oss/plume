@@ -544,7 +544,7 @@ class Neo4jDriver internal constructor() : IDriver {
     }
 
     @Suppress("UNCHECKED_CAST")
-    override fun <T> getPropertyFromVertices(propertyKey: String, label: String?): List<T> {
+    override fun <T: Any> getPropertyFromVertices(propertyKey: String, label: String?): List<T> {
         if (propertyKey.length != sanitizePayload(propertyKey).length || propertyKey.contains("[<|>]".toRegex())) return emptyList()
         driver.session().use { session ->
             return session.writeTransaction { tx ->

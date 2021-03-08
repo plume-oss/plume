@@ -336,11 +336,47 @@ class TigerGraphDriver internal constructor() : IOverridenIdDriver, ISchemaSafeD
         propertyValue: Any,
         label: String?
     ): List<NewNodeBuilder> {
-        TODO("Not yet implemented")
+        val path = when {
+            BOOLEAN_TYPES.contains(propertyKey) -> "getVerticesByBProperty"
+            INT_TYPES.contains(propertyKey) -> "getVerticesByIProperty"
+            else -> "getVerticesBySProperty"
+        }
+        val result = (get(
+            endpoint = "query/$GRAPH_NAME/$path",
+            params = mapOf(
+                "PROPERTY_KEY" to "_$propertyKey",
+                "PROPERTY_VALUE" to propertyValue.toString(),
+                "LABEL" to (label ?: "null")
+            )
+        ).first() as JSONObject)["result"] as JSONArray
+        println(get(
+            endpoint = "query/$GRAPH_NAME/$path",
+            params = mapOf(
+                "PROPERTY_KEY" to "_$propertyKey",
+                "PROPERTY_VALUE" to propertyValue.toString(),
+                "LABEL" to (label ?: "null")
+            )
+        ))
+        println(result)
+        return result.map { vertexPayloadToNode(it as JSONObject) }
     }
 
-    override fun <T> getPropertyFromVertices(propertyKey: String, label: String?): List<T> =
-        TODO("Not yet implemented")
+    @Suppress("UNCHECKED_CAST")
+    override fun <T : Any> getPropertyFromVertices(propertyKey: String, label: String?): List<T> {
+        val path = when {
+            BOOLEAN_TYPES.contains(propertyKey) -> "getBPropertyFromVertices"
+            INT_TYPES.contains(propertyKey) -> "getIPropertyFromVertices"
+            else -> "getSPropertyFromVertices"
+        }
+        val result = (get(
+            "query/$GRAPH_NAME/$path",
+            params = mapOf(
+                "PROPERTY_KEY" to "_$propertyKey",
+                "LABEL" to (label ?: "null")
+            )
+        ).first() as JSONObject)["@@props"] as JSONArray
+        return result.map { it as T }
+    }
 
     override fun getVertexIds(lowerBound: Long, upperBound: Long): Set<Long> {
         val result = (get(
@@ -474,8 +510,7 @@ class TigerGraphDriver internal constructor() : IOverridenIdDriver, ISchemaSafeD
                 val e = PlumeTransactionException(response.jsonObject["message"] as String)
                 logger.debug("Response failed on endpoint $endpoint with response $response", e)
                 throw e
-            }
-            else return true
+            } else return true
             tryCount >= MAX_RETRY -> throw IOException("Could not complete request due to status code ${response.statusCode} at $api/$endpoint")
             else -> sleep(500)
         }
@@ -804,10 +839,48 @@ CREATE QUERY getVertexIds(INT LOWER_BOUND, INT UPPER_BOUND) FOR GRAPH <GRAPH_NAM
   PRINT @@ids;
 }
 
-CREATE QUERY status() FOR GRAPH <GRAPH_NAME> {
-  INT status = 0;
-  PRINT status;
+${
+                listOf("STRING", "BOOL", "INT").joinToString("\n\n") { t: String ->
+                    """
+CREATE QUERY getVerticesBy${t.first()}Property(STRING PROPERTY_KEY, $t PROPERTY_VALUE, STRING LABEL) FOR GRAPH <GRAPH_NAME> {
+  start = {CPG_VERT.*};
+  IF LABEL == "null" THEN
+    result = SELECT src
+      FROM start:src
+      WHERE src.getAttr(PROPERTY_KEY, "$t") == PROPERTY_VALUE;
+  ELSE
+    result = SELECT src
+      FROM start:src
+      WHERE src.label == LABEL 
+        AND src.getAttr(PROPERTY_KEY, "$t") == PROPERTY_VALUE;
+  END;
+  PRINT result;
 }
+        """.trimIndent()
+                }
+            }
+
+${
+                listOf("STRING", "BOOL", "INT").joinToString("\n\n") { t: String ->
+                    """
+CREATE QUERY get${t.first()}PropertyFromVertices(STRING PROPERTY_KEY, STRING LABEL) FOR GRAPH <GRAPH_NAME> {
+  ListAccum<$t> @@props;
+  start = {CPG_VERT.*};
+  IF LABEL == "null" THEN
+    result = SELECT src
+      FROM start:src
+      ACCUM @@props += src.getAttr(PROPERTY_KEY, "$t");
+  ELSE
+    result = SELECT src
+      FROM start:src
+      WHERE src.label == LABEL 
+      ACCUM @@props += src.getAttr(PROPERTY_KEY, "$t");
+  END;
+  PRINT @@props;
+}
+        """.trimIndent()
+                }
+            }
 
 INSTALL QUERY ALL
 

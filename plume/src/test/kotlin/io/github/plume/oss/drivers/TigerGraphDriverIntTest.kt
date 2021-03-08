@@ -1,6 +1,7 @@
 package io.github.plume.oss.drivers
 
 import io.github.plume.oss.TestDomainResources
+import io.github.plume.oss.TestDomainResources.Companion.BOOL_1
 import io.github.plume.oss.TestDomainResources.Companion.INT_1
 import io.github.plume.oss.TestDomainResources.Companion.INT_2
 import io.github.plume.oss.TestDomainResources.Companion.STRING_1
@@ -35,8 +36,7 @@ import io.github.plume.oss.util.SootToPlumeUtil
 import io.shiftleft.codepropertygraph.generated.EdgeTypes
 import io.shiftleft.codepropertygraph.generated.EdgeTypes.*
 import io.shiftleft.codepropertygraph.generated.NodeKeyNames
-import io.shiftleft.codepropertygraph.generated.NodeKeyNames.FULL_NAME
-import io.shiftleft.codepropertygraph.generated.NodeKeyNames.NAME
+import io.shiftleft.codepropertygraph.generated.NodeKeyNames.*
 import io.shiftleft.codepropertygraph.generated.NodeTypes.*
 import io.shiftleft.codepropertygraph.generated.nodes.*
 import org.junit.jupiter.api.*
@@ -698,6 +698,15 @@ class TigerGraphDriverIntTest {
             assertTrue(r.any { it is NewTypeDeclBuilder })
             assertTrue(r.any { it is NewMethodBuilder })
             assertTrue(driver.getVerticesByProperty(FULL_NAME, STRING_1, TYPE_DECL).size == 1)
+        }
+
+        @Test
+        fun getVertexByIsExternalAndType() {
+            val r = driver.getVerticesByProperty(IS_EXTERNAL, BOOL_1)
+            assertEquals(2, r.size)
+            assertTrue(r.any { it is NewTypeDeclBuilder })
+            assertTrue(r.any { it is NewMethodBuilder })
+            assertTrue(driver.getVerticesByProperty(IS_EXTERNAL, BOOL_1, TYPE_DECL).size == 1)
         }
 
     }

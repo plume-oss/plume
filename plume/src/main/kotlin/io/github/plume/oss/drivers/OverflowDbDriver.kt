@@ -248,7 +248,7 @@ class OverflowDbDriver internal constructor() : IDriver {
             .toList()
 
     @Suppress("UNCHECKED_CAST")
-    override fun <T> getPropertyFromVertices(propertyKey: String, label: String?): List<T> =
+    override fun <T: Any> getPropertyFromVertices(propertyKey: String, label: String?): List<T> =
         (if (label != null) graph.nodes(label) else graph.nodes()).asSequence()
             .filter { it.propertyKeys().contains(propertyKey) }
             .map { it.property(propertyKey) as T }

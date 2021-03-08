@@ -162,7 +162,7 @@ interface IDriver : AutoCloseable {
      * @param label An optional vertex label if known to further filter results by.
      * @return A list of the values from the given key using the specified type.
      */
-    fun <T> getPropertyFromVertices(propertyKey: String, label: String? = null): List<T>
+    fun <T: Any> getPropertyFromVertices(propertyKey: String, label: String? = null): List<T>
 
 }
 
