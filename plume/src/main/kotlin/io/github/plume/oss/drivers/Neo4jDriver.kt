@@ -523,6 +523,17 @@ class Neo4jDriver internal constructor() : IDriver {
         }
     }
 
+    override fun getVerticesByProperty(
+        propertyKey: String,
+        propertyValue: Any,
+        label: String?
+    ): List<NewNodeBuilder> {
+        TODO("Not yet implemented")
+    }
+
+    override fun <T> getPropertyFromVertices(propertyKey: String, label: String?): List<T> =
+        TODO("Not yet implemented")
+
     private fun newOverflowGraph(): Graph = Graph.open(
         Config.withDefaults(),
         NodeFactories.allAsJava(),

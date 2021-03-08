@@ -18,7 +18,6 @@ package io.github.plume.oss.passes.graph
 import io.github.plume.oss.Extractor.Companion.getSootAssociation
 import io.github.plume.oss.drivers.IDriver
 import io.github.plume.oss.passes.IUnitGraphPass
-import io.github.plume.oss.util.SootToPlumeUtil.constructPhantom
 import io.shiftleft.codepropertygraph.generated.EdgeTypes.CALL
 import io.shiftleft.codepropertygraph.generated.NodeTypes.METHOD
 import io.shiftleft.codepropertygraph.generated.nodes.NewCallBuilder
@@ -62,12 +61,12 @@ class CGPass(private val driver: IDriver) : IUnitGraphPass {
                 ?.filterIsInstance<NewCallBuilder>()
                 ?.firstOrNull()
                 ?.let { srcPlumeVertex ->
-                    val tgtPlumeVertex = getSootAssociation(e.tgt.method())
-                        ?.firstOrNull()
-                        ?: constructPhantom(e.tgt.method(), driver)
-                    runCatching {
-                        driver.addEdge(srcPlumeVertex, tgtPlumeVertex, CALL)
-                    }.onFailure { e -> logger.warn(e.message) }
+                    getSootAssociation(e.tgt.method())
+                        ?.firstOrNull()?.let { tgtPlumeVertex ->
+                            runCatching {
+                                driver.addEdge(srcPlumeVertex, tgtPlumeVertex, CALL)
+                            }.onFailure { e -> logger.warn(e.message) }
+                        }
                 }
         }
         // If call graph analysis fails because there is no main method, we will need to figure out call edges ourselves

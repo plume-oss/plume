@@ -331,6 +331,16 @@ class TigerGraphDriver internal constructor() : IOverridenIdDriver, ISchemaSafeD
             .filterIsInstance<NewMetaDataBuilder>()
             .firstOrNull()
 
+    override fun getVerticesByProperty(
+        propertyKey: String,
+        propertyValue: Any,
+        label: String?
+    ): List<NewNodeBuilder> {
+        TODO("Not yet implemented")
+    }
+
+    override fun <T> getPropertyFromVertices(propertyKey: String, label: String?): List<T> =
+        TODO("Not yet implemented")
 
     override fun getVertexIds(lowerBound: Long, upperBound: Long): Set<Long> {
         val result = (get(

@@ -236,6 +236,17 @@ class OverflowDbDriver internal constructor() : IDriver {
         return if (maybeMetaData.isDefined) VertexMapper.mapToVertex(maybeMetaData.get()) as NewMetaDataBuilder else null
     }
 
+    override fun getVerticesByProperty(
+        propertyKey: String,
+        propertyValue: Any,
+        label: String?
+    ): List<NewNodeBuilder> {
+        TODO("Not yet implemented")
+    }
+
+    override fun <T> getPropertyFromVertices(propertyKey: String, label: String?): List<T> =
+        TODO("Not yet implemented")
+
     override fun close() {
         require(connected) { "Cannot close a graph that is not already connected!" }
         try {

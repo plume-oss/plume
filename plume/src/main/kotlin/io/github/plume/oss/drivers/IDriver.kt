@@ -153,7 +153,7 @@ interface IDriver : AutoCloseable {
      * @param label An optional vertex label if known to further filter results by.
      * @return A list of all vertices which match the predicates.
      */
-    fun getVerticesByProperty(propertyKey: String, propertyValue: String, label: String? = null): List<NewNodeBuilder>
+    fun getVerticesByProperty(propertyKey: String, propertyValue: Any, label: String? = null): List<NewNodeBuilder>
 
     /**
      * Get a list of the results from a given property in vertices.

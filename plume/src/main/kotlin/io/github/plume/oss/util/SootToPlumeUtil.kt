@@ -41,18 +41,6 @@ object SootToPlumeUtil {
     private val logger = LogManager.getLogger(SootToPlumeUtil::class.java)
 
     /**
-     * Projects member information from class field data.
-     *
-     * @param field The [SootField] from which the class member information is constructed from.
-     */
-    fun projectMember(field: SootField, childIdx: Int): NewMemberBuilder =
-        NewMemberBuilder()
-            .name(field.name)
-            .code(field.declaration)
-            .typeFullName(field.type.toQuotedString())
-            .order(childIdx)
-
-    /**
      * Given an [soot.Local], will construct method parameter information in the graph.
      *
      * @param local The [soot.Local] from which a [NewMethodParameterInBuilder] will be constructed.
@@ -97,41 +85,6 @@ object SootToPlumeUtil {
         return Triple(fullName, signature, code)
     }
 
-    private fun connectCallToReturn(
-        mtd: SootMethod,
-        driver: IDriver,
-        mtdVertex: NewMethodBuilder,
-        currentLine: Int,
-        currentCol: Int,
-        initialChildIdx: Int = 1
-    ) {
-        var childIdx = initialChildIdx
-        mtd.parameterTypes.forEachIndexed { i, type ->
-            NewMethodParameterInBuilder()
-                .code("$type param$i")
-                .name("param$i")
-                .evaluationStrategy(determineEvaluationStrategy(type.toString(), isMethodReturn = false))
-                .typeFullName(type.toString())
-                .lineNumber(Option.apply(mtd.javaSourceStartLineNumber))
-                .columnNumber(Option.apply(mtd.javaSourceStartColumnNumber))
-                .order(childIdx++)
-                .apply { driver.addEdge(mtdVertex, this, AST); addSootToPlumeAssociation(mtd, this) }
-        }
-        // Connect a call to return
-        val entryPoint = Extractor.getSootAssociation(mtd)?.filterIsInstance<NewBlockBuilder>()?.firstOrNull()
-        val mtdReturn = Extractor.getSootAssociation(mtd)?.filterIsInstance<NewMethodReturnBuilder>()?.firstOrNull()
-        NewReturnBuilder()
-            .lineNumber(Option.apply(currentLine))
-            .columnNumber(Option.apply(currentCol))
-            .order(childIdx++)
-            .argumentIndex(initialChildIdx)
-            .code("return ${mtd.returnType.toQuotedString()}")
-            .apply {
-                driver.addEdge(entryPoint!!, this, CFG)
-                driver.addEdge(this, mtdReturn!!, CFG)
-            }
-    }
-
     fun createNewExpr(expr: NewExpr, currentLine: Int, currentCol: Int, childIdx: Int): NewTypeRefBuilder {
         return NewTypeRefBuilder()
             .typeFullName(expr.baseType.toQuotedString())
@@ -158,36 +111,13 @@ object SootToPlumeUtil {
     }
 
     /**
-     * Connects the given method's [BriefUnitGraph] to its type declaration and source file (if present).
-     *
-     * @param mtd The [SootMethod] to connect and extract type and source information from.
-     * @param driver The [IDriver] to construct to.
-     */
-    private fun connectMethodToTypeDecls(mtd: SootMethod, driver: IDriver) {
-        Extractor.getSootAssociation(mtd.declaringClass)?.let { classVertices ->
-            if (classVertices.none { it is NewTypeDeclBuilder }) return
-            val typeDeclVertex = classVertices.first { it is NewTypeDeclBuilder }
-            val clsVertex = classVertices.first { it is NewFileBuilder }
-            val methodVertex = getMethodFromSootMethod(mtd, driver)
-            if (methodVertex != null) {
-                // Connect method to type declaration
-                driver.addEdge(typeDeclVertex, methodVertex, AST)
-                // Connect method to source file
-                driver.addEdge(methodVertex, clsVertex, SOURCE_FILE)
-            } else {
-                logger.warn("Unable to obtain $mtd from driver while trying to connect to $typeDeclVertex.")
-            }
-        }
-    }
-
-    /**
      * Obtains corresponding [SootMethod] from the database.
      *
      * @param mtd The [SootMethod] to obtain from the database.
      * @param driver The [IDriver] via which the method should get obtained from.
      * @return The method vertex if found, null if otherwise.
      */
-    fun getMethodFromSootMethod(mtd: SootMethod, driver: IDriver): NewMethodBuilder? {
+    private fun getMethodFromSootMethod(mtd: SootMethod, driver: IDriver): NewMethodBuilder? {
         val (fullName, _, _) = parseMethodToStrings(mtd)
         var returnMtd: NewMethodBuilder? = null
         driver.getMethod(fullName).use { g ->

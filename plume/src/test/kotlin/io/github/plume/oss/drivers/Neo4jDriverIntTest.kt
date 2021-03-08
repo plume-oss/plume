@@ -33,9 +33,9 @@ import io.github.plume.oss.TestDomainResources.Companion.unknownVertex
 import io.github.plume.oss.domain.exceptions.PlumeSchemaViolationException
 import io.github.plume.oss.util.SootToPlumeUtil
 import io.shiftleft.codepropertygraph.generated.EdgeTypes.*
+import io.shiftleft.codepropertygraph.generated.NodeKeyNames.FULL_NAME
 import io.shiftleft.codepropertygraph.generated.NodeKeyNames.NAME
-import io.shiftleft.codepropertygraph.generated.NodeTypes.FILE
-import io.shiftleft.codepropertygraph.generated.NodeTypes.NAMESPACE_BLOCK
+import io.shiftleft.codepropertygraph.generated.NodeTypes.*
 import io.shiftleft.codepropertygraph.generated.nodes.*
 import org.junit.jupiter.api.*
 import org.junit.jupiter.api.Assertions.*
@@ -527,16 +527,6 @@ class Neo4jDriverIntTest {
         }
 
         @Test
-        fun testGetMethodNames() {
-            g = driver.getProgramStructure() // just to make sure the lateinit passes
-            assertEquals(listOf(STRING_1), driver.getMethodNames())
-            driver.addVertex(methodVertex.fullName(STRING_2).id(1200))
-            val newNames = driver.getMethodNames()
-            assertTrue(newNames.contains(STRING_1))
-            assertTrue(newNames.contains(STRING_2))
-        }
-
-        @Test
         fun testGetProgramStructure() {
             val unknown = io.shiftleft.semanticcpg.language.types.structure.File.UNKNOWN()
             driver.addVertex(NewFileBuilder().name(unknown).order(0).hash(Option.apply(unknown)))
@@ -637,5 +627,39 @@ class Neo4jDriverIntTest {
         }
     }
 
+    @Nested
+    @DisplayName("Test methods that select and return lists of properties and vertices")
+    inner class PropertyAndVertexReturns {
+
+        @BeforeEach
+        fun setUp() {
+            generateSimpleCPG(driver)
+        }
+
+        @Test
+        fun testGetMethodNames() {
+            assertEquals(listOf(STRING_1), driver.getPropertyFromVertices<String>(FULL_NAME, METHOD))
+            driver.addVertex(methodVertex.fullName(STRING_2).id(1200))
+            val newNames = driver.getPropertyFromVertices<String>(FULL_NAME, METHOD)
+            assertTrue(newNames.contains(STRING_1))
+            assertTrue(newNames.contains(STRING_2))
+        }
+
+        @Test
+        fun testGetNoneExistentProperty() {
+            assertEquals(emptyList<String>(), driver.getPropertyFromVertices<String>("<dne>"))
+        }
+
+        @Test
+        fun getVertexByFullNameAndType() {
+            val r = driver.getVerticesByProperty(FULL_NAME, STRING_1)
+            assertEquals(3, r.size)
+            assertTrue(r.any { it is NewNamespaceBlockBuilder })
+            assertTrue(r.any { it is NewTypeDeclBuilder })
+            assertTrue(r.any { it is NewMethodBuilder })
+            assertTrue(driver.getVerticesByProperty(FULL_NAME, STRING_1, TYPE_DECL).size == 1)
+        }
+
+    }
 }
 
