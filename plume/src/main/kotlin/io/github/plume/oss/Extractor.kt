@@ -45,6 +45,7 @@ import io.github.plume.oss.util.ResourceCompilationUtil.COMP_DIR
 import io.github.plume.oss.util.ResourceCompilationUtil.TEMP_DIR
 import io.github.plume.oss.util.SootToPlumeUtil
 import io.shiftleft.codepropertygraph.Cpg
+import io.shiftleft.codepropertygraph.generated.EdgeTypes.REACHING_DEF
 import io.shiftleft.codepropertygraph.generated.NodeKeyNames.FULL_NAME
 import io.shiftleft.codepropertygraph.generated.NodeTypes.META_DATA
 import io.shiftleft.codepropertygraph.generated.NodeTypes.METHOD
@@ -290,9 +291,11 @@ class Extractor(val driver: IDriver) {
             })
             // Create method bodies while avoiding duplication
             pipeline(
+                // Base CPG
                 ASTPass(driver)::runPass,
                 CFGPass(driver)::runPass,
                 PDGPass(driver)::runPass,
+                // Call graph
                 CGPass(driver)::runPass,
             ).invoke(sootUnitGraphs.filterNot { sm ->
                 val (fullName, _, _) = SootToPlumeUtil.methodToStrings(sm.body.method)
@@ -312,10 +315,13 @@ class Extractor(val driver: IDriver) {
         driver.getPropertyFromVertices<String>(FULL_NAME, METHOD).forEach { mName ->
             driver.getMethod(mName).use { g ->
                 PlumeTimer.measure(ExtractorTimeKey.SCPG_PASSES) {
-                    val cpg = Cpg.apply(g)
-                    val methods = g.nodes(METHOD).asSequence().toList()
-                    runParallelPass(methods.filterIsInstance<AstNode>(), ContainsEdgePass(cpg))
-                    runParallelPass(methods.filterIsInstance<Method>(), ReachingDefPass(cpg))
+                    // Avoid duplication
+                    if (!g.edges(REACHING_DEF).hasNext()) {
+                        val cpg = Cpg.apply(g)
+                        val methods = g.nodes(METHOD).asSequence().toList()
+                        runParallelPass(methods.filterIsInstance<AstNode>(), ContainsEdgePass(cpg))
+                        runParallelPass(methods.filterIsInstance<Method>(), ReachingDefPass(cpg))
+                    }
                 }
             }
         }

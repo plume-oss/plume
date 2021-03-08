@@ -9,6 +9,7 @@ import io.shiftleft.codepropertygraph.generated.EdgeTypes.*
 import io.shiftleft.codepropertygraph.generated.NodeKeyNames.NAME
 import io.shiftleft.codepropertygraph.generated.NodeTypes
 import io.shiftleft.codepropertygraph.generated.NodeTypes.FILE
+import io.shiftleft.codepropertygraph.generated.NodeTypes.UNKNOWN
 import io.shiftleft.codepropertygraph.generated.nodes.*
 import org.apache.logging.log4j.LogManager
 import org.apache.logging.log4j.Logger
@@ -19,7 +20,9 @@ import soot.SootField
  * Builds type declaration vertices for internal (application) types.
  */
 open class TypePass(private val driver: IDriver) : IProgramStructurePass {
+
     private val logger: Logger = LogManager.getLogger(TypePass::javaClass)
+    private val nodeCache = mutableListOf<NewNodeBuilder>()
 
     /**
      * This pass will build type declarations, their modifiers and members and linking them to
@@ -49,13 +52,16 @@ open class TypePass(private val driver: IDriver) : IProgramStructurePass {
      */
     private fun linkSourceFile(c: SootClass, t: NewTypeDeclBuilder) {
         val fileName = SootToPlumeUtil.sootClassToFileName(c)
-        driver.getProgramStructure().use { g ->
-            g.nodes(FILE).asSequence().filterIsInstance<File>()
-                .find { it.property(NAME) == fileName }?.let { f ->
-                    driver.addEdge(t, NewFileBuilder().id(f.id()), SOURCE_FILE)
-                    driver.addEdge(NewFileBuilder().id(f.id()), t, CONTAINS)
-                }
-        }
+        val f = getFile(fileName)
+        driver.addEdge(t, f, SOURCE_FILE)
+        driver.addEdge(f, t, CONTAINS)
+    }
+
+    private fun getFile(fileName: String): NewNodeBuilder {
+        return nodeCache.find { it.build().properties().get(NAME).get() == fileName }
+            ?: driver.getVerticesByProperty(NAME, fileName, FILE).firstOrNull()?.apply { nodeCache.add(this) }
+            ?: nodeCache.find { it.build().properties().get(NAME).get() == UNKNOWN }
+            ?: driver.getVerticesByProperty(NAME, UNKNOWN, FILE).first().apply { nodeCache.add(this) }
     }
 
     /*
