@@ -12,11 +12,15 @@ and this project adheres to [Semantic Versioning](http://semver.org/).
 - Type pass `GlobalTypePass`
 - Added `getVerticesByProperty` and `getPropertyFromVertices` to `IDriver`
 
-### Changes
+### Changed
 - Graph builders are now known as "passes" to conform to how SCPG builds graphs.
   Each has an interface under `IGraphPass`.
 - `graph/[AST|CFG|PDG|CallGraph]Builder` to `passes/graph/[AST|CFG|PDG|CallGraph]Pass`
 - Deprecated `getMethodNames`
+- Added timer probes regarding database closer to database methods
+
+### Fixed
+- Duplication of files, types, namespace vertices on updates
 
 ## [0.2.8] - 2021-03-05
 

@@ -120,9 +120,7 @@ abstract class GremlinDriver : IDriver {
     }
 
     override fun clearGraph() = apply {
-        PlumeTimer.measure(ExtractorTimeKey.DATABASE_WRITE) {
-            g.V().drop().iterate()
-        }
+        PlumeTimer.measure(ExtractorTimeKey.DATABASE_WRITE) { g.V().drop().iterate() }
     }
 
     /**
@@ -163,9 +161,7 @@ abstract class GremlinDriver : IDriver {
      * @return The newly created [Edge].
      */
     private fun createEdge(v1: Vertex, edge: String, v2: Vertex) {
-        PlumeTimer.measure(ExtractorTimeKey.DATABASE_WRITE) {
-            g.V(v1.id()).addE(edge).to(g.V(v2.id())).next()
-        }
+        PlumeTimer.measure(ExtractorTimeKey.DATABASE_WRITE) { g.V(v1.id()).addE(edge).to(g.V(v2.id())).next() }
     }
 
     override fun getWholeGraph(): overflowdb.Graph {
@@ -201,6 +197,7 @@ abstract class GremlinDriver : IDriver {
                 }
                 .outE(AST)
                 .toList()
+                .toCollection(methodSubgraph)
         }
         return gremlinToPlume(methodSubgraph)
     }
@@ -294,7 +291,7 @@ abstract class GremlinDriver : IDriver {
 
     override fun deleteVertex(id: Long, label: String?) {
         var res = false
-        PlumeTimer.measure(ExtractorTimeKey.DATABASE_READ) { res = !g.V(id).hasNext() }
+        PlumeTimer.measure(ExtractorTimeKey.DATABASE_READ) { res = g.V(id).hasNext() }
         if (!res) return
         PlumeTimer.measure(ExtractorTimeKey.DATABASE_WRITE) { g.V(id).drop().iterate() }
     }
@@ -333,16 +330,12 @@ abstract class GremlinDriver : IDriver {
         var res = false
         PlumeTimer.measure(ExtractorTimeKey.DATABASE_READ) { res = g.V(id).hasNext() }
         if (!res) return
-        PlumeTimer.measure(ExtractorTimeKey.DATABASE_WRITE) {
-            g.V(id).property(key, value).iterate()
-        }
+        PlumeTimer.measure(ExtractorTimeKey.DATABASE_WRITE) { g.V(id).property(key, value).iterate() }
     }
 
     override fun getMetaData(): NewMetaDataBuilder? {
         var hasNext = false
-        PlumeTimer.measure(ExtractorTimeKey.DATABASE_READ) {
-            hasNext = g.V().hasLabel(META_DATA).hasNext()
-        }
+        PlumeTimer.measure(ExtractorTimeKey.DATABASE_READ) { hasNext = g.V().hasLabel(META_DATA).hasNext() }
         return if (hasNext) {
             val props = mutableMapOf<String, Any>()
             PlumeTimer.measure(ExtractorTimeKey.DATABASE_READ) {
