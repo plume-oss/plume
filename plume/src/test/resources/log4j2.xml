@@ -1,0 +1,49 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<Configuration status="WARN" strict="true">
+    <Properties>
+        <Property name="basePath">${sys:java.io.tmpdir}/plume</Property>
+    </Properties>
+
+    <Appenders>
+        <RollingFile name="plumeFileLogger" fileName="${basePath}/plume-test.log"
+                     filePattern="${basePath}/plume-benchmarking-core-%d{yyyy-MM-dd}.log">
+            <PatternLayout>
+                <pattern>[%-5level] %d{yyyy-MM-dd HH:mm:ss.SSS} [%t] %c{1} - %msg%n</pattern>
+            </PatternLayout>
+            <Policies>
+                <SizeBasedTriggeringPolicy size="10MB"/>
+            </Policies>
+            <DefaultRolloverStrategy max="10"/>
+        </RollingFile>
+
+        <Console name="console" target="SYSTEM_OUT">
+            <PatternLayout pattern="[%-5level] %d{yyyy-MM-dd HH:mm:ss.SSS} [%t] %c{1} - %msg%n"/>
+        </Console>
+    </Appenders>
+    <Loggers>
+        <Logger name="org.reflections8.Reflections" level="error"/>
+        <Logger name="org.xnio.nio" level="error"/>
+        <Logger name="io.shiftleft.console.scripting" level="error"/>
+
+        <Logger name="overflowdb" level="error" additivity="false">
+            <AppenderRef ref="plumeFileLogger" level="warn"/>
+            <AppenderRef ref="console"/>
+        </Logger>
+        <Logger name="io.shiftleft.codepropertygraph.cpgloading" level="error" additivity="false">
+            <AppenderRef ref="console"/>
+            <AppenderRef ref="plumeFileLogger" level="warn"/>
+        </Logger>
+        <Logger name="io.shiftleft.semanticcpg" level="error" additivity="false">
+            <AppenderRef ref="console"/>
+            <AppenderRef ref="plumeFileLogger" level="warn"/>
+        </Logger>
+        <Logger name="io.github.plume.oss" level="debug" additivity="false">
+            <AppenderRef ref="console"/>
+            <AppenderRef ref="plumeFileLogger"/>
+        </Logger>
+
+        <Root level="info">
+            <AppenderRef ref="console"/>
+        </Root>
+    </Loggers>
+</Configuration>
