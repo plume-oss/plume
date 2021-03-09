@@ -12,28 +12,30 @@ class FileTests extends PlumeCodeToCpgSuite {
       | class Foo { int bar() { return 1; } }
       |""".stripMargin
 
-  "should contain one file node in total with order=1" in {
-    cpg.file.order.l shouldBe List(0, 1)
+  "should contain two file nodes in total with order=1 (java.lang.Object and a.b.Foo)" in {
+    cpg.file.order.l shouldBe List(0, 1, 1)
     cpg.file.name(File.UNKNOWN).size shouldBe 1
-    cpg.file.nameNot(File.UNKNOWN).size shouldBe 1
+    cpg.file.nameNot(File.UNKNOWN).size shouldBe 2
   }
 
-  "should contain exactly one non-placeholder file with absolute path in `name`" in {
-    val List(x) = cpg.file.nameNot(File.UNKNOWN).l
+  "should contain exactly two non-placeholder file with absolute path in `name`" in {
+    val List(x, y) = cpg.file.nameNot(File.UNKNOWN).l
     x.name should startWith("/")
     x.hash.isDefined shouldBe true
+    y.name should startWith("/")
+    y.hash.isDefined shouldBe false
   }
 
   "should allow traversing from file to its namespace blocks" in {
-    cpg.file.nameNot(File.UNKNOWN).namespaceBlock.name.toSet shouldBe Set("a.b")
+    cpg.file.nameNot(File.UNKNOWN).namespaceBlock.name.toSet shouldBe Set("a.b", "java.lang")
   }
 
   "should allow traversing from file to its methods via namespace block" in {
-    cpg.file.nameNot(File.UNKNOWN).method.name.toSet shouldBe Set("<init>", "bar")
+    cpg.file.name("/a/b/Foo.class").method.name.toSet shouldBe Set("<init>", "bar")
   }
 
   "should allow traversing from file to its type declarations via namespace block" in {
-    cpg.file.nameNot(File.UNKNOWN).typeDecl.name.toSet shouldBe Set("Foo")
+    cpg.file.nameNot(File.UNKNOWN).typeDecl.name.toSet shouldBe Set("Foo", "Object")
   }
 
 }
