@@ -91,7 +91,6 @@ class CGPass(private val driver: IDriver) : IUnitGraphPass {
                     val v = callV.build()
                     if (v.methodFullName().length > 1) {
                         driver.getVerticesByProperty(FULL_NAME, v.methodFullName(), METHOD).firstOrNull()?.let { mtdV ->
-                            println("saving cakk")
                             // Since this method already exists, we don't need to build a new method, only provide
                             // an existing ID
                             driver.addEdge(callV, mtdV, CALL)
