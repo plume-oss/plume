@@ -121,7 +121,7 @@ class OverflowDbDriver internal constructor() : IDriver {
         PlumeTimer.measure(ExtractorTimeKey.DATABASE_READ) {
             val srcNode = graph.node(src.id())
             val dstNode = graph.node(tgt.id())
-            res = srcNode.out(edge).asSequence().toList().any { node -> node.id() == dstNode.id() }
+            res = srcNode?.out(edge)?.asSequence()?.toList()?.any { node -> node.id() == dstNode.id() } ?: false
         }
         return res
     }
