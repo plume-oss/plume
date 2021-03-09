@@ -21,6 +21,7 @@ import io.github.plume.oss.drivers.IDriver
 import io.github.plume.oss.options.ExtractorOptions
 import io.github.plume.oss.passes.IUnitGraphPass
 import io.shiftleft.codepropertygraph.generated.EdgeTypes.CALL
+import io.shiftleft.codepropertygraph.generated.NodeKeyNames.FULL_NAME
 import io.shiftleft.codepropertygraph.generated.NodeTypes.METHOD
 import io.shiftleft.codepropertygraph.generated.nodes.NewCallBuilder
 import io.shiftleft.codepropertygraph.generated.nodes.NewMethodBuilder
@@ -88,14 +89,12 @@ class CGPass(private val driver: IDriver) : IUnitGraphPass {
                 // If there is no outgoing call edge from this call, then we should attempt to find it's target method
                 if (g.node(callV.id())?.outE(CALL)?.hasNext() != true) {
                     val v = callV.build()
-                    if (!g.nodes(METHOD).hasNext() && v.methodFullName().length > 1) {
-                        driver.getMethod(v.methodFullName()).use { mg ->
-                            if (mg.nodes(METHOD).hasNext()) {
-                                val mtdV = mg.nodes(METHOD).next()
-                                // Since this method already exists, we don't need to build a new method, only provide
-                                // an existing ID
-                                driver.addEdge(callV, NewMethodBuilder().id(mtdV.id()), CALL)
-                            }
+                    if (v.methodFullName().length > 1) {
+                        driver.getVerticesByProperty(FULL_NAME, v.methodFullName(), METHOD).firstOrNull()?.let { mtdV ->
+                            println("saving cakk")
+                            // Since this method already exists, we don't need to build a new method, only provide
+                            // an existing ID
+                            driver.addEdge(callV, mtdV, CALL)
                         }
                     }
                 }

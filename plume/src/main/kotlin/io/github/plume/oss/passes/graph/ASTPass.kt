@@ -529,6 +529,7 @@ class ASTPass(private val driver: IDriver) : IUnitGraphPass {
         }
     }
 
+    // TODO: This is incorrect - arrays should be identifiers
     private fun createNewArrayExpr(expr: NewArrayExpr, childIdx: Int = 0) =
         NewArrayInitializerBuilder()
             .order(childIdx + 1)
