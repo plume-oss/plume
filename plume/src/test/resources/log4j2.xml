@@ -6,7 +6,7 @@
 
     <Appenders>
         <RollingFile name="plumeFileLogger" fileName="${basePath}/plume-test.log"
-                     filePattern="${basePath}/plume-benchmarking-core-%d{yyyy-MM-dd}.log">
+                     filePattern="${basePath}/plume-test-%d{yyyy-MM-dd}.log">
             <PatternLayout>
                 <pattern>[%-5level] %d{yyyy-MM-dd HH:mm:ss.SSS} [%t] %c{1} - %msg%n</pattern>
             </PatternLayout>
