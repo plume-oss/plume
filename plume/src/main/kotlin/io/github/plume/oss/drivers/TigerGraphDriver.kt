@@ -4,6 +4,8 @@ import io.github.plume.oss.domain.exceptions.PlumeSchemaViolationException
 import io.github.plume.oss.domain.exceptions.PlumeTransactionException
 import io.github.plume.oss.domain.mappers.VertexMapper
 import io.github.plume.oss.domain.mappers.VertexMapper.checkSchemaConstraints
+import io.github.plume.oss.metrics.ExtractorTimeKey
+import io.github.plume.oss.metrics.PlumeTimer
 import io.github.plume.oss.util.CodeControl
 import io.github.plume.oss.util.ExtractorConst
 import io.github.plume.oss.util.ExtractorConst.BOOLEAN_TYPES
@@ -17,6 +19,7 @@ import io.shiftleft.codepropertygraph.generated.NodeKeyNames.*
 import io.shiftleft.codepropertygraph.generated.NodeTypes.*
 import io.shiftleft.codepropertygraph.generated.nodes.NewMetaDataBuilder
 import io.shiftleft.codepropertygraph.generated.nodes.NewNodeBuilder
+import khttp.responses.Response
 import org.apache.logging.log4j.LogManager
 import org.apache.tinkerpop.shaded.jackson.databind.ObjectMapper
 import org.json.JSONArray
@@ -330,6 +333,44 @@ class TigerGraphDriver internal constructor() : IOverridenIdDriver, ISchemaSafeD
             .filterIsInstance<NewMetaDataBuilder>()
             .firstOrNull()
 
+    override fun getVerticesByProperty(
+        propertyKey: String,
+        propertyValue: Any,
+        label: String?
+    ): List<NewNodeBuilder> {
+        val path = when {
+            BOOLEAN_TYPES.contains(propertyKey) -> "getVerticesByBProperty"
+            INT_TYPES.contains(propertyKey) -> "getVerticesByIProperty"
+            else -> "getVerticesBySProperty"
+        }
+        val result = (get(
+            endpoint = "query/$GRAPH_NAME/$path",
+            params = mapOf(
+                "PROPERTY_KEY" to "_$propertyKey",
+                "PROPERTY_VALUE" to propertyValue.toString(),
+                "LABEL" to (label ?: "null")
+            )
+        ).first() as JSONObject)["result"] as JSONArray
+        return result.map { vertexPayloadToNode(it as JSONObject) }
+            .filter { it.build().properties().keySet().contains(propertyKey) }
+    }
+
+    @Suppress("UNCHECKED_CAST")
+    override fun <T : Any> getPropertyFromVertices(propertyKey: String, label: String?): List<T> {
+        val path = when {
+            BOOLEAN_TYPES.contains(propertyKey) -> "getBPropertyFromVertices"
+            INT_TYPES.contains(propertyKey) -> "getIPropertyFromVertices"
+            else -> "getSPropertyFromVertices"
+        }
+        val result = (get(
+            "query/$GRAPH_NAME/$path",
+            params = mapOf(
+                "PROPERTY_KEY" to "_$propertyKey",
+                "LABEL" to (label ?: "null")
+            )
+        ).first() as JSONObject)["@@props"] as JSONArray
+        return result.map { it as T }
+    }
 
     override fun getVertexIds(lowerBound: Long, upperBound: Long): Set<Long> {
         val result = (get(
@@ -341,21 +382,23 @@ class TigerGraphDriver internal constructor() : IOverridenIdDriver, ISchemaSafeD
 
     private fun payloadToGraph(a: JSONArray): Graph {
         val graph = newOverflowGraph()
-        val vs = mutableMapOf<Long, Node>()
-        a[0]?.let { res ->
-            val o = res as JSONObject
-            val vertices = o["allVert"] as JSONArray
-            vertices.map { vertexPayloadToNode(it as JSONObject) }.forEach {
-                val n = it.build()
-                val node = graph.addNode(it.id(), n.label())
-                n.properties().foreachEntry { key, value -> node.setProperty(key, value) }
-                vs[it.id()] = node
+        PlumeTimer.measure(ExtractorTimeKey.DATABASE_READ) {
+            val vs = mutableMapOf<Long, Node>()
+            a[0]?.let { res ->
+                val o = res as JSONObject
+                val vertices = o["allVert"] as JSONArray
+                vertices.map { vertexPayloadToNode(it as JSONObject) }.forEach {
+                    val n = it.build()
+                    val node = graph.addNode(it.id(), n.label())
+                    n.properties().foreachEntry { key, value -> node.setProperty(key, value) }
+                    vs[it.id()] = node
+                }
             }
-        }
-        a[1]?.let { res ->
-            val o = res as JSONObject
-            val edges = o["@@edges"] as JSONArray
-            edges.forEach { connectEdge(vs, it as JSONObject) }
+            a[1]?.let { res ->
+                val o = res as JSONObject
+                val edges = o["@@edges"] as JSONArray
+                edges.forEach { connectEdge(vs, it as JSONObject) }
+            }
         }
         return graph
     }
@@ -417,28 +460,24 @@ class TigerGraphDriver internal constructor() : IOverridenIdDriver, ISchemaSafeD
      */
     @Throws(PlumeTransactionException::class)
     private fun get(endpoint: String, params: Map<String, String>): JSONArray {
-        var tryCount = 0
-        val response = if (params.isEmpty()) khttp.get(
-            url = "${api}/$endpoint",
-            headers = headers()
-        ) else khttp.get(
-            url = "${api}/$endpoint",
-            headers = headers(),
-            params = params
-        )
-        while (++tryCount < MAX_RETRY) {
-            logger.debug("Get ${response.url}")
-            logger.debug("Response ${response.text}")
-            when {
-                response.statusCode == 200 -> if (response.jsonObject["error"] as Boolean) throw PlumeTransactionException(
-                    response.jsonObject["message"] as String
-                )
-                else return response.jsonObject["results"] as JSONArray
-                tryCount >= MAX_RETRY -> throw IOException("Could not complete get request due to status code ${response.statusCode} at $api/$endpoint")
-                else -> sleep(500)
+        var res = JSONArray()
+        PlumeTimer.measure(ExtractorTimeKey.DATABASE_READ) {
+            var tryCount = 0
+            val response = if (params.isEmpty()) khttp.get(
+                url = "${api}/$endpoint",
+                headers = headers()
+            ) else khttp.get(
+                url = "${api}/$endpoint",
+                headers = headers(),
+                params = params
+            )
+            while (++tryCount < MAX_RETRY) {
+                logger.debug("Get ${response.url}")
+                logger.debug("Response ${response.text}")
+                if (handleResponse(response, tryCount, endpoint)) res = (response.jsonObject["results"] as JSONArray)
             }
         }
-        return JSONArray()
+        return res
     }
 
     /**
@@ -451,24 +490,32 @@ class TigerGraphDriver internal constructor() : IOverridenIdDriver, ISchemaSafeD
      */
     @Throws(PlumeTransactionException::class)
     private fun post(endpoint: String, payload: Map<String, Any>) {
-        var tryCount = 0
-        while (++tryCount < MAX_RETRY) {
-            val response = khttp.post(
-                url = "$api/$endpoint",
-                headers = headers(),
-                data = objectMapper.writeValueAsString(payload)
-            )
-            logger.debug("Post ${response.url} ${response.request.data}")
-            logger.debug("Response ${response.text}")
-            when {
-                response.statusCode == 200 -> if (response.jsonObject["error"] as Boolean) throw PlumeTransactionException(
-                    response.jsonObject["message"] as String
+        PlumeTimer.measure(ExtractorTimeKey.DATABASE_WRITE) {
+            var tryCount = 0
+            while (++tryCount < MAX_RETRY) {
+                val response = khttp.post(
+                    url = "$api/$endpoint",
+                    headers = headers(),
+                    data = objectMapper.writeValueAsString(payload)
                 )
-                else return
-                tryCount >= MAX_RETRY -> throw IOException("Could not complete post request due to status code ${response.statusCode} at $api/$endpoint")
-                else -> sleep(500)
+                logger.debug("Post ${response.url} ${response.request.data}")
+                logger.debug("Response ${response.text}")
+                if (handleResponse(response, tryCount, endpoint)) break
             }
         }
+    }
+
+    private fun handleResponse(response: Response, tryCount: Int, endpoint: String): Boolean {
+        when {
+            response.statusCode == 200 -> if (response.jsonObject["error"] as Boolean) {
+                val e = PlumeTransactionException(response.jsonObject["message"] as String)
+                logger.debug("Response failed on endpoint $endpoint with response $response", e)
+                throw e
+            } else return true
+            tryCount >= MAX_RETRY -> throw IOException("Could not complete request due to status code ${response.statusCode} at $api/$endpoint")
+            else -> sleep(500)
+        }
+        return false
     }
 
     /**
@@ -480,14 +527,16 @@ class TigerGraphDriver internal constructor() : IOverridenIdDriver, ISchemaSafeD
      */
     private fun delete(endpoint: String) {
         var tryCount = 0
-        while (++tryCount < MAX_RETRY) {
-            val response = khttp.delete(url = "$api/$endpoint", headers = headers())
-            logger.debug("Delete ${response.url}")
-            logger.debug("Response ${response.text}")
-            when {
-                response.statusCode == 200 -> return
-                tryCount >= MAX_RETRY -> throw IOException("Could not complete delete request due to status code ${response.statusCode} at $api/$endpoint")
-                else -> sleep(500)
+        PlumeTimer.measure(ExtractorTimeKey.DATABASE_WRITE) {
+            while (++tryCount < MAX_RETRY) {
+                val response = khttp.delete(url = "$api/$endpoint", headers = headers())
+                logger.debug("Delete ${response.url}")
+                logger.debug("Response ${response.text}")
+                when {
+                    response.statusCode == 200 -> break
+                    tryCount >= MAX_RETRY -> throw IOException("Could not complete delete request due to status code ${response.statusCode} at $api/$endpoint")
+                    else -> sleep(500)
+                }
             }
         }
     }
@@ -723,18 +772,30 @@ CREATE QUERY getProgramTypeData() FOR GRAPH <GRAPH_NAME> SYNTAX v2 {
   allVert = start;
 
   start = SELECT t
-          FROM start:s -((${TYPE_REFERENCED_EDGES.joinToString("|") { s -> "_$s>" }}|${TYPE_REFERENCED_EDGES.joinToString("|") { s -> "<_$s" }}):e)- :t
+          FROM start:s -((${TYPE_REFERENCED_EDGES.joinToString("|") { s -> "_$s>" }}|${
+                TYPE_REFERENCED_EDGES.joinToString(
+                    "|"
+                ) { s -> "<_$s" }
+            }):e)- :t
           WHERE @@nodeKeys.contains(t.label)
           ACCUM @@edges += e;
   allVert = allVert UNION start;
   start = SELECT s
-          FROM start:s -((${TYPE_REFERENCED_EDGES.joinToString("|") { s -> "_$s>" }}|${TYPE_REFERENCED_EDGES.joinToString("|") { s -> "<_$s" }}):e)- :t
+          FROM start:s -((${TYPE_REFERENCED_EDGES.joinToString("|") { s -> "_$s>" }}|${
+                TYPE_REFERENCED_EDGES.joinToString(
+                    "|"
+                ) { s -> "<_$s" }
+            }):e)- :t
           WHERE @@nodeKeys.contains(t.label)
           ACCUM @@edges += e;
   allVert = allVert UNION start;
 
   finalEdges = SELECT t
-               FROM allVert -((${TYPE_REFERENCED_EDGES.joinToString("|") { s -> "_$s>" }}|${TYPE_REFERENCED_EDGES.joinToString("|") { s -> "<_$s" }}):e)- :t
+               FROM allVert -((${TYPE_REFERENCED_EDGES.joinToString("|") { s -> "_$s>" }}|${
+                TYPE_REFERENCED_EDGES.joinToString(
+                    "|"
+                ) { s -> "<_$s" }
+            }):e)- :t
                ACCUM @@edges += e;
   allVert = allVert UNION finalEdges;
 
@@ -781,10 +842,48 @@ CREATE QUERY getVertexIds(INT LOWER_BOUND, INT UPPER_BOUND) FOR GRAPH <GRAPH_NAM
   PRINT @@ids;
 }
 
-CREATE QUERY status() FOR GRAPH <GRAPH_NAME> {
-  INT status = 0;
-  PRINT status;
+${
+                listOf("STRING", "BOOL", "INT").joinToString("\n\n") { t: String ->
+                    """
+CREATE QUERY getVerticesBy${t.first()}Property(STRING PROPERTY_KEY, $t PROPERTY_VALUE, STRING LABEL) FOR GRAPH <GRAPH_NAME> {
+  start = {CPG_VERT.*};
+  IF LABEL == "null" THEN
+    result = SELECT src
+      FROM start:src
+      WHERE src.getAttr(PROPERTY_KEY, "$t") == PROPERTY_VALUE;
+  ELSE
+    result = SELECT src
+      FROM start:src
+      WHERE src.label == LABEL 
+        AND src.getAttr(PROPERTY_KEY, "$t") == PROPERTY_VALUE;
+  END;
+  PRINT result;
 }
+        """.trimIndent()
+                }
+            }
+
+${
+                listOf("STRING", "BOOL", "INT").joinToString("\n\n") { t: String ->
+                    """
+CREATE QUERY get${t.first()}PropertyFromVertices(STRING PROPERTY_KEY, STRING LABEL) FOR GRAPH <GRAPH_NAME> {
+  ListAccum<$t> @@props;
+  start = {CPG_VERT.*};
+  IF LABEL == "null" THEN
+    result = SELECT src
+      FROM start:src
+      ACCUM @@props += src.getAttr(PROPERTY_KEY, "$t");
+  ELSE
+    result = SELECT src
+      FROM start:src
+      WHERE src.label == LABEL 
+      ACCUM @@props += src.getAttr(PROPERTY_KEY, "$t");
+  END;
+  PRINT @@props;
+}
+        """.trimIndent()
+                }
+            }
 
 INSTALL QUERY ALL
 

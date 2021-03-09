@@ -13,7 +13,7 @@ class MemberTests extends PlumeCodeToCpgSuite {
       |""".stripMargin
 
   "should contain MEMBER node with correct properties" in {
-    val List(x) = cpg.member.l
+    val List(x) = cpg.member("x").l
     x.name shouldBe "x"
     x.code shouldBe "int x"
     x.typeFullName shouldBe "int"

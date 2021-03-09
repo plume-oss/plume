@@ -137,18 +137,17 @@ class BasicIntraproceduralTest {
         val ns = g.nodes().asSequence().toList()
         ns.filterIsInstance<NamespaceBlock>().let { nbv ->
             assertNotNull(nbv.find { it.name() == "intraprocedural.basic.basic5" })
-            assertEquals(2, nbv.toList().size)
+            assertEquals(5, nbv.toList().size)
         }
-        ns.filterIsInstance<TypeDecl>().let { mrv ->
+        ns.filterIsInstance<TypeDecl>().filter { !it.isExternal() }.let { mrv ->
             assertNotNull(mrv.find { it.fullName() == "intraprocedural.basic.Basic5" })
             assertNotNull(mrv.find { it.fullName() == "intraprocedural.basic.basic5.Basic5" })
             assertNotNull(mrv.find { it.fullName() == "int" })
             assertNotNull(mrv.find { it.fullName() == "byte" })
             assertNotNull(mrv.find { it.fullName() == "java.lang.String[]" })
-            assertEquals(5, mrv.toList().size)
+            assertEquals(6, mrv.toList().size)
         }
-        driver.exportGraph("/tmp/plume/x.xml")
-        ns.filterIsInstance<Method>().let { mv ->
+        ns.filterIsInstance<Method>().filter { !it.isExternal() }.let { mv ->
             assertNotNull(mv.find { it.fullName() == "intraprocedural.basic.Basic5.main:void(java.lang.String[])" })
             assertNotNull(mv.find { it.fullName() == "intraprocedural.basic.basic5.Basic5.main:void(java.lang.String[])" })
             assertNotNull(mv.find { it.fullName() == "intraprocedural.basic.Basic5.<init>:void()" })

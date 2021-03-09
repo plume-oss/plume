@@ -47,6 +47,19 @@ object PlumeTimer {
     }
 
     /**
+     * Measures the time the given function takes to complete. This wraps the function with [startTimerOn] and
+     * [stopTimerOn] with all the given [ExtractorTimeKey]s.
+     *
+     * @param key The key(s) on which to measure.
+     * @param f The function to measure.
+     */
+    fun measure(vararg key: ExtractorTimeKey, f: () -> Unit) {
+        startTimerOn(*key)
+        f()
+        stopTimerOn(*key)
+    }
+
+    /**
      * Stops all timers.
      */
     fun stopAll() = apply {

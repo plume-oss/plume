@@ -13,10 +13,11 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package io.github.plume.oss.graph
+package io.github.plume.oss.passes.graph
 
 import io.github.plume.oss.Extractor.Companion.getSootAssociation
 import io.github.plume.oss.drivers.IDriver
+import io.github.plume.oss.passes.IUnitGraphPass
 import io.shiftleft.codepropertygraph.generated.EdgeTypes.ARGUMENT
 import io.shiftleft.codepropertygraph.generated.EdgeTypes.REF
 import io.shiftleft.codepropertygraph.generated.nodes.*
@@ -26,18 +27,20 @@ import soot.jimple.*
 import soot.toolkits.graph.BriefUnitGraph
 
 /**
- * The [IGraphBuilder] that constructs the program dependence edges in the graph.
+ * The [IUnitGraphPass] that constructs the program dependence edges in the graph.
  *
  * @param driver The driver to build the PDG with.
  */
-class PDGBuilder(private val driver: IDriver) : IGraphBuilder {
-    private val logger = LogManager.getLogger(PDGBuilder::javaClass)
+class PDGPass(private val driver: IDriver) : IUnitGraphPass {
+    private val logger = LogManager.getLogger(PDGPass::javaClass)
     private lateinit var graph: BriefUnitGraph
 
-    override fun buildMethodBody(graph: BriefUnitGraph) {
-        val mtd = graph.body.method
+    override fun runPass(gs: List<BriefUnitGraph>) = gs.map(::runPassOnGraph)
+
+    private fun runPassOnGraph(g: BriefUnitGraph): BriefUnitGraph {
+        val mtd = g.body.method
         logger.debug("Building PDG for ${mtd.declaration}")
-        this.graph = graph
+        this.graph = g
         // Identifier REF edges
         (this.graph.body.parameterLocals + this.graph.body.locals).forEach(this::projectLocalVariable)
         // Operator and Cast ARGUMENT edges
@@ -55,6 +58,7 @@ class PDGBuilder(private val driver: IDriver) : IGraphBuilder {
             .filterIsInstance<InvokeStmt>()
             .map { it.invokeExpr as InvokeExpr }
             .forEach(this::projectCallArg)
+        return g
     }
 
     private fun projectCallArg(value: Any) {

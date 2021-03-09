@@ -6,5 +6,10 @@ services:
     container_name: janusgraph-plume
     volumes:
       - "../conf/jg-server-conf:/etc/opt/janusgraph/:ro"
+    healthcheck:
+      test: [ "CMD-SHELL", "bin/gremlin.sh", "-e", "scripts/remote-connect.groovy" ]
+      interval: 5s
+      timeout: 30s
+      retries: 10
     ports:
       - "8182:8182"

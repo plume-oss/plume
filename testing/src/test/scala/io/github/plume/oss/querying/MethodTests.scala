@@ -6,14 +6,14 @@ class MethodTests extends PlumeCodeToCpgSuite {
 
   override val code: String =
     """ class Foo {
-      |  int foo(int param1, int param2) {
-      | return 1;
+      |   int foo(int param1, int param2) {
+      |     return 1;
+      |   }
       | }
-      |}
       |""".stripMargin
 
-  "should contain exactly one method node with correct fields" in {
-    val List(x) = cpg.method.nameNot("<init>").l
+  "should contain exactly one non-stub method node with correct fields" in {
+    val List(x) = cpg.method.nameNot("<init>").isExternal(false).l
     x.name shouldBe "foo"
     x.fullName shouldBe "Foo.foo:int(int,int)"
     x.code shouldBe "int foo(int param1, int param2)"

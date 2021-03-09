@@ -1,14 +1,14 @@
 package io.github.plume.oss.extractor
 
-import org.junit.jupiter.api.AfterEach
-import org.junit.jupiter.api.BeforeAll
-import org.junit.jupiter.api.Test
 import io.github.plume.oss.Extractor
 import io.github.plume.oss.drivers.DriverFactory
 import io.github.plume.oss.drivers.GraphDatabase
 import io.github.plume.oss.drivers.TinkerGraphDriver
 import io.shiftleft.codepropertygraph.generated.nodes.Literal
+import org.junit.jupiter.api.AfterEach
 import org.junit.jupiter.api.Assertions.*
+import org.junit.jupiter.api.BeforeAll
+import org.junit.jupiter.api.Test
 import java.io.File
 import java.io.FileInputStream
 import java.io.FileOutputStream
@@ -24,7 +24,7 @@ class UpdateGraphTest {
 
         private fun getTestResource(dir: String): File {
             val resourceURL = UpdateGraphTest::class.java.classLoader.getResource(dir)
-                    ?: throw java.lang.NullPointerException("Unable to obtain test resource")
+                ?: throw java.lang.NullPointerException("Unable to obtain test resource")
             return File(resourceURL.file)
         }
 

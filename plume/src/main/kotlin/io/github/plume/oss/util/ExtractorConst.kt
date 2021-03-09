@@ -8,10 +8,11 @@ object ExtractorConst {
     const val LANGUAGE_FRONTEND = "Plume"
     val plumeVersion: String by lazy { javaClass.`package`.implementationVersion ?: "X.X.X" }
     val PRIMITIVES = listOf("boolean", "byte", "char", "double", "float", "int", "long", "null", "short", "void")
-    // block bodies
     const val ENTRYPOINT = "BODY"
     const val TRUE_TARGET = "TRUE"
     const val FALSE_TARGET = "FALSE"
+    const val UNKNOWN = "<unknown>"
+    const val GLOBAL = "<global>"
     val BOOLEAN_TYPES = setOf(
         NodeKeyNames.HAS_MAPPING,
         NodeKeyNames.IS_METHOD_NEVER_OVERRIDDEN,

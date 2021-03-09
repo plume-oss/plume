@@ -4,11 +4,16 @@ import io.github.plume.oss.Traversals
 import io.github.plume.oss.domain.exceptions.PlumeSchemaViolationException
 import io.github.plume.oss.domain.mappers.VertexMapper
 import io.github.plume.oss.domain.mappers.VertexMapper.checkSchemaConstraints
+import io.github.plume.oss.metrics.ExtractorTimeKey
+import io.github.plume.oss.metrics.PlumeTimer
 import io.github.plume.oss.util.ExtractorConst.TYPE_REFERENCED_EDGES
 import io.github.plume.oss.util.ExtractorConst.TYPE_REFERENCED_NODES
+import io.shiftleft.codepropertygraph.generated.NodeKeyNames.FULL_NAME
+import io.shiftleft.codepropertygraph.generated.NodeTypes.METHOD
 import io.shiftleft.codepropertygraph.generated.nodes.*
 import org.apache.logging.log4j.LogManager
 import overflowdb.*
+import scala.Option
 import java.util.*
 import io.shiftleft.codepropertygraph.generated.edges.Factories as EdgeFactories
 import io.shiftleft.codepropertygraph.generated.nodes.Factories as NodeFactories
@@ -97,42 +102,54 @@ class OverflowDbDriver internal constructor() : IDriver {
 
     override fun addVertex(v: NewNodeBuilder) {
         if (exists(v)) return
-        val newNode = v.build()
-        val node = graph.addNode(newNode.label())
-        newNode.properties().foreachEntry { key, value -> node.setProperty(key, value) }
-        v.id(node.id())
+        PlumeTimer.measure(ExtractorTimeKey.DATABASE_WRITE) {
+            val newNode = v.build()
+            val node = graph.addNode(newNode.label())
+            newNode.properties().foreachEntry { key, value -> node.setProperty(key, value) }
+            v.id(node.id())
+        }
     }
 
-    override fun exists(v: NewNodeBuilder) = (graph.node(v.id()) != null)
+    override fun exists(v: NewNodeBuilder): Boolean {
+        var res = false
+        PlumeTimer.measure(ExtractorTimeKey.DATABASE_READ) { res = (graph.node(v.id()) != null) }
+        return res
+    }
 
     override fun exists(src: NewNodeBuilder, tgt: NewNodeBuilder, edge: String): Boolean {
-        val srcNode = graph.node(src.id()) ?: return false
-        val dstNode = graph.node(tgt.id()) ?: return false
-        return srcNode.out(edge).asSequence().toList().any { node -> node.id() == dstNode.id() }
+        var res = false
+        PlumeTimer.measure(ExtractorTimeKey.DATABASE_READ) {
+            val srcNode = graph.node(src.id())
+            val dstNode = graph.node(tgt.id())
+            res = srcNode?.out(edge)?.asSequence()?.toList()?.any { node -> node.id() == dstNode.id() } ?: false
+        }
+        return res
     }
 
     override fun addEdge(src: NewNodeBuilder, tgt: NewNodeBuilder, edge: String) {
         if (!checkSchemaConstraints(src, tgt, edge)) throw PlumeSchemaViolationException(src, tgt, edge)
         if (!exists(src)) addVertex(src)
         if (!exists(tgt)) addVertex(tgt)
-        val srcNode = graph.node(src.id())
-        val dstNode = graph.node(tgt.id())
+        PlumeTimer.measure(ExtractorTimeKey.DATABASE_WRITE) {
+            val srcNode = graph.node(src.id())
+            val dstNode = graph.node(tgt.id())
 
-        try {
-            srcNode.addEdge(edge, dstNode)
-        } catch (exc: RuntimeException) {
-            logger.error(exc.message, exc)
-            throw PlumeSchemaViolationException(src, tgt, edge)
+            try {
+                srcNode.addEdge(edge, dstNode)
+            } catch (exc: RuntimeException) {
+                logger.error(exc.message, exc)
+                throw PlumeSchemaViolationException(src, tgt, edge)
+            }
         }
     }
 
     override fun clearGraph(): IDriver = apply {
-        Traversals.clearGraph(graph)
+        PlumeTimer.measure(ExtractorTimeKey.DATABASE_WRITE) { Traversals.clearGraph(graph) }
     }
 
     override fun getWholeGraph(): Graph {
         val result = newOverflowGraph()
-        graph.copyTo(result)
+        PlumeTimer.measure(ExtractorTimeKey.DATABASE_READ) { graph.copyTo(result) }
         return result
     }
 
@@ -141,12 +158,14 @@ class OverflowDbDriver internal constructor() : IDriver {
         return deepCopyGraph(Traversals.getMethodStub(graph, fullName))
     }
 
-    override fun getMethodNames(): List<String> = Traversals.getMethodNames(graph)
+    override fun getMethodNames(): List<String> = getPropertyFromVertices(FULL_NAME, METHOD)
 
     private fun deepCopyGraph(edges: List<Edge>): Graph {
         val graph = newOverflowGraph()
-        deepCopyVertices(graph, edges)
-        deepCopyEdges(edges, graph)
+        PlumeTimer.measure(ExtractorTimeKey.DATABASE_READ) {
+            deepCopyVertices(graph, edges)
+            deepCopyEdges(graph, edges)
+        }
         return graph
     }
 
@@ -159,7 +178,7 @@ class OverflowDbDriver internal constructor() : IDriver {
             }
     }
 
-    private fun deepCopyEdges(edges: List<Edge>, graph: Graph) {
+    private fun deepCopyEdges(graph: Graph, edges: List<Edge>) {
         edges.forEach { edge ->
             val srcNode = graph.node(edge.outNode().id())
             val dstNode = graph.node(edge.inNode().id())
@@ -171,43 +190,47 @@ class OverflowDbDriver internal constructor() : IDriver {
 
     override fun getProgramStructure(): Graph {
         val g = deepCopyGraph(Traversals.getProgramStructure(graph))
-        val ns = Traversals.getFiles(graph).toMutableList<StoredNode>()
-            .toCollection(Traversals.getTypeDecls(graph).toMutableList<StoredNode>())
-            .toCollection(Traversals.getNamespaceBlocks(graph).toMutableList<StoredNode>())
-        ns.filter { g.node(it.id()) == null }
-            .forEach { t ->
-                val node = g.addNode(t.id(), t.label())
-                t.propertyMap().forEach { (key, value) -> node.setProperty(key, value) }
-            }
+        PlumeTimer.measure(ExtractorTimeKey.DATABASE_READ) {
+            val ns = Traversals.getFiles(graph).toMutableList<StoredNode>()
+                .toCollection(Traversals.getTypeDecls(graph).toMutableList<StoredNode>())
+                .toCollection(Traversals.getNamespaceBlocks(graph).toMutableList<StoredNode>())
+            ns.filter { g.node(it.id()) == null }
+                .forEach { t ->
+                    val node = g.addNode(t.id(), t.label())
+                    t.propertyMap().forEach { (key, value) -> node.setProperty(key, value) }
+                }
+        }
         return g
     }
 
     override fun getProgramTypeData(): Graph {
         val pg = newOverflowGraph()
-        graph.nodes(*TYPE_REFERENCED_NODES).asSequence().forEach { n ->
-            // Add vertices
-            if (pg.node(n.id()) == null) {
-                val node = pg.addNode(n.id(), n.label())
-                n.propertyMap().forEach { (key, value) -> node.setProperty(key, value) }
+        PlumeTimer.measure(ExtractorTimeKey.DATABASE_READ) {
+            graph.nodes(*TYPE_REFERENCED_NODES).asSequence().forEach { n ->
+                // Add vertices
+                if (pg.node(n.id()) == null) {
+                    val node = pg.addNode(n.id(), n.label())
+                    n.propertyMap().forEach { (key, value) -> node.setProperty(key, value) }
+                }
             }
-        }
-        TYPE_REFERENCED_EDGES.forEach { tre ->
-            graph.edges(tre).asSequence()
-                .map { e ->
-                    val srcNode = if (pg.node(e.outNode().id()) == null) {
-                        val s = pg.addNode(e.outNode().id(), e.outNode().label())
-                        e.outNode().propertyMap().forEach { (key, value) -> s.setProperty(key as String, value) }; s
-                    } else {
-                        pg.node(e.outNode().id())
-                    }
-                    val dstNode = if (pg.node(e.inNode().id()) == null) {
-                        val d = pg.addNode(e.inNode().id(), e.inNode().label())
-                        e.inNode().propertyMap().forEach { (key, value) -> d.setProperty(key as String, value) }; d
-                    } else {
-                        pg.node(e.inNode().id())
-                    }
-                    Triple(srcNode, dstNode, e.label())
-                }.forEach { (src, dst, e) -> pg.node(src.id()).addEdge(e, pg.node(dst.id())) }
+            TYPE_REFERENCED_EDGES.forEach { tre ->
+                graph.edges(tre).asSequence()
+                    .map { e ->
+                        val srcNode = if (pg.node(e.outNode().id()) == null) {
+                            val s = pg.addNode(e.outNode().id(), e.outNode().label())
+                            e.outNode().propertyMap().forEach { (key, value) -> s.setProperty(key as String, value) }; s
+                        } else {
+                            pg.node(e.outNode().id())
+                        }
+                        val dstNode = if (pg.node(e.inNode().id()) == null) {
+                            val d = pg.addNode(e.inNode().id(), e.inNode().label())
+                            e.inNode().propertyMap().forEach { (key, value) -> d.setProperty(key as String, value) }; d
+                        } else {
+                            pg.node(e.inNode().id())
+                        }
+                        Triple(srcNode, dstNode, e.label())
+                    }.forEach { (src, dst, e) -> pg.node(src.id()).addEdge(e, pg.node(dst.id())) }
+            }
         }
         return pg
     }
@@ -215,25 +238,71 @@ class OverflowDbDriver internal constructor() : IDriver {
     override fun getNeighbours(v: NewNodeBuilder): Graph = deepCopyGraph(Traversals.getNeighbours(graph, v.id()))
 
     override fun deleteVertex(id: Long, label: String?) {
-        graph.node(id)?.let { graph.remove(it) }
+        PlumeTimer.measure(ExtractorTimeKey.DATABASE_WRITE) {
+            graph.node(id)?.let { graph.remove(it) }
+        }
     }
 
     override fun deleteEdge(src: NewNodeBuilder, tgt: NewNodeBuilder, edge: String) {
         if (!exists(src, tgt, edge)) return
-        val e = graph.node(src.id())?.outE(edge)?.next()
-        if (e?.inNode()?.id() == tgt.id()) e.remove()
+        PlumeTimer.measure(ExtractorTimeKey.DATABASE_WRITE) {
+            val e = graph.node(src.id())?.outE(edge)?.next()
+            if (e?.inNode()?.id() == tgt.id()) e.remove()
+        }
     }
 
-    override fun deleteMethod(fullName: String) = Traversals.deleteMethod(graph, fullName)
+    override fun deleteMethod(fullName: String) {
+        PlumeTimer.measure(ExtractorTimeKey.DATABASE_WRITE) {
+            Traversals.deleteMethod(graph, fullName)
+        }
+    }
 
     override fun updateVertexProperty(id: Long, label: String?, key: String, value: Any) {
-        val node = graph.node(id) ?: return
-        node.setProperty(key, value)
+        var node: Node? = null
+        PlumeTimer.measure(ExtractorTimeKey.DATABASE_READ) {
+            node = graph.node(id)
+        }
+        PlumeTimer.measure(ExtractorTimeKey.DATABASE_WRITE) {
+            node?.setProperty(key, value)
+        }
     }
 
     override fun getMetaData(): NewMetaDataBuilder? {
-        val maybeMetaData = Traversals.getMetaData(graph)
-        return if (maybeMetaData.isDefined) VertexMapper.mapToVertex(maybeMetaData.get()) as NewMetaDataBuilder else null
+        var maybeMetaData: NewMetaDataBuilder? = null
+        PlumeTimer.measure(ExtractorTimeKey.DATABASE_READ) {
+            val m = Traversals.getMetaData(graph)
+            maybeMetaData = if (m.isDefined) VertexMapper.mapToVertex(m.get()) as NewMetaDataBuilder else null
+        }
+        return maybeMetaData
+    }
+
+    override fun getVerticesByProperty(
+        propertyKey: String,
+        propertyValue: Any,
+        label: String?
+    ): List<NewNodeBuilder> {
+        val l = mutableListOf<NewNodeBuilder>()
+        PlumeTimer.measure(ExtractorTimeKey.DATABASE_READ) {
+            (if (label != null) graph.nodes(label) else graph.nodes()).asSequence()
+                .filter { it.property(propertyKey) == propertyValue }
+                .map(VertexMapper::mapToVertex)
+                .toList()
+                .toCollection(l)
+        }
+        return l
+    }
+
+    @Suppress("UNCHECKED_CAST")
+    override fun <T : Any> getPropertyFromVertices(propertyKey: String, label: String?): List<T> {
+        val l = mutableListOf<T>()
+        PlumeTimer.measure(ExtractorTimeKey.DATABASE_READ) {
+            (if (label != null) graph.nodes(label) else graph.nodes()).asSequence()
+                .filter { it.propertyKeys().contains(propertyKey) }
+                .map { it.property(propertyKey) as T }
+                .toList()
+                .toCollection(l)
+        }
+        return l
     }
 
     override fun close() {

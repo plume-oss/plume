@@ -30,11 +30,10 @@ class TypeDeclTests extends PlumeCodeToCpgSuite {
   }
 
   "should contain type decl for external type `int`" in {
-    cpg.typeDecl.l.foreach(t => println(t.fullName))
     val List(x) = cpg.typeDecl("int").l
     x.name shouldBe "int"
     x.fullName shouldBe "int"
-    x.isExternal shouldBe true
+    x.isExternal shouldBe false
 //    x.inheritsFromTypeFullName shouldBe List()
     x.aliasTypeFullName shouldBe None
     x.order shouldBe -1

@@ -13,10 +13,11 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package io.github.plume.oss.graph
+package io.github.plume.oss.passes.graph
 
 import io.github.plume.oss.Extractor.Companion.getSootAssociation
 import io.github.plume.oss.drivers.IDriver
+import io.github.plume.oss.passes.IUnitGraphPass
 import io.github.plume.oss.util.ExtractorConst.FALSE_TARGET
 import io.github.plume.oss.util.ExtractorConst.TRUE_TARGET
 import io.shiftleft.codepropertygraph.generated.EdgeTypes.CFG
@@ -27,23 +28,25 @@ import soot.jimple.*
 import soot.toolkits.graph.BriefUnitGraph
 
 /**
- * The [IGraphBuilder] that constructs the dependence edges in the graph.
+ * The [IUnitGraphPass] that constructs the dependence edges in the graph.
  *
  * @param driver The driver to build the CFG with.
  */
-class CFGBuilder(private val driver: IDriver) : IGraphBuilder {
-    private val logger = LogManager.getLogger(CFGBuilder::javaClass)
+class CFGPass(private val driver: IDriver) : IUnitGraphPass {
+    private val logger = LogManager.getLogger(CFGPass::javaClass)
     private lateinit var graph: BriefUnitGraph
 
-    override fun buildMethodBody(graph: BriefUnitGraph) {
-        val mtd = graph.body.method
+    override fun runPass(gs: List<BriefUnitGraph>) = gs.map(::runPassOnGraph)
+
+    private fun runPassOnGraph(g: BriefUnitGraph): BriefUnitGraph {
+        val mtd = g.body.method
         logger.debug("Building CFG for ${mtd.declaration}")
-        this.graph = graph
+        this.graph = g
         // Connect entrypoint to the first CFG vertex
         this.graph.heads.forEach { head ->
             // Select appropriate successor to start CFG chain at
             var startingUnit = head
-            while (startingUnit is IdentityStmt) startingUnit = graph.getSuccsOf(startingUnit).firstOrNull() ?: break
+            while (startingUnit is IdentityStmt) startingUnit = g.getSuccsOf(startingUnit).firstOrNull() ?: break
             startingUnit?.let {
                 getSootAssociation(it)?.firstOrNull()?.let { succVert ->
                     val mtdV = getSootAssociation(mtd)
@@ -57,6 +60,7 @@ class CFGBuilder(private val driver: IDriver) : IGraphBuilder {
         }
         // Connect all units to their successors
         this.graph.body.units.filterNot { it is IdentityStmt }.forEach(this::projectUnit)
+        return g
     }
 
     private fun projectUnit(unit: Unit) {

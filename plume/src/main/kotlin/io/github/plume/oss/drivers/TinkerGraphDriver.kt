@@ -1,8 +1,8 @@
 package io.github.plume.oss.drivers
 
+import io.github.plume.oss.metrics.ExtractorTimeKey
+import io.github.plume.oss.metrics.PlumeTimer
 import org.apache.commons.configuration.BaseConfiguration
-import org.apache.tinkerpop.gremlin.structure.io.GraphReader
-import org.apache.tinkerpop.gremlin.structure.io.graphml.GraphMLReader
 import java.io.File
 
 /**
@@ -32,7 +32,7 @@ class TinkerGraphDriver internal constructor() : GremlinDriver() {
             "Unsupported graph extension! Supported types are GraphML," +
                     " GraphSON, and Gryo."
         }
-        g.io<Any>(filePath).write().iterate()
+        PlumeTimer.measure(ExtractorTimeKey.DATABASE_WRITE) { g.io<Any>(filePath).write().iterate() }
     }
 
     /**
@@ -47,7 +47,7 @@ class TinkerGraphDriver internal constructor() : GremlinDriver() {
                     " GraphSON, and Gryo."
         }
         require(File(filePath).exists()) { "No existing serialized graph file was found at $filePath" }
-        g.io<Any>(filePath).read().iterate()
+        PlumeTimer.measure(ExtractorTimeKey.DATABASE_READ) { g.io<Any>(filePath).read().iterate() }
     }
 
     /**
@@ -56,8 +56,8 @@ class TinkerGraphDriver internal constructor() : GremlinDriver() {
      * @param filePath the file path to check.
      */
     private fun isSupportedExtension(filePath: String): Boolean =
-            run {
-                val ext = filePath.substring(filePath.lastIndexOf('.') + 1).toLowerCase()
-                "xml" == ext || "json" == ext || "kryo" == ext
-            }
+        run {
+            val ext = filePath.substring(filePath.lastIndexOf('.') + 1).toLowerCase()
+            "xml" == ext || "json" == ext || "kryo" == ext
+        }
 }

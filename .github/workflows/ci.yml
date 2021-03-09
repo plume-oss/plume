@@ -25,10 +25,14 @@ jobs:
         run: chmod +x gradlew
       - name: Compile classes
         run: ./gradlew classes
+
       - name: Run unit tests
         run: ./gradlew test
+      - name: Run extractor tests
+        run: ./gradlew extractorTest
       - name: Run scalatest
         run: ./gradlew scalatest
+
       - name: Run TinkerGaph integration tests
         run: ./gradlew tinkerGraphIntTest
       - name: Run OverflowDb integration tests
@@ -40,8 +44,9 @@ jobs:
       - name: Run Neo4j integration tests
         run: ./gradlew neo4jIntTest
 
-      - name: Run extractor tests
-        run: ./gradlew extractorTest
+      - name: Print logs on fail
+        if: ${{ failure() }}
+        run: echo | cat /tmp/plume/plume-test.log
 
       - name: Compile coverage report
         run: ./gradlew jacocoTestReport

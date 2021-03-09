@@ -13,11 +13,12 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package io.github.plume.oss.graph
+package io.github.plume.oss.passes.graph
 
 import io.github.plume.oss.Extractor.Companion.addSootToPlumeAssociation
 import io.github.plume.oss.Extractor.Companion.getSootAssociation
 import io.github.plume.oss.drivers.IDriver
+import io.github.plume.oss.passes.IUnitGraphPass
 import io.github.plume.oss.util.ExtractorConst.FALSE_TARGET
 import io.github.plume.oss.util.ExtractorConst.TRUE_TARGET
 import io.github.plume.oss.util.SootParserUtil
@@ -40,29 +41,31 @@ import soot.jimple.internal.JimpleLocalBox
 import soot.toolkits.graph.BriefUnitGraph
 
 /**
- * The [IGraphBuilder] that constructs the vertices of the package/file/method hierarchy and connects the AST edges.
+ * The [IUnitGraphPass] that constructs the vertices of the package/file/method hierarchy and connects the AST edges.
  *
  * @param driver The driver to build the AST with.
  */
-class ASTBuilder(private val driver: IDriver) : IGraphBuilder {
-    private val logger = LogManager.getLogger(ASTBuilder::javaClass)
+class ASTPass(private val driver: IDriver) : IUnitGraphPass {
+    private val logger = LogManager.getLogger(ASTPass::javaClass)
 
     private var currentLine = -1
     private var currentCol = -1
     private lateinit var graph: BriefUnitGraph
 
-    override fun buildMethodBody(graph: BriefUnitGraph) {
-        val mtd = graph.body.method
-        this.graph = graph
+    override fun runPass(gs: List<BriefUnitGraph>) = gs.map(::runPassOnGraph)
+
+    private fun runPassOnGraph(g: BriefUnitGraph): BriefUnitGraph {
+        val mtd = g.body.method
+        this.graph = g
         logger.debug("Building AST for ${mtd.declaration}")
         // Connect and create parameters and locals
         getSootAssociation(mtd)?.let { mtdVs ->
             mtdVs.filterIsInstance<NewMethodBuilder>().firstOrNull()?.let { mtdVert ->
-                addSootToPlumeAssociation(mtd, buildLocals(graph, mtdVert))
+                addSootToPlumeAssociation(mtd, buildLocals(g, mtdVert))
             }
         }
         // Build body
-        graph.body.units.filterNot { it is IdentityStmt }
+        g.body.units.filterNot { it is IdentityStmt }
             .forEachIndexed { idx, u ->
                 projectUnit(u, idx + 1)
                     ?.let {
@@ -72,9 +75,13 @@ class ASTBuilder(private val driver: IDriver) : IGraphBuilder {
                                 tgt = it,
                                 edge = AST
                             )
-                        }.onFailure { e -> logger.warn(e.message) }
+                        }.onFailure { e ->
+                            logger.warn("Exception while adding AST edge between ${mtd.name} block and $it. " +
+                                    "Details: ${e.message}.")
+                        }
                     }
             }
+        return g
     }
 
     private fun buildLocals(graph: BriefUnitGraph, mtdVertex: NewMethodBuilder): MutableList<NewNodeBuilder> {
@@ -522,6 +529,7 @@ class ASTBuilder(private val driver: IDriver) : IGraphBuilder {
         }
     }
 
+    // TODO: This is incorrect - arrays should be identifiers
     private fun createNewArrayExpr(expr: NewArrayExpr, childIdx: Int = 0) =
         NewArrayInitializerBuilder()
             .order(childIdx + 1)

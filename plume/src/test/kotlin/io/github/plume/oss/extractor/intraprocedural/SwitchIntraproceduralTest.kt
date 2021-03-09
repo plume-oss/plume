@@ -86,6 +86,7 @@ class SwitchIntraproceduralTest {
 
     @Test
     fun switch2Test() {
+        driver.exportGraph("/tmp/plume/s.xml")
         val ns = g.nodes().asSequence().toList()
         assertNotNull(ns.find { it is Local && it.name() == "animal" })
         assertNotNull(ns.find { it is Local && it.name() == "result" })
@@ -98,7 +99,7 @@ class SwitchIntraproceduralTest {
         ns.filterIsInstance<JumpTarget>().filter { it.name() == "DEFAULT" }
             .let { assertEquals(2, it.size) }
         assertEquals(14, ns.filterIsInstance<JumpTarget>().toList().size)
-        ns.filterIsInstance<ControlStructure>().filter { it.controlStructureType() == SWITCH }
+        ns.filterIsInstance<ControlStructure>().filter { it.controlStructureType() == SWITCH && it.order() == 17}
             .let { csv ->
                 val switchVert = csv.firstOrNull(); assertNotNull(switchVert); switchVert!!
                 assertTrue(g.V(switchVert.id()).next().outE(CONDITION).hasNext())
