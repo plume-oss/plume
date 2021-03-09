@@ -75,7 +75,10 @@ class ASTPass(private val driver: IDriver) : IUnitGraphPass {
                                 tgt = it,
                                 edge = AST
                             )
-                        }.onFailure { e -> logger.warn(e.message) }
+                        }.onFailure { e ->
+                            logger.warn("Exception while adding AST edge between ${mtd.name} block and $it. " +
+                                    "Details: ${e.message}.")
+                        }
                     }
             }
         return g

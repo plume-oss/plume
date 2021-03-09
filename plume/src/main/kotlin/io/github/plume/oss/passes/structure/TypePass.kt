@@ -6,10 +6,9 @@ import io.github.plume.oss.passes.IProgramStructurePass
 import io.github.plume.oss.util.SootParserUtil
 import io.github.plume.oss.util.SootToPlumeUtil
 import io.shiftleft.codepropertygraph.generated.EdgeTypes.*
-import io.shiftleft.codepropertygraph.generated.NodeKeyNames.NAME
+import io.shiftleft.codepropertygraph.generated.NodeKeyNames.*
 import io.shiftleft.codepropertygraph.generated.NodeTypes
-import io.shiftleft.codepropertygraph.generated.NodeTypes.FILE
-import io.shiftleft.codepropertygraph.generated.NodeTypes.UNKNOWN
+import io.shiftleft.codepropertygraph.generated.NodeTypes.*
 import io.shiftleft.codepropertygraph.generated.nodes.*
 import org.apache.logging.log4j.LogManager
 import org.apache.logging.log4j.Logger
@@ -33,6 +32,7 @@ open class TypePass(private val driver: IDriver) : IProgramStructurePass {
      *     TYPE_DECL -(AST)-> *MEMBER
      *     TYPE_DECL -(AST)-> *MODIFIER
      *     TYPE_DECL -(REF)-> TYPE
+     *     TYPE_DECL <-(AST)- NAMESPACE_BLOCK
      */
     override fun runPass(cs: List<SootClass>): List<SootClass> {
         cs.forEach { c ->
@@ -41,6 +41,7 @@ open class TypePass(private val driver: IDriver) : IProgramStructurePass {
                 linkModifiers(c, t)
                 linkMembers(c, t)
                 linkSourceFile(c, t)
+                linkNamespaceBlock(c, t)
             }
         }
         return cs
@@ -53,14 +54,15 @@ open class TypePass(private val driver: IDriver) : IProgramStructurePass {
     private fun linkSourceFile(c: SootClass, t: NewTypeDeclBuilder) {
         val fileName = SootToPlumeUtil.sootClassToFileName(c)
         val f = getFile(fileName)
+        logger.debug("Found file $f for type ${c.type.toQuotedString()}")
         driver.addEdge(t, f, SOURCE_FILE)
         driver.addEdge(f, t, CONTAINS)
     }
 
     private fun getFile(fileName: String): NewNodeBuilder {
-        return nodeCache.find { it.build().properties().get(NAME).get() == fileName }
+        return nodeCache.filter { it.build().properties().keySet().contains(NAME) }.find { it.build().properties().get(NAME).get() == fileName }
             ?: driver.getVerticesByProperty(NAME, fileName, FILE).firstOrNull()?.apply { nodeCache.add(this) }
-            ?: nodeCache.find { it.build().properties().get(NAME).get() == UNKNOWN }
+            ?: nodeCache.filter { it.build().properties().keySet().contains(NAME) }.find { it.build().properties().get(NAME).get() == UNKNOWN }
             ?: driver.getVerticesByProperty(NAME, UNKNOWN, FILE).first().apply { nodeCache.add(this) }
     }
 
@@ -128,4 +130,19 @@ open class TypePass(private val driver: IDriver) : IProgramStructurePass {
             .typeFullName(field.type.toQuotedString())
             .order(childIdx)
 
+    /*
+     * TYPE_DECL <-(AST)- NAMESPACE_BLOCK
+     */
+    private fun linkNamespaceBlock(c: SootClass, t: NewTypeDeclBuilder) {
+        val fileName = SootToPlumeUtil.sootClassToFileName(c)
+        val fullName = "$fileName:${c.packageName}"
+        val n = getNamespaceBlock(fullName)
+        driver.addEdge(n, t, AST)
+    }
+
+    private fun getNamespaceBlock(fullName: String): NewNodeBuilder {
+        return nodeCache.filter { it.build().properties().keySet().contains(FULL_NAME) }
+            .find { it.build().properties().get(FULL_NAME).get() == fullName }
+            ?: driver.getVerticesByProperty(FULL_NAME, fullName, NAMESPACE_BLOCK).first().apply { nodeCache.add(this) }
+    }
 }

@@ -110,13 +110,13 @@ class FileAndPackagePass(private val driver: IDriver) : IProgramStructurePass {
 
     private fun createDefaultVertices() {
         if (driver.getVerticesByProperty(NAME, UNKNOWN, FILE).isEmpty()) {
-            val unknownFile = NewFileBuilder().name(UNKNOWN).order(-1).hash(Option.apply(UNKNOWN))
+            val unknownFile = NewFileBuilder().name(UNKNOWN).order(0).hash(Option.apply(UNKNOWN))
             driver.addVertex(unknownFile)
             nodeCache.add(unknownFile)
         }
         if (driver.getVerticesByProperty(NAME, GLOBAL).isEmpty()) {
-            val gNamespace = NewNamespaceBuilder().name(GLOBAL).order(-1)
-            val gNamespaceBlock = NewNamespaceBlockBuilder().name(GLOBAL).fullName(GLOBAL).order(-1).filename("")
+            val gNamespace = NewNamespaceBuilder().name(GLOBAL).order(0)
+            val gNamespaceBlock = NewNamespaceBlockBuilder().name(GLOBAL).fullName(GLOBAL).order(0).filename("")
             driver.addEdge(gNamespaceBlock, gNamespace, REF)
             nodeCache.addAll(listOf(gNamespace, gNamespaceBlock))
         }

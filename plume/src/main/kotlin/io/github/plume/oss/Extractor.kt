@@ -269,6 +269,7 @@ class Extractor(val driver: IDriver) {
         /*
             Build primitive type information
          */
+        logger.debug("All referenced types: ${ts.groupBy { it.javaClass }.mapValues { it.value.size }}}")
         PlumeTimer.measure(ExtractorTimeKey.BASE_CPG_BUILDING) {
             pipeline(
                 GlobalTypePass(driver)::runPass
@@ -301,7 +302,8 @@ class Extractor(val driver: IDriver) {
             Construct the CPGs for methods
          */
         PlumeTimer.measure(ExtractorTimeKey.BASE_CPG_BUILDING) {
-            val allMs: List<SootMethod> = parentToChildCs.flatMap { it.second + it.first }.flatMap { it.methods }.toList()
+            val allMs: List<SootMethod> = (parentToChildCs.flatMap { it.second + it.first }.flatMap { it.methods }
+                + sootUnitGraphs.map { it.body.method }).distinct().toList()
             val existingMs: List<String> = driver.getPropertyFromVertices(FULL_NAME, METHOD)
             // Create method stubs while avoiding duplication
             pipeline(
