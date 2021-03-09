@@ -139,20 +139,20 @@ class BasicIntraproceduralTest {
             assertNotNull(nbv.find { it.name() == "intraprocedural.basic.basic5" })
             assertEquals(5, nbv.toList().size)
         }
-        ns.filterIsInstance<TypeDecl>().let { mrv ->
+        ns.filterIsInstance<TypeDecl>().filter { !it.isExternal() }.let { mrv ->
             assertNotNull(mrv.find { it.fullName() == "intraprocedural.basic.Basic5" })
             assertNotNull(mrv.find { it.fullName() == "intraprocedural.basic.basic5.Basic5" })
             assertNotNull(mrv.find { it.fullName() == "int" })
             assertNotNull(mrv.find { it.fullName() == "byte" })
             assertNotNull(mrv.find { it.fullName() == "java.lang.String[]" })
-            assertEquals(8, mrv.toList().size)
+            assertEquals(6, mrv.toList().size)
         }
-        ns.filterIsInstance<Method>().let { mv ->
+        ns.filterIsInstance<Method>().filter { !it.isExternal() }.let { mv ->
             assertNotNull(mv.find { it.fullName() == "intraprocedural.basic.Basic5.main:void(java.lang.String[])" })
             assertNotNull(mv.find { it.fullName() == "intraprocedural.basic.basic5.Basic5.main:void(java.lang.String[])" })
             assertNotNull(mv.find { it.fullName() == "intraprocedural.basic.Basic5.<init>:void()" })
             assertNotNull(mv.find { it.fullName() == "intraprocedural.basic.basic5.Basic5.<init>:void()" })
-            assertEquals(16, mv.toList().size)
+            assertEquals(4, mv.toList().size)
         }
     }
 }
