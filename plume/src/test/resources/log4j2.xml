@@ -38,7 +38,7 @@
             <AppenderRef ref="plumeFileLogger" level="warn"/>
         </Logger>
         <Logger name="io.github.plume.oss" level="debug" additivity="false">
-            <AppenderRef ref="console"/>
+            <AppenderRef ref="console" level="info"/>
             <AppenderRef ref="plumeFileLogger"/>
         </Logger>
 
