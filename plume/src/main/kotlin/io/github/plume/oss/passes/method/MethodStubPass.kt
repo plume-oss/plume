@@ -1,19 +1,18 @@
 package io.github.plume.oss.passes.method
 
 import io.github.plume.oss.Extractor
+import io.github.plume.oss.domain.mappers.VertexMapper
 import io.github.plume.oss.drivers.IDriver
 import io.github.plume.oss.passes.IMethodPass
 import io.github.plume.oss.util.ExtractorConst
 import io.github.plume.oss.util.SootParserUtil
 import io.github.plume.oss.util.SootToPlumeUtil
-import io.shiftleft.codepropertygraph.generated.EdgeTypes.AST
-import io.shiftleft.codepropertygraph.generated.EdgeTypes.CONTAINS
+import io.shiftleft.codepropertygraph.generated.EdgeTypes.*
 import io.shiftleft.codepropertygraph.generated.NodeKeyNames.FULL_NAME
+import io.shiftleft.codepropertygraph.generated.NodeKeyNames.NAME
+import io.shiftleft.codepropertygraph.generated.NodeTypes.FILE
 import io.shiftleft.codepropertygraph.generated.NodeTypes.TYPE_DECL
-import io.shiftleft.codepropertygraph.generated.nodes.NewBlockBuilder
-import io.shiftleft.codepropertygraph.generated.nodes.NewMethodBuilder
-import io.shiftleft.codepropertygraph.generated.nodes.NewMethodReturnBuilder
-import io.shiftleft.codepropertygraph.generated.nodes.NewModifierBuilder
+import io.shiftleft.codepropertygraph.generated.nodes.*
 import scala.Option
 import soot.SootMethod
 
@@ -22,21 +21,41 @@ import soot.SootMethod
  */
 class MethodStubPass(private val driver: IDriver) : IMethodPass {
 
+    private val nodeCache = mutableSetOf<NewNodeBuilder>()
+
     /**
      * Builds method stubs and connects them to their respective TYPE_DECLs, i.e.
      *
      *     TYPE_DECL -AST-> METHOD
      *     TYPE_DECL -CONTAINS-> CONTAINS
+     *     METHOD -SOURCE_FILE-> FILE
      */
     override fun runPass(ms: List<SootMethod>): List<SootMethod> {
         ms.map { sm -> Pair(sm, buildMethodStub(sm)) }.forEach { p ->
-            driver.getVerticesByProperty(FULL_NAME, p.first.declaringClass.type.toQuotedString(), TYPE_DECL)
-                .firstOrNull()?.let { t ->
-                    driver.addEdge(t, p.second, AST)
-                    driver.addEdge(t, p.second, CONTAINS)
+            val (sm, m) = p
+            val typeFullName = sm.declaringClass.type.toQuotedString()
+            val filename = SootToPlumeUtil.sootClassToFileName(sm.declaringClass)
+            getTypeDecl(typeFullName).let { t ->
+                    driver.addEdge(t, m, AST)
+                    driver.addEdge(t, m, CONTAINS)
                 }
+            getSourceFile(filename).let { f -> driver.addEdge(m, f, SOURCE_FILE) }
         }
         return ms
+    }
+
+    private fun getTypeDecl(typeFullName: String): NewNodeBuilder {
+        return nodeCache.filterIsInstance<NewTypeDeclBuilder>()
+            .find { it.build().properties().get(FULL_NAME).get() == typeFullName }
+            ?: driver.getVerticesByProperty(FULL_NAME, typeFullName, TYPE_DECL)
+                .first().apply { nodeCache.add(this) }
+    }
+
+    private fun getSourceFile(filename: String): NewNodeBuilder {
+        return nodeCache.filterIsInstance<NewFileBuilder>()
+            .find { it.build().properties().get(NAME).get() == filename }
+            ?: driver.getVerticesByProperty(NAME, filename, FILE)
+                .first().apply { nodeCache.add(this) }
     }
 
     private fun buildMethodStub(m: SootMethod): NewMethodBuilder {
@@ -51,7 +70,7 @@ class MethodStubPass(private val driver: IDriver) : IMethodPass {
             .signature(signature)
             .filename(SootToPlumeUtil.sootClassToFileName(m.declaringClass))
             .code(code)
-            .isExternal(m.hasActiveBody())
+            .isExternal(!m.declaringClass.isApplicationClass)
             .lineNumber(Option.apply(currentLine))
             .columnNumber(Option.apply(currentCol))
             .order(childIdx++)

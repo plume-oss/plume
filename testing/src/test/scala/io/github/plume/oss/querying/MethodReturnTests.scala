@@ -12,7 +12,7 @@ class MethodReturnTests extends PlumeCodeToCpgSuite {
       |""".stripMargin
 
   "should have METHOD_RETURN node with correct fields" in {
-    val List(x) = cpg.methodReturn.code("int").l
+    val List(x) = cpg.method.name("foo").methodReturn.typeFullName("int").l
     x.code shouldBe "int"
     x.typeFullName shouldBe "int"
     // I think line 2 would be correct but close enough
@@ -25,7 +25,7 @@ class MethodReturnTests extends PlumeCodeToCpgSuite {
   }
 
   "should allow traversing to method" in {
-    cpg.methodReturn.code("int").method.name.l shouldBe List("foo")
+    cpg.methodReturn.code("int").method.name.l shouldBe List("foo", "hashCode")
   }
 
 }

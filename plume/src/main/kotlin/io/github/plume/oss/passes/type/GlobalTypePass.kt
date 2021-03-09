@@ -37,7 +37,7 @@ class GlobalTypePass(private val driver: IDriver) : ITypePass {
         ts.filterNot { it is RefType }
             .map(::getGlobalTypeDecl)
             .forEach { t ->
-                logger.debug("Building global type $t")
+                logger.debug("Upserting and linking for global type ${t.build().properties()[FULL_NAME]}")
                 driver.addEdge(n, t, AST)
                 driver.addEdge(t, f, SOURCE_FILE)
                 driver.addEdge(f, t, CONTAINS)
