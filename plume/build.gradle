@@ -90,12 +90,12 @@ task allTests(
         type: Test,
         dependsOn: [
                 "test",
+                "extractorTest",
                 "tinkerGraphIntTest",
                 "overflowDbIntTest",
                 "janusGraphIntTest",
-                "tigerGraphIntTest",
                 "neo4jIntTest",
-                "extractorTest",
+                "tigerGraphIntTest",
                 "jacocoTestReport"
         ]
 ) { group = "verification" }
