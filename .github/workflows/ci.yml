@@ -25,8 +25,12 @@ jobs:
         run: chmod +x gradlew
       - name: Compile classes
         run: ./gradlew classes
+
       - name: Run unit tests
         run: ./gradlew test
+      - name: Run extractor tests
+        run: ./gradlew extractorTest
+
       - name: Run scalatest
         run: ./gradlew scalatest
       - name: Run TinkerGaph integration tests
@@ -39,9 +43,6 @@ jobs:
         run: ./gradlew tigerGraphIntTest
       - name: Run Neo4j integration tests
         run: ./gradlew neo4jIntTest
-
-      - name: Run extractor tests
-        run: ./gradlew extractorTest
 
       - name: Compile coverage report
         run: ./gradlew jacocoTestReport
