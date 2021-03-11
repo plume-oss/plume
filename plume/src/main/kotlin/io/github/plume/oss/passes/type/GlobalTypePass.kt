@@ -34,30 +34,28 @@ class GlobalTypePass(private val driver: IDriver) : ITypePass {
      *     TYPE_DECL -(AST)-> *MEMBER ? String[].length ?
      *     TYPE_DECL -(AST)-> *MODIFIER ?
      */
-
-
     override fun runPass(ts: List<Type>): List<Type> {
         val n = driver.getVerticesByProperty(NAME, GLOBAL, NAMESPACE_BLOCK).first()
         val f = driver.getVerticesByProperty(NAME, UNKNOWN, FILE).first()
         // Fill up cache
         nodeCache.addAll(driver.getVerticesByProperty(AST_PARENT_FULL_NAME, GLOBAL, TYPE_DECL))
         ts.filterNot { it is RefType }
-            .map(::getGlobalTypeDecl)
-            .forEach { t ->
-                logger.debug("Upserting and linking for global type ${t.build().properties()[FULL_NAME]}")
-                driver.addEdge(n, t, AST)
-                driver.addEdge(t, f, SOURCE_FILE)
-                driver.addEdge(f, t, CONTAINS)
+            .map{Pair(getGlobalTypeDecl(it), it)}
+            .forEach { (td, st) ->
+                logger.debug("Upserting and linking for global type ${st.toQuotedString()}")
+                driver.addEdge(n, td, AST)
+                driver.addEdge(td, f, SOURCE_FILE)
+                driver.addEdge(f, td, CONTAINS)
+                getGlobalType(st.toQuotedString()).apply {
+                    driver.addEdge(this, td, REF)
+                }
             }
         return ts
     }
-    /*
-     * TYPE -(REF)-> TYPE_DECL
-     */
+
     private fun getGlobalTypeDecl(t: Type): NewNodeBuilder {
-        val shortName = if (t.toQuotedString().contains('.')) t.toQuotedString().substringAfterLast('.')
-        else t.toQuotedString()
         return nodeCache
+            .filterIsInstance<NewTypeDeclBuilder>()
             .find { it.build().properties().get(FULL_NAME).get() == t.toQuotedString() }
             ?: NewTypeDeclBuilder()
                 .name(t.toQuotedString())
@@ -66,15 +64,20 @@ class GlobalTypePass(private val driver: IDriver) : ITypePass {
                 .order(-1)
                 .filename("<unknown>")
                 .astParentType(NAMESPACE_BLOCK)
-                .astParentFullName("<global>").apply {
-                    val type = NewTypeBuilder().name(shortName)
-                        .fullName(t.toQuotedString()).typeDeclFullName(t.toQuotedString())
-                    driver.addEdge(type, this, REF)
-                    nodeCache.add(this)
-                }
+                .astParentFullName("<global>").apply { nodeCache.add(this) }
     }
 
-
-
-
+    private fun getGlobalType(tdFullName: String): NewNodeBuilder {
+        val shortName = if (tdFullName.contains('.')) tdFullName.substringAfterLast('.')
+        else tdFullName
+        return nodeCache
+            .filterIsInstance<NewTypeBuilder>()
+            .find { it.build().properties().get(FULL_NAME).get() == tdFullName }
+            ?: driver.getVerticesByProperty(FULL_NAME, tdFullName, TYPE).firstOrNull()?.apply { nodeCache.add(this) }
+            ?: NewTypeBuilder()
+                .name(shortName)
+                .fullName(tdFullName)
+                .typeDeclFullName(tdFullName)
+                .apply { nodeCache.add(this) }
+    }
 }
