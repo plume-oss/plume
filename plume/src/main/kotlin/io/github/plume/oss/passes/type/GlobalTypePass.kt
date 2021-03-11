@@ -55,8 +55,6 @@ class GlobalTypePass(private val driver: IDriver) : ITypePass {
     }
 
     private fun getGlobalTypeDecl(t: Type): NewNodeBuilder {
-        val shortName = if (t.toQuotedString().contains('.')) t.toQuotedString().substringAfterLast('.')
-        else t.toQuotedString()
         return nodeCache
             .filterIsInstance<NewTypeDeclBuilder>()
             .find { it.build().properties().get(FULL_NAME).get() == t.toQuotedString() }
@@ -73,16 +71,14 @@ class GlobalTypePass(private val driver: IDriver) : ITypePass {
     private fun getGlobalType(tdFullName: String): NewNodeBuilder {
         val shortName = if (tdFullName.contains('.')) tdFullName.substringAfterLast('.')
         else tdFullName
-        return nodeCache.filterIsInstance<NewTypeBuilder>()
+        return nodeCache
+            .filterIsInstance<NewTypeBuilder>()
             .find { it.build().properties().get(FULL_NAME).get() == tdFullName }
+            ?: driver.getVerticesByProperty(FULL_NAME, tdFullName, TYPE).firstOrNull()?.apply { nodeCache.add(this) }
             ?: NewTypeBuilder()
                 .name(shortName)
                 .fullName(tdFullName)
                 .typeDeclFullName(tdFullName)
                 .apply { nodeCache.add(this) }
     }
-
-
-
-
 }
