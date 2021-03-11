@@ -13,7 +13,8 @@ import io.shiftleft.codepropertygraph.generated.nodes.NewTypeBuilder
 import io.shiftleft.codepropertygraph.generated.nodes.NewTypeDeclBuilder
 import org.apache.logging.log4j.LogManager
 import org.apache.logging.log4j.Logger
-import soot.*
+import soot.RefType
+import soot.Type
 
 /**
  * Builds all types which will be considered as global types e.g. int, array types e.g. java.lang.String[].
@@ -33,8 +34,6 @@ class GlobalTypePass(private val driver: IDriver) : ITypePass {
      *     TYPE_DECL -(AST)-> *MEMBER ? String[].length ? (TO-DO:)
      *     TYPE_DECL -(AST)-> *MODIFIER ?
      */
-
-
     override fun runPass(ts: List<Type>): List<Type> {
         val n = driver.getVerticesByProperty(NAME, GLOBAL, NAMESPACE_BLOCK).first()
         val f = driver.getVerticesByProperty(NAME, UNKNOWN, FILE).first()
@@ -63,9 +62,9 @@ class GlobalTypePass(private val driver: IDriver) : ITypePass {
                 .fullName(t.toQuotedString())
                 .isExternal(false)
                 .order(-1)
-                .filename("<unknown>")
+                .filename(UNKNOWN)
                 .astParentType(NAMESPACE_BLOCK)
-                .astParentFullName("<global>").apply { nodeCache.add(this) }
+                .astParentFullName(GLOBAL).apply { nodeCache.add(this) }
     }
 
     private fun getGlobalType(tdFullName: String): NewNodeBuilder {
