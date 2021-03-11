@@ -45,8 +45,7 @@ import io.github.plume.oss.util.ResourceCompilationUtil.COMP_DIR
 import io.github.plume.oss.util.ResourceCompilationUtil.TEMP_DIR
 import io.github.plume.oss.util.SootToPlumeUtil
 import io.shiftleft.codepropertygraph.Cpg
-import io.shiftleft.codepropertygraph.generated.EdgeTypes.REACHING_DEF
-import io.shiftleft.codepropertygraph.generated.NodeKeyNames.FULL_NAME
+import io.shiftleft.codepropertygraph.generated.NodeKeyNames.*
 import io.shiftleft.codepropertygraph.generated.NodeTypes.META_DATA
 import io.shiftleft.codepropertygraph.generated.NodeTypes.METHOD
 import io.shiftleft.codepropertygraph.generated.nodes.*
@@ -209,37 +208,39 @@ class Extractor(val driver: IDriver) {
         return this
     }
 
-    private fun addMetaDataInfo() {
+    private fun upsertMetaData() {
         val maybeMetaData = driver.getMetaData()
         if (maybeMetaData != null) {
             val metaData = maybeMetaData.build()
-            if (metaData.language() != LANGUAGE_FRONTEND || metaData.version() != plumeVersion) {
-                driver.deleteVertex(maybeMetaData.id(), META_DATA)
-                driver.addVertex(NewMetaDataBuilder().language(LANGUAGE_FRONTEND).version(plumeVersion))
-            }
+            if (metaData.language() != LANGUAGE_FRONTEND)
+                driver.updateVertexProperty(maybeMetaData.id(), META_DATA, LANGUAGE, LANGUAGE_FRONTEND)
+            if (metaData.version() != plumeVersion)
+                driver.updateVertexProperty(maybeMetaData.id(), META_DATA, VERSION, plumeVersion)
         } else {
             driver.addVertex(NewMetaDataBuilder().language(LANGUAGE_FRONTEND).version(plumeVersion))
         }
     }
 
     /**
-     * Projects all loaded classes to a base CPG.
+     * Projects all loaded classes to the graph database.
      */
     fun project(): Extractor {
         /*
             Load and compile files then feed them into Soot
          */
+        logger.info("Compiling and loading into Soot")
         val cs = mutableListOf<SootClass>()
         PlumeTimer.measure(ExtractorTimeKey.LOADING_AND_COMPILING) {
             configureSoot()
             val compiledFiles = ResourceCompilationUtil.compileLoadedFiles(loadedFiles)
-            if (compiledFiles.isNotEmpty()) addMetaDataInfo()
+            if (compiledFiles.isNotEmpty()) upsertMetaData()
             loadClassesIntoSoot(compiledFiles).toCollection(cs)
         }
         if (cs.isEmpty()) return this
         /*
             Build program structure and remove sub-graphs which need to be rebuilt
          */
+        logger.info("Building internal program structure and type information")
         val csToBuild = mutableListOf<SootClass>()
         PlumeTimer.measure(ExtractorTimeKey.BASE_CPG_BUILDING) {
             pipeline(
@@ -251,6 +252,7 @@ class Extractor(val driver: IDriver) {
         /*
             Build Soot Unit graphs and extract types
          */
+        logger.info("Building UnitGraphs")
         val sootUnitGraphs = mutableListOf<BriefUnitGraph>()
         PlumeTimer.measure(ExtractorTimeKey.UNIT_GRAPH_BUILDING) {
             constructUnitGraphs(csToBuild).toCollection(sootUnitGraphs)
@@ -269,6 +271,7 @@ class Extractor(val driver: IDriver) {
         /*
             Build primitive type information
          */
+        logger.info("Building primitive type information")
         logger.debug("All referenced types: ${ts.groupBy { it.javaClass }.mapValues { it.value.size }}}")
         PlumeTimer.measure(ExtractorTimeKey.BASE_CPG_BUILDING) {
             pipeline(
@@ -289,6 +292,7 @@ class Extractor(val driver: IDriver) {
         /*
             Build external type and method stubs
          */
+        logger.info("Building external program structure and type information")
         PlumeTimer.measure(ExtractorTimeKey.BASE_CPG_BUILDING) {
             val referencedTypes = ts.filterNot { it is PrimType }
                 .map { if (it is ArrayType) it.baseType else it } + parentToChildCs.map { it.first.type }
@@ -303,9 +307,10 @@ class Extractor(val driver: IDriver) {
          */
         PlumeTimer.measure(ExtractorTimeKey.BASE_CPG_BUILDING) {
             val allMs: List<SootMethod> = (parentToChildCs.flatMap { it.second + it.first }.flatMap { it.methods }
-                + sootUnitGraphs.map { it.body.method }).distinct().toList()
+                    + sootUnitGraphs.map { it.body.method }).distinct().toList()
             val existingMs: List<String> = driver.getPropertyFromVertices(FULL_NAME, METHOD)
             // Create method stubs while avoiding duplication
+            logger.info("Building stubs for all methods")
             pipeline(
                 MethodStubPass(driver)::runPass
             ).invoke(allMs.filterNot { sm ->
@@ -313,6 +318,7 @@ class Extractor(val driver: IDriver) {
                 existingMs.contains(fullName)
             })
             // Create method bodies while avoiding duplication
+            logger.info("Building method bodies for all internal methods")
             pipeline(
                 // Base CPG
                 ASTPass(driver)::runPass,
@@ -325,26 +331,20 @@ class Extractor(val driver: IDriver) {
                 existingMs.contains(fullName)
             })
         }
+        // Clear all Soot resources and cache
         clear()
-        return this
-    }
-
-    /**
-     * Adds additional data calculated from the graph using passes from [io.shiftleft.semanticcpg.passes] and
-     * [io.shiftleft.dataflowengineoss.passes]. This is constructed from the base CPG and requires [Extractor.project]
-     * to be called beforehand.
-     */
-    fun postProject(): Extractor {
+        /*
+            Method body level analysis
+         */
+        logger.info("Running SCPG passes")
         driver.getPropertyFromVertices<String>(FULL_NAME, METHOD).forEach { mName ->
             driver.getMethod(mName).use { g ->
                 PlumeTimer.measure(ExtractorTimeKey.SCPG_PASSES) {
                     // Avoid duplication
-                    if (!g.edges(REACHING_DEF).hasNext()) {
-                        val cpg = Cpg.apply(g)
-                        val methods = g.nodes(METHOD).asSequence().toList()
-                        runParallelPass(methods.filterIsInstance<AstNode>(), ContainsEdgePass(cpg))
-                        runParallelPass(methods.filterIsInstance<Method>(), ReachingDefPass(cpg))
-                    }
+                    val cpg = Cpg.apply(g)
+                    val methods = g.nodes(METHOD).asSequence().toList()
+                    runParallelPass(methods.filterIsInstance<AstNode>(), ContainsEdgePass(cpg))
+                    runParallelPass(methods.filterIsInstance<Method>(), ReachingDefPass(cpg))
                 }
             }
         }
