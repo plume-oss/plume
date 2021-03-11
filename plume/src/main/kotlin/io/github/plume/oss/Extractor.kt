@@ -264,7 +264,8 @@ class Extractor(val driver: IDriver) {
                 .flatten().toSet()
             val locals = sootUnitGraphs.map { it.body.locals + it.body.parameterLocals }
                 .flatten().map { it.type }.toSet()
-            (fieldsAndRets + locals).distinct().toCollection(ts)
+            val returns = sootUnitGraphs.map { it.body.method.returnType }.toSet()
+            (fieldsAndRets + locals + returns).distinct().toCollection(ts)
         }
         /*
             Build primitive type information
