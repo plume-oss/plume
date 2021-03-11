@@ -1,7 +1,6 @@
 package io.github.plume.oss.passes.method
 
-import io.github.plume.oss.Extractor
-import io.github.plume.oss.domain.mappers.VertexMapper
+import io.github.plume.oss.GlobalCache
 import io.github.plume.oss.drivers.IDriver
 import io.github.plume.oss.passes.IMethodPass
 import io.github.plume.oss.util.ExtractorConst
@@ -76,7 +75,7 @@ class MethodStubPass(private val driver: IDriver) : IMethodPass {
             .order(childIdx++)
             .astParentFullName("${m.declaringClass}")
             .astParentType(TYPE_DECL)
-        Extractor.addSootToPlumeAssociation(m, mtdVertex)
+        GlobalCache.addSootAssoc(m, mtdVertex)
         // Store method vertex
         NewBlockBuilder()
             .typeFullName(m.returnType.toQuotedString())
@@ -85,10 +84,10 @@ class MethodStubPass(private val driver: IDriver) : IMethodPass {
             .argumentIndex(0)
             .lineNumber(Option.apply(currentLine))
             .columnNumber(Option.apply(currentCol))
-            .apply { driver.addEdge(mtdVertex, this, AST); Extractor.addSootToPlumeAssociation(m, this) }
+            .apply { driver.addEdge(mtdVertex, this, AST); GlobalCache.addSootAssoc(m, this) }
         // Store return type
         projectMethodReturnVertex(m.returnType, currentLine, currentCol, childIdx++)
-            .apply { driver.addEdge(mtdVertex, this, AST); Extractor.addSootToPlumeAssociation(m, this) }
+            .apply { driver.addEdge(mtdVertex, this, AST); GlobalCache.addSootAssoc(m, this) }
         // Modifier vertices
         SootParserUtil.determineModifiers(m.modifiers, m.name)
             .map { NewModifierBuilder().modifierType(it).order(childIdx++) }

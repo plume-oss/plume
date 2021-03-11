@@ -1,6 +1,6 @@
 package io.github.plume.oss.passes.structure
 
-import io.github.plume.oss.Extractor
+import io.github.plume.oss.GlobalCache
 import io.github.plume.oss.drivers.IDriver
 import io.github.plume.oss.passes.IProgramStructurePass
 import io.github.plume.oss.util.SootParserUtil
@@ -73,7 +73,7 @@ open class TypePass(private val driver: IDriver) : IProgramStructurePass {
         c.fields.forEachIndexed { i, field ->
             projectMember(field, i + 1).let { memberVertex ->
                 driver.addEdge(t, memberVertex, AST)
-                Extractor.addSootToPlumeAssociation(field, memberVertex)
+                GlobalCache.addSootAssoc(field, memberVertex)
             }
         }
     }

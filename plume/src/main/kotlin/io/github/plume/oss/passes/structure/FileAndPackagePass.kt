@@ -1,6 +1,6 @@
 package io.github.plume.oss.passes.structure
 
-import io.github.plume.oss.Extractor
+import io.github.plume.oss.GlobalCache
 import io.github.plume.oss.drivers.IDriver
 import io.github.plume.oss.passes.IProgramStructurePass
 import io.github.plume.oss.util.ExtractorConst.GLOBAL
@@ -101,7 +101,7 @@ class FileAndPackagePass(private val driver: IDriver) : IProgramStructurePass {
 
     private fun buildFile(c: SootClass): NewFileBuilder {
         val fileName = SootToPlumeUtil.sootClassToFileName(c)
-        val fileHash = Extractor.getFileHashPair(c)
+        val fileHash = GlobalCache.getFileHash(c)
         return NewFileBuilder()
             .name(fileName)
             .order(1)
