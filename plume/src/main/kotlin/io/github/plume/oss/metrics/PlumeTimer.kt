@@ -6,16 +6,16 @@ package io.github.plume.oss.metrics
 object PlumeTimer {
 
     private val totalTimes = mutableMapOf(
-        ExtractorTimeKey.LOADING_AND_COMPILING to 0L,
-        ExtractorTimeKey.UNIT_GRAPH_BUILDING to 0L,
+        ExtractorTimeKey.COMPILING_AND_UNPACKING to 0L,
+        ExtractorTimeKey.SOOT to 0L,
         ExtractorTimeKey.DATABASE_WRITE to 0L,
         ExtractorTimeKey.DATABASE_READ to 0L,
         ExtractorTimeKey.SCPG_PASSES to 0L
     )
 
     private val stopwatch = mutableMapOf(
-        ExtractorTimeKey.LOADING_AND_COMPILING to System.nanoTime(),
-        ExtractorTimeKey.UNIT_GRAPH_BUILDING to System.nanoTime(),
+        ExtractorTimeKey.COMPILING_AND_UNPACKING to System.nanoTime(),
+        ExtractorTimeKey.SOOT to System.nanoTime(),
         ExtractorTimeKey.DATABASE_WRITE to System.nanoTime(),
         ExtractorTimeKey.DATABASE_READ to System.nanoTime(),
         ExtractorTimeKey.SCPG_PASSES to System.nanoTime()
@@ -81,11 +81,36 @@ object PlumeTimer {
 }
 
 enum class ExtractorTimeKey {
-    LOADING_AND_COMPILING,
-    UNIT_GRAPH_BUILDING,
+    /**
+     * This is how long it takes to compile .java files or unpack JAR files, and move all .class files to the temporary
+     * build directory. This is wall clock time.
+     */
+    COMPILING_AND_UNPACKING,
+
+    /**
+     * Wall clock time taken by Soot to parse classes, build unit graphs, call graphs, and class hierarchy.
+     */
+    SOOT,
+
+    /**
+     * Wall clock time taken to build AST, CFG, PDG, and call graph onto the database.
+     */
     BASE_CPG_BUILDING,
+
+    /**
+     * CPU time spent on database writes.
+     */
     DATABASE_WRITE,
+
+    /**
+     * CPU time spent on database reads.
+     */
     DATABASE_READ,
+
+    /**
+     * Wall clock time spent running semantic code property graph passes from [io.shiftleft.semanticcpg.passes] and
+     * [io.shiftleft.dataflowengineoss.passes].
+     */
     SCPG_PASSES
 }
 

@@ -90,6 +90,7 @@ task allTests(
         type: Test,
         dependsOn: [
                 "test",
+                ":testing:scalatest",
                 "extractorTest",
                 "tinkerGraphIntTest",
                 "overflowDbIntTest",

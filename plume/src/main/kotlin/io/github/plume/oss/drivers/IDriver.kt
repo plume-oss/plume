@@ -94,6 +94,8 @@ interface IDriver : AutoCloseable {
      *
      * @return The [Graph] containing the type data of the CPG.
      */
+    @Deprecated("Too expensive of a query and should be done in parts with getProgramStructure. " +
+            "Will be removed in 0.4.0")
     fun getProgramTypeData(): Graph
 
     /**

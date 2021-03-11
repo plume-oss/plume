@@ -146,7 +146,7 @@ object ResourceCompilationUtil {
      * @param files [PlumeFile] pointers to source files.
      * @return A set of [PlumeFile] pointers to the compiled class files.
      */
-    fun compileLoadedFiles(files: HashSet<PlumeFile>): HashSet<JVMClassFile> {
+    fun compileLoadedFiles(files: HashSet<PlumeFile>): Set<JVMClassFile> {
         val splitFiles = mapOf<SupportedFile, MutableList<PlumeFile>>(
             SupportedFile.JAVA to mutableListOf(),
             SupportedFile.JVM_CLASS to mutableListOf()
