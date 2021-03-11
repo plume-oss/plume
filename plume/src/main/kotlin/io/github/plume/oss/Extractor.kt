@@ -86,83 +86,6 @@ class Extractor(val driver: IDriver) {
     }
 
     /**
-     * The companion object of this class holds the state of the current extraction
-     */
-    companion object {
-        private val sootToPlume = mutableMapOf<Any, MutableList<NewNodeBuilder>>()
-        private val classToFileHash = mutableMapOf<SootClass, String>()
-        private val savedCallGraphEdges = mutableMapOf<String, MutableList<NewCallBuilder>>()
-
-        /**
-         * Associates the given Soot object to the given [NewNode].
-         *
-         * @param sootObject The object from a Soot [BriefUnitGraph] to associate from.
-         * @param node The [NewNode] to associate to.
-         * @param index The index to place the associated [NewNode] at.
-         */
-        fun addSootToPlumeAssociation(sootObject: Any, node: NewNodeBuilder, index: Int = -1) {
-            if (!sootToPlume.containsKey(sootObject)) sootToPlume[sootObject] = mutableListOf(node)
-            else if (index <= -1) sootToPlume[sootObject]?.add(node)
-            else sootToPlume[sootObject]?.add(index, node)
-        }
-
-        /**
-         * Associates the given Soot object to the given list of [NewNode]s.
-         *
-         * @param sootObject The object from a Soot [BriefUnitGraph] to associate from.
-         * @param nodes The list of [NewNode]s to associate to.
-         * @param index The index to place the associated [PlumeVertex](s) at.
-         */
-        fun addSootToPlumeAssociation(sootObject: Any, nodes: MutableList<NewNodeBuilder>, index: Int = -1) {
-            if (!sootToPlume.containsKey(sootObject)) sootToPlume[sootObject] = nodes
-            else if (index <= -1) sootToPlume[sootObject]?.addAll(nodes)
-            else sootToPlume[sootObject]?.addAll(index, nodes)
-        }
-
-        /**
-         * Retrieves the list of [NewNode] associations to the given Soot object.
-         *
-         * @param sootObject The object from a Soot [BriefUnitGraph] to get associations from.
-         */
-        fun getSootAssociation(sootObject: Any): List<NewNodeBuilder>? = sootToPlume[sootObject]
-
-        /**
-         * Associates the given [SootClass] with its source file's hash.
-         *
-         * @param cls The [SootClass] to associate.
-         * @param hash The hash for the file's contents.
-         */
-        fun putNewFileHashPair(cls: SootClass, hash: String) {
-            classToFileHash[cls] = hash
-        }
-
-        /**
-         * Retrieves the original file's hash from the given [SootClass].
-         *
-         * @param cls The representative [SootClass].
-         */
-        fun getFileHashPair(cls: SootClass) = classToFileHash[cls]
-
-        /**
-         * Saves call graph edges to the [NewMethod] from the [NewCall].
-         *
-         * @param fullName The method full name.
-         * @param call The source [NewCall].
-         */
-        fun saveCallGraphEdge(fullName: String, call: NewCallBuilder) {
-            if (!savedCallGraphEdges.containsKey(fullName)) savedCallGraphEdges[fullName] = mutableListOf(call)
-            else savedCallGraphEdges[fullName]?.add(call)
-        }
-
-        /**
-         * Retrieves all the incoming [NewCall]s from the given [NewMethod].
-         *
-         * @param fullName The method full name.
-         */
-        fun getIncomingCallGraphEdges(fullName: String) = savedCallGraphEdges[fullName]
-    }
-
-    /**
      * Make sure that all drivers that require a connection are connected.
      *
      * @param driver The driver to check the connection of.
@@ -438,7 +361,7 @@ class Extractor(val driver: IDriver) {
             .map { clsPair: Pair<File, SootClass> ->
                 val f = clsPair.first
                 val c = clsPair.second
-                c.setApplicationClass(); putNewFileHashPair(c, f.hashCode().toString())
+                c.setApplicationClass(); GlobalCache.putFileHash(c, f.hashCode().toString())
                 c
             }
         when (ExtractorOptions.callGraphAlg) {
@@ -450,16 +373,13 @@ class Extractor(val driver: IDriver) {
     }
 
     /**
-     * Clears resources of file and graph pointers.
+     * Clears resources of files and caches.
      */
     private fun clear() {
         loadedFiles.clear()
-        classToFileHash.clear()
-        sootToPlume.clear()
-        savedCallGraphEdges.clear()
+        GlobalCache.clear()
         File(COMP_DIR).deleteRecursively()
         G.reset()
-        G.v().resetSpark()
     }
 
 }

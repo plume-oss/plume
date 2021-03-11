@@ -15,7 +15,7 @@
  */
 package io.github.plume.oss.util
 
-import io.github.plume.oss.Extractor.Companion.addSootToPlumeAssociation
+import io.github.plume.oss.GlobalCache
 import io.github.plume.oss.domain.mappers.VertexMapper.mapToVertex
 import io.github.plume.oss.drivers.IDriver
 import io.github.plume.oss.util.SootParserUtil.determineEvaluationStrategy
@@ -80,15 +80,18 @@ object SootToPlumeUtil {
         return Triple(fullName, signature, code)
     }
 
-    fun createNewExpr(expr: NewExpr, currentLine: Int, currentCol: Int, childIdx: Int): NewTypeRefBuilder {
-        return NewTypeRefBuilder()
+    /**
+     * New expressions are specific to OOP languages and are thus Unknown nodes.
+     */
+    fun createNewExpr(expr: NewExpr, currentLine: Int, currentCol: Int, childIdx: Int): NewUnknownBuilder {
+        return NewUnknownBuilder()
             .typeFullName(expr.baseType.toQuotedString())
             .code(expr.toString())
             .argumentIndex(childIdx)
             .order(childIdx)
             .lineNumber(Option.apply(currentLine))
             .columnNumber(Option.apply(currentCol))
-            .apply { addSootToPlumeAssociation(expr, this) }
+            .apply { GlobalCache.addSootAssoc(expr, this) }
     }
 
     /**

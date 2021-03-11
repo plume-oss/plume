@@ -15,7 +15,7 @@
  */
 package io.github.plume.oss.passes.graph
 
-import io.github.plume.oss.Extractor.Companion.getSootAssociation
+import io.github.plume.oss.GlobalCache
 import io.github.plume.oss.drivers.IDriver
 import io.github.plume.oss.passes.IUnitGraphPass
 import io.github.plume.oss.util.ExtractorConst.FALSE_TARGET
@@ -48,8 +48,8 @@ class CFGPass(private val driver: IDriver) : IUnitGraphPass {
             var startingUnit = head
             while (startingUnit is IdentityStmt) startingUnit = g.getSuccsOf(startingUnit).firstOrNull() ?: break
             startingUnit?.let {
-                getSootAssociation(it)?.firstOrNull()?.let { succVert ->
-                    val mtdV = getSootAssociation(mtd)
+                GlobalCache.getSootAssoc(it)?.firstOrNull()?.let { succVert ->
+                    val mtdV = GlobalCache.getSootAssoc(mtd)
                     val bodyVertex = mtdV?.first { mtdVertices -> mtdVertices is NewBlockBuilder }!!
                     mtdV.firstOrNull()?.let { mtdVertex -> driver.addEdge(mtdVertex, bodyVertex, CFG) }
                     runCatching {
@@ -75,11 +75,11 @@ class CFGPass(private val driver: IDriver) : IUnitGraphPass {
             is IdentityRef -> Unit
             else -> {
                 val sourceUnit = if (unit is GotoStmt) unit.target else unit
-                val sourceVertex = getSootAssociation(sourceUnit)?.firstOrNull()
+                val sourceVertex = GlobalCache.getSootAssoc(sourceUnit)?.firstOrNull()
                 graph.getSuccsOf(sourceUnit).forEach {
                     val targetUnit = if (it is GotoStmt) it.target else it
                     if (sourceVertex != null) {
-                        getSootAssociation(targetUnit)?.let { vList ->
+                        GlobalCache.getSootAssoc(targetUnit)?.let { vList ->
                             runCatching {
                                 driver.addEdge(sourceVertex, vList.first(), CFG)
                             }.onFailure { e -> logger.warn(e.message) }
@@ -91,7 +91,7 @@ class CFGPass(private val driver: IDriver) : IUnitGraphPass {
     }
 
     private fun projectTableSwitch(unit: TableSwitchStmt) {
-        val switchVertices = getSootAssociation(unit)!!
+        val switchVertices = GlobalCache.getSootAssoc(unit)!!
         val switchVertex = switchVertices.first { it is NewControlStructureBuilder } as NewControlStructureBuilder
         // Handle default target jump
         projectSwitchDefault(unit, switchVertices, switchVertex)
@@ -102,7 +102,7 @@ class CFGPass(private val driver: IDriver) : IUnitGraphPass {
     }
 
     private fun projectLookupSwitch(unit: LookupSwitchStmt) {
-        val lookupVertices = getSootAssociation(unit)!!
+        val lookupVertices = GlobalCache.getSootAssoc(unit)!!
         val lookupVertex = lookupVertices.first { it is NewControlStructureBuilder } as NewControlStructureBuilder
         // Handle default target jump
         projectSwitchDefault(unit, lookupVertices, lookupVertex)
@@ -143,7 +143,7 @@ class CFGPass(private val driver: IDriver) : IUnitGraphPass {
         runCatching {
             driver.addEdge(lookupVertex, tgtV, CFG)
         }.onFailure { e -> logger.warn(e.message) }
-        getSootAssociation(tgt)?.let { vList ->
+        GlobalCache.getSootAssoc(tgt)?.let { vList ->
             runCatching {
                 driver.addEdge(tgtV, vList.first(), CFG)
             }.onFailure { e -> logger.warn(e.message) }
@@ -151,15 +151,15 @@ class CFGPass(private val driver: IDriver) : IUnitGraphPass {
     }
 
     private fun projectIfStatement(unit: IfStmt) {
-        val ifVertices = getSootAssociation(unit)!!
+        val ifVertices = GlobalCache.getSootAssoc(unit)!!
         graph.getSuccsOf(unit).forEach {
             val srcVertex = if (it == unit.target) {
                 ifVertices.first { vert -> vert is NewJumpTargetBuilder && vert.build().name() == FALSE_TARGET }
             } else {
                 ifVertices.first { vert -> vert is NewJumpTargetBuilder && vert.build().name() == TRUE_TARGET }
             }
-            val tgtVertices = if (it is GotoStmt) getSootAssociation(it.target)
-            else getSootAssociation(it)
+            val tgtVertices = if (it is GotoStmt) GlobalCache.getSootAssoc(it.target)
+            else GlobalCache.getSootAssoc(it)
             tgtVertices?.let { vList ->
                 runCatching {
                     driver.addEdge(ifVertices.first(), srcVertex, CFG)
@@ -172,8 +172,8 @@ class CFGPass(private val driver: IDriver) : IUnitGraphPass {
     }
 
     private fun projectReturnEdge(unit: Stmt) {
-        getSootAssociation(unit)?.firstOrNull()?.let { src ->
-            getSootAssociation(graph.body.method)?.filterIsInstance<NewMethodReturnBuilder>()?.firstOrNull()
+        GlobalCache.getSootAssoc(unit)?.firstOrNull()?.let { src ->
+            GlobalCache.getSootAssoc(graph.body.method)?.filterIsInstance<NewMethodReturnBuilder>()?.firstOrNull()
                 ?.let { tgt ->
                     runCatching {
                         driver.addEdge(src, tgt, CFG)
