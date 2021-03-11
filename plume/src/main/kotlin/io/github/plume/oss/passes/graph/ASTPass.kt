@@ -15,8 +15,7 @@
  */
 package io.github.plume.oss.passes.graph
 
-import io.github.plume.oss.Extractor.Companion.addSootToPlumeAssociation
-import io.github.plume.oss.Extractor.Companion.getSootAssociation
+import io.github.plume.oss.GlobalCache
 import io.github.plume.oss.drivers.IDriver
 import io.github.plume.oss.passes.IUnitGraphPass
 import io.github.plume.oss.util.ExtractorConst.FALSE_TARGET
@@ -59,9 +58,9 @@ class ASTPass(private val driver: IDriver) : IUnitGraphPass {
         this.graph = g
         logger.debug("Building AST for ${mtd.declaration}")
         // Connect and create parameters and locals
-        getSootAssociation(mtd)?.let { mtdVs ->
+        GlobalCache.getSootAssoc(mtd)?.let { mtdVs ->
             mtdVs.filterIsInstance<NewMethodBuilder>().firstOrNull()?.let { mtdVert ->
-                addSootToPlumeAssociation(mtd, buildLocals(g, mtdVert))
+                GlobalCache.addSootAssoc(mtd, buildLocals(g, mtdVert))
             }
         }
         // Build body
@@ -71,7 +70,7 @@ class ASTPass(private val driver: IDriver) : IUnitGraphPass {
                     ?.let {
                         runCatching {
                             driver.addEdge(
-                                src = getSootAssociation(mtd)!!.first { v -> v is NewBlockBuilder },
+                                src = GlobalCache.getSootAssoc(mtd)!!.first { v -> v is NewBlockBuilder },
                                 tgt = it,
                                 edge = AST
                             )
@@ -89,7 +88,7 @@ class ASTPass(private val driver: IDriver) : IUnitGraphPass {
         graph.body.parameterLocals
             .mapIndexed { i, local ->
                 SootToPlumeUtil.projectMethodParameterIn(local, currentLine, currentCol, i + 1)
-                    .apply { addSootToPlumeAssociation(local, this) }
+                    .apply { GlobalCache.addSootAssoc(local, this) }
             }
             .forEach {
                 runCatching {
@@ -100,7 +99,7 @@ class ASTPass(private val driver: IDriver) : IUnitGraphPass {
             .filter { !graph.body.parameterLocals.contains(it) }
             .mapIndexed { i, local ->
                 SootToPlumeUtil.projectLocalVariable(local, currentLine, currentCol, i)
-                    .apply { addSootToPlumeAssociation(local, this) }
+                    .apply { GlobalCache.addSootAssoc(local, this) }
             }
             .forEach {
                 runCatching {
@@ -132,7 +131,7 @@ class ASTPass(private val driver: IDriver) : IUnitGraphPass {
                 logger.debug("Unhandled class in projectUnit ${unit.javaClass} $unit"); null
             }
         }
-        return unitVertex?.apply { if (this !is InvokeStmt) addSootToPlumeAssociation(unit, this, 0) }
+        return unitVertex?.apply { if (this !is InvokeStmt) GlobalCache.addSootAssoc(unit, this, 0) }
     }
 
     /**
@@ -168,15 +167,15 @@ class ASTPass(private val driver: IDriver) : IUnitGraphPass {
                     driver.addEdge(callVertex, expressionVertex, AST)
                 }.onFailure { e -> logger.warn(e.message) }
                 callVertices.add(expressionVertex)
-                addSootToPlumeAssociation(arg, expressionVertex)
+                GlobalCache.addSootAssoc(arg, expressionVertex)
             }
         }
         // Save PDG arguments
-        addSootToPlumeAssociation(unit, callVertices)
+        GlobalCache.addSootAssoc(unit, callVertices)
         // Create the receiver for the call
         unit.useBoxes.filterIsInstance<JimpleLocalBox>().firstOrNull()?.let {
             SootToPlumeUtil.createIdentifierVertex(it.value, currentLine, currentCol, unit.useBoxes.indexOf(it)).apply {
-                addSootToPlumeAssociation(it.value, this)
+                GlobalCache.addSootAssoc(it.value, this)
                 runCatching {
                     driver.addEdge(callVertex, this, RECEIVER)
                 }.onFailure { e -> logger.warn(e.message, e) }
@@ -216,7 +215,7 @@ class ASTPass(private val driver: IDriver) : IUnitGraphPass {
                 runCatching {
                     driver.addEdge(switchVertex, tgtV, AST)
                 }.onFailure { e -> logger.warn(e.message) }
-                addSootToPlumeAssociation(unit, tgtV)
+                GlobalCache.addSootAssoc(unit, tgtV)
             }
         }
         return switchVertex
@@ -252,7 +251,7 @@ class ASTPass(private val driver: IDriver) : IUnitGraphPass {
                 runCatching {
                     driver.addEdge(switchVertex, tgtV, AST)
                 }.onFailure { e -> logger.warn(e.message) }
-                addSootToPlumeAssociation(unit, tgtV)
+                GlobalCache.addSootAssoc(unit, tgtV)
             }
         }
         return switchVertex
@@ -279,7 +278,7 @@ class ASTPass(private val driver: IDriver) : IUnitGraphPass {
             runCatching {
                 driver.addEdge(switchVertex, tgtV, AST)
             }.onFailure { e -> logger.warn(e.message) }
-            addSootToPlumeAssociation(unit, tgtV)
+            GlobalCache.addSootAssoc(unit, tgtV)
         }
     }
 
@@ -312,7 +311,7 @@ class ASTPass(private val driver: IDriver) : IUnitGraphPass {
             runCatching {
                 driver.addEdge(ifRootVertex, condBody, AST)
             }.onFailure { e -> logger.warn(e.message) }
-            addSootToPlumeAssociation(unit, condBody)
+            GlobalCache.addSootAssoc(unit, condBody)
         }
         return ifRootVertex
     }
@@ -337,7 +336,7 @@ class ASTPass(private val driver: IDriver) : IUnitGraphPass {
         runCatching {
             driver.addEdge(ifRootVertex, conditionExpr, CONDITION)
         }.onFailure { e -> logger.warn(e.message) }
-        addSootToPlumeAssociation(unit, conditionExpr)
+        GlobalCache.addSootAssoc(unit, conditionExpr)
         return ifRootVertex
     }
 
@@ -365,15 +364,15 @@ class ASTPass(private val driver: IDriver) : IUnitGraphPass {
             .columnNumber(Option.apply(unit.javaSourceStartColumnNumber))
         when (leftOp) {
             is Local -> SootToPlumeUtil.createIdentifierVertex(leftOp, currentLine, currentCol, 0).apply {
-                addSootToPlumeAssociation(leftOp, this)
+                GlobalCache.addSootAssoc(leftOp, this)
             }
             is FieldRef -> SootToPlumeUtil.createFieldIdentifierVertex(leftOp, currentLine, currentCol, 0)
                 .apply {
-                    addSootToPlumeAssociation(leftOp.field, this)
+                    GlobalCache.addSootAssoc(leftOp.field, this)
                 }
             is ArrayRef -> SootToPlumeUtil.createArrayRefIdentifier(leftOp, currentLine, currentCol, 0)
                 .apply {
-                    addSootToPlumeAssociation(leftOp.base, this)
+                    GlobalCache.addSootAssoc(leftOp.base, this)
                 }
             else -> {
                 logger.debug(
@@ -387,17 +386,17 @@ class ASTPass(private val driver: IDriver) : IUnitGraphPass {
                 driver.addEdge(assignBlock, it, AST)
             }.onFailure { e -> logger.warn(e.message) }
             assignVariables.add(it)
-            addSootToPlumeAssociation(leftOp, it)
+            GlobalCache.addSootAssoc(leftOp, it)
         }
         projectOp(rightOp, 1)?.let {
             runCatching {
                 driver.addEdge(assignBlock, it, AST)
             }.onFailure { e -> logger.warn(e.message) }
             assignVariables.add(it)
-            addSootToPlumeAssociation(rightOp, it)
+            GlobalCache.addSootAssoc(rightOp, it)
         }
         // Save PDG arguments
-        addSootToPlumeAssociation(unit, assignVariables)
+        GlobalCache.addSootAssoc(unit, assignVariables)
         return assignBlock
     }
 
@@ -429,17 +428,17 @@ class ASTPass(private val driver: IDriver) : IUnitGraphPass {
                 driver.addEdge(binOpBlock, it, AST)
             }.onFailure { e -> logger.warn(e.message) }
             binopVertices.add(it)
-            addSootToPlumeAssociation(expr.op1, it)
+            GlobalCache.addSootAssoc(expr.op1, it)
         }
         projectOp(expr.op2, 1)?.let {
             runCatching {
                 driver.addEdge(binOpBlock, it, AST)
             }.onFailure { e -> logger.warn(e.message) }
             binopVertices.add(it)
-            addSootToPlumeAssociation(expr.op2, it)
+            GlobalCache.addSootAssoc(expr.op2, it)
         }
         // Save PDG arguments
-        addSootToPlumeAssociation(expr, binopVertices)
+        GlobalCache.addSootAssoc(expr, binopVertices)
         return binOpBlock
     }
 
@@ -464,16 +463,16 @@ class ASTPass(private val driver: IDriver) : IUnitGraphPass {
                 driver.addEdge(binOpBlock, it, AST)
             }.onFailure { e -> logger.warn(e.message) }
             conditionVertices.add(it)
-            addSootToPlumeAssociation(expr.op1, it)
+            GlobalCache.addSootAssoc(expr.op1, it)
         }
         projectOp(expr.op2, 2)?.let {
             runCatching {
                 driver.addEdge(binOpBlock, it, AST)
             }.onFailure { e -> logger.warn(e.message) }
             conditionVertices.add(it)
-            addSootToPlumeAssociation(expr.op2, it)
+            GlobalCache.addSootAssoc(expr.op2, it)
         }
-        addSootToPlumeAssociation(expr, conditionVertices)
+        GlobalCache.addSootAssoc(expr, conditionVertices)
         return binOpBlock
     }
 
@@ -498,7 +497,7 @@ class ASTPass(private val driver: IDriver) : IUnitGraphPass {
             }.onFailure { e -> logger.warn(e.message) }
         }
         // Save PDG arguments
-        addSootToPlumeAssociation(expr, castVertices)
+        GlobalCache.addSootAssoc(expr, castVertices)
         return castBlock
     }
 
@@ -537,7 +536,7 @@ class ASTPass(private val driver: IDriver) : IUnitGraphPass {
             .code(expr.toString())
             .lineNumber(Option.apply(currentLine))
             .columnNumber(Option.apply(currentCol))
-            .apply { addSootToPlumeAssociation(expr, this) }
+            .apply { GlobalCache.addSootAssoc(expr, this) }
 
 
     private fun projectReturnVertex(ret: ReturnStmt, childIdx: Int): NewReturnBuilder {
@@ -550,7 +549,7 @@ class ASTPass(private val driver: IDriver) : IUnitGraphPass {
         projectOp(ret.op, childIdx + 1)?.let { driver.addEdge(retV, it, AST) }
         runCatching {
             driver.addEdge(
-                getSootAssociation(graph.body.method)?.first { it is NewBlockBuilder }!!,
+                GlobalCache.getSootAssoc(graph.body.method)?.first { it is NewBlockBuilder }!!,
                 retV,
                 AST
             )
@@ -567,7 +566,7 @@ class ASTPass(private val driver: IDriver) : IUnitGraphPass {
             .order(childIdx)
         runCatching {
             driver.addEdge(
-                getSootAssociation(graph.body.method)?.first { it is NewBlockBuilder }!!,
+                GlobalCache.getSootAssoc(graph.body.method)?.first { it is NewBlockBuilder }!!,
                 retV,
                 AST
             )

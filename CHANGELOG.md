@@ -4,6 +4,15 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](http://keepachangelog.com/)
 and this project adheres to [Semantic Versioning](http://semver.org/).
 
+## [0.3.2] - XXXX-XX-XX
+
+### Added
+- Types for global primitives
+- Return types are now added to all types built in the CPG
+
+### Changed
+- Moved the maps in `Extractor` to a dedicated `GlobalCache` object that uses `ConcurrentHashMap`s.
+
 ## [0.3.1] - 2021-03-11
 
 ### Added

@@ -15,8 +15,7 @@
  */
 package io.github.plume.oss.passes.graph
 
-import io.github.plume.oss.Extractor
-import io.github.plume.oss.Extractor.Companion.getSootAssociation
+import io.github.plume.oss.GlobalCache
 import io.github.plume.oss.drivers.IDriver
 import io.github.plume.oss.options.ExtractorOptions
 import io.github.plume.oss.passes.IUnitGraphPass
@@ -52,7 +51,7 @@ class CGPass(private val driver: IDriver) : IUnitGraphPass {
         logger.debug("Building call graph edges for ${mtd.declaration}")
         this.graph = g
         // If this was an updated method, connect call graphs
-        getSootAssociation(mtd)?.filterIsInstance<NewMethodBuilder>()?.first()?.let { reconnectPriorCallGraphEdges(it) }
+        GlobalCache.getSootAssoc(mtd)?.filterIsInstance<NewMethodBuilder>()?.first()?.let { reconnectPriorCallGraphEdges(it) }
         // Connect all units to their successors
         this.graph.body.units.filterNot { it is IdentityStmt }.forEach(this::projectUnit)
         return g
@@ -66,11 +65,11 @@ class CGPass(private val driver: IDriver) : IUnitGraphPass {
             // If Soot points to the assignment as the call source then this is most likely from the rightOp. Let's
             // hope this is not the source of a bug
             val srcUnit = if (unit is AssignStmt) unit.rightOp else unit
-            getSootAssociation(srcUnit)
+            GlobalCache.getSootAssoc(srcUnit)
                 ?.filterIsInstance<NewCallBuilder>()
                 ?.firstOrNull()
                 ?.let { srcPlumeVertex ->
-                    getSootAssociation(e.tgt.method())
+                    GlobalCache.getSootAssoc(e.tgt.method())
                         ?.firstOrNull()?.let { tgtPlumeVertex ->
                             runCatching {
                                 driver.addEdge(srcPlumeVertex, tgtPlumeVertex, CALL)
@@ -81,8 +80,8 @@ class CGPass(private val driver: IDriver) : IUnitGraphPass {
         // If call graph analysis fails because there is no main method, we will need to figure out call edges ourselves
         // We can do this by looking if our call unit does not have any outgoing CALL edges.
         when (unit) {
-            is AssignStmt -> getSootAssociation(unit.rightOp)?.filterIsInstance<NewCallBuilder>()?.firstOrNull()
-            is InvokeStmt -> getSootAssociation(unit.invokeExpr)?.filterIsInstance<NewCallBuilder>()?.firstOrNull()
+            is AssignStmt -> GlobalCache.getSootAssoc(unit.rightOp)?.filterIsInstance<NewCallBuilder>()?.firstOrNull()
+            is InvokeStmt -> GlobalCache.getSootAssoc(unit.invokeExpr)?.filterIsInstance<NewCallBuilder>()?.firstOrNull()
             else -> null
         }?.let { callV ->
             driver.getNeighbours(callV).use { g ->
@@ -103,7 +102,7 @@ class CGPass(private val driver: IDriver) : IUnitGraphPass {
 
     private fun reconnectPriorCallGraphEdges(mtdV: NewMethodBuilder) {
         val mtd = mtdV.build()
-        Extractor.getIncomingCallGraphEdges(mtd.fullName())?.let { incomingVs ->
+        GlobalCache.getCallEdgeIn(mtd.fullName())?.let { incomingVs ->
             if (incomingVs.isNotEmpty()) {
                 logger.debug("Saved call graph edges found - reconnecting incoming call graph edges")
                 incomingVs.forEach { inV ->

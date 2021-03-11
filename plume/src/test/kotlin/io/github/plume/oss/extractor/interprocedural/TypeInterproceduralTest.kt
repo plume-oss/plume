@@ -51,6 +51,7 @@ class TypeInterproceduralTest {
 
     @Test
     fun type1Test() {
+        driver.exportGraph("/tmp/plume/huh.xml")
         val ns = g.nodes().asSequence().toList()
         ns.filterIsInstance<Local>().let { localList ->
             assertNotNull(localList.firstOrNull { it.name() == "intList" && it.typeFullName() == "java.util.LinkedList" })
@@ -62,8 +63,8 @@ class TypeInterproceduralTest {
             assertNotNull(callList.firstOrNull { it.methodFullName() == "java.util.LinkedList.<init>:void()" })
             assertNotNull(callList.firstOrNull { it.methodFullName() == "java.lang.Object.<init>:void()" })
         }
-        ns.filterIsInstance<TypeRef>().filter { it.typeFullName() == "java.util.LinkedList" }
-            .let { typeRefs -> assertEquals(2, typeRefs.toList().size) }
+        ns.filterIsInstance<TypeDecl>().filter { it.fullName() == "java.util.LinkedList" }
+            .let { typeRefs -> assertEquals(1, typeRefs.toList().size) }
     }
 
     @Test

@@ -15,7 +15,7 @@
  */
 package io.github.plume.oss.passes.graph
 
-import io.github.plume.oss.Extractor.Companion.getSootAssociation
+import io.github.plume.oss.GlobalCache
 import io.github.plume.oss.drivers.IDriver
 import io.github.plume.oss.passes.IUnitGraphPass
 import io.shiftleft.codepropertygraph.generated.EdgeTypes.ARGUMENT
@@ -62,8 +62,8 @@ class PDGPass(private val driver: IDriver) : IUnitGraphPass {
     }
 
     private fun projectCallArg(value: Any) {
-        getSootAssociation(value)?.firstOrNull { it is NewCallBuilder }?.let { src ->
-            getSootAssociation(value)?.filterNot { it == src || it is NewArrayInitializerBuilder }?.forEach { tgt ->
+        GlobalCache.getSootAssoc(value)?.firstOrNull { it is NewCallBuilder }?.let { src ->
+            GlobalCache.getSootAssoc(value)?.filterNot { it == src || it is NewArrayInitializerBuilder }?.forEach { tgt ->
                 runCatching {
                     driver.addEdge(src, tgt, ARGUMENT)
                 }.onFailure { e -> logger.warn(e.message) }
@@ -72,7 +72,7 @@ class PDGPass(private val driver: IDriver) : IUnitGraphPass {
     }
 
     private fun projectLocalVariable(local: Local) {
-        getSootAssociation(local)?.let { assocVertices ->
+        GlobalCache.getSootAssoc(local)?.let { assocVertices ->
             assocVertices.filterIsInstance<NewIdentifierBuilder>().forEach { identifierV ->
                 assocVertices.firstOrNull { it is NewLocalBuilder || it is NewMethodParameterInBuilder }?.let { src ->
                     runCatching {
