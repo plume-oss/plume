@@ -185,7 +185,7 @@ class Extractor(val driver: IDriver) {
      */
     @Throws(PlumeCompileException::class, NullPointerException::class, IOException::class)
     fun load(f: File): Extractor {
-        PlumeTimer.startTimerOn(ExtractorTimeKey.LOADING_AND_COMPILING)
+        PlumeTimer.startTimerOn(ExtractorTimeKey.COMPILING_AND_UNPACKING)
         File(COMP_DIR).let { c -> if (!c.exists()) c.mkdirs() }
         if (!f.exists()) {
             throw NullPointerException("File '${f.name}' does not exist!")
@@ -204,7 +204,7 @@ class Extractor(val driver: IDriver) {
                 loadedFiles.add(FileFactory(f))
             }
         }
-        PlumeTimer.stopTimerOn(ExtractorTimeKey.LOADING_AND_COMPILING)
+        PlumeTimer.stopTimerOn(ExtractorTimeKey.COMPILING_AND_UNPACKING)
         return this
     }
 
@@ -228,15 +228,20 @@ class Extractor(val driver: IDriver) {
         /*
             Load and compile files then feed them into Soot
          */
-        logger.info("Compiling and loading into Soot")
+        logger.info("Compiling and unpacking loaded files, directories, and/or JARs")
         val cs = mutableListOf<SootClass>()
-        PlumeTimer.measure(ExtractorTimeKey.LOADING_AND_COMPILING) {
-            configureSoot()
-            val compiledFiles = ResourceCompilationUtil.compileLoadedFiles(loadedFiles)
+        val compiledFiles = mutableSetOf<JVMClassFile>()
+        PlumeTimer.measure(ExtractorTimeKey.COMPILING_AND_UNPACKING) {
+            ResourceCompilationUtil.compileLoadedFiles(loadedFiles).toCollection(compiledFiles)
             if (compiledFiles.isNotEmpty()) upsertMetaData()
+        }
+        if (compiledFiles.isEmpty()) return this
+        logger.info("Loading all classes into Soot")
+        PlumeTimer.measure(ExtractorTimeKey.SOOT) {
+            configureSoot()
             loadClassesIntoSoot(compiledFiles).toCollection(cs)
         }
-        if (cs.isEmpty()) return this
+        compiledFiles.clear() // Done using compiledFiles
         /*
             Build program structure and remove sub-graphs which need to be rebuilt
          */
@@ -249,14 +254,13 @@ class Extractor(val driver: IDriver) {
                 TypePass(driver)::runPass,
             ).invoke(cs).toCollection(csToBuild)
         }
+        cs.clear() // Done using cs
         /*
             Build Soot Unit graphs and extract types
          */
         logger.info("Building UnitGraphs")
         val sootUnitGraphs = mutableListOf<BriefUnitGraph>()
-        PlumeTimer.measure(ExtractorTimeKey.UNIT_GRAPH_BUILDING) {
-            constructUnitGraphs(csToBuild).toCollection(sootUnitGraphs)
-        }
+        PlumeTimer.measure(ExtractorTimeKey.SOOT) { constructUnitGraphs(csToBuild).toCollection(sootUnitGraphs) }
         /*
             Obtain all referenced types from fields, returns, and locals
          */
@@ -281,8 +285,9 @@ class Extractor(val driver: IDriver) {
         /*
             TODO: Handle inheritance
         */
+        logger.info("Obtaining class hierarchy")
         val parentToChildCs: MutableList<Pair<SootClass, Set<SootClass>>> = mutableListOf()
-        PlumeTimer.measure(ExtractorTimeKey.BASE_CPG_BUILDING) {
+        PlumeTimer.measure(ExtractorTimeKey.SOOT) {
             val fh = FastHierarchy()
             Scene.v().classes.asSequence()
                 .map { Pair(it, fh.getSubclassesOf(it)) }
@@ -302,6 +307,7 @@ class Extractor(val driver: IDriver) {
                 ExternalTypePass(driver)::runPass,
             ).invoke(filteredExtTypes.map { it.sootClass })
         }
+        csToBuild.clear() // Done using csToBuild
         /*
             Construct the CPGs for methods
          */
@@ -334,7 +340,7 @@ class Extractor(val driver: IDriver) {
         // Clear all Soot resources and cache
         clear()
         /*
-            Method body level analysis
+            Method body level analysis. This runs over all in-case dataflow information changes on update.
          */
         logger.info("Running SCPG passes")
         driver.getPropertyFromVertices<String>(FULL_NAME, METHOD).forEach { mName ->
@@ -421,7 +427,7 @@ class Extractor(val driver: IDriver) {
      * @param classNames A set of class files.
      * @return the given class files as a list of [SootClass].
      */
-    private fun loadClassesIntoSoot(classNames: HashSet<JVMClassFile>): List<SootClass> {
+    private fun loadClassesIntoSoot(classNames: Set<JVMClassFile>): List<SootClass> {
         if (classNames.isEmpty()) return emptyList()
         classNames.map(this::getQualifiedClassPath).forEach(Scene.v()::addBasicClass)
         Scene.v().loadBasicClasses()

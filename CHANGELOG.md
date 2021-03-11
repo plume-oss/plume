@@ -7,11 +7,13 @@ and this project adheres to [Semantic Versioning](http://semver.org/).
 ## [0.3.1] - XXXX-XX-XX
 
 ### Added
-- Better `INFO` threshold logging within `Extractor::project`
+- Better `INFO` threshold logging within `Extractor::project`.
 
 ### Changed
-- Combined `Extractor::project` and `Extractor::postProject` into `project`
+- Combined `Extractor::project` and `Extractor::postProject` into `project`.
 - Deprecated `getProgramTypeData`
+- Changed `UNIT_GRAPH_BUILDING` to `SOOT` and added the time taken on loading files into Soot, 
+  calling FastHierarchy, and using Soot's call graph.
 
 ## [0.3.0] - 2021-03-09
 
