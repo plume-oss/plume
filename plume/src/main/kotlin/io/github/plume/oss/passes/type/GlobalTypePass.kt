@@ -31,7 +31,7 @@ class GlobalTypePass(private val driver: IDriver) : ITypePass {
      *     FILE(<unknown>) <-(SOURCE_FILE)- TYPE_DECL
      *     TYPE -(REF)-> TYPE_DECL
      *     TYPE_DECL -(AST)-> *MEMBER ? String[].length ? (TO-DO:)
-     *     TYPE_DECL -(AST)-> *MODIFIER ?                 
+     *     TYPE_DECL -(AST)-> *MODIFIER ?
      */
 
 
@@ -41,15 +41,15 @@ class GlobalTypePass(private val driver: IDriver) : ITypePass {
         // Fill up cache
         nodeCache.addAll(driver.getVerticesByProperty(AST_PARENT_FULL_NAME, GLOBAL, TYPE_DECL))
         ts.filterNot { it is RefType }
-            .map(::getGlobalTypeDecl)
-            .forEach { td ->
-                val tdFullName = td.build().properties()[FULL_NAME]
-                logger.debug("Upserting and linking for global type ${tdFullName}")
-                val t = getGlobalType(tdFullName)
+            .map{Pair(getGlobalTypeDecl(it), it)}
+            .forEach { (td, st) ->
+                logger.debug("Upserting and linking for global type ${st.toQuotedString()}")
                 driver.addEdge(n, td, AST)
                 driver.addEdge(td, f, SOURCE_FILE)
                 driver.addEdge(f, td, CONTAINS)
-                driver.addEdge(t, td, REF)
+                getGlobalType(st.toQuotedString()).apply {
+                    driver.addEdge(this, td, REF)
+                }
             }
         return ts
     }
@@ -69,17 +69,17 @@ class GlobalTypePass(private val driver: IDriver) : ITypePass {
                 .astParentType(NAMESPACE_BLOCK)
                 .astParentFullName("<global>").apply { nodeCache.add(this) }
     }
-    
+
     private fun getGlobalType(tdFullName: String): NewNodeBuilder {
-       val shortName = if (tdFullName.contains('.')) tdFullName.substringAfterLast('.')
-       else tdFullName
-       return nodeCache.filterIsInstance<NewTypeBuilder>()
+        val shortName = if (tdFullName.contains('.')) tdFullName.substringAfterLast('.')
+        else tdFullName
+        return nodeCache.filterIsInstance<NewTypeBuilder>()
             .find { it.build().properties().get(FULL_NAME).get() == tdFullName }
             ?: NewTypeBuilder()
-                            .name(shortName)
-                            .fullName(tdFullName)
-                            .typeDeclFullName(tdFullName)
-                            .apply { nodeCache.add(this) }
+                .name(shortName)
+                .fullName(tdFullName)
+                .typeDeclFullName(tdFullName)
+                .apply { nodeCache.add(this) }
     }
 
 
