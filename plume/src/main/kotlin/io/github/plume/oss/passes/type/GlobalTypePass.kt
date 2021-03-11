@@ -42,13 +42,13 @@ class GlobalTypePass(private val driver: IDriver) : ITypePass {
         nodeCache.addAll(driver.getVerticesByProperty(AST_PARENT_FULL_NAME, GLOBAL, TYPE_DECL))
         ts.filterNot { it is RefType }
             .map(::getGlobalTypeDecl)
-            .forEach { t ->
-                val tdFullName = t.build().properties()[FULL_NAME]
+            .forEach { td ->
+                val tdFullName = td.build().properties()[FULL_NAME]
                 logger.debug("Upserting and linking for global type ${tdFullName}")
                 val t = getGlobalType(tdFullName)
-                driver.addEdge(n, t, AST)
-                driver.addEdge(t, f, SOURCE_FILE)
-                driver.addEdge(f, t, CONTAINS)
+                driver.addEdge(n, td, AST)
+                driver.addEdge(td, f, SOURCE_FILE)
+                driver.addEdge(f, td, CONTAINS)
                 driver.addEdge(t, td, REF)
             }
         return ts
