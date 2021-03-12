@@ -20,7 +20,7 @@ object Traversals {
     Cpg(graph).method
       .fullNameExact(fullName)
       .ast
-      .outE(EdgeTypes.AST, EdgeTypes.CFG, EdgeTypes.ARGUMENT, EdgeTypes.REF)
+      .outE(EdgeTypes.AST, EdgeTypes.CFG, EdgeTypes.ARGUMENT, EdgeTypes.REF, EdgeTypes.CONTAINS, EdgeTypes.REACHING_DEF)
       .l
       .asJava
   }
