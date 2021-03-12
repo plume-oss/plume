@@ -1,13 +1,27 @@
 # Plume
+
+Plume is a language front-end to construct an [intermediate
+representation](https://en.wikipedia.org/wiki/Intermediate_representation) called a [code-property
+graphs](https://github.com/ShiftLeftSecurity/codepropertygraph) from JVM bytecode. Plume is graph
+database agnosic and can store code-property graphs to multiple graph databases.
+
 [![License](https://img.shields.io/badge/License-Apache%202.0-blue.svg)](https://opensource.org/licenses/Apache-2.0)
 ![GitHub Actions](https://github.com/plume-oss/plume/workflows/CI/badge.svg)
 [![codecov](https://codecov.io/gh/plume-oss/plume/branch/master/graph/badge.svg?token=4WY0U6QCU6)](https://codecov.io/gh/plume-oss/plume)
 [![](https://jitpack.io/v/plume-oss/plume.svg)](https://jitpack.io/#plume-oss/plume)
 
-A Kotlin driver for the Plume library to provide an interface for connecting and writing to various graph databases based
-on the [code-property graph schema](https://github.com/ShiftLeftSecurity/codepropertygraph/blob/master/codepropertygraph/src/main/resources/schemas/base.json).
+## Learn More
 
-For more documentation check out the [Plume docs](https://plume-oss.github.io/plume-docs/).
+For more documentation and basic guides, check out the [project homepage](https://plume-oss.github.io/plume-docs/).
+
+## Community
+
+* If you have any questions or want to be involved then check out our [discussions
+  page](https://github.com/plume-oss/plume/discussions).
+* Joern's [Gitter](https://gitter.im/joern-code-analyzer/community).
+* Plume is primarily maintained by [David Baker Effendi](https://davidbakereffendi.github.io/)
+    * DM on [Twitter](https://twitter.com/SDBakerEffendi)
+    * Email at dbe@sun.ac.za
 
 ## Adding Plume as a Dependency
 
@@ -110,6 +124,7 @@ implementation 'org.janusgraph:janusgraph-driver'
 ```groovy
 implementation 'khttp:khttp'
 implementation 'com.fasterxml.jackson.core:jackson-databind'
+implementation 'com.tigergraph.client:gsql_client'
 ```
 #### _Amazon Neptune_
 ```groovy
@@ -121,10 +136,10 @@ implementation 'com.fasterxml.jackson.core:jackson-databind'
 implementation 'org.neo4j.driver:neo4j-java-driver'
 ```
 
-Note that if you are connecting to Neo4j, for example, you would not need the TinkerGraph, TigerGraph, etc. 
-dependencies.
+Note that if you are connecting to Neo4j, for example, you would not need the TinkerGraph,
+TigerGraph, etc. dependencies.
 
 ## Logging
 
-All logging can be configured under `src/main/resources/log4j2.properties`. By default, all logs can be found under
-`$TEMP/plume`.
+Plume uses [SLF4J](http://www.slf4j.org/) as the fascade with
+[Log4j2](https://logging.apache.org/log4j/2.x/) as the implementation.
