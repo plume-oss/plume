@@ -20,6 +20,7 @@ import io.github.plume.oss.domain.files.FileFactory
 import io.github.plume.oss.domain.files.JVMClassFile
 import io.github.plume.oss.domain.files.PlumeFile
 import io.github.plume.oss.domain.files.UnsupportedFile
+import io.github.plume.oss.domain.model.DeltaGraph
 import io.github.plume.oss.drivers.GremlinDriver
 import io.github.plume.oss.drivers.IDriver
 import io.github.plume.oss.drivers.Neo4jDriver
@@ -28,10 +29,7 @@ import io.github.plume.oss.metrics.ExtractorTimeKey
 import io.github.plume.oss.metrics.PlumeTimer
 import io.github.plume.oss.options.ExtractorOptions
 import io.github.plume.oss.passes.SCPGPass
-import io.github.plume.oss.passes.graph.ASTPass
-import io.github.plume.oss.passes.graph.CFGPass
-import io.github.plume.oss.passes.graph.CGPass
-import io.github.plume.oss.passes.graph.PDGPass
+import io.github.plume.oss.passes.graph.*
 import io.github.plume.oss.passes.method.MethodStubPass
 import io.github.plume.oss.passes.structure.ExternalTypePass
 import io.github.plume.oss.passes.structure.FileAndPackagePass
@@ -48,6 +46,9 @@ import io.shiftleft.codepropertygraph.generated.NodeKeyNames.*
 import io.shiftleft.codepropertygraph.generated.NodeTypes.META_DATA
 import io.shiftleft.codepropertygraph.generated.NodeTypes.METHOD
 import io.shiftleft.codepropertygraph.generated.nodes.NewMetaDataBuilder
+import kotlinx.coroutines.channels.Channel
+import kotlinx.coroutines.launch
+import kotlinx.coroutines.runBlocking
 import org.apache.logging.log4j.LogManager
 import org.apache.logging.log4j.Logger
 import soot.*
@@ -233,7 +234,7 @@ class Extractor(val driver: IDriver) {
         PlumeTimer.measure(ExtractorTimeKey.BASE_CPG_BUILDING) {
             val allMs: List<SootMethod> = (parentToChildCs.flatMap { it.second + it.first }.flatMap { it.methods }
                     + sootUnitGraphs.map { it.body.method }).distinct().toList()
-            val existingMs: List<String> = driver.getPropertyFromVertices(FULL_NAME, METHOD)
+            val existingMs = driver.getPropertyFromVertices<String>(FULL_NAME, METHOD).toSet()
             // Create method stubs while avoiding duplication
             logger.info("Building stubs for all methods")
             pipeline(
@@ -244,17 +245,20 @@ class Extractor(val driver: IDriver) {
             })
             // Create method bodies while avoiding duplication
             logger.info("Building method bodies for all internal methods")
+            val bodiesToBuild = sootUnitGraphs.filterNot { sm ->
+                val (fullName, _, _) = SootToPlumeUtil.methodToStrings(sm.body.method)
+                existingMs.contains(fullName)
+            }.toList()
+            // TODO: BaseCpgPass must replace AST/CPG/PDG passes
+            buildBaseCPGs(bodiesToBuild)
             pipeline(
-                // Base CPG
+                // Base CPG TODO: This will get replaced
                 ASTPass(driver)::runPass,
                 CFGPass(driver)::runPass,
                 PDGPass(driver)::runPass,
                 // Call graph
                 CGPass(driver)::runPass,
-            ).invoke(sootUnitGraphs.filterNot { sm ->
-                val (fullName, _, _) = SootToPlumeUtil.methodToStrings(sm.body.method)
-                existingMs.contains(fullName)
-            })
+            ).invoke(bodiesToBuild)
         }
         // Clear all Soot resources and cache
         clear()
@@ -268,6 +272,24 @@ class Extractor(val driver: IDriver) {
 
     private fun <T> pipeline(vararg functions: (T) -> T): (T) -> T =
         { functions.fold(it) { output, stage -> stage.invoke(output) } }
+
+    /**
+     * Constructs the method bodies locally in parallel and writes results to the driver sequentially.
+     *
+     * @param gs The list of method bodies as [BriefUnitGraph]s.
+     */
+    private fun buildBaseCPGs(gs: List<BriefUnitGraph>) = runBlocking {
+        val channel = Channel<DeltaGraph>()
+        // Producer: Create local instances of CPGs from BriefUnitGraphs map changes to DeltaGraphs
+        gs.forEach { g ->
+            launch { channel.send(BaseCPGPass(g).runPass()) }
+        }
+        // Consumer: Receive delta graphs and write changes to the driver in serial
+        launch {
+            repeat(gs.size) { channel.receive().apply(driver) }
+            channel.close()
+        }.join() // Suspend until the channel is fully consumed.
+    }
 
     /**
      * Load all methods to construct the CPG from and convert them to [BriefUnitGraph] objects.
