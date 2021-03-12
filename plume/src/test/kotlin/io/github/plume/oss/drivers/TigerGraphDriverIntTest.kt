@@ -45,6 +45,7 @@ import overflowdb.Graph
 import scala.Option
 import kotlin.properties.Delegates
 
+@Suppress("DEPRECATION")
 class TigerGraphDriverIntTest {
 
     companion object {
