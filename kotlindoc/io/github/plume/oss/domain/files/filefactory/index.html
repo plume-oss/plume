@@ -1,0 +1,1144 @@
+<!DOCTYPE HTML>
+<!--
+    Editorial by HTML5 UP
+    html5up.net | @ajlkn
+    Free for personal and commercial use under the CCA 3.0 license (html5up.net/license)
+-->
+<html>
+<head>
+
+
+
+
+
+
+<meta charset="utf-8"/>
+<meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, user-scalable=no"/>
+<meta name="generator" content="Orchid 0.21.1"/>
+<link rel="icon" href="https://plume-oss.github.io/plume/favicon.ico">
+
+
+<meta name="robots" content="index, follow">
+
+
+
+<title>FileFactory</title>
+
+
+<meta name="description" content="Plume is a code property graph analysis library with options to extract the CPG from Java bytecode and store the result in various graph databases.">
+
+
+
+
+
+<!-- start:inject styles -->
+<link rel="stylesheet" type="text/css" href="https://plume-oss.github.io/plume/Editorial/af20a1c0/assets/css/editorial_main.css"  />
+<link rel="stylesheet" type="text/css" href="https://plume-oss.github.io/plume/Editorial/af20a1c0/assets/css/editorial_orchidCustomizations.css"  />
+<link rel="stylesheet" type="text/css" href="https://plume-oss.github.io/plume/Editorial/af20a1c0/assets/css/orchidSearch.css"  />
+<link rel="stylesheet" type="text/css" href="https://plume-oss.github.io/plume/assets/css/orchidSearch.css"  />
+<link rel="stylesheet" type="text/css" href="https://plume-oss.github.io/plume/assets/css/orchidSourceDoc.css"  />
+<!-- end:inject styles -->
+
+
+
+<script>
+    window.site = {"orchidVersion":"0.21.1","baseUrl":"https://plume-oss.github.io/plume","environment":"prod","version":"0.21.1"};
+</script>
+
+
+    <!-- start:inject meta-components [head] -->
+    
+
+        
+            
+        
+
+        
+            
+        
+    
+    <!-- end:inject meta-components [head] -->
+
+
+
+    <!-- start:inject meta-components [head] -->
+    
+    <!-- end:inject meta-components [head] -->
+
+
+
+
+
+
+
+</head>
+<body class="is-loading">
+
+
+
+
+
+    <!-- start:inject meta-components [bodyStart] -->
+    
+
+        
+            
+        
+
+        
+    
+    <!-- end:inject meta-components [bodyStart] -->
+
+
+
+    <!-- start:inject meta-components [bodyStart] -->
+    
+    <!-- end:inject meta-components [bodyStart] -->
+
+
+
+
+
+<!-- Wrapper -->
+<div id="wrapper">
+
+    <!-- Main -->
+    <div id="main">
+        <div class="inner">
+
+            <!-- Header -->
+            
+                <header id="header">
+    <a href="https://plume-oss.github.io/plume" class="logo">Plume</a>
+    <ul class="icons">
+    
+    
+        <li>
+            <a href="https://github.com/plume-oss/plume" class="icon fa-github">
+                <span class="label">github</span>
+            </a>
+        </li>
+    
+    
+    </ul>
+</header>
+
+            
+            
+            
+            
+                <section id="pageContent">
+                    <header class="major"><h2>FileFactory</h2></header>
+                    <article>
+                        
+    <!-- start:inject components -->
+    
+        
+            
+                
+                    
+                        <div class="sourcedoc-page orchid-sourcedoc content">
+  
+<div class="sourcedoc-section section-root section-level-1" id="FileFactory">
+
+
+  
+
+  
+    <div class="sourcedoc-section section-element" id="cb6b620203f106a5a04e07962ae144ce9ea25cfb">
+      
+      <p class="sourcedoc-section section-signature">
+        <code>object <a href="https://plume-oss.github.io/plume/kotlindoc/io/github/plume/oss/domain/files/filefactory">FileFactory</a>: Any</code>
+      </p>
+
+      
+        
+    <!-- start:inject components -->
+    
+    <!-- end:inject components -->
+
+
+      
+
+      <div class="sourcedoc-section section-comments"><p>The factory responsible for obtaining the desired <a href="https://docs.oracle.com/javase/6/docs/api/java/io/File.html">File</a> wrapped by its programming language wrapper determined by
+the file extension.</p>
+</div>
+
+      
+      
+        
+          
+<div class="sourcedoc-section section-root section-level-2" id="methods">
+
+
+  
+    <h2 class="sourcedoc-section section-name">Methods</h2>
+  
+
+  
+    <div class="sourcedoc-section section-element" id="b614244090e3a5e54ff0a17aed41521f5b7b7577">
+      
+      <h3 class="sourcedoc-section element-name">invoke</h3>
+      
+      <p class="sourcedoc-section section-signature">
+        <code>operator fun invoke(pathname: String): <a href="https://plume-oss.github.io/plume/kotlindoc/io/github/plume/oss/domain/files/plumefile">PlumeFile</a></code>
+      </p>
+
+      
+
+      <div class="sourcedoc-section section-comments"><p>Creates a <a href="https://docs.oracle.com/javase/6/docs/api/java/io/File.html">File</a> given the pathname.</p>
+</div>
+
+      
+      
+        
+          
+<div class="sourcedoc-section section-root section-level-3" id="1a0bdb2298ea88ee0b9cd0a99cff3a708e977a48">
+
+
+  <p class="sourcedoc-section section-name"><strong>Parameters</strong></p>
+
+  <div class="table-container">
+    <table class="table is-fullwidth is-bordered">
+      <thead>
+      <tr>
+        <th>Name</th>
+        <th>Description</th>
+      </tr>
+      </thead>
+      <tbody>
+      
+      <tr class="sourcedoc-section section-element" id="df093577df129acb94e8274477df747535ad2512">
+        <td class="sourcedoc-section section-signature">
+          <code>pathname: String</code>
+        </td>
+        <td class="sourcedoc-section section-comments content">
+        <p>The path at which the file resides.</p>
+
+        </td>
+      </tr>
+      
+      </tbody>
+    </table>
+  </div>
+
+
+</div>
+
+        
+          
+<div class="sourcedoc-section section-root section-level-3" id="95d941ba55a37ee62da6d5ca78b90aff10c907b9">
+
+
+  <p class="sourcedoc-section section-name"><strong>ReturnValue</strong></p>
+
+  <div class="table-container">
+    <table class="table is-fullwidth is-bordered">
+      <thead>
+      <tr>
+        <th>Name</th>
+        <th>Description</th>
+      </tr>
+      </thead>
+      <tbody>
+      
+      <tr class="sourcedoc-section section-element" id="a0a92c65ccecb581ba60084105757b1977cf405c">
+        <td class="sourcedoc-section section-signature">
+          <code><a href="https://plume-oss.github.io/plume/kotlindoc/io/github/plume/oss/domain/files/plumefile">PlumeFile</a></code>
+        </td>
+        <td class="sourcedoc-section section-comments content">
+        <p>A <a href="https://docs.oracle.com/javase/6/docs/api/java/io/File.html">File</a> object if not one of the supported file types or a supported file type such as <a href="https://plume-oss.github.io/plume/kotlindoc/io/github/plume/oss/domain/files/javafile">JavaFile</a>.</p>
+
+        </td>
+      </tr>
+      
+      </tbody>
+    </table>
+  </div>
+
+
+</div>
+
+        
+      
+    </div>
+  
+    <div class="sourcedoc-section section-element" id="3f3a3cb2c3b84aaa295b0e8b2a7a42346ff0d6e7">
+      
+      <h3 class="sourcedoc-section element-name">invoke</h3>
+      
+      <p class="sourcedoc-section section-signature">
+        <code>operator fun invoke(f: File): <a href="https://plume-oss.github.io/plume/kotlindoc/io/github/plume/oss/domain/files/plumefile">PlumeFile</a></code>
+      </p>
+
+      
+
+      <div class="sourcedoc-section section-comments"><p>Creates a <a href="https://docs.oracle.com/javase/6/docs/api/java/io/File.html">File</a> given the pathname.</p>
+</div>
+
+      
+      
+        
+          
+<div class="sourcedoc-section section-root section-level-3" id="fc646da30dbf780015b71b471e891d706e157a71">
+
+
+  <p class="sourcedoc-section section-name"><strong>Parameters</strong></p>
+
+  <div class="table-container">
+    <table class="table is-fullwidth is-bordered">
+      <thead>
+      <tr>
+        <th>Name</th>
+        <th>Description</th>
+      </tr>
+      </thead>
+      <tbody>
+      
+      <tr class="sourcedoc-section section-element" id="ea40115ecf386c4b8b0116679a9881cb6bdbb276">
+        <td class="sourcedoc-section section-signature">
+          <code>f: File</code>
+        </td>
+        <td class="sourcedoc-section section-comments content">
+        <p>A generic <a href="https://docs.oracle.com/javase/6/docs/api/java/io/File.html">File</a> pointer for the file to cast.</p>
+
+        </td>
+      </tr>
+      
+      </tbody>
+    </table>
+  </div>
+
+
+</div>
+
+        
+          
+<div class="sourcedoc-section section-root section-level-3" id="5bf2641fe9c4a5d565362a0dbd509ef244183ffc">
+
+
+  <p class="sourcedoc-section section-name"><strong>ReturnValue</strong></p>
+
+  <div class="table-container">
+    <table class="table is-fullwidth is-bordered">
+      <thead>
+      <tr>
+        <th>Name</th>
+        <th>Description</th>
+      </tr>
+      </thead>
+      <tbody>
+      
+      <tr class="sourcedoc-section section-element" id="a0a92c65ccecb581ba60084105757b1977cf405c">
+        <td class="sourcedoc-section section-signature">
+          <code><a href="https://plume-oss.github.io/plume/kotlindoc/io/github/plume/oss/domain/files/plumefile">PlumeFile</a></code>
+        </td>
+        <td class="sourcedoc-section section-comments content">
+        <p>A <a href="https://docs.oracle.com/javase/6/docs/api/java/io/File.html">File</a> object if not one of the supported file types or a supported file type such as <a href="https://plume-oss.github.io/plume/kotlindoc/io/github/plume/oss/domain/files/javafile">JavaFile</a>.</p>
+
+        </td>
+      </tr>
+      
+      </tbody>
+    </table>
+  </div>
+
+
+</div>
+
+        
+      
+    </div>
+  
+    <div class="sourcedoc-section section-element" id="a98f2253eb60f7567e4afd7ef7017706ea469c5d">
+      
+      <h3 class="sourcedoc-section element-name">getFileHash</h3>
+      
+      <p class="sourcedoc-section section-signature">
+        <code>fun getFileHash(f: File): Int</code>
+      </p>
+
+      
+
+      <div class="sourcedoc-section section-comments"><p>Will ingest a file's contents and return the xxHash32 representation. See
+<a href="https://cyan4973.github.io/xxHash/">xxHash</a> for more information.</p>
+</div>
+
+      
+      
+        
+          
+<div class="sourcedoc-section section-root section-level-3" id="f7ef46befef056921685ca49dc1530caf2b9d513">
+
+
+  <p class="sourcedoc-section section-name"><strong>Parameters</strong></p>
+
+  <div class="table-container">
+    <table class="table is-fullwidth is-bordered">
+      <thead>
+      <tr>
+        <th>Name</th>
+        <th>Description</th>
+      </tr>
+      </thead>
+      <tbody>
+      
+      <tr class="sourcedoc-section section-element" id="ea40115ecf386c4b8b0116679a9881cb6bdbb276">
+        <td class="sourcedoc-section section-signature">
+          <code>f: File</code>
+        </td>
+        <td class="sourcedoc-section section-comments content">
+        <p>The file to hash.</p>
+
+        </td>
+      </tr>
+      
+      </tbody>
+    </table>
+  </div>
+
+
+</div>
+
+        
+          
+<div class="sourcedoc-section section-root section-level-3" id="e994d47d448ccaf95bc4b22f717169eeeca67d65">
+
+
+  <p class="sourcedoc-section section-name"><strong>ReturnValue</strong></p>
+
+  <div class="table-container">
+    <table class="table is-fullwidth is-bordered">
+      <thead>
+      <tr>
+        <th>Name</th>
+        <th>Description</th>
+      </tr>
+      </thead>
+      <tbody>
+      
+      <tr class="sourcedoc-section section-element" id="5c89edcac2811a6a9e8072517cae7f3cbfd5049d">
+        <td class="sourcedoc-section section-signature">
+          <code>Int</code>
+        </td>
+        <td class="sourcedoc-section section-comments content">
+        <p>The given file's xxHash32 representation</p>
+
+        </td>
+      </tr>
+      
+      </tbody>
+    </table>
+  </div>
+
+
+</div>
+
+        
+      
+    </div>
+  
+
+</div>
+
+        
+      
+    </div>
+  
+
+</div>
+
+</div>
+
+
+
+                    
+                
+            
+        
+    
+    <!-- end:inject components -->
+
+
+                    </article>
+                </section>
+            
+        </div>
+        <hr>
+
+        <!-- Page Footer -->
+        <div class="inner">
+    <footer id="footer">
+        <div class="clearfix">
+            
+            
+        </div>
+    </footer>
+</div>
+
+    </div>
+
+    <!-- Sidebar -->
+    <div id="sidebar">
+    <div class="inner">
+
+        <!-- Search -->
+        <section id="search" class="alt">
+            <form data-orchid-search="">
+                <input type="text" name="query" id="query" placeholder="Search"/>
+            </form>
+            <div class="box" id="search-results" data-orchid-search-results style="display: none;">
+                <b>Search Results</b>
+                <ul></ul>
+            </div>
+            <div class="box" id="search-progress" data-orchid-search-progress style="display: none;">
+                <div class="loader">Loading...</div>
+            </div>
+        </section>
+
+        <!-- Menu -->
+        <nav id="siteNav" class="menu">
+            <header class="major">
+                <h2>Plume</h2>
+            </header>
+            <ul class="top-level">
+                
+                    
+    
+    <li>
+        <a class="subheader">API Docs</a>
+    </li>
+    
+
+                
+                    
+    <li>
+        <span class="opener">Classes</span>
+        <ul>
+        
+            
+    
+    <li>
+        <a href="https://plume-oss.github.io/plume/kotlindoc/io/github/plume/oss/passes/graph/astpass">ASTPass</a>
+    </li>
+    
+
+        
+            
+    
+    <li>
+        <a href="https://plume-oss.github.io/plume/kotlindoc/io/github/plume/oss/passes/graph/cfgpass">CFGPass</a>
+    </li>
+    
+
+        
+            
+    
+    <li>
+        <a href="https://plume-oss.github.io/plume/kotlindoc/io/github/plume/oss/passes/graph/cgpass">CGPass</a>
+    </li>
+    
+
+        
+            
+    
+    <li>
+        <a href="https://plume-oss.github.io/plume/kotlindoc/io/github/plume/oss/options/extractoroptions/callgraphalg">CallGraphAlg</a>
+    </li>
+    
+
+        
+            
+    
+    <li>
+        <a href="https://plume-oss.github.io/plume/kotlindoc/io/github/plume/oss/util/codecontrol">CodeControl</a>
+    </li>
+    
+
+        
+            
+    
+    <li>
+        <a href="https://plume-oss.github.io/plume/kotlindoc/io/github/plume/oss/util/diffgraphutil">DiffGraphUtil</a>
+    </li>
+    
+
+        
+            
+    
+    <li>
+        <a href="https://plume-oss.github.io/plume/kotlindoc/io/github/plume/oss/drivers/driverfactory">DriverFactory</a>
+    </li>
+    
+
+        
+            
+    
+    <li>
+        <a href="https://plume-oss.github.io/plume/kotlindoc/io/github/plume/oss/passes/structure/externaltypepass">ExternalTypePass</a>
+    </li>
+    
+
+        
+            
+    
+    <li>
+        <a href="https://plume-oss.github.io/plume/kotlindoc/io/github/plume/oss/extractor">Extractor</a>
+    </li>
+    
+
+        
+            
+    
+    <li>
+        <a href="https://plume-oss.github.io/plume/kotlindoc/io/github/plume/oss/util/extractorconst">ExtractorConst</a>
+    </li>
+    
+
+        
+            
+    
+    <li>
+        <a href="https://plume-oss.github.io/plume/kotlindoc/io/github/plume/oss/options/extractoroptions">ExtractorOptions</a>
+    </li>
+    
+
+        
+            
+    
+    <li>
+        <a href="https://plume-oss.github.io/plume/kotlindoc/io/github/plume/oss/metrics/extractortimekey">ExtractorTimeKey</a>
+    </li>
+    
+
+        
+            
+    
+    <li>
+        <a href="https://plume-oss.github.io/plume/kotlindoc/io/github/plume/oss/passes/structure/fileandpackagepass">FileAndPackagePass</a>
+    </li>
+    
+
+        
+            
+    
+    <li>
+        <a href="https://plume-oss.github.io/plume/kotlindoc/io/github/plume/oss/domain/files/filefactory">FileFactory</a>
+    </li>
+    
+
+        
+            
+    
+    <li>
+        <a href="https://plume-oss.github.io/plume/kotlindoc/io/github/plume/oss/globalcache">GlobalCache</a>
+    </li>
+    
+
+        
+            
+    
+    <li>
+        <a href="https://plume-oss.github.io/plume/kotlindoc/io/github/plume/oss/passes/type/globaltypepass">GlobalTypePass</a>
+    </li>
+    
+
+        
+            
+    
+    <li>
+        <a href="https://plume-oss.github.io/plume/kotlindoc/io/github/plume/oss/drivers/graphdatabase">GraphDatabase</a>
+    </li>
+    
+
+        
+            
+    
+    <li>
+        <a href="https://plume-oss.github.io/plume/kotlindoc/io/github/plume/oss/graphio/graphmlwriter">GraphMLWriter</a>
+    </li>
+    
+
+        
+            
+    
+    <li>
+        <a href="https://plume-oss.github.io/plume/kotlindoc/io/github/plume/oss/graphio/graphsonwriter">GraphSONWriter</a>
+    </li>
+    
+
+        
+            
+    
+    <li>
+        <a href="https://plume-oss.github.io/plume/kotlindoc/io/github/plume/oss/drivers/gremlindriver">GremlinDriver</a>
+    </li>
+    
+
+        
+            
+    
+    <li>
+        <a href="https://plume-oss.github.io/plume/kotlindoc/io/github/plume/oss/drivers/gremlinoverriddeniddriver">GremlinOverriddenIdDriver</a>
+    </li>
+    
+
+        
+            
+    
+    <li>
+        <a href="https://plume-oss.github.io/plume/kotlindoc/io/github/plume/oss/drivers/idriver">IDriver</a>
+    </li>
+    
+
+        
+            
+    
+    <li>
+        <a href="https://plume-oss.github.io/plume/kotlindoc/io/github/plume/oss/passes/imethodpass">IMethodPass</a>
+    </li>
+    
+
+        
+            
+    
+    <li>
+        <a href="https://plume-oss.github.io/plume/kotlindoc/io/github/plume/oss/drivers/ioverrideniddriver">IOverridenIdDriver</a>
+    </li>
+    
+
+        
+            
+    
+    <li>
+        <a href="https://plume-oss.github.io/plume/kotlindoc/io/github/plume/oss/passes/iprogramstructurepass">IProgramStructurePass</a>
+    </li>
+    
+
+        
+            
+    
+    <li>
+        <a href="https://plume-oss.github.io/plume/kotlindoc/io/github/plume/oss/drivers/ischemasafedriver">ISchemaSafeDriver</a>
+    </li>
+    
+
+        
+            
+    
+    <li>
+        <a href="https://plume-oss.github.io/plume/kotlindoc/io/github/plume/oss/passes/itypepass">ITypePass</a>
+    </li>
+    
+
+        
+            
+    
+    <li>
+        <a href="https://plume-oss.github.io/plume/kotlindoc/io/github/plume/oss/passes/iunitgraphpass">IUnitGraphPass</a>
+    </li>
+    
+
+        
+            
+    
+    <li>
+        <a href="https://plume-oss.github.io/plume/kotlindoc/io/github/plume/oss/domain/files/jvmclassfile">JVMClassFile</a>
+    </li>
+    
+
+        
+            
+    
+    <li>
+        <a href="https://plume-oss.github.io/plume/kotlindoc/io/github/plume/oss/drivers/janusgraphdriver">JanusGraphDriver</a>
+    </li>
+    
+
+        
+            
+    
+    <li>
+        <a href="https://plume-oss.github.io/plume/kotlindoc/io/github/plume/oss/domain/files/javafile">JavaFile</a>
+    </li>
+    
+
+        
+            
+    
+    <li>
+        <a href="https://plume-oss.github.io/plume/kotlindoc/io/github/plume/oss/passes/structure/markforrebuildpass">MarkForRebuildPass</a>
+    </li>
+    
+
+        
+            
+    
+    <li>
+        <a href="https://plume-oss.github.io/plume/kotlindoc/io/github/plume/oss/passes/method/methodstubpass">MethodStubPass</a>
+    </li>
+    
+
+        
+            
+    
+    <li>
+        <a href="https://plume-oss.github.io/plume/kotlindoc/io/github/plume/oss/drivers/neo4jdriver">Neo4jDriver</a>
+    </li>
+    
+
+        
+            
+    
+    <li>
+        <a href="https://plume-oss.github.io/plume/kotlindoc/io/github/plume/oss/drivers/neptunedriver">NeptuneDriver</a>
+    </li>
+    
+
+        
+            
+    
+    <li>
+        <a href="https://plume-oss.github.io/plume/kotlindoc/io/github/plume/oss/drivers/overflowdbdriver">OverflowDbDriver</a>
+    </li>
+    
+
+        
+            
+    
+    <li>
+        <a href="https://plume-oss.github.io/plume/kotlindoc/io/github/plume/oss/passes/graph/pdgpass">PDGPass</a>
+    </li>
+    
+
+        
+            
+    
+    <li>
+        <a href="https://plume-oss.github.io/plume/kotlindoc/io/github/plume/oss/domain/exceptions/plumecompileexception">PlumeCompileException</a>
+    </li>
+    
+
+        
+            
+    
+    <li>
+        <a href="https://plume-oss.github.io/plume/kotlindoc/io/github/plume/oss/domain/files/plumefile">PlumeFile</a>
+    </li>
+    
+
+        
+            
+    
+    <li>
+        <a href="https://plume-oss.github.io/plume/kotlindoc/io/github/plume/oss/util/plumekeyprovider">PlumeKeyProvider</a>
+    </li>
+    
+
+        
+            
+    
+    <li>
+        <a href="https://plume-oss.github.io/plume/kotlindoc/io/github/plume/oss/domain/exceptions/plumeschemaviolationexception">PlumeSchemaViolationException</a>
+    </li>
+    
+
+        
+            
+    
+    <li>
+        <a href="https://plume-oss.github.io/plume/kotlindoc/io/github/plume/oss/metrics/plumetimer">PlumeTimer</a>
+    </li>
+    
+
+        
+            
+    
+    <li>
+        <a href="https://plume-oss.github.io/plume/kotlindoc/io/github/plume/oss/domain/exceptions/plumetransactionexception">PlumeTransactionException</a>
+    </li>
+    
+
+        
+            
+    
+    <li>
+        <a href="https://plume-oss.github.io/plume/kotlindoc/io/github/plume/oss/util/resourcecompilationutil">ResourceCompilationUtil</a>
+    </li>
+    
+
+        
+            
+    
+    <li>
+        <a href="https://plume-oss.github.io/plume/kotlindoc/io/github/plume/oss/passes/scpgpass">SCPGPass</a>
+    </li>
+    
+
+        
+            
+    
+    <li>
+        <a href="https://plume-oss.github.io/plume/kotlindoc/io/github/plume/oss/util/sootparserutil">SootParserUtil</a>
+    </li>
+    
+
+        
+            
+    
+    <li>
+        <a href="https://plume-oss.github.io/plume/kotlindoc/io/github/plume/oss/util/soottoplumeutil">SootToPlumeUtil</a>
+    </li>
+    
+
+        
+            
+    
+    <li>
+        <a href="https://plume-oss.github.io/plume/kotlindoc/io/github/plume/oss/util/codecontrol/stopexitexception">StopExitException</a>
+    </li>
+    
+
+        
+            
+    
+    <li>
+        <a href="https://plume-oss.github.io/plume/kotlindoc/io/github/plume/oss/util/codecontrol/stopexitsecuritymanager">StopExitSecurityManager</a>
+    </li>
+    
+
+        
+            
+    
+    <li>
+        <a href="https://plume-oss.github.io/plume/kotlindoc/io/github/plume/oss/domain/files/supportedfile">SupportedFile</a>
+    </li>
+    
+
+        
+            
+    
+    <li>
+        <a href="https://plume-oss.github.io/plume/kotlindoc/io/github/plume/oss/drivers/tigergraphdriver">TigerGraphDriver</a>
+    </li>
+    
+
+        
+            
+    
+    <li>
+        <a href="https://plume-oss.github.io/plume/kotlindoc/io/github/plume/oss/drivers/tinkergraphdriver">TinkerGraphDriver</a>
+    </li>
+    
+
+        
+            
+    
+    <li>
+        <a href="https://plume-oss.github.io/plume/kotlindoc/io/github/plume/oss/passes/structure/typepass">TypePass</a>
+    </li>
+    
+
+        
+            
+    
+    <li>
+        <a href="https://plume-oss.github.io/plume/kotlindoc/io/github/plume/oss/domain/files/unsupportedfile">UnsupportedFile</a>
+    </li>
+    
+
+        
+            
+    
+    <li>
+        <a href="https://plume-oss.github.io/plume/kotlindoc/io/github/plume/oss/domain/mappers/vertexmapper">VertexMapper</a>
+    </li>
+    
+
+        
+        </ul>
+    </li>
+
+                
+                    
+    <li>
+        <span class="opener">Packages</span>
+        <ul>
+        
+            
+    
+    <li>
+        <a href="https://plume-oss.github.io/plume/kotlindoc/io/github/plume/oss">io.github.plume.oss</a>
+    </li>
+    
+
+        
+            
+    
+    <li>
+        <a href="https://plume-oss.github.io/plume/kotlindoc/io/github/plume/oss/domain/exceptions">io.github.plume.oss.domain.exceptions</a>
+    </li>
+    
+
+        
+            
+    
+    <li>
+        <a href="https://plume-oss.github.io/plume/kotlindoc/io/github/plume/oss/domain/files">io.github.plume.oss.domain.files</a>
+    </li>
+    
+
+        
+            
+    
+    <li>
+        <a href="https://plume-oss.github.io/plume/kotlindoc/io/github/plume/oss/domain/mappers">io.github.plume.oss.domain.mappers</a>
+    </li>
+    
+
+        
+            
+    
+    <li>
+        <a href="https://plume-oss.github.io/plume/kotlindoc/io/github/plume/oss/drivers">io.github.plume.oss.drivers</a>
+    </li>
+    
+
+        
+            
+    
+    <li>
+        <a href="https://plume-oss.github.io/plume/kotlindoc/io/github/plume/oss/graphio">io.github.plume.oss.graphio</a>
+    </li>
+    
+
+        
+            
+    
+    <li>
+        <a href="https://plume-oss.github.io/plume/kotlindoc/io/github/plume/oss/metrics">io.github.plume.oss.metrics</a>
+    </li>
+    
+
+        
+            
+    
+    <li>
+        <a href="https://plume-oss.github.io/plume/kotlindoc/io/github/plume/oss/options">io.github.plume.oss.options</a>
+    </li>
+    
+
+        
+            
+    
+    <li>
+        <a href="https://plume-oss.github.io/plume/kotlindoc/io/github/plume/oss/passes">io.github.plume.oss.passes</a>
+    </li>
+    
+
+        
+            
+    
+    <li>
+        <a href="https://plume-oss.github.io/plume/kotlindoc/io/github/plume/oss/passes/graph">io.github.plume.oss.passes.graph</a>
+    </li>
+    
+
+        
+            
+    
+    <li>
+        <a href="https://plume-oss.github.io/plume/kotlindoc/io/github/plume/oss/passes/method">io.github.plume.oss.passes.method</a>
+    </li>
+    
+
+        
+            
+    
+    <li>
+        <a href="https://plume-oss.github.io/plume/kotlindoc/io/github/plume/oss/passes/structure">io.github.plume.oss.passes.structure</a>
+    </li>
+    
+
+        
+            
+    
+    <li>
+        <a href="https://plume-oss.github.io/plume/kotlindoc/io/github/plume/oss/passes/type">io.github.plume.oss.passes.type</a>
+    </li>
+    
+
+        
+            
+    
+    <li>
+        <a href="https://plume-oss.github.io/plume/kotlindoc/io/github/plume/oss/util">io.github.plume.oss.util</a>
+    </li>
+    
+
+        
+        </ul>
+    </li>
+
+                
+            </ul>
+        </nav>
+        
+
+        <!-- Section -->
+        <section>
+            <p class="text-center">
+                Currently 0.21.1. Created with <a href="https://orchid.run">Orchid </a> and <b>Orchid Editorial Theme</b>.
+            </p>
+        </section>
+
+        <!-- Footer -->
+        <footer id="footer">
+            <p class="copyright text-center">&copy; Plume. All rights reserved.<br>Design by <a href="https://html5up.net">HTML5 UP</a></p>
+        </footer>
+
+    </div>
+</div>
+
+</div>
+
+
+
+
+
+
+    <!-- start:inject meta-components [bodyEnd] -->
+    
+
+        
+            
+        
+
+        
+    
+    <!-- end:inject meta-components [bodyEnd] -->
+
+
+
+    <!-- start:inject meta-components [bodyEnd] -->
+    
+    <!-- end:inject meta-components [bodyEnd] -->
+
+
+
+
+<!-- start:inject scripts -->
+<script  src="https://plume-oss.github.io/plume/Editorial/af20a1c0/ajax/libs/jquery/1.11.3/jquery.min.js"></script>
+<script  src="https://plume-oss.github.io/plume/Editorial/af20a1c0/ajax/libs/skel/3.0.1/skel.min.js"></script>
+<script  src="https://plume-oss.github.io/plume/Editorial/af20a1c0/assets/js/editorial_util.js"></script>
+<script  src="https://plume-oss.github.io/plume/Editorial/af20a1c0/assets/js/editorial_main.js"></script>
+<script  src="https://plume-oss.github.io/plume/Editorial/af20a1c0/assets/js/editorial_orchidCustomizations.js"></script>
+<script  src="https://plume-oss.github.io/plume/ajax/libs/jquery/3.1.1/jquery.min.js"></script>
+<script  src="https://plume-oss.github.io/plume/lunr/lunr.js"></script>
+<script  src="https://plume-oss.github.io/plume/assets/js/orchidSearch.js"></script>
+<!-- end:inject scripts -->
+
+
+</body>
+</html>

@@ -1,0 +1,1440 @@
+<!DOCTYPE HTML>
+<!--
+    Editorial by HTML5 UP
+    html5up.net | @ajlkn
+    Free for personal and commercial use under the CCA 3.0 license (html5up.net/license)
+-->
+<html>
+<head>
+
+
+
+
+
+
+<meta charset="utf-8"/>
+<meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, user-scalable=no"/>
+<meta name="generator" content="Orchid 0.21.1"/>
+<link rel="icon" href="https://plume-oss.github.io/plume/favicon.ico">
+
+
+<meta name="robots" content="index, follow">
+
+
+
+<title>VertexMapper</title>
+
+
+<meta name="description" content="Plume is a code property graph analysis library with options to extract the CPG from Java bytecode and store the result in various graph databases.">
+
+
+
+
+
+<!-- start:inject styles -->
+<link rel="stylesheet" type="text/css" href="https://plume-oss.github.io/plume/Editorial/af20a1c0/assets/css/editorial_main.css"  />
+<link rel="stylesheet" type="text/css" href="https://plume-oss.github.io/plume/Editorial/af20a1c0/assets/css/editorial_orchidCustomizations.css"  />
+<link rel="stylesheet" type="text/css" href="https://plume-oss.github.io/plume/Editorial/af20a1c0/assets/css/orchidSearch.css"  />
+<link rel="stylesheet" type="text/css" href="https://plume-oss.github.io/plume/assets/css/orchidSearch.css"  />
+<link rel="stylesheet" type="text/css" href="https://plume-oss.github.io/plume/assets/css/orchidSourceDoc.css"  />
+<!-- end:inject styles -->
+
+
+
+<script>
+    window.site = {"orchidVersion":"0.21.1","baseUrl":"https://plume-oss.github.io/plume","environment":"prod","version":"0.21.1"};
+</script>
+
+
+    <!-- start:inject meta-components [head] -->
+    
+
+        
+            
+        
+
+        
+            
+        
+    
+    <!-- end:inject meta-components [head] -->
+
+
+
+    <!-- start:inject meta-components [head] -->
+    
+    <!-- end:inject meta-components [head] -->
+
+
+
+
+
+
+
+</head>
+<body class="is-loading">
+
+
+
+
+
+    <!-- start:inject meta-components [bodyStart] -->
+    
+
+        
+            
+        
+
+        
+    
+    <!-- end:inject meta-components [bodyStart] -->
+
+
+
+    <!-- start:inject meta-components [bodyStart] -->
+    
+    <!-- end:inject meta-components [bodyStart] -->
+
+
+
+
+
+<!-- Wrapper -->
+<div id="wrapper">
+
+    <!-- Main -->
+    <div id="main">
+        <div class="inner">
+
+            <!-- Header -->
+            
+                <header id="header">
+    <a href="https://plume-oss.github.io/plume" class="logo">Plume</a>
+    <ul class="icons">
+    
+    
+        <li>
+            <a href="https://github.com/plume-oss/plume" class="icon fa-github">
+                <span class="label">github</span>
+            </a>
+        </li>
+    
+    
+    </ul>
+</header>
+
+            
+            
+            
+            
+                <section id="pageContent">
+                    <header class="major"><h2>VertexMapper</h2></header>
+                    <article>
+                        
+    <!-- start:inject components -->
+    
+        
+            
+                
+                    
+                        <div class="sourcedoc-page orchid-sourcedoc content">
+  
+<div class="sourcedoc-section section-root section-level-1" id="VertexMapper">
+
+
+  
+
+  
+    <div class="sourcedoc-section section-element" id="3c3ce196097634dca2329b5a242afad85016c263">
+      
+      <p class="sourcedoc-section section-signature">
+        <code>object <a href="https://plume-oss.github.io/plume/kotlindoc/io/github/plume/oss/domain/mappers/vertexmapper">VertexMapper</a>: Any</code>
+      </p>
+
+      
+        
+    <!-- start:inject components -->
+    
+    <!-- end:inject components -->
+
+
+      
+
+      <div class="sourcedoc-section section-comments"><p>Responsible for marshalling and unmarshalling vertex properties to and from <a href="#">NewNode</a> objects to Map objects.</p>
+</div>
+
+      
+      
+        
+          
+<div class="sourcedoc-section section-root section-level-2" id="methods">
+
+
+  
+    <h2 class="sourcedoc-section section-name">Methods</h2>
+  
+
+  
+    <div class="sourcedoc-section section-element" id="43ab550fd8d6a15435fc4edd9082a1aa7577e3fe">
+      
+      <h3 class="sourcedoc-section element-name">mapToVertex</h3>
+      
+      <p class="sourcedoc-section section-signature">
+        <code>fun mapToVertex(v: Node): NewNodeBuilder</code>
+      </p>
+
+      
+
+      <div class="sourcedoc-section section-comments"><p>Converts a <a href="#">Node</a> to its respective <a href="#">NewNodeBuilder</a> object.</p>
+</div>
+
+      
+      
+        
+          
+<div class="sourcedoc-section section-root section-level-3" id="0f38bd72d58ef9e850cd9126975b8e97bb8f2ba7">
+
+
+  <p class="sourcedoc-section section-name"><strong>Parameters</strong></p>
+
+  <div class="table-container">
+    <table class="table is-fullwidth is-bordered">
+      <thead>
+      <tr>
+        <th>Name</th>
+        <th>Description</th>
+      </tr>
+      </thead>
+      <tbody>
+      
+      <tr class="sourcedoc-section section-element" id="6016df271ee036a454f4d3d692a5b9f06b783955">
+        <td class="sourcedoc-section section-signature">
+          <code>v: Node</code>
+        </td>
+        <td class="sourcedoc-section section-comments content">
+        <p>The <a href="#">Node</a> to deserialize.</p>
+
+        </td>
+      </tr>
+      
+      </tbody>
+    </table>
+  </div>
+
+
+</div>
+
+        
+          
+<div class="sourcedoc-section section-root section-level-3" id="761e215b32fde152f013666ccf380c19d8ee1453">
+
+
+  <p class="sourcedoc-section section-name"><strong>ReturnValue</strong></p>
+
+  <div class="table-container">
+    <table class="table is-fullwidth is-bordered">
+      <thead>
+      <tr>
+        <th>Name</th>
+        <th>Description</th>
+      </tr>
+      </thead>
+      <tbody>
+      
+      <tr class="sourcedoc-section section-element" id="f44bf66490347555bff2cde18f3489bea8adf7e9">
+        <td class="sourcedoc-section section-signature">
+          <code>NewNodeBuilder</code>
+        </td>
+        <td class="sourcedoc-section section-comments content">
+        <p>a <a href="#">NewNodeBuilder</a> represented by the information in the givennode.</p>
+
+        </td>
+      </tr>
+      
+      </tbody>
+    </table>
+  </div>
+
+
+</div>
+
+        
+      
+    </div>
+  
+    <div class="sourcedoc-section section-element" id="f24ccbcfa22b3d67dedef6fd2b0dbebdc044fa95">
+      
+      <h3 class="sourcedoc-section element-name">mapToVertex</h3>
+      
+      <p class="sourcedoc-section section-signature">
+        <code>fun mapToVertex(v: NewNode): NewNodeBuilder</code>
+      </p>
+
+      
+
+      <div class="sourcedoc-section section-comments"><p>Converts a <a href="#">NewNode</a> to its respective <a href="#">NewNodeBuilder</a> object.</p>
+</div>
+
+      
+      
+        
+          
+<div class="sourcedoc-section section-root section-level-3" id="a39d7d2f6c568b66a9d2a448db04f426a8319249">
+
+
+  <p class="sourcedoc-section section-name"><strong>Parameters</strong></p>
+
+  <div class="table-container">
+    <table class="table is-fullwidth is-bordered">
+      <thead>
+      <tr>
+        <th>Name</th>
+        <th>Description</th>
+      </tr>
+      </thead>
+      <tbody>
+      
+      <tr class="sourcedoc-section section-element" id="854ce5fe1396ebd3154dc966dd688f30adceebd8">
+        <td class="sourcedoc-section section-signature">
+          <code>v: NewNode</code>
+        </td>
+        <td class="sourcedoc-section section-comments content">
+        <p>The <a href="#">NewNode</a> to deserialize.</p>
+
+        </td>
+      </tr>
+      
+      </tbody>
+    </table>
+  </div>
+
+
+</div>
+
+        
+          
+<div class="sourcedoc-section section-root section-level-3" id="6c5f7e7647b83ed790419487ee1974042fba6384">
+
+
+  <p class="sourcedoc-section section-name"><strong>ReturnValue</strong></p>
+
+  <div class="table-container">
+    <table class="table is-fullwidth is-bordered">
+      <thead>
+      <tr>
+        <th>Name</th>
+        <th>Description</th>
+      </tr>
+      </thead>
+      <tbody>
+      
+      <tr class="sourcedoc-section section-element" id="f44bf66490347555bff2cde18f3489bea8adf7e9">
+        <td class="sourcedoc-section section-signature">
+          <code>NewNodeBuilder</code>
+        </td>
+        <td class="sourcedoc-section section-comments content">
+        <p>a <a href="#">NewNodeBuilder</a> represented by the information in the givennode.</p>
+
+        </td>
+      </tr>
+      
+      </tbody>
+    </table>
+  </div>
+
+
+</div>
+
+        
+      
+    </div>
+  
+    <div class="sourcedoc-section section-element" id="43bc20471d5a4ae203be380a7cd8e000e1337955">
+      
+      <h3 class="sourcedoc-section element-name">mapToVertex</h3>
+      
+      <p class="sourcedoc-section section-signature">
+        <code>fun mapToVertex(mapToConvert: Map&lt;String, Any&gt;): NewNodeBuilder</code>
+      </p>
+
+      
+
+      <div class="sourcedoc-section section-comments"><p>Converts a Map containing vertex properties to its respective <a href="#">NewNodeBuilder</a> object.</p>
+</div>
+
+      
+      
+        
+          
+<div class="sourcedoc-section section-root section-level-3" id="7558afb7c1f8548fa98776712f9e52b17a1aab45">
+
+
+  <p class="sourcedoc-section section-name"><strong>Parameters</strong></p>
+
+  <div class="table-container">
+    <table class="table is-fullwidth is-bordered">
+      <thead>
+      <tr>
+        <th>Name</th>
+        <th>Description</th>
+      </tr>
+      </thead>
+      <tbody>
+      
+      <tr class="sourcedoc-section section-element" id="7aeb1cd65cea83ad0555201d759727d96b1d9bfd">
+        <td class="sourcedoc-section section-signature">
+          <code>mapToConvert: Map&lt;String, Any&gt;</code>
+        </td>
+        <td class="sourcedoc-section section-comments content">
+        <p>The Map to deserialize.</p>
+
+        </td>
+      </tr>
+      
+      </tbody>
+    </table>
+  </div>
+
+
+</div>
+
+        
+          
+<div class="sourcedoc-section section-root section-level-3" id="5bd3a4891358c90f02c6910a5612d954cffab9e6">
+
+
+  <p class="sourcedoc-section section-name"><strong>ReturnValue</strong></p>
+
+  <div class="table-container">
+    <table class="table is-fullwidth is-bordered">
+      <thead>
+      <tr>
+        <th>Name</th>
+        <th>Description</th>
+      </tr>
+      </thead>
+      <tbody>
+      
+      <tr class="sourcedoc-section section-element" id="f44bf66490347555bff2cde18f3489bea8adf7e9">
+        <td class="sourcedoc-section section-signature">
+          <code>NewNodeBuilder</code>
+        </td>
+        <td class="sourcedoc-section section-comments content">
+        <p>a <a href="#">NewNodeBuilder</a> represented by the information in the given map.</p>
+
+        </td>
+      </tr>
+      
+      </tbody>
+    </table>
+  </div>
+
+
+</div>
+
+        
+      
+    </div>
+  
+    <div class="sourcedoc-section section-element" id="012b2cd539ee4eb4bc9cfa7d4f6084760f934778">
+      
+      <h3 class="sourcedoc-section element-name">checkSchemaConstraints</h3>
+      
+      <p class="sourcedoc-section section-signature">
+        <code>fun checkSchemaConstraints(fromV: NewNodeBuilder, toV: NewNodeBuilder, edge: String): (fromV: NewNodeBuilder, toV: NewNodeBuilder, edge: String)</code>
+      </p>
+
+      
+
+      <div class="sourcedoc-section section-comments"><p>Checks if the given edge complies with the CPG schema given the from and two vertices.</p>
+</div>
+
+      
+      
+        
+          
+<div class="sourcedoc-section section-root section-level-3" id="147edf7f486026bcbf14267faeff867253a8bb1e">
+
+
+  <p class="sourcedoc-section section-name"><strong>Parameters</strong></p>
+
+  <div class="table-container">
+    <table class="table is-fullwidth is-bordered">
+      <thead>
+      <tr>
+        <th>Name</th>
+        <th>Description</th>
+      </tr>
+      </thead>
+      <tbody>
+      
+      <tr class="sourcedoc-section section-element" id="d061f71c366c1ace4e4f146468c85c79e0bf5ad4">
+        <td class="sourcedoc-section section-signature">
+          <code>fromV: NewNodeBuilder</code>
+        </td>
+        <td class="sourcedoc-section section-comments content">
+        <p>The vertex from which the edge connects from.</p>
+
+        </td>
+      </tr>
+      
+      <tr class="sourcedoc-section section-element" id="ee76a5405e69886a9ccf5d439f50535c91ee2e8a">
+        <td class="sourcedoc-section section-signature">
+          <code>toV: NewNodeBuilder</code>
+        </td>
+        <td class="sourcedoc-section section-comments content">
+        <p>The vertex to which the edge connects to.</p>
+
+        </td>
+      </tr>
+      
+      <tr class="sourcedoc-section section-element" id="1f3886d4da93dd615ff5f580afcf78f6fbf19524">
+        <td class="sourcedoc-section section-signature">
+          <code>edge: String</code>
+        </td>
+        <td class="sourcedoc-section section-comments content">
+        <p>the edge label between the two vertices.</p>
+
+        </td>
+      </tr>
+      
+      </tbody>
+    </table>
+  </div>
+
+
+</div>
+
+        
+          
+<div class="sourcedoc-section section-root section-level-3" id="c6d29fd22d95b76a6bf33466db7a7e6bde5852a5">
+
+
+  <p class="sourcedoc-section section-name"><strong>ReturnValue</strong></p>
+
+  <div class="table-container">
+    <table class="table is-fullwidth is-bordered">
+      <thead>
+      <tr>
+        <th>Name</th>
+        <th>Description</th>
+      </tr>
+      </thead>
+      <tbody>
+      
+      <tr class="sourcedoc-section section-element" id="89bbe7e9e3834be1d5443778567f8eef86602a22">
+        <td class="sourcedoc-section section-signature">
+          <code>(fromV: NewNodeBuilder, toV: NewNodeBuilder, edge: String)</code>
+        </td>
+        <td class="sourcedoc-section section-comments content">
+        <p>true if the edge complies with the CPG schema, false if otherwise.</p>
+
+        </td>
+      </tr>
+      
+      </tbody>
+    </table>
+  </div>
+
+
+</div>
+
+        
+      
+    </div>
+  
+    <div class="sourcedoc-section section-element" id="4955b0191df576526636d446f8e7a9cae17c8957">
+      
+      <h3 class="sourcedoc-section element-name">checkSchemaConstraints</h3>
+      
+      <p class="sourcedoc-section section-signature">
+        <code>fun checkSchemaConstraints(fromLabel: String, toLabel: String, edge: String): Boolean</code>
+      </p>
+
+      
+
+      <div class="sourcedoc-section section-comments"><p>Checks if the given edge complies with the CPG schema given the from and two vertices.</p>
+</div>
+
+      
+      
+        
+          
+<div class="sourcedoc-section section-root section-level-3" id="22f211fa805ce1b885820fab13c4476438c0653f">
+
+
+  <p class="sourcedoc-section section-name"><strong>Parameters</strong></p>
+
+  <div class="table-container">
+    <table class="table is-fullwidth is-bordered">
+      <thead>
+      <tr>
+        <th>Name</th>
+        <th>Description</th>
+      </tr>
+      </thead>
+      <tbody>
+      
+      <tr class="sourcedoc-section section-element" id="90624e7324fb6fc0c4a16ac87a98b21861f22ae6">
+        <td class="sourcedoc-section section-signature">
+          <code>fromLabel: String</code>
+        </td>
+        <td class="sourcedoc-section section-comments content">
+        <p>The vertex label from which the edge connects from.</p>
+
+        </td>
+      </tr>
+      
+      <tr class="sourcedoc-section section-element" id="862f59f3c4939f383e968a23bdfbacbc03f05c6f">
+        <td class="sourcedoc-section section-signature">
+          <code>toLabel: String</code>
+        </td>
+        <td class="sourcedoc-section section-comments content">
+        <p>The vertex label to which the edge connects to.</p>
+
+        </td>
+      </tr>
+      
+      <tr class="sourcedoc-section section-element" id="1f3886d4da93dd615ff5f580afcf78f6fbf19524">
+        <td class="sourcedoc-section section-signature">
+          <code>edge: String</code>
+        </td>
+        <td class="sourcedoc-section section-comments content">
+        <p>the edge label between the two vertices.</p>
+
+        </td>
+      </tr>
+      
+      </tbody>
+    </table>
+  </div>
+
+
+</div>
+
+        
+          
+<div class="sourcedoc-section section-root section-level-3" id="1c10fb3b795d0a5ccde3b50e4d5a83a6f4161c15">
+
+
+  <p class="sourcedoc-section section-name"><strong>ReturnValue</strong></p>
+
+  <div class="table-container">
+    <table class="table is-fullwidth is-bordered">
+      <thead>
+      <tr>
+        <th>Name</th>
+        <th>Description</th>
+      </tr>
+      </thead>
+      <tbody>
+      
+      <tr class="sourcedoc-section section-element" id="b76ff4906f33c2dd97ddd929b9662ba8cac6174c">
+        <td class="sourcedoc-section section-signature">
+          <code>Boolean</code>
+        </td>
+        <td class="sourcedoc-section section-comments content">
+        <p>true if the edge complies with the CPG schema, false if otherwise.</p>
+
+        </td>
+      </tr>
+      
+      </tbody>
+    </table>
+  </div>
+
+
+</div>
+
+        
+      
+    </div>
+  
+    <div class="sourcedoc-section section-element" id="ee58112d3ca821c1217827619c818cdccf9007e8">
+      
+      <h3 class="sourcedoc-section element-name">extractAttributesFromMap</h3>
+      
+      <p class="sourcedoc-section section-signature">
+        <code>fun extractAttributesFromMap(propertyMap: MutableMap&lt;String, Any&gt;): MutableMap&lt;String, Any&gt;</code>
+      </p>
+
+      
+
+      <div class="sourcedoc-section section-comments"></div>
+
+      
+      
+        
+          
+<div class="sourcedoc-section section-root section-level-3" id="196389d818e52f5d1261acf94ed9184f8d125b2f">
+
+
+  <p class="sourcedoc-section section-name"><strong>Parameters</strong></p>
+
+  <div class="table-container">
+    <table class="table is-fullwidth is-bordered">
+      <thead>
+      <tr>
+        <th>Name</th>
+        <th>Description</th>
+      </tr>
+      </thead>
+      <tbody>
+      
+      <tr class="sourcedoc-section section-element" id="55967dd3c1cee3a09ddebc0528f3b4efabd523fe">
+        <td class="sourcedoc-section section-signature">
+          <code>propertyMap: MutableMap&lt;String, Any&gt;</code>
+        </td>
+        <td class="sourcedoc-section section-comments content">
+        
+        </td>
+      </tr>
+      
+      </tbody>
+    </table>
+  </div>
+
+
+</div>
+
+        
+          
+<div class="sourcedoc-section section-root section-level-3" id="da8c57f2496d5848442c3a76f3d9ac7081ef60e9">
+
+
+  <p class="sourcedoc-section section-name"><strong>ReturnValue</strong></p>
+
+  <div class="table-container">
+    <table class="table is-fullwidth is-bordered">
+      <thead>
+      <tr>
+        <th>Name</th>
+        <th>Description</th>
+      </tr>
+      </thead>
+      <tbody>
+      
+      <tr class="sourcedoc-section section-element" id="21a4fc87090595d3d9a804e9a08612cb4881ea5a">
+        <td class="sourcedoc-section section-signature">
+          <code>MutableMap&lt;String, Any&gt;</code>
+        </td>
+        <td class="sourcedoc-section section-comments content">
+        
+        </td>
+      </tr>
+      
+      </tbody>
+    </table>
+  </div>
+
+
+</div>
+
+        
+      
+    </div>
+  
+
+</div>
+
+        
+      
+    </div>
+  
+
+</div>
+
+</div>
+
+
+
+                    
+                
+            
+        
+    
+    <!-- end:inject components -->
+
+
+                    </article>
+                </section>
+            
+        </div>
+        <hr>
+
+        <!-- Page Footer -->
+        <div class="inner">
+    <footer id="footer">
+        <div class="clearfix">
+            
+            
+        </div>
+    </footer>
+</div>
+
+    </div>
+
+    <!-- Sidebar -->
+    <div id="sidebar">
+    <div class="inner">
+
+        <!-- Search -->
+        <section id="search" class="alt">
+            <form data-orchid-search="">
+                <input type="text" name="query" id="query" placeholder="Search"/>
+            </form>
+            <div class="box" id="search-results" data-orchid-search-results style="display: none;">
+                <b>Search Results</b>
+                <ul></ul>
+            </div>
+            <div class="box" id="search-progress" data-orchid-search-progress style="display: none;">
+                <div class="loader">Loading...</div>
+            </div>
+        </section>
+
+        <!-- Menu -->
+        <nav id="siteNav" class="menu">
+            <header class="major">
+                <h2>Plume</h2>
+            </header>
+            <ul class="top-level">
+                
+                    
+    
+    <li>
+        <a class="subheader">API Docs</a>
+    </li>
+    
+
+                
+                    
+    <li>
+        <span class="opener">Classes</span>
+        <ul>
+        
+            
+    
+    <li>
+        <a href="https://plume-oss.github.io/plume/kotlindoc/io/github/plume/oss/passes/graph/astpass">ASTPass</a>
+    </li>
+    
+
+        
+            
+    
+    <li>
+        <a href="https://plume-oss.github.io/plume/kotlindoc/io/github/plume/oss/passes/graph/cfgpass">CFGPass</a>
+    </li>
+    
+
+        
+            
+    
+    <li>
+        <a href="https://plume-oss.github.io/plume/kotlindoc/io/github/plume/oss/passes/graph/cgpass">CGPass</a>
+    </li>
+    
+
+        
+            
+    
+    <li>
+        <a href="https://plume-oss.github.io/plume/kotlindoc/io/github/plume/oss/options/extractoroptions/callgraphalg">CallGraphAlg</a>
+    </li>
+    
+
+        
+            
+    
+    <li>
+        <a href="https://plume-oss.github.io/plume/kotlindoc/io/github/plume/oss/util/codecontrol">CodeControl</a>
+    </li>
+    
+
+        
+            
+    
+    <li>
+        <a href="https://plume-oss.github.io/plume/kotlindoc/io/github/plume/oss/util/diffgraphutil">DiffGraphUtil</a>
+    </li>
+    
+
+        
+            
+    
+    <li>
+        <a href="https://plume-oss.github.io/plume/kotlindoc/io/github/plume/oss/drivers/driverfactory">DriverFactory</a>
+    </li>
+    
+
+        
+            
+    
+    <li>
+        <a href="https://plume-oss.github.io/plume/kotlindoc/io/github/plume/oss/passes/structure/externaltypepass">ExternalTypePass</a>
+    </li>
+    
+
+        
+            
+    
+    <li>
+        <a href="https://plume-oss.github.io/plume/kotlindoc/io/github/plume/oss/extractor">Extractor</a>
+    </li>
+    
+
+        
+            
+    
+    <li>
+        <a href="https://plume-oss.github.io/plume/kotlindoc/io/github/plume/oss/util/extractorconst">ExtractorConst</a>
+    </li>
+    
+
+        
+            
+    
+    <li>
+        <a href="https://plume-oss.github.io/plume/kotlindoc/io/github/plume/oss/options/extractoroptions">ExtractorOptions</a>
+    </li>
+    
+
+        
+            
+    
+    <li>
+        <a href="https://plume-oss.github.io/plume/kotlindoc/io/github/plume/oss/metrics/extractortimekey">ExtractorTimeKey</a>
+    </li>
+    
+
+        
+            
+    
+    <li>
+        <a href="https://plume-oss.github.io/plume/kotlindoc/io/github/plume/oss/passes/structure/fileandpackagepass">FileAndPackagePass</a>
+    </li>
+    
+
+        
+            
+    
+    <li>
+        <a href="https://plume-oss.github.io/plume/kotlindoc/io/github/plume/oss/domain/files/filefactory">FileFactory</a>
+    </li>
+    
+
+        
+            
+    
+    <li>
+        <a href="https://plume-oss.github.io/plume/kotlindoc/io/github/plume/oss/globalcache">GlobalCache</a>
+    </li>
+    
+
+        
+            
+    
+    <li>
+        <a href="https://plume-oss.github.io/plume/kotlindoc/io/github/plume/oss/passes/type/globaltypepass">GlobalTypePass</a>
+    </li>
+    
+
+        
+            
+    
+    <li>
+        <a href="https://plume-oss.github.io/plume/kotlindoc/io/github/plume/oss/drivers/graphdatabase">GraphDatabase</a>
+    </li>
+    
+
+        
+            
+    
+    <li>
+        <a href="https://plume-oss.github.io/plume/kotlindoc/io/github/plume/oss/graphio/graphmlwriter">GraphMLWriter</a>
+    </li>
+    
+
+        
+            
+    
+    <li>
+        <a href="https://plume-oss.github.io/plume/kotlindoc/io/github/plume/oss/graphio/graphsonwriter">GraphSONWriter</a>
+    </li>
+    
+
+        
+            
+    
+    <li>
+        <a href="https://plume-oss.github.io/plume/kotlindoc/io/github/plume/oss/drivers/gremlindriver">GremlinDriver</a>
+    </li>
+    
+
+        
+            
+    
+    <li>
+        <a href="https://plume-oss.github.io/plume/kotlindoc/io/github/plume/oss/drivers/gremlinoverriddeniddriver">GremlinOverriddenIdDriver</a>
+    </li>
+    
+
+        
+            
+    
+    <li>
+        <a href="https://plume-oss.github.io/plume/kotlindoc/io/github/plume/oss/drivers/idriver">IDriver</a>
+    </li>
+    
+
+        
+            
+    
+    <li>
+        <a href="https://plume-oss.github.io/plume/kotlindoc/io/github/plume/oss/passes/imethodpass">IMethodPass</a>
+    </li>
+    
+
+        
+            
+    
+    <li>
+        <a href="https://plume-oss.github.io/plume/kotlindoc/io/github/plume/oss/drivers/ioverrideniddriver">IOverridenIdDriver</a>
+    </li>
+    
+
+        
+            
+    
+    <li>
+        <a href="https://plume-oss.github.io/plume/kotlindoc/io/github/plume/oss/passes/iprogramstructurepass">IProgramStructurePass</a>
+    </li>
+    
+
+        
+            
+    
+    <li>
+        <a href="https://plume-oss.github.io/plume/kotlindoc/io/github/plume/oss/drivers/ischemasafedriver">ISchemaSafeDriver</a>
+    </li>
+    
+
+        
+            
+    
+    <li>
+        <a href="https://plume-oss.github.io/plume/kotlindoc/io/github/plume/oss/passes/itypepass">ITypePass</a>
+    </li>
+    
+
+        
+            
+    
+    <li>
+        <a href="https://plume-oss.github.io/plume/kotlindoc/io/github/plume/oss/passes/iunitgraphpass">IUnitGraphPass</a>
+    </li>
+    
+
+        
+            
+    
+    <li>
+        <a href="https://plume-oss.github.io/plume/kotlindoc/io/github/plume/oss/domain/files/jvmclassfile">JVMClassFile</a>
+    </li>
+    
+
+        
+            
+    
+    <li>
+        <a href="https://plume-oss.github.io/plume/kotlindoc/io/github/plume/oss/drivers/janusgraphdriver">JanusGraphDriver</a>
+    </li>
+    
+
+        
+            
+    
+    <li>
+        <a href="https://plume-oss.github.io/plume/kotlindoc/io/github/plume/oss/domain/files/javafile">JavaFile</a>
+    </li>
+    
+
+        
+            
+    
+    <li>
+        <a href="https://plume-oss.github.io/plume/kotlindoc/io/github/plume/oss/passes/structure/markforrebuildpass">MarkForRebuildPass</a>
+    </li>
+    
+
+        
+            
+    
+    <li>
+        <a href="https://plume-oss.github.io/plume/kotlindoc/io/github/plume/oss/passes/method/methodstubpass">MethodStubPass</a>
+    </li>
+    
+
+        
+            
+    
+    <li>
+        <a href="https://plume-oss.github.io/plume/kotlindoc/io/github/plume/oss/drivers/neo4jdriver">Neo4jDriver</a>
+    </li>
+    
+
+        
+            
+    
+    <li>
+        <a href="https://plume-oss.github.io/plume/kotlindoc/io/github/plume/oss/drivers/neptunedriver">NeptuneDriver</a>
+    </li>
+    
+
+        
+            
+    
+    <li>
+        <a href="https://plume-oss.github.io/plume/kotlindoc/io/github/plume/oss/drivers/overflowdbdriver">OverflowDbDriver</a>
+    </li>
+    
+
+        
+            
+    
+    <li>
+        <a href="https://plume-oss.github.io/plume/kotlindoc/io/github/plume/oss/passes/graph/pdgpass">PDGPass</a>
+    </li>
+    
+
+        
+            
+    
+    <li>
+        <a href="https://plume-oss.github.io/plume/kotlindoc/io/github/plume/oss/domain/exceptions/plumecompileexception">PlumeCompileException</a>
+    </li>
+    
+
+        
+            
+    
+    <li>
+        <a href="https://plume-oss.github.io/plume/kotlindoc/io/github/plume/oss/domain/files/plumefile">PlumeFile</a>
+    </li>
+    
+
+        
+            
+    
+    <li>
+        <a href="https://plume-oss.github.io/plume/kotlindoc/io/github/plume/oss/util/plumekeyprovider">PlumeKeyProvider</a>
+    </li>
+    
+
+        
+            
+    
+    <li>
+        <a href="https://plume-oss.github.io/plume/kotlindoc/io/github/plume/oss/domain/exceptions/plumeschemaviolationexception">PlumeSchemaViolationException</a>
+    </li>
+    
+
+        
+            
+    
+    <li>
+        <a href="https://plume-oss.github.io/plume/kotlindoc/io/github/plume/oss/metrics/plumetimer">PlumeTimer</a>
+    </li>
+    
+
+        
+            
+    
+    <li>
+        <a href="https://plume-oss.github.io/plume/kotlindoc/io/github/plume/oss/domain/exceptions/plumetransactionexception">PlumeTransactionException</a>
+    </li>
+    
+
+        
+            
+    
+    <li>
+        <a href="https://plume-oss.github.io/plume/kotlindoc/io/github/plume/oss/util/resourcecompilationutil">ResourceCompilationUtil</a>
+    </li>
+    
+
+        
+            
+    
+    <li>
+        <a href="https://plume-oss.github.io/plume/kotlindoc/io/github/plume/oss/passes/scpgpass">SCPGPass</a>
+    </li>
+    
+
+        
+            
+    
+    <li>
+        <a href="https://plume-oss.github.io/plume/kotlindoc/io/github/plume/oss/util/sootparserutil">SootParserUtil</a>
+    </li>
+    
+
+        
+            
+    
+    <li>
+        <a href="https://plume-oss.github.io/plume/kotlindoc/io/github/plume/oss/util/soottoplumeutil">SootToPlumeUtil</a>
+    </li>
+    
+
+        
+            
+    
+    <li>
+        <a href="https://plume-oss.github.io/plume/kotlindoc/io/github/plume/oss/util/codecontrol/stopexitexception">StopExitException</a>
+    </li>
+    
+
+        
+            
+    
+    <li>
+        <a href="https://plume-oss.github.io/plume/kotlindoc/io/github/plume/oss/util/codecontrol/stopexitsecuritymanager">StopExitSecurityManager</a>
+    </li>
+    
+
+        
+            
+    
+    <li>
+        <a href="https://plume-oss.github.io/plume/kotlindoc/io/github/plume/oss/domain/files/supportedfile">SupportedFile</a>
+    </li>
+    
+
+        
+            
+    
+    <li>
+        <a href="https://plume-oss.github.io/plume/kotlindoc/io/github/plume/oss/drivers/tigergraphdriver">TigerGraphDriver</a>
+    </li>
+    
+
+        
+            
+    
+    <li>
+        <a href="https://plume-oss.github.io/plume/kotlindoc/io/github/plume/oss/drivers/tinkergraphdriver">TinkerGraphDriver</a>
+    </li>
+    
+
+        
+            
+    
+    <li>
+        <a href="https://plume-oss.github.io/plume/kotlindoc/io/github/plume/oss/passes/structure/typepass">TypePass</a>
+    </li>
+    
+
+        
+            
+    
+    <li>
+        <a href="https://plume-oss.github.io/plume/kotlindoc/io/github/plume/oss/domain/files/unsupportedfile">UnsupportedFile</a>
+    </li>
+    
+
+        
+            
+    
+    <li>
+        <a href="https://plume-oss.github.io/plume/kotlindoc/io/github/plume/oss/domain/mappers/vertexmapper">VertexMapper</a>
+    </li>
+    
+
+        
+        </ul>
+    </li>
+
+                
+                    
+    <li>
+        <span class="opener">Packages</span>
+        <ul>
+        
+            
+    
+    <li>
+        <a href="https://plume-oss.github.io/plume/kotlindoc/io/github/plume/oss">io.github.plume.oss</a>
+    </li>
+    
+
+        
+            
+    
+    <li>
+        <a href="https://plume-oss.github.io/plume/kotlindoc/io/github/plume/oss/domain/exceptions">io.github.plume.oss.domain.exceptions</a>
+    </li>
+    
+
+        
+            
+    
+    <li>
+        <a href="https://plume-oss.github.io/plume/kotlindoc/io/github/plume/oss/domain/files">io.github.plume.oss.domain.files</a>
+    </li>
+    
+
+        
+            
+    
+    <li>
+        <a href="https://plume-oss.github.io/plume/kotlindoc/io/github/plume/oss/domain/mappers">io.github.plume.oss.domain.mappers</a>
+    </li>
+    
+
+        
+            
+    
+    <li>
+        <a href="https://plume-oss.github.io/plume/kotlindoc/io/github/plume/oss/drivers">io.github.plume.oss.drivers</a>
+    </li>
+    
+
+        
+            
+    
+    <li>
+        <a href="https://plume-oss.github.io/plume/kotlindoc/io/github/plume/oss/graphio">io.github.plume.oss.graphio</a>
+    </li>
+    
+
+        
+            
+    
+    <li>
+        <a href="https://plume-oss.github.io/plume/kotlindoc/io/github/plume/oss/metrics">io.github.plume.oss.metrics</a>
+    </li>
+    
+
+        
+            
+    
+    <li>
+        <a href="https://plume-oss.github.io/plume/kotlindoc/io/github/plume/oss/options">io.github.plume.oss.options</a>
+    </li>
+    
+
+        
+            
+    
+    <li>
+        <a href="https://plume-oss.github.io/plume/kotlindoc/io/github/plume/oss/passes">io.github.plume.oss.passes</a>
+    </li>
+    
+
+        
+            
+    
+    <li>
+        <a href="https://plume-oss.github.io/plume/kotlindoc/io/github/plume/oss/passes/graph">io.github.plume.oss.passes.graph</a>
+    </li>
+    
+
+        
+            
+    
+    <li>
+        <a href="https://plume-oss.github.io/plume/kotlindoc/io/github/plume/oss/passes/method">io.github.plume.oss.passes.method</a>
+    </li>
+    
+
+        
+            
+    
+    <li>
+        <a href="https://plume-oss.github.io/plume/kotlindoc/io/github/plume/oss/passes/structure">io.github.plume.oss.passes.structure</a>
+    </li>
+    
+
+        
+            
+    
+    <li>
+        <a href="https://plume-oss.github.io/plume/kotlindoc/io/github/plume/oss/passes/type">io.github.plume.oss.passes.type</a>
+    </li>
+    
+
+        
+            
+    
+    <li>
+        <a href="https://plume-oss.github.io/plume/kotlindoc/io/github/plume/oss/util">io.github.plume.oss.util</a>
+    </li>
+    
+
+        
+        </ul>
+    </li>
+
+                
+            </ul>
+        </nav>
+        
+
+        <!-- Section -->
+        <section>
+            <p class="text-center">
+                Currently 0.21.1. Created with <a href="https://orchid.run">Orchid </a> and <b>Orchid Editorial Theme</b>.
+            </p>
+        </section>
+
+        <!-- Footer -->
+        <footer id="footer">
+            <p class="copyright text-center">&copy; Plume. All rights reserved.<br>Design by <a href="https://html5up.net">HTML5 UP</a></p>
+        </footer>
+
+    </div>
+</div>
+
+</div>
+
+
+
+
+
+
+    <!-- start:inject meta-components [bodyEnd] -->
+    
+
+        
+            
+        
+
+        
+    
+    <!-- end:inject meta-components [bodyEnd] -->
+
+
+
+    <!-- start:inject meta-components [bodyEnd] -->
+    
+    <!-- end:inject meta-components [bodyEnd] -->
+
+
+
+
+<!-- start:inject scripts -->
+<script  src="https://plume-oss.github.io/plume/Editorial/af20a1c0/ajax/libs/jquery/1.11.3/jquery.min.js"></script>
+<script  src="https://plume-oss.github.io/plume/Editorial/af20a1c0/ajax/libs/skel/3.0.1/skel.min.js"></script>
+<script  src="https://plume-oss.github.io/plume/Editorial/af20a1c0/assets/js/editorial_util.js"></script>
+<script  src="https://plume-oss.github.io/plume/Editorial/af20a1c0/assets/js/editorial_main.js"></script>
+<script  src="https://plume-oss.github.io/plume/Editorial/af20a1c0/assets/js/editorial_orchidCustomizations.js"></script>
+<script  src="https://plume-oss.github.io/plume/ajax/libs/jquery/3.1.1/jquery.min.js"></script>
+<script  src="https://plume-oss.github.io/plume/lunr/lunr.js"></script>
+<script  src="https://plume-oss.github.io/plume/assets/js/orchidSearch.js"></script>
+<!-- end:inject scripts -->
+
+
+</body>
+</html>

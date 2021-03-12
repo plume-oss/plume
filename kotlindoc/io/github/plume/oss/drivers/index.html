@@ -1,0 +1,1020 @@
+<!DOCTYPE HTML>
+<!--
+    Editorial by HTML5 UP
+    html5up.net | @ajlkn
+    Free for personal and commercial use under the CCA 3.0 license (html5up.net/license)
+-->
+<html>
+<head>
+
+
+
+
+
+
+<meta charset="utf-8"/>
+<meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, user-scalable=no"/>
+<meta name="generator" content="Orchid 0.21.1"/>
+<link rel="icon" href="https://plume-oss.github.io/plume/favicon.ico">
+
+
+<meta name="robots" content="index, follow">
+
+
+
+<title>io.github.plume.oss.drivers</title>
+
+
+<meta name="description" content="Plume is a code property graph analysis library with options to extract the CPG from Java bytecode and store the result in various graph databases.">
+
+
+
+
+
+<!-- start:inject styles -->
+<link rel="stylesheet" type="text/css" href="https://plume-oss.github.io/plume/Editorial/af20a1c0/assets/css/editorial_main.css"  />
+<link rel="stylesheet" type="text/css" href="https://plume-oss.github.io/plume/Editorial/af20a1c0/assets/css/editorial_orchidCustomizations.css"  />
+<link rel="stylesheet" type="text/css" href="https://plume-oss.github.io/plume/Editorial/af20a1c0/assets/css/orchidSearch.css"  />
+<link rel="stylesheet" type="text/css" href="https://plume-oss.github.io/plume/assets/css/orchidSearch.css"  />
+<link rel="stylesheet" type="text/css" href="https://plume-oss.github.io/plume/assets/css/orchidSourceDoc.css"  />
+<!-- end:inject styles -->
+
+
+
+<script>
+    window.site = {"orchidVersion":"0.21.1","baseUrl":"https://plume-oss.github.io/plume","environment":"prod","version":"0.21.1"};
+</script>
+
+
+    <!-- start:inject meta-components [head] -->
+    
+
+        
+            
+        
+
+        
+            
+        
+    
+    <!-- end:inject meta-components [head] -->
+
+
+
+    <!-- start:inject meta-components [head] -->
+    
+    <!-- end:inject meta-components [head] -->
+
+
+
+
+
+
+
+</head>
+<body class="is-loading">
+
+
+
+
+
+    <!-- start:inject meta-components [bodyStart] -->
+    
+
+        
+            
+        
+
+        
+    
+    <!-- end:inject meta-components [bodyStart] -->
+
+
+
+    <!-- start:inject meta-components [bodyStart] -->
+    
+    <!-- end:inject meta-components [bodyStart] -->
+
+
+
+
+
+<!-- Wrapper -->
+<div id="wrapper">
+
+    <!-- Main -->
+    <div id="main">
+        <div class="inner">
+
+            <!-- Header -->
+            
+                <header id="header">
+    <a href="https://plume-oss.github.io/plume" class="logo">Plume</a>
+    <ul class="icons">
+    
+    
+        <li>
+            <a href="https://github.com/plume-oss/plume" class="icon fa-github">
+                <span class="label">github</span>
+            </a>
+        </li>
+    
+    
+    </ul>
+</header>
+
+            
+            
+            
+            
+                <section id="pageContent">
+                    <header class="major"><h2>io.github.plume.oss.drivers</h2></header>
+                    <article>
+                        
+    <!-- start:inject components -->
+    
+        
+            
+                
+                    
+                        <div class="sourcedoc-page orchid-sourcedoc content">
+  
+<div class="sourcedoc-section section-root section-level-1" id="io.github.plume.oss.drivers">
+
+
+  
+
+  
+    <div class="sourcedoc-section section-element" id="ac8b0074f898e4ba2c10565ad51240ba903fe41b">
+      
+      <p class="sourcedoc-section section-signature">
+        <code>package <a href="https://plume-oss.github.io/plume/kotlindoc/io/github/plume/oss/drivers">io.github.plume.oss.drivers</a></code>
+      </p>
+
+      
+        
+    <!-- start:inject components -->
+    
+    <!-- end:inject components -->
+
+
+      
+
+      <div class="sourcedoc-section section-comments"></div>
+
+      
+      
+        
+          
+<div class="sourcedoc-section section-root section-level-2" id="classes">
+
+
+  <p class="sourcedoc-section section-name"><strong>Classes</strong></p>
+
+  <div class="table-container">
+    <table class="table is-fullwidth is-bordered">
+      <thead>
+      <tr>
+        <th>Name</th>
+        <th>Description</th>
+      </tr>
+      </thead>
+      <tbody>
+      
+      <tr class="sourcedoc-section section-element" id="7a097b1c4b16084ae5766978b702baff7f7daab2">
+        <td class="sourcedoc-section section-signature">
+          <code>object <a href="https://plume-oss.github.io/plume/kotlindoc/io/github/plume/oss/drivers/driverfactory">DriverFactory</a>: Any</code>
+        </td>
+        <td class="sourcedoc-section section-comments content">
+        <p>The factory responsible for obtaining the desired <a href="https://plume-oss.github.io/plume/kotlindoc/io/github/plume/oss/drivers/idriver">IDriver</a>.</p>
+
+        </td>
+      </tr>
+      
+      <tr class="sourcedoc-section section-element" id="a4c77f2f16bc7b8080e08c6e1160da8f071b9ae0">
+        <td class="sourcedoc-section section-signature">
+          <code>enum class <a href="https://plume-oss.github.io/plume/kotlindoc/io/github/plume/oss/drivers/graphdatabase">GraphDatabase</a>: Enum&lt;<a href="https://plume-oss.github.io/plume/kotlindoc/io/github/plume/oss/drivers/graphdatabase">GraphDatabase</a>&gt;</code>
+        </td>
+        <td class="sourcedoc-section section-comments content">
+        <p>The graph databases supported by Plume's <a href="https://plume-oss.github.io/plume/kotlindoc/io/github/plume/oss/drivers/idriver">IDriver</a>s.</p>
+
+        </td>
+      </tr>
+      
+      <tr class="sourcedoc-section section-element" id="7485dfded35d3e378284c0b821fd136f6085095a">
+        <td class="sourcedoc-section section-signature">
+          <code>abstract class <a href="https://plume-oss.github.io/plume/kotlindoc/io/github/plume/oss/drivers/gremlindriver">GremlinDriver</a>: <a href="https://plume-oss.github.io/plume/kotlindoc/io/github/plume/oss/drivers/idriver">IDriver</a>, Any</code>
+        </td>
+        <td class="sourcedoc-section section-comments content">
+        <p>The driver used by remote Gremlin connections.</p>
+
+        </td>
+      </tr>
+      
+      <tr class="sourcedoc-section section-element" id="8174e0da643b0fe076c11e0fa4a1352a4a460c92">
+        <td class="sourcedoc-section section-signature">
+          <code>abstract class <a href="https://plume-oss.github.io/plume/kotlindoc/io/github/plume/oss/drivers/gremlinoverriddeniddriver">GremlinOverriddenIdDriver</a>: <a href="https://plume-oss.github.io/plume/kotlindoc/io/github/plume/oss/drivers/gremlindriver">GremlinDriver</a>, <a href="https://plume-oss.github.io/plume/kotlindoc/io/github/plume/oss/drivers/ioverrideniddriver">IOverridenIdDriver</a></code>
+        </td>
+        <td class="sourcedoc-section section-comments content">
+        
+        </td>
+      </tr>
+      
+      <tr class="sourcedoc-section section-element" id="724a7b1f69e2822d15a8c305b8eb773da1350f82">
+        <td class="sourcedoc-section section-signature">
+          <code>interface <a href="https://plume-oss.github.io/plume/kotlindoc/io/github/plume/oss/drivers/idriver">IDriver</a>: AutoCloseable, Any</code>
+        </td>
+        <td class="sourcedoc-section section-comments content">
+        <p>The minimal interface for all graph drivers.</p>
+
+        </td>
+      </tr>
+      
+      <tr class="sourcedoc-section section-element" id="bbc56a3f94e56067342d58fe88bf59eff23db029">
+        <td class="sourcedoc-section section-signature">
+          <code>interface <a href="https://plume-oss.github.io/plume/kotlindoc/io/github/plume/oss/drivers/ioverrideniddriver">IOverridenIdDriver</a>: <a href="https://plume-oss.github.io/plume/kotlindoc/io/github/plume/oss/drivers/idriver">IDriver</a>, Any</code>
+        </td>
+        <td class="sourcedoc-section section-comments content">
+        <p>Interface for drivers on top of databases which don't use Long IDs by default and need to be overridden.</p>
+
+        </td>
+      </tr>
+      
+      <tr class="sourcedoc-section section-element" id="5eb87893912d11f2984e979a7d3dea028c6dae48">
+        <td class="sourcedoc-section section-signature">
+          <code>interface <a href="https://plume-oss.github.io/plume/kotlindoc/io/github/plume/oss/drivers/ischemasafedriver">ISchemaSafeDriver</a>: <a href="https://plume-oss.github.io/plume/kotlindoc/io/github/plume/oss/drivers/idriver">IDriver</a>, Any</code>
+        </td>
+        <td class="sourcedoc-section section-comments content">
+        <p>Interface for drivers on top of databases that allow for schemas to be set.</p>
+
+        </td>
+      </tr>
+      
+      <tr class="sourcedoc-section section-element" id="9ae54b4b9da5c3e9a88885ef79aa94677c8d474e">
+        <td class="sourcedoc-section section-signature">
+          <code>class <a href="https://plume-oss.github.io/plume/kotlindoc/io/github/plume/oss/drivers/janusgraphdriver">JanusGraphDriver</a>: <a href="https://plume-oss.github.io/plume/kotlindoc/io/github/plume/oss/drivers/gremlindriver">GremlinDriver</a>, <a href="https://plume-oss.github.io/plume/kotlindoc/io/github/plume/oss/drivers/ischemasafedriver">ISchemaSafeDriver</a></code>
+        </td>
+        <td class="sourcedoc-section section-comments content">
+        <p>The driver used to connect to a remote JanusGraph instance.</p>
+
+        </td>
+      </tr>
+      
+      <tr class="sourcedoc-section section-element" id="46e8f29f1680669176920666ef8b849360869a64">
+        <td class="sourcedoc-section section-signature">
+          <code>class <a href="https://plume-oss.github.io/plume/kotlindoc/io/github/plume/oss/drivers/neo4jdriver">Neo4jDriver</a>: <a href="https://plume-oss.github.io/plume/kotlindoc/io/github/plume/oss/drivers/idriver">IDriver</a>, Any</code>
+        </td>
+        <td class="sourcedoc-section section-comments content">
+        <p>The driver used to connect to a remote Neo4j instance.</p>
+
+        </td>
+      </tr>
+      
+      <tr class="sourcedoc-section section-element" id="4760dde5fe4852c2be63a4686a487fe0a3e95737">
+        <td class="sourcedoc-section section-signature">
+          <code>class <a href="https://plume-oss.github.io/plume/kotlindoc/io/github/plume/oss/drivers/neptunedriver">NeptuneDriver</a>: <a href="https://plume-oss.github.io/plume/kotlindoc/io/github/plume/oss/drivers/gremlinoverriddeniddriver">GremlinOverriddenIdDriver</a></code>
+        </td>
+        <td class="sourcedoc-section section-comments content">
+        <p>The driver used to connect to a remote Amazon Neptune instance.</p>
+
+        </td>
+      </tr>
+      
+      <tr class="sourcedoc-section section-element" id="aeff509a63878072ae87004c31cac41ff9bdbd10">
+        <td class="sourcedoc-section section-signature">
+          <code>class <a href="https://plume-oss.github.io/plume/kotlindoc/io/github/plume/oss/drivers/overflowdbdriver">OverflowDbDriver</a>: <a href="https://plume-oss.github.io/plume/kotlindoc/io/github/plume/oss/drivers/idriver">IDriver</a>, Any</code>
+        </td>
+        <td class="sourcedoc-section section-comments content">
+        <p>Driver to create an OverflowDB database file from Plume's domain classes.</p>
+
+        </td>
+      </tr>
+      
+      <tr class="sourcedoc-section section-element" id="a9aac2143744d76c60366fc61b1a79a061d44d33">
+        <td class="sourcedoc-section section-signature">
+          <code>class <a href="https://plume-oss.github.io/plume/kotlindoc/io/github/plume/oss/drivers/tigergraphdriver">TigerGraphDriver</a>: <a href="https://plume-oss.github.io/plume/kotlindoc/io/github/plume/oss/drivers/ioverrideniddriver">IOverridenIdDriver</a>, <a href="https://plume-oss.github.io/plume/kotlindoc/io/github/plume/oss/drivers/ischemasafedriver">ISchemaSafeDriver</a>, Any</code>
+        </td>
+        <td class="sourcedoc-section section-comments content">
+        <p>The driver used to connect to a remote TigerGraph instance.</p>
+
+        </td>
+      </tr>
+      
+      <tr class="sourcedoc-section section-element" id="7cb9ddf88fd860ad4b2ecb1597885563628a71ab">
+        <td class="sourcedoc-section section-signature">
+          <code>class <a href="https://plume-oss.github.io/plume/kotlindoc/io/github/plume/oss/drivers/tinkergraphdriver">TinkerGraphDriver</a>: <a href="https://plume-oss.github.io/plume/kotlindoc/io/github/plume/oss/drivers/gremlindriver">GremlinDriver</a></code>
+        </td>
+        <td class="sourcedoc-section section-comments content">
+        <p>The driver used to connect to an in-memory TinkerGraph instance.</p>
+
+        </td>
+      </tr>
+      
+      </tbody>
+    </table>
+  </div>
+
+
+</div>
+
+        
+      
+    </div>
+  
+
+</div>
+
+</div>
+
+
+
+                    
+                
+            
+        
+    
+    <!-- end:inject components -->
+
+
+                    </article>
+                </section>
+            
+        </div>
+        <hr>
+
+        <!-- Page Footer -->
+        <div class="inner">
+    <footer id="footer">
+        <div class="clearfix">
+            
+            
+        </div>
+    </footer>
+</div>
+
+    </div>
+
+    <!-- Sidebar -->
+    <div id="sidebar">
+    <div class="inner">
+
+        <!-- Search -->
+        <section id="search" class="alt">
+            <form data-orchid-search="">
+                <input type="text" name="query" id="query" placeholder="Search"/>
+            </form>
+            <div class="box" id="search-results" data-orchid-search-results style="display: none;">
+                <b>Search Results</b>
+                <ul></ul>
+            </div>
+            <div class="box" id="search-progress" data-orchid-search-progress style="display: none;">
+                <div class="loader">Loading...</div>
+            </div>
+        </section>
+
+        <!-- Menu -->
+        <nav id="siteNav" class="menu">
+            <header class="major">
+                <h2>Plume</h2>
+            </header>
+            <ul class="top-level">
+                
+                    
+    
+    <li>
+        <a class="subheader">API Docs</a>
+    </li>
+    
+
+                
+                    
+    <li>
+        <span class="opener">Classes</span>
+        <ul>
+        
+            
+    
+    <li>
+        <a href="https://plume-oss.github.io/plume/kotlindoc/io/github/plume/oss/passes/graph/astpass">ASTPass</a>
+    </li>
+    
+
+        
+            
+    
+    <li>
+        <a href="https://plume-oss.github.io/plume/kotlindoc/io/github/plume/oss/passes/graph/cfgpass">CFGPass</a>
+    </li>
+    
+
+        
+            
+    
+    <li>
+        <a href="https://plume-oss.github.io/plume/kotlindoc/io/github/plume/oss/passes/graph/cgpass">CGPass</a>
+    </li>
+    
+
+        
+            
+    
+    <li>
+        <a href="https://plume-oss.github.io/plume/kotlindoc/io/github/plume/oss/options/extractoroptions/callgraphalg">CallGraphAlg</a>
+    </li>
+    
+
+        
+            
+    
+    <li>
+        <a href="https://plume-oss.github.io/plume/kotlindoc/io/github/plume/oss/util/codecontrol">CodeControl</a>
+    </li>
+    
+
+        
+            
+    
+    <li>
+        <a href="https://plume-oss.github.io/plume/kotlindoc/io/github/plume/oss/util/diffgraphutil">DiffGraphUtil</a>
+    </li>
+    
+
+        
+            
+    
+    <li>
+        <a href="https://plume-oss.github.io/plume/kotlindoc/io/github/plume/oss/drivers/driverfactory">DriverFactory</a>
+    </li>
+    
+
+        
+            
+    
+    <li>
+        <a href="https://plume-oss.github.io/plume/kotlindoc/io/github/plume/oss/passes/structure/externaltypepass">ExternalTypePass</a>
+    </li>
+    
+
+        
+            
+    
+    <li>
+        <a href="https://plume-oss.github.io/plume/kotlindoc/io/github/plume/oss/extractor">Extractor</a>
+    </li>
+    
+
+        
+            
+    
+    <li>
+        <a href="https://plume-oss.github.io/plume/kotlindoc/io/github/plume/oss/util/extractorconst">ExtractorConst</a>
+    </li>
+    
+
+        
+            
+    
+    <li>
+        <a href="https://plume-oss.github.io/plume/kotlindoc/io/github/plume/oss/options/extractoroptions">ExtractorOptions</a>
+    </li>
+    
+
+        
+            
+    
+    <li>
+        <a href="https://plume-oss.github.io/plume/kotlindoc/io/github/plume/oss/metrics/extractortimekey">ExtractorTimeKey</a>
+    </li>
+    
+
+        
+            
+    
+    <li>
+        <a href="https://plume-oss.github.io/plume/kotlindoc/io/github/plume/oss/passes/structure/fileandpackagepass">FileAndPackagePass</a>
+    </li>
+    
+
+        
+            
+    
+    <li>
+        <a href="https://plume-oss.github.io/plume/kotlindoc/io/github/plume/oss/domain/files/filefactory">FileFactory</a>
+    </li>
+    
+
+        
+            
+    
+    <li>
+        <a href="https://plume-oss.github.io/plume/kotlindoc/io/github/plume/oss/globalcache">GlobalCache</a>
+    </li>
+    
+
+        
+            
+    
+    <li>
+        <a href="https://plume-oss.github.io/plume/kotlindoc/io/github/plume/oss/passes/type/globaltypepass">GlobalTypePass</a>
+    </li>
+    
+
+        
+            
+    
+    <li>
+        <a href="https://plume-oss.github.io/plume/kotlindoc/io/github/plume/oss/drivers/graphdatabase">GraphDatabase</a>
+    </li>
+    
+
+        
+            
+    
+    <li>
+        <a href="https://plume-oss.github.io/plume/kotlindoc/io/github/plume/oss/graphio/graphmlwriter">GraphMLWriter</a>
+    </li>
+    
+
+        
+            
+    
+    <li>
+        <a href="https://plume-oss.github.io/plume/kotlindoc/io/github/plume/oss/graphio/graphsonwriter">GraphSONWriter</a>
+    </li>
+    
+
+        
+            
+    
+    <li>
+        <a href="https://plume-oss.github.io/plume/kotlindoc/io/github/plume/oss/drivers/gremlindriver">GremlinDriver</a>
+    </li>
+    
+
+        
+            
+    
+    <li>
+        <a href="https://plume-oss.github.io/plume/kotlindoc/io/github/plume/oss/drivers/gremlinoverriddeniddriver">GremlinOverriddenIdDriver</a>
+    </li>
+    
+
+        
+            
+    
+    <li>
+        <a href="https://plume-oss.github.io/plume/kotlindoc/io/github/plume/oss/drivers/idriver">IDriver</a>
+    </li>
+    
+
+        
+            
+    
+    <li>
+        <a href="https://plume-oss.github.io/plume/kotlindoc/io/github/plume/oss/passes/imethodpass">IMethodPass</a>
+    </li>
+    
+
+        
+            
+    
+    <li>
+        <a href="https://plume-oss.github.io/plume/kotlindoc/io/github/plume/oss/drivers/ioverrideniddriver">IOverridenIdDriver</a>
+    </li>
+    
+
+        
+            
+    
+    <li>
+        <a href="https://plume-oss.github.io/plume/kotlindoc/io/github/plume/oss/passes/iprogramstructurepass">IProgramStructurePass</a>
+    </li>
+    
+
+        
+            
+    
+    <li>
+        <a href="https://plume-oss.github.io/plume/kotlindoc/io/github/plume/oss/drivers/ischemasafedriver">ISchemaSafeDriver</a>
+    </li>
+    
+
+        
+            
+    
+    <li>
+        <a href="https://plume-oss.github.io/plume/kotlindoc/io/github/plume/oss/passes/itypepass">ITypePass</a>
+    </li>
+    
+
+        
+            
+    
+    <li>
+        <a href="https://plume-oss.github.io/plume/kotlindoc/io/github/plume/oss/passes/iunitgraphpass">IUnitGraphPass</a>
+    </li>
+    
+
+        
+            
+    
+    <li>
+        <a href="https://plume-oss.github.io/plume/kotlindoc/io/github/plume/oss/domain/files/jvmclassfile">JVMClassFile</a>
+    </li>
+    
+
+        
+            
+    
+    <li>
+        <a href="https://plume-oss.github.io/plume/kotlindoc/io/github/plume/oss/drivers/janusgraphdriver">JanusGraphDriver</a>
+    </li>
+    
+
+        
+            
+    
+    <li>
+        <a href="https://plume-oss.github.io/plume/kotlindoc/io/github/plume/oss/domain/files/javafile">JavaFile</a>
+    </li>
+    
+
+        
+            
+    
+    <li>
+        <a href="https://plume-oss.github.io/plume/kotlindoc/io/github/plume/oss/passes/structure/markforrebuildpass">MarkForRebuildPass</a>
+    </li>
+    
+
+        
+            
+    
+    <li>
+        <a href="https://plume-oss.github.io/plume/kotlindoc/io/github/plume/oss/passes/method/methodstubpass">MethodStubPass</a>
+    </li>
+    
+
+        
+            
+    
+    <li>
+        <a href="https://plume-oss.github.io/plume/kotlindoc/io/github/plume/oss/drivers/neo4jdriver">Neo4jDriver</a>
+    </li>
+    
+
+        
+            
+    
+    <li>
+        <a href="https://plume-oss.github.io/plume/kotlindoc/io/github/plume/oss/drivers/neptunedriver">NeptuneDriver</a>
+    </li>
+    
+
+        
+            
+    
+    <li>
+        <a href="https://plume-oss.github.io/plume/kotlindoc/io/github/plume/oss/drivers/overflowdbdriver">OverflowDbDriver</a>
+    </li>
+    
+
+        
+            
+    
+    <li>
+        <a href="https://plume-oss.github.io/plume/kotlindoc/io/github/plume/oss/passes/graph/pdgpass">PDGPass</a>
+    </li>
+    
+
+        
+            
+    
+    <li>
+        <a href="https://plume-oss.github.io/plume/kotlindoc/io/github/plume/oss/domain/exceptions/plumecompileexception">PlumeCompileException</a>
+    </li>
+    
+
+        
+            
+    
+    <li>
+        <a href="https://plume-oss.github.io/plume/kotlindoc/io/github/plume/oss/domain/files/plumefile">PlumeFile</a>
+    </li>
+    
+
+        
+            
+    
+    <li>
+        <a href="https://plume-oss.github.io/plume/kotlindoc/io/github/plume/oss/util/plumekeyprovider">PlumeKeyProvider</a>
+    </li>
+    
+
+        
+            
+    
+    <li>
+        <a href="https://plume-oss.github.io/plume/kotlindoc/io/github/plume/oss/domain/exceptions/plumeschemaviolationexception">PlumeSchemaViolationException</a>
+    </li>
+    
+
+        
+            
+    
+    <li>
+        <a href="https://plume-oss.github.io/plume/kotlindoc/io/github/plume/oss/metrics/plumetimer">PlumeTimer</a>
+    </li>
+    
+
+        
+            
+    
+    <li>
+        <a href="https://plume-oss.github.io/plume/kotlindoc/io/github/plume/oss/domain/exceptions/plumetransactionexception">PlumeTransactionException</a>
+    </li>
+    
+
+        
+            
+    
+    <li>
+        <a href="https://plume-oss.github.io/plume/kotlindoc/io/github/plume/oss/util/resourcecompilationutil">ResourceCompilationUtil</a>
+    </li>
+    
+
+        
+            
+    
+    <li>
+        <a href="https://plume-oss.github.io/plume/kotlindoc/io/github/plume/oss/passes/scpgpass">SCPGPass</a>
+    </li>
+    
+
+        
+            
+    
+    <li>
+        <a href="https://plume-oss.github.io/plume/kotlindoc/io/github/plume/oss/util/sootparserutil">SootParserUtil</a>
+    </li>
+    
+
+        
+            
+    
+    <li>
+        <a href="https://plume-oss.github.io/plume/kotlindoc/io/github/plume/oss/util/soottoplumeutil">SootToPlumeUtil</a>
+    </li>
+    
+
+        
+            
+    
+    <li>
+        <a href="https://plume-oss.github.io/plume/kotlindoc/io/github/plume/oss/util/codecontrol/stopexitexception">StopExitException</a>
+    </li>
+    
+
+        
+            
+    
+    <li>
+        <a href="https://plume-oss.github.io/plume/kotlindoc/io/github/plume/oss/util/codecontrol/stopexitsecuritymanager">StopExitSecurityManager</a>
+    </li>
+    
+
+        
+            
+    
+    <li>
+        <a href="https://plume-oss.github.io/plume/kotlindoc/io/github/plume/oss/domain/files/supportedfile">SupportedFile</a>
+    </li>
+    
+
+        
+            
+    
+    <li>
+        <a href="https://plume-oss.github.io/plume/kotlindoc/io/github/plume/oss/drivers/tigergraphdriver">TigerGraphDriver</a>
+    </li>
+    
+
+        
+            
+    
+    <li>
+        <a href="https://plume-oss.github.io/plume/kotlindoc/io/github/plume/oss/drivers/tinkergraphdriver">TinkerGraphDriver</a>
+    </li>
+    
+
+        
+            
+    
+    <li>
+        <a href="https://plume-oss.github.io/plume/kotlindoc/io/github/plume/oss/passes/structure/typepass">TypePass</a>
+    </li>
+    
+
+        
+            
+    
+    <li>
+        <a href="https://plume-oss.github.io/plume/kotlindoc/io/github/plume/oss/domain/files/unsupportedfile">UnsupportedFile</a>
+    </li>
+    
+
+        
+            
+    
+    <li>
+        <a href="https://plume-oss.github.io/plume/kotlindoc/io/github/plume/oss/domain/mappers/vertexmapper">VertexMapper</a>
+    </li>
+    
+
+        
+        </ul>
+    </li>
+
+                
+                    
+    <li>
+        <span class="opener">Packages</span>
+        <ul>
+        
+            
+    
+    <li>
+        <a href="https://plume-oss.github.io/plume/kotlindoc/io/github/plume/oss">io.github.plume.oss</a>
+    </li>
+    
+
+        
+            
+    
+    <li>
+        <a href="https://plume-oss.github.io/plume/kotlindoc/io/github/plume/oss/domain/exceptions">io.github.plume.oss.domain.exceptions</a>
+    </li>
+    
+
+        
+            
+    
+    <li>
+        <a href="https://plume-oss.github.io/plume/kotlindoc/io/github/plume/oss/domain/files">io.github.plume.oss.domain.files</a>
+    </li>
+    
+
+        
+            
+    
+    <li>
+        <a href="https://plume-oss.github.io/plume/kotlindoc/io/github/plume/oss/domain/mappers">io.github.plume.oss.domain.mappers</a>
+    </li>
+    
+
+        
+            
+    
+    <li>
+        <a href="https://plume-oss.github.io/plume/kotlindoc/io/github/plume/oss/drivers">io.github.plume.oss.drivers</a>
+    </li>
+    
+
+        
+            
+    
+    <li>
+        <a href="https://plume-oss.github.io/plume/kotlindoc/io/github/plume/oss/graphio">io.github.plume.oss.graphio</a>
+    </li>
+    
+
+        
+            
+    
+    <li>
+        <a href="https://plume-oss.github.io/plume/kotlindoc/io/github/plume/oss/metrics">io.github.plume.oss.metrics</a>
+    </li>
+    
+
+        
+            
+    
+    <li>
+        <a href="https://plume-oss.github.io/plume/kotlindoc/io/github/plume/oss/options">io.github.plume.oss.options</a>
+    </li>
+    
+
+        
+            
+    
+    <li>
+        <a href="https://plume-oss.github.io/plume/kotlindoc/io/github/plume/oss/passes">io.github.plume.oss.passes</a>
+    </li>
+    
+
+        
+            
+    
+    <li>
+        <a href="https://plume-oss.github.io/plume/kotlindoc/io/github/plume/oss/passes/graph">io.github.plume.oss.passes.graph</a>
+    </li>
+    
+
+        
+            
+    
+    <li>
+        <a href="https://plume-oss.github.io/plume/kotlindoc/io/github/plume/oss/passes/method">io.github.plume.oss.passes.method</a>
+    </li>
+    
+
+        
+            
+    
+    <li>
+        <a href="https://plume-oss.github.io/plume/kotlindoc/io/github/plume/oss/passes/structure">io.github.plume.oss.passes.structure</a>
+    </li>
+    
+
+        
+            
+    
+    <li>
+        <a href="https://plume-oss.github.io/plume/kotlindoc/io/github/plume/oss/passes/type">io.github.plume.oss.passes.type</a>
+    </li>
+    
+
+        
+            
+    
+    <li>
+        <a href="https://plume-oss.github.io/plume/kotlindoc/io/github/plume/oss/util">io.github.plume.oss.util</a>
+    </li>
+    
+
+        
+        </ul>
+    </li>
+
+                
+            </ul>
+        </nav>
+        
+
+        <!-- Section -->
+        <section>
+            <p class="text-center">
+                Currently 0.21.1. Created with <a href="https://orchid.run">Orchid </a> and <b>Orchid Editorial Theme</b>.
+            </p>
+        </section>
+
+        <!-- Footer -->
+        <footer id="footer">
+            <p class="copyright text-center">&copy; Plume. All rights reserved.<br>Design by <a href="https://html5up.net">HTML5 UP</a></p>
+        </footer>
+
+    </div>
+</div>
+
+</div>
+
+
+
+
+
+
+    <!-- start:inject meta-components [bodyEnd] -->
+    
+
+        
+            
+        
+
+        
+    
+    <!-- end:inject meta-components [bodyEnd] -->
+
+
+
+    <!-- start:inject meta-components [bodyEnd] -->
+    
+    <!-- end:inject meta-components [bodyEnd] -->
+
+
+
+
+<!-- start:inject scripts -->
+<script  src="https://plume-oss.github.io/plume/Editorial/af20a1c0/ajax/libs/jquery/1.11.3/jquery.min.js"></script>
+<script  src="https://plume-oss.github.io/plume/Editorial/af20a1c0/ajax/libs/skel/3.0.1/skel.min.js"></script>
+<script  src="https://plume-oss.github.io/plume/Editorial/af20a1c0/assets/js/editorial_util.js"></script>
+<script  src="https://plume-oss.github.io/plume/Editorial/af20a1c0/assets/js/editorial_main.js"></script>
+<script  src="https://plume-oss.github.io/plume/Editorial/af20a1c0/assets/js/editorial_orchidCustomizations.js"></script>
+<script  src="https://plume-oss.github.io/plume/ajax/libs/jquery/3.1.1/jquery.min.js"></script>
+<script  src="https://plume-oss.github.io/plume/lunr/lunr.js"></script>
+<script  src="https://plume-oss.github.io/plume/assets/js/orchidSearch.js"></script>
+<!-- end:inject scripts -->
+
+
+</body>
+</html>

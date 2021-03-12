@@ -1,0 +1,2921 @@
+<!DOCTYPE HTML>
+<!--
+    Editorial by HTML5 UP
+    html5up.net | @ajlkn
+    Free for personal and commercial use under the CCA 3.0 license (html5up.net/license)
+-->
+<html>
+<head>
+
+
+
+
+
+
+<meta charset="utf-8"/>
+<meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, user-scalable=no"/>
+<meta name="generator" content="Orchid 0.21.1"/>
+<link rel="icon" href="https://plume-oss.github.io/plume/favicon.ico">
+
+
+<meta name="robots" content="index, follow">
+
+
+
+<title>GremlinDriver</title>
+
+
+<meta name="description" content="Plume is a code property graph analysis library with options to extract the CPG from Java bytecode and store the result in various graph databases.">
+
+
+
+
+
+<!-- start:inject styles -->
+<link rel="stylesheet" type="text/css" href="https://plume-oss.github.io/plume/Editorial/af20a1c0/assets/css/editorial_main.css"  />
+<link rel="stylesheet" type="text/css" href="https://plume-oss.github.io/plume/Editorial/af20a1c0/assets/css/editorial_orchidCustomizations.css"  />
+<link rel="stylesheet" type="text/css" href="https://plume-oss.github.io/plume/Editorial/af20a1c0/assets/css/orchidSearch.css"  />
+<link rel="stylesheet" type="text/css" href="https://plume-oss.github.io/plume/assets/css/orchidSearch.css"  />
+<link rel="stylesheet" type="text/css" href="https://plume-oss.github.io/plume/assets/css/orchidSourceDoc.css"  />
+<!-- end:inject styles -->
+
+
+
+<script>
+    window.site = {"orchidVersion":"0.21.1","baseUrl":"https://plume-oss.github.io/plume","environment":"prod","version":"0.21.1"};
+</script>
+
+
+    <!-- start:inject meta-components [head] -->
+    
+
+        
+            
+        
+
+        
+            
+        
+    
+    <!-- end:inject meta-components [head] -->
+
+
+
+    <!-- start:inject meta-components [head] -->
+    
+    <!-- end:inject meta-components [head] -->
+
+
+
+
+
+
+
+</head>
+<body class="is-loading">
+
+
+
+
+
+    <!-- start:inject meta-components [bodyStart] -->
+    
+
+        
+            
+        
+
+        
+    
+    <!-- end:inject meta-components [bodyStart] -->
+
+
+
+    <!-- start:inject meta-components [bodyStart] -->
+    
+    <!-- end:inject meta-components [bodyStart] -->
+
+
+
+
+
+<!-- Wrapper -->
+<div id="wrapper">
+
+    <!-- Main -->
+    <div id="main">
+        <div class="inner">
+
+            <!-- Header -->
+            
+                <header id="header">
+    <a href="https://plume-oss.github.io/plume" class="logo">Plume</a>
+    <ul class="icons">
+    
+    
+        <li>
+            <a href="https://github.com/plume-oss/plume" class="icon fa-github">
+                <span class="label">github</span>
+            </a>
+        </li>
+    
+    
+    </ul>
+</header>
+
+            
+            
+            
+            
+                <section id="pageContent">
+                    <header class="major"><h2>GremlinDriver</h2></header>
+                    <article>
+                        
+    <!-- start:inject components -->
+    
+        
+            
+                
+                    
+                        <div class="sourcedoc-page orchid-sourcedoc content">
+  
+<div class="sourcedoc-section section-root section-level-1" id="GremlinDriver">
+
+
+  
+
+  
+    <div class="sourcedoc-section section-element" id="7485dfded35d3e378284c0b821fd136f6085095a">
+      
+      <p class="sourcedoc-section section-signature">
+        <code>abstract class <a href="https://plume-oss.github.io/plume/kotlindoc/io/github/plume/oss/drivers/gremlindriver">GremlinDriver</a>: <a href="https://plume-oss.github.io/plume/kotlindoc/io/github/plume/oss/drivers/idriver">IDriver</a>, Any</code>
+      </p>
+
+      
+        
+    <!-- start:inject components -->
+    
+    <!-- end:inject components -->
+
+
+      
+
+      <div class="sourcedoc-section section-comments"><p>The driver used by remote Gremlin connections.</p>
+</div>
+
+      
+      
+        
+          
+<div class="sourcedoc-section section-root section-level-2" id="fields">
+
+
+  <p class="sourcedoc-section section-name"><strong>Fields</strong></p>
+
+  <div class="table-container">
+    <table class="table is-fullwidth is-bordered">
+      <thead>
+      <tr>
+        <th>Name</th>
+        <th>Description</th>
+      </tr>
+      </thead>
+      <tbody>
+      
+      <tr class="sourcedoc-section section-element" id="cfb299c8acba826c8329e1c1d8073f24fed1c1c3">
+        <td class="sourcedoc-section section-signature">
+          <code>protected lateinit var graph: Graph</code>
+        </td>
+        <td class="sourcedoc-section section-comments content">
+        
+        </td>
+      </tr>
+      
+      <tr class="sourcedoc-section section-element" id="9ac3e42532d29d2ab1cfd233304a18b53bf14084">
+        <td class="sourcedoc-section section-signature">
+          <code>protected lateinit var g: GraphTraversalSource</code>
+        </td>
+        <td class="sourcedoc-section section-comments content">
+        
+        </td>
+      </tr>
+      
+      <tr class="sourcedoc-section section-element" id="d1fdf02be29a3c2cf091ed23c83d689065c379f3">
+        <td class="sourcedoc-section section-signature">
+          <code>val config: BaseConfiguration</code>
+        </td>
+        <td class="sourcedoc-section section-comments content">
+        <p>The key-value configuration object used in creating the connection to the Gremlin server.</p>
+
+        </td>
+      </tr>
+      
+      <tr class="sourcedoc-section section-element" id="60c0d4c41dbdb9a579e4ed90721b7150019c5fea">
+        <td class="sourcedoc-section section-signature">
+          <code>var connected: Boolean</code>
+        </td>
+        <td class="sourcedoc-section section-comments content">
+        <p>Indicates whether the driver is connected to the graph database or not.</p>
+
+        </td>
+      </tr>
+      
+      </tbody>
+    </table>
+  </div>
+
+
+</div>
+
+        
+          
+<div class="sourcedoc-section section-root section-level-2" id="constructors">
+
+
+  <p class="sourcedoc-section section-name"><strong>Constructors</strong></p>
+
+  <div class="table-container">
+    <table class="table is-fullwidth is-bordered">
+      <thead>
+      <tr>
+        <th>Name</th>
+        <th>Description</th>
+      </tr>
+      </thead>
+      <tbody>
+      
+      <tr class="sourcedoc-section section-element" id="d4613aad3f43ed7d2b370aabe518d8516ff827ff">
+        <td class="sourcedoc-section section-signature">
+          <code>constructor()</code>
+        </td>
+        <td class="sourcedoc-section section-comments content">
+        <p>The driver used by remote Gremlin connections.</p>
+
+        </td>
+      </tr>
+      
+      </tbody>
+    </table>
+  </div>
+
+
+</div>
+
+        
+          
+<div class="sourcedoc-section section-root section-level-2" id="methods">
+
+
+  
+    <h2 class="sourcedoc-section section-name">Methods</h2>
+  
+
+  
+    <div class="sourcedoc-section section-element" id="206c7503c31d5cb4c5b672d8378ee52842e66a6d">
+      
+      <h3 class="sourcedoc-section element-name">connect</h3>
+      
+      <p class="sourcedoc-section section-signature">
+        <code>open fun connect(): <a href="https://plume-oss.github.io/plume/kotlindoc/io/github/plume/oss/drivers/gremlindriver">GremlinDriver</a></code>
+      </p>
+
+      
+
+      <div class="sourcedoc-section section-comments"><p>Connects to the graph database with the given configuration.</p>
+</div>
+
+      
+      
+        
+          
+<div class="sourcedoc-section section-root section-level-3" id="2dd329fca5e0b6f8338cd2e01580b5c7ffd52eea">
+
+
+  <p class="sourcedoc-section section-name"><strong>ReturnValue</strong></p>
+
+  <div class="table-container">
+    <table class="table is-fullwidth is-bordered">
+      <thead>
+      <tr>
+        <th>Name</th>
+        <th>Description</th>
+      </tr>
+      </thead>
+      <tbody>
+      
+      <tr class="sourcedoc-section section-element" id="bdd091f7dabb5051276d6a49f8e92da12a61f2d2">
+        <td class="sourcedoc-section section-signature">
+          <code><a href="https://plume-oss.github.io/plume/kotlindoc/io/github/plume/oss/drivers/gremlindriver">GremlinDriver</a></code>
+        </td>
+        <td class="sourcedoc-section section-comments content">
+        
+        </td>
+      </tr>
+      
+      </tbody>
+    </table>
+  </div>
+
+
+</div>
+
+        
+      
+    </div>
+  
+    <div class="sourcedoc-section section-element" id="189a9376a7bdb2e4ca8f3cfb5df255a6a996a53a">
+      
+      <h3 class="sourcedoc-section element-name">close</h3>
+      
+      <p class="sourcedoc-section section-signature">
+        <code>open fun close()</code>
+      </p>
+
+      
+
+      <div class="sourcedoc-section section-comments"><p>Attempts to close the graph database connection and resources.</p>
+</div>
+
+      
+      
+        
+          
+<div class="sourcedoc-section section-root section-level-3" id="dcdd52ba1ae114339d7e10d288eb8aedee2061ad">
+
+
+  <p class="sourcedoc-section section-name"><strong>ReturnValue</strong></p>
+
+  <div class="table-container">
+    <table class="table is-fullwidth is-bordered">
+      <thead>
+      <tr>
+        <th>Name</th>
+        <th>Description</th>
+      </tr>
+      </thead>
+      <tbody>
+      
+      <tr class="sourcedoc-section section-element" id="f6b935ab337145efdeadda28cae18aa89a845e36">
+        <td class="sourcedoc-section section-signature">
+          <code>Unit</code>
+        </td>
+        <td class="sourcedoc-section section-comments content">
+        
+        </td>
+      </tr>
+      
+      </tbody>
+    </table>
+  </div>
+
+
+</div>
+
+        
+      
+    </div>
+  
+    <div class="sourcedoc-section section-element" id="95c1bebb39f6cbc1fa3d0aa7fa05ea9fc252d0dc">
+      
+      <h3 class="sourcedoc-section element-name">addVertex</h3>
+      
+      <p class="sourcedoc-section section-signature">
+        <code>open fun addVertex(v: NewNodeBuilder)</code>
+      </p>
+
+      
+
+      <div class="sourcedoc-section section-comments"><p>Inserts a vertex in the graph database.</p>
+</div>
+
+      
+      
+        
+          
+<div class="sourcedoc-section section-root section-level-3" id="71dd1ebdade53db8a640436990572f8b7577a1bc">
+
+
+  <p class="sourcedoc-section section-name"><strong>Parameters</strong></p>
+
+  <div class="table-container">
+    <table class="table is-fullwidth is-bordered">
+      <thead>
+      <tr>
+        <th>Name</th>
+        <th>Description</th>
+      </tr>
+      </thead>
+      <tbody>
+      
+      <tr class="sourcedoc-section section-element" id="e5681b1225c92ab146a3bfa4b09f720e21acddc4">
+        <td class="sourcedoc-section section-signature">
+          <code>v: NewNodeBuilder</code>
+        </td>
+        <td class="sourcedoc-section section-comments content">
+        <p>the <a href="#">NewNodeBuilder</a> to insert.</p>
+
+        </td>
+      </tr>
+      
+      </tbody>
+    </table>
+  </div>
+
+
+</div>
+
+        
+          
+<div class="sourcedoc-section section-root section-level-3" id="3aba7642f1e1db342c36a32c955c356f01e818d4">
+
+
+  <p class="sourcedoc-section section-name"><strong>ReturnValue</strong></p>
+
+  <div class="table-container">
+    <table class="table is-fullwidth is-bordered">
+      <thead>
+      <tr>
+        <th>Name</th>
+        <th>Description</th>
+      </tr>
+      </thead>
+      <tbody>
+      
+      <tr class="sourcedoc-section section-element" id="f6b935ab337145efdeadda28cae18aa89a845e36">
+        <td class="sourcedoc-section section-signature">
+          <code>Unit</code>
+        </td>
+        <td class="sourcedoc-section section-comments content">
+        
+        </td>
+      </tr>
+      
+      </tbody>
+    </table>
+  </div>
+
+
+</div>
+
+        
+      
+    </div>
+  
+    <div class="sourcedoc-section section-element" id="9e1b60d579d322b4997596c2658b11eaaf39c462">
+      
+      <h3 class="sourcedoc-section element-name">exists</h3>
+      
+      <p class="sourcedoc-section section-signature">
+        <code>open fun exists(v: NewNodeBuilder): Boolean</code>
+      </p>
+
+      
+
+      <div class="sourcedoc-section section-comments"><p>Checks if the given <a href="#">NewNodeBuilder</a> exists in the database.</p>
+</div>
+
+      
+      
+        
+          
+<div class="sourcedoc-section section-root section-level-3" id="cbbf60765677011c6651b72f23021b510d34fb34">
+
+
+  <p class="sourcedoc-section section-name"><strong>Parameters</strong></p>
+
+  <div class="table-container">
+    <table class="table is-fullwidth is-bordered">
+      <thead>
+      <tr>
+        <th>Name</th>
+        <th>Description</th>
+      </tr>
+      </thead>
+      <tbody>
+      
+      <tr class="sourcedoc-section section-element" id="e5681b1225c92ab146a3bfa4b09f720e21acddc4">
+        <td class="sourcedoc-section section-signature">
+          <code>v: NewNodeBuilder</code>
+        </td>
+        <td class="sourcedoc-section section-comments content">
+        <p>the <a href="#">NewNodeBuilder</a> to check existence of.</p>
+
+        </td>
+      </tr>
+      
+      </tbody>
+    </table>
+  </div>
+
+
+</div>
+
+        
+          
+<div class="sourcedoc-section section-root section-level-3" id="fe2853c8ae567af7caf1c46979cd3edcba33637e">
+
+
+  <p class="sourcedoc-section section-name"><strong>ReturnValue</strong></p>
+
+  <div class="table-container">
+    <table class="table is-fullwidth is-bordered">
+      <thead>
+      <tr>
+        <th>Name</th>
+        <th>Description</th>
+      </tr>
+      </thead>
+      <tbody>
+      
+      <tr class="sourcedoc-section section-element" id="b76ff4906f33c2dd97ddd929b9662ba8cac6174c">
+        <td class="sourcedoc-section section-signature">
+          <code>Boolean</code>
+        </td>
+        <td class="sourcedoc-section section-comments content">
+        <p>true if the vertex exists, false if otherwise.</p>
+
+        </td>
+      </tr>
+      
+      </tbody>
+    </table>
+  </div>
+
+
+</div>
+
+        
+      
+    </div>
+  
+    <div class="sourcedoc-section section-element" id="f45c39b30ee9beae4f1417aa3fb74417f79d8164">
+      
+      <h3 class="sourcedoc-section element-name">exists</h3>
+      
+      <p class="sourcedoc-section section-signature">
+        <code>open fun exists(src: NewNodeBuilder, tgt: NewNodeBuilder, edge: String): Boolean</code>
+      </p>
+
+      
+
+      <div class="sourcedoc-section section-comments"><p>Checks if there exists a directed edge of the given label between two <a href="#">NewNodeBuilder</a> vertices.</p>
+</div>
+
+      
+      
+        
+          
+<div class="sourcedoc-section section-root section-level-3" id="a5ac8c600d1e5443933cd802a5c7b3790901992d">
+
+
+  <p class="sourcedoc-section section-name"><strong>Parameters</strong></p>
+
+  <div class="table-container">
+    <table class="table is-fullwidth is-bordered">
+      <thead>
+      <tr>
+        <th>Name</th>
+        <th>Description</th>
+      </tr>
+      </thead>
+      <tbody>
+      
+      <tr class="sourcedoc-section section-element" id="0ec75ac00de9f9111c38629748e0b59e9de1e172">
+        <td class="sourcedoc-section section-signature">
+          <code>src: NewNodeBuilder</code>
+        </td>
+        <td class="sourcedoc-section section-comments content">
+        <p>the source <a href="#">NewNodeBuilder</a>.</p>
+
+        </td>
+      </tr>
+      
+      <tr class="sourcedoc-section section-element" id="39aaacbb83c7bbb55ef728859545d21e6f311e64">
+        <td class="sourcedoc-section section-signature">
+          <code>tgt: NewNodeBuilder</code>
+        </td>
+        <td class="sourcedoc-section section-comments content">
+        <p>the target <a href="#">NewNodeBuilder</a>.</p>
+
+        </td>
+      </tr>
+      
+      <tr class="sourcedoc-section section-element" id="1f3886d4da93dd615ff5f580afcf78f6fbf19524">
+        <td class="sourcedoc-section section-signature">
+          <code>edge: String</code>
+        </td>
+        <td class="sourcedoc-section section-comments content">
+        <p>the edge label.</p>
+
+        </td>
+      </tr>
+      
+      </tbody>
+    </table>
+  </div>
+
+
+</div>
+
+        
+          
+<div class="sourcedoc-section section-root section-level-3" id="ba5da1ea6df5abcd04a19d8262b2d6455fa45122">
+
+
+  <p class="sourcedoc-section section-name"><strong>ReturnValue</strong></p>
+
+  <div class="table-container">
+    <table class="table is-fullwidth is-bordered">
+      <thead>
+      <tr>
+        <th>Name</th>
+        <th>Description</th>
+      </tr>
+      </thead>
+      <tbody>
+      
+      <tr class="sourcedoc-section section-element" id="b76ff4906f33c2dd97ddd929b9662ba8cac6174c">
+        <td class="sourcedoc-section section-signature">
+          <code>Boolean</code>
+        </td>
+        <td class="sourcedoc-section section-comments content">
+        <p>true if the edge exists, false if otherwise.</p>
+
+        </td>
+      </tr>
+      
+      </tbody>
+    </table>
+  </div>
+
+
+</div>
+
+        
+      
+    </div>
+  
+    <div class="sourcedoc-section section-element" id="86aece2fc04f36ee3f7eed4bb4351fa796a551e5">
+      
+      <h3 class="sourcedoc-section element-name">findVertexTraversal</h3>
+      
+      <p class="sourcedoc-section section-signature">
+        <code>protected open fun findVertexTraversal(v: NewNodeBuilder): GraphTraversal<Vertex, Vertex>&lt;Vertex, Vertex&gt;</code>
+      </p>
+
+      
+
+      <div class="sourcedoc-section section-comments"></div>
+
+      
+      
+        
+          
+<div class="sourcedoc-section section-root section-level-3" id="5155be2fdc65ec235fd4f1bbe54f87d09830592c">
+
+
+  <p class="sourcedoc-section section-name"><strong>Parameters</strong></p>
+
+  <div class="table-container">
+    <table class="table is-fullwidth is-bordered">
+      <thead>
+      <tr>
+        <th>Name</th>
+        <th>Description</th>
+      </tr>
+      </thead>
+      <tbody>
+      
+      <tr class="sourcedoc-section section-element" id="e5681b1225c92ab146a3bfa4b09f720e21acddc4">
+        <td class="sourcedoc-section section-signature">
+          <code>v: NewNodeBuilder</code>
+        </td>
+        <td class="sourcedoc-section section-comments content">
+        
+        </td>
+      </tr>
+      
+      </tbody>
+    </table>
+  </div>
+
+
+</div>
+
+        
+          
+<div class="sourcedoc-section section-root section-level-3" id="be80672fbb99bb9bd9a2df3d2a75d16ba6f3897c">
+
+
+  <p class="sourcedoc-section section-name"><strong>ReturnValue</strong></p>
+
+  <div class="table-container">
+    <table class="table is-fullwidth is-bordered">
+      <thead>
+      <tr>
+        <th>Name</th>
+        <th>Description</th>
+      </tr>
+      </thead>
+      <tbody>
+      
+      <tr class="sourcedoc-section section-element" id="b15cc1710659ea50c8be013d285628cdb1c0ddff">
+        <td class="sourcedoc-section section-signature">
+          <code>GraphTraversal<Vertex, Vertex>&lt;Vertex, Vertex&gt;</code>
+        </td>
+        <td class="sourcedoc-section section-comments content">
+        
+        </td>
+      </tr>
+      
+      </tbody>
+    </table>
+  </div>
+
+
+</div>
+
+        
+      
+    </div>
+  
+    <div class="sourcedoc-section section-element" id="1345111dcb0ce1313873606d53fcd6593abfc692">
+      
+      <h3 class="sourcedoc-section element-name">addEdge</h3>
+      
+      <p class="sourcedoc-section section-signature">
+        <code>open fun addEdge(src: NewNodeBuilder, tgt: NewNodeBuilder, edge: String)</code>
+      </p>
+
+      
+
+      <div class="sourcedoc-section section-comments"><p>Creates an edge with the given label between two <a href="#">NewNodeBuilder</a> vertices in the graph database.
+If the given vertices are not already present in the database, they are created. If the edge already exists
+it wil not be recreated.</p>
+</div>
+
+      
+      
+        
+          
+<div class="sourcedoc-section section-root section-level-3" id="8d572303d82824f2577734b7de061ec0243ef301">
+
+
+  <p class="sourcedoc-section section-name"><strong>Parameters</strong></p>
+
+  <div class="table-container">
+    <table class="table is-fullwidth is-bordered">
+      <thead>
+      <tr>
+        <th>Name</th>
+        <th>Description</th>
+      </tr>
+      </thead>
+      <tbody>
+      
+      <tr class="sourcedoc-section section-element" id="0ec75ac00de9f9111c38629748e0b59e9de1e172">
+        <td class="sourcedoc-section section-signature">
+          <code>src: NewNodeBuilder</code>
+        </td>
+        <td class="sourcedoc-section section-comments content">
+        <p>the source <a href="#">NewNodeBuilder</a>.</p>
+
+        </td>
+      </tr>
+      
+      <tr class="sourcedoc-section section-element" id="39aaacbb83c7bbb55ef728859545d21e6f311e64">
+        <td class="sourcedoc-section section-signature">
+          <code>tgt: NewNodeBuilder</code>
+        </td>
+        <td class="sourcedoc-section section-comments content">
+        <p>the target <a href="#">NewNodeBuilder</a>.</p>
+
+        </td>
+      </tr>
+      
+      <tr class="sourcedoc-section section-element" id="1f3886d4da93dd615ff5f580afcf78f6fbf19524">
+        <td class="sourcedoc-section section-signature">
+          <code>edge: String</code>
+        </td>
+        <td class="sourcedoc-section section-comments content">
+        <p>the edge label.</p>
+
+        </td>
+      </tr>
+      
+      </tbody>
+    </table>
+  </div>
+
+
+</div>
+
+        
+          
+<div class="sourcedoc-section section-root section-level-3" id="568281e2ac48cd685fea7d1970037ebe8b625c36">
+
+
+  <p class="sourcedoc-section section-name"><strong>ReturnValue</strong></p>
+
+  <div class="table-container">
+    <table class="table is-fullwidth is-bordered">
+      <thead>
+      <tr>
+        <th>Name</th>
+        <th>Description</th>
+      </tr>
+      </thead>
+      <tbody>
+      
+      <tr class="sourcedoc-section section-element" id="f6b935ab337145efdeadda28cae18aa89a845e36">
+        <td class="sourcedoc-section section-signature">
+          <code>Unit</code>
+        </td>
+        <td class="sourcedoc-section section-comments content">
+        
+        </td>
+      </tr>
+      
+      </tbody>
+    </table>
+  </div>
+
+
+</div>
+
+        
+      
+    </div>
+  
+    <div class="sourcedoc-section section-element" id="80bf72b7bc67cf18cb36e2bbfb45ca3639b6f012">
+      
+      <h3 class="sourcedoc-section element-name">clearGraph</h3>
+      
+      <p class="sourcedoc-section section-signature">
+        <code>open fun clearGraph(): ()</code>
+      </p>
+
+      
+
+      <div class="sourcedoc-section section-comments"><p>Clears the graph of all vertices and edges.</p>
+</div>
+
+      
+      
+        
+          
+<div class="sourcedoc-section section-root section-level-3" id="4278e6bacc3c1f9c51f2938077fc3e11c0e5e937">
+
+
+  <p class="sourcedoc-section section-name"><strong>ReturnValue</strong></p>
+
+  <div class="table-container">
+    <table class="table is-fullwidth is-bordered">
+      <thead>
+      <tr>
+        <th>Name</th>
+        <th>Description</th>
+      </tr>
+      </thead>
+      <tbody>
+      
+      <tr class="sourcedoc-section section-element" id="f9065fa7389750e16fe00d7ba36748f61d3e0df6">
+        <td class="sourcedoc-section section-signature">
+          <code>()</code>
+        </td>
+        <td class="sourcedoc-section section-comments content">
+        <p>itself as so to be chained in method calls.</p>
+
+        </td>
+      </tr>
+      
+      </tbody>
+    </table>
+  </div>
+
+
+</div>
+
+        
+      
+    </div>
+  
+    <div class="sourcedoc-section section-element" id="36d5b43fd4175a5c9a98041888ba2810471575e3">
+      
+      <h3 class="sourcedoc-section element-name">createVertex</h3>
+      
+      <p class="sourcedoc-section section-signature">
+        <code>protected open fun createVertex(v: NewNodeBuilder): Vertex</code>
+      </p>
+
+      
+
+      <div class="sourcedoc-section section-comments"><p>Given a <a href="#">NewNode</a>, creates a <a href="#">Vertex</a> and translates the object's field properties to key-value
+pairs on the <a href="#">Vertex</a> object. This is then added to this driver's <a href="#">Graph</a>.</p>
+</div>
+
+      
+      
+        
+          
+<div class="sourcedoc-section section-root section-level-3" id="06c6c908df4c86b2172f2c8ce164e79373c05737">
+
+
+  <p class="sourcedoc-section section-name"><strong>Parameters</strong></p>
+
+  <div class="table-container">
+    <table class="table is-fullwidth is-bordered">
+      <thead>
+      <tr>
+        <th>Name</th>
+        <th>Description</th>
+      </tr>
+      </thead>
+      <tbody>
+      
+      <tr class="sourcedoc-section section-element" id="e5681b1225c92ab146a3bfa4b09f720e21acddc4">
+        <td class="sourcedoc-section section-signature">
+          <code>v: NewNodeBuilder</code>
+        </td>
+        <td class="sourcedoc-section section-comments content">
+        <p>The <a href="#">NewNode</a> to translate into a <a href="#">Vertex</a>.</p>
+
+        </td>
+      </tr>
+      
+      </tbody>
+    </table>
+  </div>
+
+
+</div>
+
+        
+          
+<div class="sourcedoc-section section-root section-level-3" id="0e66dd8cbac50b23b006414d3d9566170b3bdfd9">
+
+
+  <p class="sourcedoc-section section-name"><strong>ReturnValue</strong></p>
+
+  <div class="table-container">
+    <table class="table is-fullwidth is-bordered">
+      <thead>
+      <tr>
+        <th>Name</th>
+        <th>Description</th>
+      </tr>
+      </thead>
+      <tbody>
+      
+      <tr class="sourcedoc-section section-element" id="e5648eccf2ada7509f9293bed38e65578d366748">
+        <td class="sourcedoc-section section-signature">
+          <code>Vertex</code>
+        </td>
+        <td class="sourcedoc-section section-comments content">
+        <p>The newly created <a href="#">Vertex</a>.</p>
+
+        </td>
+      </tr>
+      
+      </tbody>
+    </table>
+  </div>
+
+
+</div>
+
+        
+      
+    </div>
+  
+    <div class="sourcedoc-section section-element" id="ec184feb9807bfef759b090bbabbce297552076c">
+      
+      <h3 class="sourcedoc-section element-name">prepareVertexProperties</h3>
+      
+      <p class="sourcedoc-section section-signature">
+        <code>protected open fun prepareVertexProperties(v: NewNodeBuilder): Map&lt;String, Any&gt;</code>
+      </p>
+
+      
+
+      <div class="sourcedoc-section section-comments"></div>
+
+      
+      
+        
+          
+<div class="sourcedoc-section section-root section-level-3" id="e0816bcaddb48bfbde533dd4c5882462c4fa8ac9">
+
+
+  <p class="sourcedoc-section section-name"><strong>Parameters</strong></p>
+
+  <div class="table-container">
+    <table class="table is-fullwidth is-bordered">
+      <thead>
+      <tr>
+        <th>Name</th>
+        <th>Description</th>
+      </tr>
+      </thead>
+      <tbody>
+      
+      <tr class="sourcedoc-section section-element" id="e5681b1225c92ab146a3bfa4b09f720e21acddc4">
+        <td class="sourcedoc-section section-signature">
+          <code>v: NewNodeBuilder</code>
+        </td>
+        <td class="sourcedoc-section section-comments content">
+        
+        </td>
+      </tr>
+      
+      </tbody>
+    </table>
+  </div>
+
+
+</div>
+
+        
+          
+<div class="sourcedoc-section section-root section-level-3" id="b63f846c764bf61b0ae2516dca13c7d5e736b9ea">
+
+
+  <p class="sourcedoc-section section-name"><strong>ReturnValue</strong></p>
+
+  <div class="table-container">
+    <table class="table is-fullwidth is-bordered">
+      <thead>
+      <tr>
+        <th>Name</th>
+        <th>Description</th>
+      </tr>
+      </thead>
+      <tbody>
+      
+      <tr class="sourcedoc-section section-element" id="0b33c8bddd544f104f2c83f4bd3ef7bc1927f2ee">
+        <td class="sourcedoc-section section-signature">
+          <code>Map&lt;String, Any&gt;</code>
+        </td>
+        <td class="sourcedoc-section section-comments content">
+        
+        </td>
+      </tr>
+      
+      </tbody>
+    </table>
+  </div>
+
+
+</div>
+
+        
+      
+    </div>
+  
+    <div class="sourcedoc-section section-element" id="797a5f82c9cbac8575ba73897d1307d8ce7c3089">
+      
+      <h3 class="sourcedoc-section element-name">getWholeGraph</h3>
+      
+      <p class="sourcedoc-section section-signature">
+        <code>open fun getWholeGraph(): overflowdb.Graph</code>
+      </p>
+
+      
+
+      <div class="sourcedoc-section section-comments"><p>Returns the whole CPG as a <a href="#">Graph</a> object. Depending on the size of the CPG, this may be very memory
+intensive and usually a bad idea to call.</p>
+</div>
+
+      
+      
+        
+          
+<div class="sourcedoc-section section-root section-level-3" id="fd0b832d57c8dd6d70a65b9df1db5f6e0ac186a3">
+
+
+  <p class="sourcedoc-section section-name"><strong>ReturnValue</strong></p>
+
+  <div class="table-container">
+    <table class="table is-fullwidth is-bordered">
+      <thead>
+      <tr>
+        <th>Name</th>
+        <th>Description</th>
+      </tr>
+      </thead>
+      <tbody>
+      
+      <tr class="sourcedoc-section section-element" id="57bc80a6223c6cf54d4481d437777ce46437acdb">
+        <td class="sourcedoc-section section-signature">
+          <code>overflowdb.Graph</code>
+        </td>
+        <td class="sourcedoc-section section-comments content">
+        <p>The whole CPG in the graph database.</p>
+
+        </td>
+      </tr>
+      
+      </tbody>
+    </table>
+  </div>
+
+
+</div>
+
+        
+      
+    </div>
+  
+    <div class="sourcedoc-section section-element" id="a34f97a93270672581f8a3426ddfe67c6f7c06ed">
+      
+      <h3 class="sourcedoc-section element-name">getMethod</h3>
+      
+      <p class="sourcedoc-section section-signature">
+        <code>open fun getMethod(fullName: String, includeBody: Boolean): overflowdb.Graph</code>
+      </p>
+
+      
+
+      <div class="sourcedoc-section section-comments"><p>Given the full signature of a method, returns the subgraph of the method body.</p>
+</div>
+
+      
+      
+        
+          
+<div class="sourcedoc-section section-root section-level-3" id="67e66baa47a3dc7eeb6c0105ca36c53154aa5b19">
+
+
+  <p class="sourcedoc-section section-name"><strong>Parameters</strong></p>
+
+  <div class="table-container">
+    <table class="table is-fullwidth is-bordered">
+      <thead>
+      <tr>
+        <th>Name</th>
+        <th>Description</th>
+      </tr>
+      </thead>
+      <tbody>
+      
+      <tr class="sourcedoc-section section-element" id="8370eabb99102188d08737089874a82c9d3b0436">
+        <td class="sourcedoc-section section-signature">
+          <code>fullName: String</code>
+        </td>
+        <td class="sourcedoc-section section-comments content">
+        <p>The fully qualified name with signature e.g. interprocedural.basic.Basic4.f:int(int,int)</p>
+
+        </td>
+      </tr>
+      
+      <tr class="sourcedoc-section section-element" id="51a13ee88ee202779013f4cde55280ee64053f97">
+        <td class="sourcedoc-section section-signature">
+          <code>includeBody: Boolean</code>
+        </td>
+        <td class="sourcedoc-section section-comments content">
+        <p>True if the body should be included, false if only method head should be included.</p>
+
+        </td>
+      </tr>
+      
+      </tbody>
+    </table>
+  </div>
+
+
+</div>
+
+        
+          
+<div class="sourcedoc-section section-root section-level-3" id="8633a985fcb7e5e8b9d8795996beba34d4023f33">
+
+
+  <p class="sourcedoc-section section-name"><strong>ReturnValue</strong></p>
+
+  <div class="table-container">
+    <table class="table is-fullwidth is-bordered">
+      <thead>
+      <tr>
+        <th>Name</th>
+        <th>Description</th>
+      </tr>
+      </thead>
+      <tbody>
+      
+      <tr class="sourcedoc-section section-element" id="57bc80a6223c6cf54d4481d437777ce46437acdb">
+        <td class="sourcedoc-section section-signature">
+          <code>overflowdb.Graph</code>
+        </td>
+        <td class="sourcedoc-section section-comments content">
+        <p>The <a href="#">Graph</a> containing the method graph.</p>
+
+        </td>
+      </tr>
+      
+      </tbody>
+    </table>
+  </div>
+
+
+</div>
+
+        
+      
+    </div>
+  
+    <div class="sourcedoc-section section-element" id="ffbf079778d770375c46eb0024ed352b8b3ece90">
+      
+      <h3 class="sourcedoc-section element-name">getMethodNames</h3>
+      
+      <p class="sourcedoc-section section-signature">
+        <code>open fun getMethodNames(): List&lt;String&gt;</code>
+      </p>
+
+      
+
+      <div class="sourcedoc-section section-comments"><p>Obtains all method full names in the CPG. These can be used in IDriver.getMethod.</p>
+</div>
+
+      
+      
+        
+          
+<div class="sourcedoc-section section-root section-level-3" id="edc5a637881c17ada74189e3709018b9e24e51ca">
+
+
+  <p class="sourcedoc-section section-name"><strong>ReturnValue</strong></p>
+
+  <div class="table-container">
+    <table class="table is-fullwidth is-bordered">
+      <thead>
+      <tr>
+        <th>Name</th>
+        <th>Description</th>
+      </tr>
+      </thead>
+      <tbody>
+      
+      <tr class="sourcedoc-section section-element" id="a0da19a49b4ee6be708653a46c78df4e60b59a9b">
+        <td class="sourcedoc-section section-signature">
+          <code>List&lt;String&gt;</code>
+        </td>
+        <td class="sourcedoc-section section-comments content">
+        <p>A list of all method full names.</p>
+
+        </td>
+      </tr>
+      
+      </tbody>
+    </table>
+  </div>
+
+
+</div>
+
+        
+      
+    </div>
+  
+    <div class="sourcedoc-section section-element" id="9fa1a1b2281e435dae98af1d7061bbc808529449">
+      
+      <h3 class="sourcedoc-section element-name">getProgramStructure</h3>
+      
+      <p class="sourcedoc-section section-signature">
+        <code>open fun getProgramStructure(): overflowdb.Graph</code>
+      </p>
+
+      
+
+      <div class="sourcedoc-section section-comments"><p>Obtains all program structure related vertices. These are NAMESPACE_BLOCK, FILE, and TYPE_DECL vertices.</p>
+</div>
+
+      
+      
+        
+          
+<div class="sourcedoc-section section-root section-level-3" id="ba273c8334e4627c17926501346ef00229f3b79e">
+
+
+  <p class="sourcedoc-section section-name"><strong>ReturnValue</strong></p>
+
+  <div class="table-container">
+    <table class="table is-fullwidth is-bordered">
+      <thead>
+      <tr>
+        <th>Name</th>
+        <th>Description</th>
+      </tr>
+      </thead>
+      <tbody>
+      
+      <tr class="sourcedoc-section section-element" id="57bc80a6223c6cf54d4481d437777ce46437acdb">
+        <td class="sourcedoc-section section-signature">
+          <code>overflowdb.Graph</code>
+        </td>
+        <td class="sourcedoc-section section-comments content">
+        <p>The <a href="#">Graph</a> containing the program structure related sub-graphs.</p>
+
+        </td>
+      </tr>
+      
+      </tbody>
+    </table>
+  </div>
+
+
+</div>
+
+        
+      
+    </div>
+  
+    <div class="sourcedoc-section section-element" id="482cde9daefbb3c6dba411d46b28af2958b12e3e">
+      
+      <h3 class="sourcedoc-section element-name">getProgramTypeData</h3>
+      
+      <p class="sourcedoc-section section-signature">
+        <code>open fun getProgramTypeData(): overflowdb.Graph</code>
+      </p>
+
+      
+
+      <div class="sourcedoc-section section-comments"><p>Obtains all the type references, declarations, and arguments of a program to their children and referenced
+vertices.</p>
+</div>
+
+      
+      
+        
+          
+<div class="sourcedoc-section section-root section-level-3" id="6f679b40fab9aa5e112aba214b35ecb036886876">
+
+
+  <p class="sourcedoc-section section-name"><strong>ReturnValue</strong></p>
+
+  <div class="table-container">
+    <table class="table is-fullwidth is-bordered">
+      <thead>
+      <tr>
+        <th>Name</th>
+        <th>Description</th>
+      </tr>
+      </thead>
+      <tbody>
+      
+      <tr class="sourcedoc-section section-element" id="57bc80a6223c6cf54d4481d437777ce46437acdb">
+        <td class="sourcedoc-section section-signature">
+          <code>overflowdb.Graph</code>
+        </td>
+        <td class="sourcedoc-section section-comments content">
+        <p>The <a href="#">Graph</a> containing the type data of the CPG.</p>
+
+        </td>
+      </tr>
+      
+      </tbody>
+    </table>
+  </div>
+
+
+</div>
+
+        
+      
+    </div>
+  
+    <div class="sourcedoc-section section-element" id="5fa125b82bde1730136830565c4826e79e9bd5e3">
+      
+      <h3 class="sourcedoc-section element-name">getNeighbours</h3>
+      
+      <p class="sourcedoc-section section-signature">
+        <code>open fun getNeighbours(v: NewNodeBuilder): overflowdb.Graph</code>
+      </p>
+
+      
+
+      <div class="sourcedoc-section section-comments"><p>Given a vertex, returns a <a href="#">Graph</a> representation of neighbouring vertices.</p>
+</div>
+
+      
+      
+        
+          
+<div class="sourcedoc-section section-root section-level-3" id="1cc653bc8aa9aab683b526f9815e2bd812916f80">
+
+
+  <p class="sourcedoc-section section-name"><strong>Parameters</strong></p>
+
+  <div class="table-container">
+    <table class="table is-fullwidth is-bordered">
+      <thead>
+      <tr>
+        <th>Name</th>
+        <th>Description</th>
+      </tr>
+      </thead>
+      <tbody>
+      
+      <tr class="sourcedoc-section section-element" id="e5681b1225c92ab146a3bfa4b09f720e21acddc4">
+        <td class="sourcedoc-section section-signature">
+          <code>v: NewNodeBuilder</code>
+        </td>
+        <td class="sourcedoc-section section-comments content">
+        <p>The source vertex.</p>
+
+        </td>
+      </tr>
+      
+      </tbody>
+    </table>
+  </div>
+
+
+</div>
+
+        
+          
+<div class="sourcedoc-section section-root section-level-3" id="7c072e48eaf9e584d7ba2188dc22e2483b7b214a">
+
+
+  <p class="sourcedoc-section section-name"><strong>ReturnValue</strong></p>
+
+  <div class="table-container">
+    <table class="table is-fullwidth is-bordered">
+      <thead>
+      <tr>
+        <th>Name</th>
+        <th>Description</th>
+      </tr>
+      </thead>
+      <tbody>
+      
+      <tr class="sourcedoc-section section-element" id="57bc80a6223c6cf54d4481d437777ce46437acdb">
+        <td class="sourcedoc-section section-signature">
+          <code>overflowdb.Graph</code>
+        </td>
+        <td class="sourcedoc-section section-comments content">
+        <p>The <a href="#">Graph</a> representation of the source vertex and its neighbouring vertices.</p>
+
+        </td>
+      </tr>
+      
+      </tbody>
+    </table>
+  </div>
+
+
+</div>
+
+        
+      
+    </div>
+  
+    <div class="sourcedoc-section section-element" id="b845d4b104a039d0633e3ecda73516e0aa35b16d">
+      
+      <h3 class="sourcedoc-section element-name">deleteVertex</h3>
+      
+      <p class="sourcedoc-section section-signature">
+        <code>open fun deleteVertex(id: Long, label: String?)</code>
+      </p>
+
+      
+
+      <div class="sourcedoc-section section-comments"><p>Given a vertex, will remove it from the graph if present.</p>
+</div>
+
+      
+      
+        
+          
+<div class="sourcedoc-section section-root section-level-3" id="7aace2f7e8b52366b7067b93aca83addb518507c">
+
+
+  <p class="sourcedoc-section section-name"><strong>Parameters</strong></p>
+
+  <div class="table-container">
+    <table class="table is-fullwidth is-bordered">
+      <thead>
+      <tr>
+        <th>Name</th>
+        <th>Description</th>
+      </tr>
+      </thead>
+      <tbody>
+      
+      <tr class="sourcedoc-section section-element" id="f61b2327d0cef43d7a07a293c42356adfcb5a275">
+        <td class="sourcedoc-section section-signature">
+          <code>id: Long</code>
+        </td>
+        <td class="sourcedoc-section section-comments content">
+        <p>The id to remove.</p>
+
+        </td>
+      </tr>
+      
+      <tr class="sourcedoc-section section-element" id="95c97650ebf09eb3fc686e7cb2da0a4dcb097357">
+        <td class="sourcedoc-section section-signature">
+          <code>label: String?</code>
+        </td>
+        <td class="sourcedoc-section section-comments content">
+        <p>The label, if known.</p>
+
+        </td>
+      </tr>
+      
+      </tbody>
+    </table>
+  </div>
+
+
+</div>
+
+        
+          
+<div class="sourcedoc-section section-root section-level-3" id="d7216067cbf0309b3728e1f2beca28c1966e3a40">
+
+
+  <p class="sourcedoc-section section-name"><strong>ReturnValue</strong></p>
+
+  <div class="table-container">
+    <table class="table is-fullwidth is-bordered">
+      <thead>
+      <tr>
+        <th>Name</th>
+        <th>Description</th>
+      </tr>
+      </thead>
+      <tbody>
+      
+      <tr class="sourcedoc-section section-element" id="f6b935ab337145efdeadda28cae18aa89a845e36">
+        <td class="sourcedoc-section section-signature">
+          <code>Unit</code>
+        </td>
+        <td class="sourcedoc-section section-comments content">
+        
+        </td>
+      </tr>
+      
+      </tbody>
+    </table>
+  </div>
+
+
+</div>
+
+        
+      
+    </div>
+  
+    <div class="sourcedoc-section section-element" id="5ab08d706bfc132f1bddd1036c02c84454b72c70">
+      
+      <h3 class="sourcedoc-section element-name">deleteEdge</h3>
+      
+      <p class="sourcedoc-section section-signature">
+        <code>open fun deleteEdge(src: NewNodeBuilder, tgt: NewNodeBuilder, edge: String)</code>
+      </p>
+
+      
+
+      <div class="sourcedoc-section section-comments"><p>Given two vertices and an edge label.</p>
+</div>
+
+      
+      
+        
+          
+<div class="sourcedoc-section section-root section-level-3" id="f01d4dceacd170294d4b76d9aad39b8a5ae9e730">
+
+
+  <p class="sourcedoc-section section-name"><strong>Parameters</strong></p>
+
+  <div class="table-container">
+    <table class="table is-fullwidth is-bordered">
+      <thead>
+      <tr>
+        <th>Name</th>
+        <th>Description</th>
+      </tr>
+      </thead>
+      <tbody>
+      
+      <tr class="sourcedoc-section section-element" id="0ec75ac00de9f9111c38629748e0b59e9de1e172">
+        <td class="sourcedoc-section section-signature">
+          <code>src: NewNodeBuilder</code>
+        </td>
+        <td class="sourcedoc-section section-comments content">
+        <p>Outgoing vertex.</p>
+
+        </td>
+      </tr>
+      
+      <tr class="sourcedoc-section section-element" id="39aaacbb83c7bbb55ef728859545d21e6f311e64">
+        <td class="sourcedoc-section section-signature">
+          <code>tgt: NewNodeBuilder</code>
+        </td>
+        <td class="sourcedoc-section section-comments content">
+        <p>Incoming vertex.</p>
+
+        </td>
+      </tr>
+      
+      <tr class="sourcedoc-section section-element" id="1f3886d4da93dd615ff5f580afcf78f6fbf19524">
+        <td class="sourcedoc-section section-signature">
+          <code>edge: String</code>
+        </td>
+        <td class="sourcedoc-section section-comments content">
+        <p>The edge label of the edge to remove.</p>
+
+        </td>
+      </tr>
+      
+      </tbody>
+    </table>
+  </div>
+
+
+</div>
+
+        
+          
+<div class="sourcedoc-section section-root section-level-3" id="51283d0f113ab19f64e391d994bd152a071dcbfd">
+
+
+  <p class="sourcedoc-section section-name"><strong>ReturnValue</strong></p>
+
+  <div class="table-container">
+    <table class="table is-fullwidth is-bordered">
+      <thead>
+      <tr>
+        <th>Name</th>
+        <th>Description</th>
+      </tr>
+      </thead>
+      <tbody>
+      
+      <tr class="sourcedoc-section section-element" id="f6b935ab337145efdeadda28cae18aa89a845e36">
+        <td class="sourcedoc-section section-signature">
+          <code>Unit</code>
+        </td>
+        <td class="sourcedoc-section section-comments content">
+        
+        </td>
+      </tr>
+      
+      </tbody>
+    </table>
+  </div>
+
+
+</div>
+
+        
+      
+    </div>
+  
+    <div class="sourcedoc-section section-element" id="869fcbc19727896b2250d78483b4515466d545cc">
+      
+      <h3 class="sourcedoc-section element-name">deleteMethod</h3>
+      
+      <p class="sourcedoc-section section-signature">
+        <code>open fun deleteMethod(fullName: String)</code>
+      </p>
+
+      
+
+      <div class="sourcedoc-section section-comments"><p>Given the full signature of a method, removes the method and its body from the graph.</p>
+</div>
+
+      
+      
+        
+          
+<div class="sourcedoc-section section-root section-level-3" id="45ef1ca7b7274c6bc51044e0e00976a8d74156a1">
+
+
+  <p class="sourcedoc-section section-name"><strong>Parameters</strong></p>
+
+  <div class="table-container">
+    <table class="table is-fullwidth is-bordered">
+      <thead>
+      <tr>
+        <th>Name</th>
+        <th>Description</th>
+      </tr>
+      </thead>
+      <tbody>
+      
+      <tr class="sourcedoc-section section-element" id="8370eabb99102188d08737089874a82c9d3b0436">
+        <td class="sourcedoc-section section-signature">
+          <code>fullName: String</code>
+        </td>
+        <td class="sourcedoc-section section-comments content">
+        <p>The fully qualified name with signature e.g. interprocedural.basic.Basic4.f:int(int,int)</p>
+
+        </td>
+      </tr>
+      
+      </tbody>
+    </table>
+  </div>
+
+
+</div>
+
+        
+          
+<div class="sourcedoc-section section-root section-level-3" id="ae91ba61bfdc9b6ab320bb663ab016d46d8d3e8f">
+
+
+  <p class="sourcedoc-section section-name"><strong>ReturnValue</strong></p>
+
+  <div class="table-container">
+    <table class="table is-fullwidth is-bordered">
+      <thead>
+      <tr>
+        <th>Name</th>
+        <th>Description</th>
+      </tr>
+      </thead>
+      <tbody>
+      
+      <tr class="sourcedoc-section section-element" id="f6b935ab337145efdeadda28cae18aa89a845e36">
+        <td class="sourcedoc-section section-signature">
+          <code>Unit</code>
+        </td>
+        <td class="sourcedoc-section section-comments content">
+        
+        </td>
+      </tr>
+      
+      </tbody>
+    </table>
+  </div>
+
+
+</div>
+
+        
+      
+    </div>
+  
+    <div class="sourcedoc-section section-element" id="dff65f4d709a0579b0df5dd3e4685bb19afbd1b0">
+      
+      <h3 class="sourcedoc-section element-name">updateVertexProperty</h3>
+      
+      <p class="sourcedoc-section section-signature">
+        <code>open fun updateVertexProperty(id: Long, label: String?, key: String, value: Any)</code>
+      </p>
+
+      
+
+      <div class="sourcedoc-section section-comments"><p>Updates a vertex's property if the node exists.</p>
+</div>
+
+      
+      
+        
+          
+<div class="sourcedoc-section section-root section-level-3" id="1d8c6b416b18b562fc09aa10ca36d88a204d6848">
+
+
+  <p class="sourcedoc-section section-name"><strong>Parameters</strong></p>
+
+  <div class="table-container">
+    <table class="table is-fullwidth is-bordered">
+      <thead>
+      <tr>
+        <th>Name</th>
+        <th>Description</th>
+      </tr>
+      </thead>
+      <tbody>
+      
+      <tr class="sourcedoc-section section-element" id="f61b2327d0cef43d7a07a293c42356adfcb5a275">
+        <td class="sourcedoc-section section-signature">
+          <code>id: Long</code>
+        </td>
+        <td class="sourcedoc-section section-comments content">
+        <p>The ID of the vertex to update.</p>
+
+        </td>
+      </tr>
+      
+      <tr class="sourcedoc-section section-element" id="95c97650ebf09eb3fc686e7cb2da0a4dcb097357">
+        <td class="sourcedoc-section section-signature">
+          <code>label: String?</code>
+        </td>
+        <td class="sourcedoc-section section-comments content">
+        <p>The label of the node, if known.</p>
+
+        </td>
+      </tr>
+      
+      <tr class="sourcedoc-section section-element" id="6d962dea0ce9c8247fa8770df4f119feb1a25993">
+        <td class="sourcedoc-section section-signature">
+          <code>key: String</code>
+        </td>
+        <td class="sourcedoc-section section-comments content">
+        <p>The key of the property to update.</p>
+
+        </td>
+      </tr>
+      
+      <tr class="sourcedoc-section section-element" id="31979fd0f250bf52bb0c55ecb09310b63e19a20b">
+        <td class="sourcedoc-section section-signature">
+          <code>value: Any</code>
+        </td>
+        <td class="sourcedoc-section section-comments content">
+        <p>The updated value.</p>
+
+        </td>
+      </tr>
+      
+      </tbody>
+    </table>
+  </div>
+
+
+</div>
+
+        
+          
+<div class="sourcedoc-section section-root section-level-3" id="8430cf28c9120c437f36156b32b2d2362f7cf0c3">
+
+
+  <p class="sourcedoc-section section-name"><strong>ReturnValue</strong></p>
+
+  <div class="table-container">
+    <table class="table is-fullwidth is-bordered">
+      <thead>
+      <tr>
+        <th>Name</th>
+        <th>Description</th>
+      </tr>
+      </thead>
+      <tbody>
+      
+      <tr class="sourcedoc-section section-element" id="f6b935ab337145efdeadda28cae18aa89a845e36">
+        <td class="sourcedoc-section section-signature">
+          <code>Unit</code>
+        </td>
+        <td class="sourcedoc-section section-comments content">
+        
+        </td>
+      </tr>
+      
+      </tbody>
+    </table>
+  </div>
+
+
+</div>
+
+        
+      
+    </div>
+  
+    <div class="sourcedoc-section section-element" id="4313396f57c40754cfa2e5066c9a393518a3b5e7">
+      
+      <h3 class="sourcedoc-section element-name">getMetaData</h3>
+      
+      <p class="sourcedoc-section section-signature">
+        <code>open fun getMetaData(): NewMetaDataBuilder?</code>
+      </p>
+
+      
+
+      <div class="sourcedoc-section section-comments"><p>Obtains the graph meta data information, if found.</p>
+</div>
+
+      
+      
+        
+          
+<div class="sourcedoc-section section-root section-level-3" id="e7881d088598bafbdaad02eb8602e503cee2ecbd">
+
+
+  <p class="sourcedoc-section section-name"><strong>ReturnValue</strong></p>
+
+  <div class="table-container">
+    <table class="table is-fullwidth is-bordered">
+      <thead>
+      <tr>
+        <th>Name</th>
+        <th>Description</th>
+      </tr>
+      </thead>
+      <tbody>
+      
+      <tr class="sourcedoc-section section-element" id="448dfa94952c72be8bb8b3dcdba1cb63269b0890">
+        <td class="sourcedoc-section section-signature">
+          <code>NewMetaDataBuilder?</code>
+        </td>
+        <td class="sourcedoc-section section-comments content">
+        <p>A <a href="#">NewMetaDataBuilder</a> containing the meta data information, false if no information found.</p>
+
+        </td>
+      </tr>
+      
+      </tbody>
+    </table>
+  </div>
+
+
+</div>
+
+        
+      
+    </div>
+  
+    <div class="sourcedoc-section section-element" id="7c0b8e52134282e0545428e1c318a9764333fef2">
+      
+      <h3 class="sourcedoc-section element-name">getVerticesByProperty</h3>
+      
+      <p class="sourcedoc-section section-signature">
+        <code>open fun getVerticesByProperty(propertyKey: String, propertyValue: Any, label: String?): List&lt;NewNodeBuilder&gt;</code>
+      </p>
+
+      
+
+      <div class="sourcedoc-section section-comments"><p>Attempts to get vertex by it's fullname property.</p>
+</div>
+
+      
+      
+        
+          
+<div class="sourcedoc-section section-root section-level-3" id="5244a9902c47f8b9e2538b4d30bd5c887b55d0c8">
+
+
+  <p class="sourcedoc-section section-name"><strong>Parameters</strong></p>
+
+  <div class="table-container">
+    <table class="table is-fullwidth is-bordered">
+      <thead>
+      <tr>
+        <th>Name</th>
+        <th>Description</th>
+      </tr>
+      </thead>
+      <tbody>
+      
+      <tr class="sourcedoc-section section-element" id="581e05b5bf1b53809f0402035d124acf8fdcb64d">
+        <td class="sourcedoc-section section-signature">
+          <code>propertyKey: String</code>
+        </td>
+        <td class="sourcedoc-section section-comments content">
+        <p>The key to match with.</p>
+
+        </td>
+      </tr>
+      
+      <tr class="sourcedoc-section section-element" id="a49b1fbb825c09b410fc759456f4f74f4083cfb6">
+        <td class="sourcedoc-section section-signature">
+          <code>propertyValue: Any</code>
+        </td>
+        <td class="sourcedoc-section section-comments content">
+        <p>The value to match with.</p>
+
+        </td>
+      </tr>
+      
+      <tr class="sourcedoc-section section-element" id="95c97650ebf09eb3fc686e7cb2da0a4dcb097357">
+        <td class="sourcedoc-section section-signature">
+          <code>label: String?</code>
+        </td>
+        <td class="sourcedoc-section section-comments content">
+        <p>An optional vertex label if known to further filter results by.</p>
+
+        </td>
+      </tr>
+      
+      </tbody>
+    </table>
+  </div>
+
+
+</div>
+
+        
+          
+<div class="sourcedoc-section section-root section-level-3" id="ca9a1846006ce35b78f0b9a249967daa4dd8a79a">
+
+
+  <p class="sourcedoc-section section-name"><strong>ReturnValue</strong></p>
+
+  <div class="table-container">
+    <table class="table is-fullwidth is-bordered">
+      <thead>
+      <tr>
+        <th>Name</th>
+        <th>Description</th>
+      </tr>
+      </thead>
+      <tbody>
+      
+      <tr class="sourcedoc-section section-element" id="70a6bc54592f03b87cf470fb5a1120495c597e15">
+        <td class="sourcedoc-section section-signature">
+          <code>List&lt;NewNodeBuilder&gt;</code>
+        </td>
+        <td class="sourcedoc-section section-comments content">
+        <p>A list of all vertices which match the predicates.</p>
+
+        </td>
+      </tr>
+      
+      </tbody>
+    </table>
+  </div>
+
+
+</div>
+
+        
+      
+    </div>
+  
+    <div class="sourcedoc-section section-element" id="a0964f97a584b8c9ba2383db3753032ac3deeed7">
+      
+      <h3 class="sourcedoc-section element-name">getPropertyFromVertices</h3>
+      
+      <p class="sourcedoc-section section-signature">
+        <code>open fun &lt;T : Any&gt; getPropertyFromVertices(propertyKey: String, label: String?): List&lt;T&gt;</code>
+      </p>
+
+      
+
+      <div class="sourcedoc-section section-comments"><p>Get a list of the results from a given property in vertices.</p>
+</div>
+
+      
+      
+        
+          
+<div class="sourcedoc-section section-root section-level-3" id="35d44dbf6a2c22a3f73d4e951c60ae61e69aeabd">
+
+
+  <p class="sourcedoc-section section-name"><strong>Parameters</strong></p>
+
+  <div class="table-container">
+    <table class="table is-fullwidth is-bordered">
+      <thead>
+      <tr>
+        <th>Name</th>
+        <th>Description</th>
+      </tr>
+      </thead>
+      <tbody>
+      
+      <tr class="sourcedoc-section section-element" id="581e05b5bf1b53809f0402035d124acf8fdcb64d">
+        <td class="sourcedoc-section section-signature">
+          <code>propertyKey: String</code>
+        </td>
+        <td class="sourcedoc-section section-comments content">
+        <p>The property to retrieve.</p>
+
+        </td>
+      </tr>
+      
+      <tr class="sourcedoc-section section-element" id="95c97650ebf09eb3fc686e7cb2da0a4dcb097357">
+        <td class="sourcedoc-section section-signature">
+          <code>label: String?</code>
+        </td>
+        <td class="sourcedoc-section section-comments content">
+        <p>An optional vertex label if known to further filter results by.</p>
+
+        </td>
+      </tr>
+      
+      </tbody>
+    </table>
+  </div>
+
+
+</div>
+
+        
+          
+<div class="sourcedoc-section section-root section-level-3" id="69d92d3459741d0f5943eb87bb28dcda2eb98281">
+
+
+  <p class="sourcedoc-section section-name"><strong>ReturnValue</strong></p>
+
+  <div class="table-container">
+    <table class="table is-fullwidth is-bordered">
+      <thead>
+      <tr>
+        <th>Name</th>
+        <th>Description</th>
+      </tr>
+      </thead>
+      <tbody>
+      
+      <tr class="sourcedoc-section section-element" id="8ba44f9709cdb27febdf0a05183d7bac7d3f462e">
+        <td class="sourcedoc-section section-signature">
+          <code>List&lt;T&gt;</code>
+        </td>
+        <td class="sourcedoc-section section-comments content">
+        <p>A list of the values from the given key using the specified type.</p>
+
+        </td>
+      </tr>
+      
+      </tbody>
+    </table>
+  </div>
+
+
+</div>
+
+        
+      
+    </div>
+  
+    <div class="sourcedoc-section section-element" id="fb8519569dc4425634c19650bdc66b9a591aaab6">
+      
+      <h3 class="sourcedoc-section element-name">mapVertexKeys</h3>
+      
+      <p class="sourcedoc-section section-signature">
+        <code>protected open fun mapVertexKeys(props: Map&lt;Any, Any&gt;): (props: Map<Any, Any>)</code>
+      </p>
+
+      
+
+      <div class="sourcedoc-section section-comments"></div>
+
+      
+      
+        
+          
+<div class="sourcedoc-section section-root section-level-3" id="74f1f265423f70e712a10447698100f01d1fad29">
+
+
+  <p class="sourcedoc-section section-name"><strong>Parameters</strong></p>
+
+  <div class="table-container">
+    <table class="table is-fullwidth is-bordered">
+      <thead>
+      <tr>
+        <th>Name</th>
+        <th>Description</th>
+      </tr>
+      </thead>
+      <tbody>
+      
+      <tr class="sourcedoc-section section-element" id="d421f4ed88a58531339719b2d8e6d69cf6318dbc">
+        <td class="sourcedoc-section section-signature">
+          <code>props: Map&lt;Any, Any&gt;</code>
+        </td>
+        <td class="sourcedoc-section section-comments content">
+        
+        </td>
+      </tr>
+      
+      </tbody>
+    </table>
+  </div>
+
+
+</div>
+
+        
+          
+<div class="sourcedoc-section section-root section-level-3" id="b756f74f8b0df1ff2299a1ddb9b4f9b4b86924df">
+
+
+  <p class="sourcedoc-section section-name"><strong>ReturnValue</strong></p>
+
+  <div class="table-container">
+    <table class="table is-fullwidth is-bordered">
+      <thead>
+      <tr>
+        <th>Name</th>
+        <th>Description</th>
+      </tr>
+      </thead>
+      <tbody>
+      
+      <tr class="sourcedoc-section section-element" id="f29d715a1172ab5c7b47e892d52053f51c8f51be">
+        <td class="sourcedoc-section section-signature">
+          <code>(props: Map<Any, Any>)</code>
+        </td>
+        <td class="sourcedoc-section section-comments content">
+        
+        </td>
+      </tr>
+      
+      </tbody>
+    </table>
+  </div>
+
+
+</div>
+
+        
+      
+    </div>
+  
+
+</div>
+
+        
+      
+    </div>
+  
+
+</div>
+
+</div>
+
+
+
+                    
+                
+            
+        
+    
+    <!-- end:inject components -->
+
+
+                    </article>
+                </section>
+            
+        </div>
+        <hr>
+
+        <!-- Page Footer -->
+        <div class="inner">
+    <footer id="footer">
+        <div class="clearfix">
+            
+            
+        </div>
+    </footer>
+</div>
+
+    </div>
+
+    <!-- Sidebar -->
+    <div id="sidebar">
+    <div class="inner">
+
+        <!-- Search -->
+        <section id="search" class="alt">
+            <form data-orchid-search="">
+                <input type="text" name="query" id="query" placeholder="Search"/>
+            </form>
+            <div class="box" id="search-results" data-orchid-search-results style="display: none;">
+                <b>Search Results</b>
+                <ul></ul>
+            </div>
+            <div class="box" id="search-progress" data-orchid-search-progress style="display: none;">
+                <div class="loader">Loading...</div>
+            </div>
+        </section>
+
+        <!-- Menu -->
+        <nav id="siteNav" class="menu">
+            <header class="major">
+                <h2>Plume</h2>
+            </header>
+            <ul class="top-level">
+                
+                    
+    
+    <li>
+        <a class="subheader">API Docs</a>
+    </li>
+    
+
+                
+                    
+    <li>
+        <span class="opener">Classes</span>
+        <ul>
+        
+            
+    
+    <li>
+        <a href="https://plume-oss.github.io/plume/kotlindoc/io/github/plume/oss/passes/graph/astpass">ASTPass</a>
+    </li>
+    
+
+        
+            
+    
+    <li>
+        <a href="https://plume-oss.github.io/plume/kotlindoc/io/github/plume/oss/passes/graph/cfgpass">CFGPass</a>
+    </li>
+    
+
+        
+            
+    
+    <li>
+        <a href="https://plume-oss.github.io/plume/kotlindoc/io/github/plume/oss/passes/graph/cgpass">CGPass</a>
+    </li>
+    
+
+        
+            
+    
+    <li>
+        <a href="https://plume-oss.github.io/plume/kotlindoc/io/github/plume/oss/options/extractoroptions/callgraphalg">CallGraphAlg</a>
+    </li>
+    
+
+        
+            
+    
+    <li>
+        <a href="https://plume-oss.github.io/plume/kotlindoc/io/github/plume/oss/util/codecontrol">CodeControl</a>
+    </li>
+    
+
+        
+            
+    
+    <li>
+        <a href="https://plume-oss.github.io/plume/kotlindoc/io/github/plume/oss/util/diffgraphutil">DiffGraphUtil</a>
+    </li>
+    
+
+        
+            
+    
+    <li>
+        <a href="https://plume-oss.github.io/plume/kotlindoc/io/github/plume/oss/drivers/driverfactory">DriverFactory</a>
+    </li>
+    
+
+        
+            
+    
+    <li>
+        <a href="https://plume-oss.github.io/plume/kotlindoc/io/github/plume/oss/passes/structure/externaltypepass">ExternalTypePass</a>
+    </li>
+    
+
+        
+            
+    
+    <li>
+        <a href="https://plume-oss.github.io/plume/kotlindoc/io/github/plume/oss/extractor">Extractor</a>
+    </li>
+    
+
+        
+            
+    
+    <li>
+        <a href="https://plume-oss.github.io/plume/kotlindoc/io/github/plume/oss/util/extractorconst">ExtractorConst</a>
+    </li>
+    
+
+        
+            
+    
+    <li>
+        <a href="https://plume-oss.github.io/plume/kotlindoc/io/github/plume/oss/options/extractoroptions">ExtractorOptions</a>
+    </li>
+    
+
+        
+            
+    
+    <li>
+        <a href="https://plume-oss.github.io/plume/kotlindoc/io/github/plume/oss/metrics/extractortimekey">ExtractorTimeKey</a>
+    </li>
+    
+
+        
+            
+    
+    <li>
+        <a href="https://plume-oss.github.io/plume/kotlindoc/io/github/plume/oss/passes/structure/fileandpackagepass">FileAndPackagePass</a>
+    </li>
+    
+
+        
+            
+    
+    <li>
+        <a href="https://plume-oss.github.io/plume/kotlindoc/io/github/plume/oss/domain/files/filefactory">FileFactory</a>
+    </li>
+    
+
+        
+            
+    
+    <li>
+        <a href="https://plume-oss.github.io/plume/kotlindoc/io/github/plume/oss/globalcache">GlobalCache</a>
+    </li>
+    
+
+        
+            
+    
+    <li>
+        <a href="https://plume-oss.github.io/plume/kotlindoc/io/github/plume/oss/passes/type/globaltypepass">GlobalTypePass</a>
+    </li>
+    
+
+        
+            
+    
+    <li>
+        <a href="https://plume-oss.github.io/plume/kotlindoc/io/github/plume/oss/drivers/graphdatabase">GraphDatabase</a>
+    </li>
+    
+
+        
+            
+    
+    <li>
+        <a href="https://plume-oss.github.io/plume/kotlindoc/io/github/plume/oss/graphio/graphmlwriter">GraphMLWriter</a>
+    </li>
+    
+
+        
+            
+    
+    <li>
+        <a href="https://plume-oss.github.io/plume/kotlindoc/io/github/plume/oss/graphio/graphsonwriter">GraphSONWriter</a>
+    </li>
+    
+
+        
+            
+    
+    <li>
+        <a href="https://plume-oss.github.io/plume/kotlindoc/io/github/plume/oss/drivers/gremlindriver">GremlinDriver</a>
+    </li>
+    
+
+        
+            
+    
+    <li>
+        <a href="https://plume-oss.github.io/plume/kotlindoc/io/github/plume/oss/drivers/gremlinoverriddeniddriver">GremlinOverriddenIdDriver</a>
+    </li>
+    
+
+        
+            
+    
+    <li>
+        <a href="https://plume-oss.github.io/plume/kotlindoc/io/github/plume/oss/drivers/idriver">IDriver</a>
+    </li>
+    
+
+        
+            
+    
+    <li>
+        <a href="https://plume-oss.github.io/plume/kotlindoc/io/github/plume/oss/passes/imethodpass">IMethodPass</a>
+    </li>
+    
+
+        
+            
+    
+    <li>
+        <a href="https://plume-oss.github.io/plume/kotlindoc/io/github/plume/oss/drivers/ioverrideniddriver">IOverridenIdDriver</a>
+    </li>
+    
+
+        
+            
+    
+    <li>
+        <a href="https://plume-oss.github.io/plume/kotlindoc/io/github/plume/oss/passes/iprogramstructurepass">IProgramStructurePass</a>
+    </li>
+    
+
+        
+            
+    
+    <li>
+        <a href="https://plume-oss.github.io/plume/kotlindoc/io/github/plume/oss/drivers/ischemasafedriver">ISchemaSafeDriver</a>
+    </li>
+    
+
+        
+            
+    
+    <li>
+        <a href="https://plume-oss.github.io/plume/kotlindoc/io/github/plume/oss/passes/itypepass">ITypePass</a>
+    </li>
+    
+
+        
+            
+    
+    <li>
+        <a href="https://plume-oss.github.io/plume/kotlindoc/io/github/plume/oss/passes/iunitgraphpass">IUnitGraphPass</a>
+    </li>
+    
+
+        
+            
+    
+    <li>
+        <a href="https://plume-oss.github.io/plume/kotlindoc/io/github/plume/oss/domain/files/jvmclassfile">JVMClassFile</a>
+    </li>
+    
+
+        
+            
+    
+    <li>
+        <a href="https://plume-oss.github.io/plume/kotlindoc/io/github/plume/oss/drivers/janusgraphdriver">JanusGraphDriver</a>
+    </li>
+    
+
+        
+            
+    
+    <li>
+        <a href="https://plume-oss.github.io/plume/kotlindoc/io/github/plume/oss/domain/files/javafile">JavaFile</a>
+    </li>
+    
+
+        
+            
+    
+    <li>
+        <a href="https://plume-oss.github.io/plume/kotlindoc/io/github/plume/oss/passes/structure/markforrebuildpass">MarkForRebuildPass</a>
+    </li>
+    
+
+        
+            
+    
+    <li>
+        <a href="https://plume-oss.github.io/plume/kotlindoc/io/github/plume/oss/passes/method/methodstubpass">MethodStubPass</a>
+    </li>
+    
+
+        
+            
+    
+    <li>
+        <a href="https://plume-oss.github.io/plume/kotlindoc/io/github/plume/oss/drivers/neo4jdriver">Neo4jDriver</a>
+    </li>
+    
+
+        
+            
+    
+    <li>
+        <a href="https://plume-oss.github.io/plume/kotlindoc/io/github/plume/oss/drivers/neptunedriver">NeptuneDriver</a>
+    </li>
+    
+
+        
+            
+    
+    <li>
+        <a href="https://plume-oss.github.io/plume/kotlindoc/io/github/plume/oss/drivers/overflowdbdriver">OverflowDbDriver</a>
+    </li>
+    
+
+        
+            
+    
+    <li>
+        <a href="https://plume-oss.github.io/plume/kotlindoc/io/github/plume/oss/passes/graph/pdgpass">PDGPass</a>
+    </li>
+    
+
+        
+            
+    
+    <li>
+        <a href="https://plume-oss.github.io/plume/kotlindoc/io/github/plume/oss/domain/exceptions/plumecompileexception">PlumeCompileException</a>
+    </li>
+    
+
+        
+            
+    
+    <li>
+        <a href="https://plume-oss.github.io/plume/kotlindoc/io/github/plume/oss/domain/files/plumefile">PlumeFile</a>
+    </li>
+    
+
+        
+            
+    
+    <li>
+        <a href="https://plume-oss.github.io/plume/kotlindoc/io/github/plume/oss/util/plumekeyprovider">PlumeKeyProvider</a>
+    </li>
+    
+
+        
+            
+    
+    <li>
+        <a href="https://plume-oss.github.io/plume/kotlindoc/io/github/plume/oss/domain/exceptions/plumeschemaviolationexception">PlumeSchemaViolationException</a>
+    </li>
+    
+
+        
+            
+    
+    <li>
+        <a href="https://plume-oss.github.io/plume/kotlindoc/io/github/plume/oss/metrics/plumetimer">PlumeTimer</a>
+    </li>
+    
+
+        
+            
+    
+    <li>
+        <a href="https://plume-oss.github.io/plume/kotlindoc/io/github/plume/oss/domain/exceptions/plumetransactionexception">PlumeTransactionException</a>
+    </li>
+    
+
+        
+            
+    
+    <li>
+        <a href="https://plume-oss.github.io/plume/kotlindoc/io/github/plume/oss/util/resourcecompilationutil">ResourceCompilationUtil</a>
+    </li>
+    
+
+        
+            
+    
+    <li>
+        <a href="https://plume-oss.github.io/plume/kotlindoc/io/github/plume/oss/passes/scpgpass">SCPGPass</a>
+    </li>
+    
+
+        
+            
+    
+    <li>
+        <a href="https://plume-oss.github.io/plume/kotlindoc/io/github/plume/oss/util/sootparserutil">SootParserUtil</a>
+    </li>
+    
+
+        
+            
+    
+    <li>
+        <a href="https://plume-oss.github.io/plume/kotlindoc/io/github/plume/oss/util/soottoplumeutil">SootToPlumeUtil</a>
+    </li>
+    
+
+        
+            
+    
+    <li>
+        <a href="https://plume-oss.github.io/plume/kotlindoc/io/github/plume/oss/util/codecontrol/stopexitexception">StopExitException</a>
+    </li>
+    
+
+        
+            
+    
+    <li>
+        <a href="https://plume-oss.github.io/plume/kotlindoc/io/github/plume/oss/util/codecontrol/stopexitsecuritymanager">StopExitSecurityManager</a>
+    </li>
+    
+
+        
+            
+    
+    <li>
+        <a href="https://plume-oss.github.io/plume/kotlindoc/io/github/plume/oss/domain/files/supportedfile">SupportedFile</a>
+    </li>
+    
+
+        
+            
+    
+    <li>
+        <a href="https://plume-oss.github.io/plume/kotlindoc/io/github/plume/oss/drivers/tigergraphdriver">TigerGraphDriver</a>
+    </li>
+    
+
+        
+            
+    
+    <li>
+        <a href="https://plume-oss.github.io/plume/kotlindoc/io/github/plume/oss/drivers/tinkergraphdriver">TinkerGraphDriver</a>
+    </li>
+    
+
+        
+            
+    
+    <li>
+        <a href="https://plume-oss.github.io/plume/kotlindoc/io/github/plume/oss/passes/structure/typepass">TypePass</a>
+    </li>
+    
+
+        
+            
+    
+    <li>
+        <a href="https://plume-oss.github.io/plume/kotlindoc/io/github/plume/oss/domain/files/unsupportedfile">UnsupportedFile</a>
+    </li>
+    
+
+        
+            
+    
+    <li>
+        <a href="https://plume-oss.github.io/plume/kotlindoc/io/github/plume/oss/domain/mappers/vertexmapper">VertexMapper</a>
+    </li>
+    
+
+        
+        </ul>
+    </li>
+
+                
+                    
+    <li>
+        <span class="opener">Packages</span>
+        <ul>
+        
+            
+    
+    <li>
+        <a href="https://plume-oss.github.io/plume/kotlindoc/io/github/plume/oss">io.github.plume.oss</a>
+    </li>
+    
+
+        
+            
+    
+    <li>
+        <a href="https://plume-oss.github.io/plume/kotlindoc/io/github/plume/oss/domain/exceptions">io.github.plume.oss.domain.exceptions</a>
+    </li>
+    
+
+        
+            
+    
+    <li>
+        <a href="https://plume-oss.github.io/plume/kotlindoc/io/github/plume/oss/domain/files">io.github.plume.oss.domain.files</a>
+    </li>
+    
+
+        
+            
+    
+    <li>
+        <a href="https://plume-oss.github.io/plume/kotlindoc/io/github/plume/oss/domain/mappers">io.github.plume.oss.domain.mappers</a>
+    </li>
+    
+
+        
+            
+    
+    <li>
+        <a href="https://plume-oss.github.io/plume/kotlindoc/io/github/plume/oss/drivers">io.github.plume.oss.drivers</a>
+    </li>
+    
+
+        
+            
+    
+    <li>
+        <a href="https://plume-oss.github.io/plume/kotlindoc/io/github/plume/oss/graphio">io.github.plume.oss.graphio</a>
+    </li>
+    
+
+        
+            
+    
+    <li>
+        <a href="https://plume-oss.github.io/plume/kotlindoc/io/github/plume/oss/metrics">io.github.plume.oss.metrics</a>
+    </li>
+    
+
+        
+            
+    
+    <li>
+        <a href="https://plume-oss.github.io/plume/kotlindoc/io/github/plume/oss/options">io.github.plume.oss.options</a>
+    </li>
+    
+
+        
+            
+    
+    <li>
+        <a href="https://plume-oss.github.io/plume/kotlindoc/io/github/plume/oss/passes">io.github.plume.oss.passes</a>
+    </li>
+    
+
+        
+            
+    
+    <li>
+        <a href="https://plume-oss.github.io/plume/kotlindoc/io/github/plume/oss/passes/graph">io.github.plume.oss.passes.graph</a>
+    </li>
+    
+
+        
+            
+    
+    <li>
+        <a href="https://plume-oss.github.io/plume/kotlindoc/io/github/plume/oss/passes/method">io.github.plume.oss.passes.method</a>
+    </li>
+    
+
+        
+            
+    
+    <li>
+        <a href="https://plume-oss.github.io/plume/kotlindoc/io/github/plume/oss/passes/structure">io.github.plume.oss.passes.structure</a>
+    </li>
+    
+
+        
+            
+    
+    <li>
+        <a href="https://plume-oss.github.io/plume/kotlindoc/io/github/plume/oss/passes/type">io.github.plume.oss.passes.type</a>
+    </li>
+    
+
+        
+            
+    
+    <li>
+        <a href="https://plume-oss.github.io/plume/kotlindoc/io/github/plume/oss/util">io.github.plume.oss.util</a>
+    </li>
+    
+
+        
+        </ul>
+    </li>
+
+                
+            </ul>
+        </nav>
+        
+
+        <!-- Section -->
+        <section>
+            <p class="text-center">
+                Currently 0.21.1. Created with <a href="https://orchid.run">Orchid </a> and <b>Orchid Editorial Theme</b>.
+            </p>
+        </section>
+
+        <!-- Footer -->
+        <footer id="footer">
+            <p class="copyright text-center">&copy; Plume. All rights reserved.<br>Design by <a href="https://html5up.net">HTML5 UP</a></p>
+        </footer>
+
+    </div>
+</div>
+
+</div>
+
+
+
+
+
+
+    <!-- start:inject meta-components [bodyEnd] -->
+    
+
+        
+            
+        
+
+        
+    
+    <!-- end:inject meta-components [bodyEnd] -->
+
+
+
+    <!-- start:inject meta-components [bodyEnd] -->
+    
+    <!-- end:inject meta-components [bodyEnd] -->
+
+
+
+
+<!-- start:inject scripts -->
+<script  src="https://plume-oss.github.io/plume/Editorial/af20a1c0/ajax/libs/jquery/1.11.3/jquery.min.js"></script>
+<script  src="https://plume-oss.github.io/plume/Editorial/af20a1c0/ajax/libs/skel/3.0.1/skel.min.js"></script>
+<script  src="https://plume-oss.github.io/plume/Editorial/af20a1c0/assets/js/editorial_util.js"></script>
+<script  src="https://plume-oss.github.io/plume/Editorial/af20a1c0/assets/js/editorial_main.js"></script>
+<script  src="https://plume-oss.github.io/plume/Editorial/af20a1c0/assets/js/editorial_orchidCustomizations.js"></script>
+<script  src="https://plume-oss.github.io/plume/ajax/libs/jquery/3.1.1/jquery.min.js"></script>
+<script  src="https://plume-oss.github.io/plume/lunr/lunr.js"></script>
+<script  src="https://plume-oss.github.io/plume/assets/js/orchidSearch.js"></script>
+<!-- end:inject scripts -->
+
+
+</body>
+</html>
