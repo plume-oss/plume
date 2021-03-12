@@ -8,7 +8,6 @@ import io.shiftleft.codepropertygraph.generated.EdgeTypes
 import io.shiftleft.codepropertygraph.generated.NodeKeyNames
 import io.shiftleft.codepropertygraph.generated.NodeTypes
 import io.shiftleft.codepropertygraph.generated.nodes.AstNode
-import io.shiftleft.codepropertygraph.generated.nodes.Factories
 import io.shiftleft.codepropertygraph.generated.nodes.Method
 import io.shiftleft.dataflowengineoss.passes.reachingdef.ReachingDefPass
 import io.shiftleft.passes.DiffGraph
@@ -27,6 +26,8 @@ import overflowdb.Graph
 import scala.jdk.CollectionConverters
 import java.util.concurrent.ConcurrentLinkedDeque
 import kotlin.streams.toList
+import io.shiftleft.codepropertygraph.generated.edges.Factories as EdgeFactories
+import io.shiftleft.codepropertygraph.generated.nodes.Factories as NodeFactories
 
 /**
  * Runs passes from [io.shiftleft.dataflowengineoss.passes] over method bodies.
@@ -40,10 +41,7 @@ class SCPGPass(private val driver: IDriver) {
      */
     fun runPass() {
         val methodNames = ConcurrentLinkedDeque(
-            driver.getPropertyFromVertices<String>(
-                NodeKeyNames.FULL_NAME,
-                NodeTypes.METHOD
-            )
+            driver.getPropertyFromVertices<String>(NodeKeyNames.FULL_NAME, NodeTypes.METHOD)
         )
         val numberOfJobs = methodNames.size
         val oldSummaries = ConcurrentLinkedDeque<Edge>()
@@ -51,11 +49,7 @@ class SCPGPass(private val driver: IDriver) {
             // We use a semaphore to avoid spamming the database with too many requests
             val sharedCounterLock = Semaphore(10)
             val bufferedChannel = Channel<Graph>(10)
-            val g = Graph.open(
-                Config.withDefaults(),
-                Factories.allAsJava(),
-                io.shiftleft.codepropertygraph.generated.edges.Factories.allAsJava()
-            )
+            val g = Graph.open(Config.withDefaults(), NodeFactories.allAsJava(), EdgeFactories.allAsJava())
             // Producers
             1.rangeTo(numberOfJobs).map {
                 async {

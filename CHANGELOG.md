@@ -15,7 +15,8 @@ and this project adheres to [Semantic Versioning](http://semver.org/).
 ### Changed
 
 - Moved the maps in `Extractor` to a dedicated `GlobalCache` object that uses `ConcurrentHashMap`s.
-- SCPG pass now concurrently pulls all methods and merges it into an input graph.
+- SCPG pass now concurrently pulls all methods and merges it into an input graph. This code has been moved to 
+  `passes.SCPGPass.kt`
 - External method stubs have call-to-returns generated i.e. (METHOD)-CFG->(RETURN)-CFG->(METHOD_RETURN)
 
 ## [0.3.1] - 2021-03-11
