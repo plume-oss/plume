@@ -46,6 +46,7 @@ import java.io.File
 import java.util.*
 import kotlin.properties.Delegates
 
+@Suppress("DEPRECATION")
 class TinkerGraphDriverIntTest {
 
     companion object {

@@ -27,6 +27,7 @@ import io.github.plume.oss.drivers.OverflowDbDriver
 import io.github.plume.oss.metrics.ExtractorTimeKey
 import io.github.plume.oss.metrics.PlumeTimer
 import io.github.plume.oss.options.ExtractorOptions
+import io.github.plume.oss.passes.SCPGPass
 import io.github.plume.oss.passes.graph.ASTPass
 import io.github.plume.oss.passes.graph.CFGPass
 import io.github.plume.oss.passes.graph.CGPass
@@ -37,24 +38,18 @@ import io.github.plume.oss.passes.structure.FileAndPackagePass
 import io.github.plume.oss.passes.structure.MarkForRebuildPass
 import io.github.plume.oss.passes.structure.TypePass
 import io.github.plume.oss.passes.type.GlobalTypePass
-import io.github.plume.oss.util.DiffGraphUtil
 import io.github.plume.oss.util.ExtractorConst.LANGUAGE_FRONTEND
 import io.github.plume.oss.util.ExtractorConst.plumeVersion
 import io.github.plume.oss.util.ResourceCompilationUtil
 import io.github.plume.oss.util.ResourceCompilationUtil.COMP_DIR
 import io.github.plume.oss.util.ResourceCompilationUtil.TEMP_DIR
 import io.github.plume.oss.util.SootToPlumeUtil
-import io.shiftleft.codepropertygraph.Cpg
 import io.shiftleft.codepropertygraph.generated.NodeKeyNames.*
 import io.shiftleft.codepropertygraph.generated.NodeTypes.META_DATA
 import io.shiftleft.codepropertygraph.generated.NodeTypes.METHOD
-import io.shiftleft.codepropertygraph.generated.nodes.*
-import io.shiftleft.dataflowengineoss.passes.reachingdef.ReachingDefPass
-import io.shiftleft.passes.ParallelCpgPass
-import io.shiftleft.semanticcpg.passes.containsedges.ContainsEdgePass
+import io.shiftleft.codepropertygraph.generated.nodes.NewMetaDataBuilder
 import org.apache.logging.log4j.LogManager
 import org.apache.logging.log4j.Logger
-import scala.jdk.CollectionConverters
 import soot.*
 import soot.jimple.spark.SparkTransformer
 import soot.jimple.toolkits.callgraph.CHATransformer
@@ -187,7 +182,7 @@ class Extractor(val driver: IDriver) {
         /*
             Obtain all referenced types from fields, returns, and locals
          */
-        val ts = mutableListOf<soot.Type>()
+        val ts = mutableListOf<Type>()
         PlumeTimer.measure(ExtractorTimeKey.BASE_CPG_BUILDING) {
             val fieldsAndRets = csToBuild.map { c -> c.fields.map { it.type } + c.methods.map { it.returnType } }
                 .flatten().toSet()
@@ -267,25 +262,8 @@ class Extractor(val driver: IDriver) {
             Method body level analysis. This runs over all in-case dataflow information changes on update.
          */
         logger.info("Running SCPG passes")
-        driver.getPropertyFromVertices<String>(FULL_NAME, METHOD).forEach { mName ->
-            driver.getMethod(mName).use { g ->
-                PlumeTimer.measure(ExtractorTimeKey.SCPG_PASSES) {
-                    // Avoid duplication
-                    val cpg = Cpg.apply(g)
-                    val methods = g.nodes(METHOD).asSequence().toList()
-                    runParallelPass(methods.filterIsInstance<AstNode>(), ContainsEdgePass(cpg))
-                    runParallelPass(methods.filterIsInstance<Method>(), ReachingDefPass(cpg))
-                }
-            }
-        }
+        PlumeTimer.measure(ExtractorTimeKey.SCPG_PASSES) { SCPGPass(driver).runPass() }
         return this
-    }
-
-    private fun <T> runParallelPass(parts: List<T>, pass: ParallelCpgPass<T>) {
-        parts.map(pass::runOnPart)
-            .map(CollectionConverters::IteratorHasAsJava)
-            .flatMap { it.asJava().asSequence() }
-            .forEach { DiffGraphUtil.processDiffGraph(driver, it) }
     }
 
     private fun <T> pipeline(vararg functions: (T) -> T): (T) -> T =
