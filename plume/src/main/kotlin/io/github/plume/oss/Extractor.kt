@@ -20,7 +20,6 @@ import io.github.plume.oss.domain.files.FileFactory
 import io.github.plume.oss.domain.files.JVMClassFile
 import io.github.plume.oss.domain.files.PlumeFile
 import io.github.plume.oss.domain.files.UnsupportedFile
-import io.github.plume.oss.domain.mappers.VertexMapper
 import io.github.plume.oss.drivers.GremlinDriver
 import io.github.plume.oss.drivers.IDriver
 import io.github.plume.oss.drivers.Neo4jDriver
@@ -28,6 +27,7 @@ import io.github.plume.oss.drivers.OverflowDbDriver
 import io.github.plume.oss.metrics.ExtractorTimeKey
 import io.github.plume.oss.metrics.PlumeTimer
 import io.github.plume.oss.options.ExtractorOptions
+import io.github.plume.oss.passes.SCPGPass
 import io.github.plume.oss.passes.graph.ASTPass
 import io.github.plume.oss.passes.graph.CFGPass
 import io.github.plume.oss.passes.graph.CGPass
@@ -38,35 +38,18 @@ import io.github.plume.oss.passes.structure.FileAndPackagePass
 import io.github.plume.oss.passes.structure.MarkForRebuildPass
 import io.github.plume.oss.passes.structure.TypePass
 import io.github.plume.oss.passes.type.GlobalTypePass
-import io.github.plume.oss.util.DiffGraphUtil
 import io.github.plume.oss.util.ExtractorConst.LANGUAGE_FRONTEND
 import io.github.plume.oss.util.ExtractorConst.plumeVersion
 import io.github.plume.oss.util.ResourceCompilationUtil
 import io.github.plume.oss.util.ResourceCompilationUtil.COMP_DIR
 import io.github.plume.oss.util.ResourceCompilationUtil.TEMP_DIR
 import io.github.plume.oss.util.SootToPlumeUtil
-import io.shiftleft.codepropertygraph.Cpg
-import io.shiftleft.codepropertygraph.generated.EdgeTypes.REACHING_DEF
 import io.shiftleft.codepropertygraph.generated.NodeKeyNames.*
 import io.shiftleft.codepropertygraph.generated.NodeTypes.META_DATA
 import io.shiftleft.codepropertygraph.generated.NodeTypes.METHOD
-import io.shiftleft.codepropertygraph.generated.nodes.AstNode
-import io.shiftleft.codepropertygraph.generated.nodes.Method
 import io.shiftleft.codepropertygraph.generated.nodes.NewMetaDataBuilder
-import io.shiftleft.dataflowengineoss.passes.reachingdef.ReachingDefPass
-import io.shiftleft.passes.ParallelCpgPass
-import io.shiftleft.semanticcpg.passes.containsedges.ContainsEdgePass
-import kotlinx.coroutines.async
-import kotlinx.coroutines.channels.Channel
-import kotlinx.coroutines.launch
-import kotlinx.coroutines.runBlocking
-import kotlinx.coroutines.sync.Semaphore
 import org.apache.logging.log4j.LogManager
 import org.apache.logging.log4j.Logger
-import overflowdb.Config
-import overflowdb.Edge
-import overflowdb.Graph
-import scala.jdk.CollectionConverters
 import soot.*
 import soot.jimple.spark.SparkTransformer
 import soot.jimple.toolkits.callgraph.CHATransformer
@@ -77,12 +60,9 @@ import java.io.IOException
 import java.nio.file.Files
 import java.nio.file.Path
 import java.nio.file.Paths
-import java.util.concurrent.ConcurrentLinkedDeque
 import java.util.stream.Collectors
 import java.util.zip.ZipFile
 import kotlin.streams.asSequence
-import io.shiftleft.codepropertygraph.generated.edges.Factories as EdgeFactories
-import io.shiftleft.codepropertygraph.generated.nodes.Factories as NodeFactories
 
 /**
  * The main entrypoint of the extractor from which the CPG will be created.
@@ -202,7 +182,7 @@ class Extractor(val driver: IDriver) {
         /*
             Obtain all referenced types from fields, returns, and locals
          */
-        val ts = mutableListOf<soot.Type>()
+        val ts = mutableListOf<Type>()
         PlumeTimer.measure(ExtractorTimeKey.BASE_CPG_BUILDING) {
             val fieldsAndRets = csToBuild.map { c -> c.fields.map { it.type } + c.methods.map { it.returnType } }
                 .flatten().toSet()
@@ -282,84 +262,8 @@ class Extractor(val driver: IDriver) {
             Method body level analysis. This runs over all in-case dataflow information changes on update.
          */
         logger.info("Running SCPG passes")
-        PlumeTimer.measure(ExtractorTimeKey.SCPG_PASSES) { runScpgPasses() }
+        PlumeTimer.measure(ExtractorTimeKey.SCPG_PASSES) { SCPGPass(driver).runPass() }
         return this
-    }
-
-    private fun runScpgPasses() {
-        val methodNames = ConcurrentLinkedDeque(driver.getPropertyFromVertices<String>(FULL_NAME, METHOD))
-        val numberOfJobs = methodNames.size
-        val edgesToClear = ConcurrentLinkedDeque<Edge>()
-        runBlocking {
-            // We use a semaphore to avoid spamming the database with too many requests
-            val sharedCounterLock = Semaphore(10)
-            val bufferedChannel = Channel<Graph>(10)
-            val g = Graph.open(Config.withDefaults(), NodeFactories.allAsJava(), EdgeFactories.allAsJava())
-            // Producers
-            val methodWorkers = 1.rangeTo(numberOfJobs).map {
-                async {
-                    if (methodNames.isNotEmpty()) {
-                        val mName = methodNames.poll()
-                        try {
-                            sharedCounterLock.acquire()
-                            val mg = driver.getMethod(mName, true)
-                            bufferedChannel.send(mg)
-                        } catch (e: Exception) {
-                            logger.warn("Exception while retrieving method body during SCPG phase.", e)
-                            methodNames.add(mName)
-                        } finally {
-                            sharedCounterLock.release()
-                        }
-                    }
-                }
-            }
-            // Consumer
-            launch {
-                repeat(numberOfJobs) {
-                    bufferedChannel.receive().use { o -> mergeGraphs(g, o).toCollection(edgesToClear) }
-                }
-            }
-            methodWorkers.forEach { c -> c.join() }
-            // Delete old calculations that don't carry over
-            edgesToClear.forEach { e ->
-                driver.deleteEdge(
-                    VertexMapper.mapToVertex(e.outNode()),
-                    VertexMapper.mapToVertex(e.inNode()),
-                    e.label()
-                )
-            }
-            val cpg = Cpg.apply(g)
-            val methods = g.nodes(METHOD).asSequence().toList()
-            runParallelPass(methods.filterIsInstance<AstNode>(), ContainsEdgePass(cpg))
-            runParallelPass(methods.filterIsInstance<Method>(), ReachingDefPass(cpg))
-        }
-    }
-
-    @Synchronized
-    private fun mergeGraphs(tgt: Graph, o: Graph): List<Edge> {
-        val esToRemove = mutableListOf<Edge>()
-        o.nodes().asSequence()
-            .forEach { n ->
-                if (tgt.node(n.id()) == null)
-                    tgt.addNode(n.id(), n.label())
-                        .let { tn -> n.propertyMap().forEach { (t, u) -> tn.setProperty(t, u) } }
-            }
-        o.edges().asSequence().filterNot { it.label() == REACHING_DEF }
-            .forEach { e ->
-                val src = tgt.node(e.outNode().id())
-                val dst = tgt.node(e.inNode().id())
-                if (!src.out(e.label()).asSequence().contains(dst)) src.addEdge(e.label(), dst)
-            }
-        // Remove previously calculated reaching defs as these change on an interprocedural context
-        o.edges().asSequence().filter { it.label() == REACHING_DEF }.toCollection(esToRemove)
-        return esToRemove
-    }
-
-    private fun <T> runParallelPass(parts: List<T>, pass: ParallelCpgPass<T>) {
-        parts.map(pass::runOnPart)
-            .map(CollectionConverters::IteratorHasAsJava)
-            .flatMap { it.asJava().asSequence() }
-            .forEach { DiffGraphUtil.processDiffGraph(driver, it) }
     }
 
     private fun <T> pipeline(vararg functions: (T) -> T): (T) -> T =
