@@ -45,6 +45,7 @@ import scala.Option
 import java.io.File
 import kotlin.properties.Delegates
 
+@Suppress("DEPRECATION")
 class OverflowDbDriverIntTest {
 
     companion object {
