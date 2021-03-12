@@ -86,8 +86,14 @@ class MethodStubPass(private val driver: IDriver) : IMethodPass {
             .columnNumber(Option.apply(currentCol))
             .apply { driver.addEdge(mtdVertex, this, AST); GlobalCache.addSootAssoc(m, this) }
         // Store return type
-        projectMethodReturnVertex(m.returnType, currentLine, currentCol, childIdx++)
+        val mtdRet = projectMethodReturnVertex(m.returnType, currentLine, currentCol, childIdx++)
             .apply { driver.addEdge(mtdVertex, this, AST); GlobalCache.addSootAssoc(m, this) }
+        // Create a call-to-return for external classes
+        if (!m.declaringClass.isApplicationClass) {
+            val ret = projectReturnVertex(m.javaSourceStartLineNumber, m.javaSourceStartColumnNumber, childIdx++)
+            driver.addEdge(mtdVertex, ret, CFG)
+            driver.addEdge(ret, mtdRet, CFG)
+        }
         // Modifier vertices
         SootParserUtil.determineModifiers(m.modifiers, m.name)
             .map { NewModifierBuilder().modifierType(it).order(childIdx++) }
@@ -109,4 +115,12 @@ class MethodStubPass(private val driver: IDriver) : IMethodPass {
             .columnNumber(Option.apply(currentCol))
             .order(childIdx)
 
+    private fun projectReturnVertex(line: Int, col: Int, childIdx: Int): NewReturnBuilder {
+        return NewReturnBuilder()
+            .code("return")
+            .argumentIndex(childIdx)
+            .lineNumber(Option.apply(line))
+            .columnNumber(Option.apply(col))
+            .order(childIdx)
+    }
 }
