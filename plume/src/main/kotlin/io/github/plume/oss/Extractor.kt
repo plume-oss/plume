@@ -61,6 +61,7 @@ import java.io.IOException
 import java.nio.file.Files
 import java.nio.file.Path
 import java.nio.file.Paths
+import java.util.concurrent.Executors
 import java.util.stream.Collectors
 import java.util.zip.ZipFile
 import kotlin.streams.asSequence
@@ -250,7 +251,24 @@ class Extractor(val driver: IDriver) {
                 existingMs.contains(fullName)
             }.toList()
             // TODO: BaseCpgPass must replace AST/CPG/PDG passes
-            buildBaseCPGs(bodiesToBuild)
+            runBlocking {
+                val cores = Runtime.getRuntime().availableProcessors()
+                val channel = Channel<DeltaGraph>()
+                val jobCount = bodiesToBuild.size
+                logger.debug("Running $jobCount jobs over $cores threads.")
+                // Create jobs in chunks and submit these jobs to a thread pool
+                val threadPool = Executors.newFixedThreadPool(cores)
+                launch {
+                    bodiesToBuild.chunked(50)
+                        .map { chunk -> Runnable { buildBaseCPGs(chunk, channel) } }
+                        .forEach(threadPool::submit)
+                }
+                // Consumer: Receive delta graphs and write changes to the driver in serial
+                launch {
+                    repeat(jobCount) { channel.receive().apply(driver) }
+                    channel.close()
+                }.join() // Suspend until the channel is fully consumed.
+            }
             pipeline(
                 // Base CPG TODO: This will get replaced
                 ASTPass(driver)::runPass,
@@ -274,21 +292,13 @@ class Extractor(val driver: IDriver) {
         { functions.fold(it) { output, stage -> stage.invoke(output) } }
 
     /**
-     * Constructs the method bodies locally in parallel and writes results to the driver sequentially.
+     * Constructs the method bodies concurrently.
      *
      * @param gs The list of method bodies as [BriefUnitGraph]s.
      */
-    private fun buildBaseCPGs(gs: List<BriefUnitGraph>) = runBlocking {
-        val channel = Channel<DeltaGraph>()
+    private fun buildBaseCPGs(gs: List<BriefUnitGraph>, channel: Channel<DeltaGraph>) = runBlocking {
         // Producer: Create local instances of CPGs from BriefUnitGraphs map changes to DeltaGraphs
-        gs.forEach { g ->
-            launch { channel.send(BaseCPGPass(g).runPass()) }
-        }
-        // Consumer: Receive delta graphs and write changes to the driver in serial
-        launch {
-            repeat(gs.size) { channel.receive().apply(driver) }
-            channel.close()
-        }.join() // Suspend until the channel is fully consumed.
+        gs.forEach { g -> launch { channel.send(BaseCPGPass(g).runPass()) } }
     }
 
     /**

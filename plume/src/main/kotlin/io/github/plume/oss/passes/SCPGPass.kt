@@ -37,7 +37,7 @@ class SCPGPass(private val driver: IDriver) {
     private val logger: Logger = LogManager.getLogger(SCPGPass::javaClass)
 
     /**
-     * Calls SCPG passes. Converges all methods into a local OverflowDB graph instance. This is done in parallel.
+     * Calls SCPG passes. Converges all methods into a local OverflowDB graph instance. This is done concurrently.
      */
     fun runPass() {
         val methodNames = ConcurrentLinkedDeque(
