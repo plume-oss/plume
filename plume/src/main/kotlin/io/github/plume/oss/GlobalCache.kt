@@ -1,5 +1,6 @@
 package io.github.plume.oss
 
+import io.github.plume.oss.domain.model.DeltaGraph
 import io.shiftleft.codepropertygraph.generated.nodes.*
 import soot.SootClass
 import soot.toolkits.graph.BriefUnitGraph
@@ -13,6 +14,11 @@ object GlobalCache {
     private val sootToPlume = ConcurrentHashMap<Any, MutableList<NewNodeBuilder>>()
     private val fHashes = ConcurrentHashMap<SootClass, String>()
     private val savedCallGraphEdges = ConcurrentHashMap<String, MutableList<NewCallBuilder>>()
+
+    /**
+     * Caches already built method bodies to save database requests during SCPG passes.
+     */
+    val methodBodies = mutableMapOf<String, DeltaGraph>()
 
     /**
      * Associates the given Soot object to the given [NewNode].

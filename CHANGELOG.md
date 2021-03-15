@@ -12,11 +12,14 @@ and this project adheres to [Semantic Versioning](http://semver.org/).
 - `DeltaGraph` as a `NewNodeBuilder` variant of ShiftLeft's `DiffGraph`.
 - `BaseCpgPass` which is a combination of the `ASTPass`, `CFGPass`, and `PDGPass` and returns a `DeltaGraph` instead of
   directly apply changes to the driver.
+- `methodBodies` was added to `GlobalCache` to save on database requests when moving to `SCPGPass` after `BaseCpgPass`
+- Chunk size can now be configured via `ExtractorOptions::methodChunkSize`
 
 ### Changed
 
 - Replaced `ASTPass`, `CFGPass`, and `PDGPass` with `BaseCpgPass`.
-- Spawns a thread pool to run base CPG building in parallel and apply `DeltaGraph`s in serial. 
+- Spawns a thread pool to run base CPG building in parallel and apply `DeltaGraph`s in serial.
+- SCPG flows are only run on new/updated method bodies since the analysis is independent of other methods.
 
 ## [0.3.2] - 2021-03-12
 

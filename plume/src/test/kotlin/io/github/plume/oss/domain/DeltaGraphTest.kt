@@ -10,6 +10,7 @@ import io.github.plume.oss.drivers.GraphDatabase
 import io.github.plume.oss.drivers.TinkerGraphDriver
 import io.shiftleft.codepropertygraph.generated.EdgeTypes.AST
 import io.shiftleft.codepropertygraph.generated.EdgeTypes.SOURCE_FILE
+import io.shiftleft.codepropertygraph.generated.NodeTypes.*
 import org.apache.logging.log4j.LogManager
 import org.junit.jupiter.api.AfterAll
 import org.junit.jupiter.api.AfterEach
@@ -82,11 +83,11 @@ class DeltaGraphTest {
 
     @Test
     fun testCompoundOperations() {
-        DeltaGraph.Builder().addVertex(fileVertex)
+        val b = DeltaGraph.Builder().addVertex(fileVertex)
             .addEdge(methodVertex, fileVertex, SOURCE_FILE)
             .addEdge(methodVertex, localVertex, AST)
             .build()
-            .apply(driver)
+        b.apply(driver)
         assertTrue(fileVertex.id() > -1L)
         assertTrue(methodVertex.id() > -1L)
         assertTrue(localVertex.id() > -1L)
@@ -101,6 +102,12 @@ class DeltaGraphTest {
             val e2 = g.edges(AST).next()
             assertEquals(localVertex.id(), e2.inNode().id())
             assertEquals(methodVertex.id(), e2.outNode().id())
+        }
+        b.toOverflowDb().use { g ->
+            assertEquals(1, g.nodeCount(FILE))
+            assertEquals(1, g.nodeCount(METHOD))
+            assertEquals(1, g.nodeCount(LOCAL))
+            assertEquals(2, g.edgeCount())
         }
     }
 

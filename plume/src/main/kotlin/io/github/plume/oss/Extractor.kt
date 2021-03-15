@@ -29,7 +29,8 @@ import io.github.plume.oss.metrics.ExtractorTimeKey
 import io.github.plume.oss.metrics.PlumeTimer
 import io.github.plume.oss.options.ExtractorOptions
 import io.github.plume.oss.passes.SCPGPass
-import io.github.plume.oss.passes.graph.*
+import io.github.plume.oss.passes.graph.BaseCPGPass
+import io.github.plume.oss.passes.graph.CGPass
 import io.github.plume.oss.passes.method.MethodStubPass
 import io.github.plume.oss.passes.structure.ExternalTypePass
 import io.github.plume.oss.passes.structure.FileAndPackagePass
@@ -251,7 +252,7 @@ class Extractor(val driver: IDriver) {
                 existingMs.contains(fullName)
             }.toList()
             runBlocking {
-                val chunkSize = 25
+                val chunkSize = ExtractorOptions.methodChunkSize
                 val jobCount = bodiesToBuild.size
                 val nThreads = (jobCount / chunkSize)
                     .coerceAtLeast(1)
@@ -277,11 +278,13 @@ class Extractor(val driver: IDriver) {
         }
         // Clear all Soot resources and cache
         clear()
+        GlobalCache.clear()
         /*
-            Method body level analysis. This runs over all in-case dataflow information changes on update.
+            Method body level analysis - only done on new/updated methods
          */
         logger.info("Running SCPG passes")
         PlumeTimer.measure(ExtractorTimeKey.SCPG_PASSES) { SCPGPass(driver).runPass() }
+        GlobalCache.methodBodies.clear()
         return this
     }
 
@@ -295,7 +298,14 @@ class Extractor(val driver: IDriver) {
      */
     private fun buildBaseCPGs(gs: List<BriefUnitGraph>, channel: Channel<DeltaGraph>) = runBlocking {
         // Producer: Create local instances of CPGs from BriefUnitGraphs map changes to DeltaGraphs
-        gs.forEach { g -> launch { channel.send(BaseCPGPass(g).runPass()) } }
+        gs.forEach { g ->
+            launch {
+                val dg = BaseCPGPass(g).runPass()
+                channel.send(dg)
+                val (fullName, _, _) = SootToPlumeUtil.methodToStrings(g.body.method)
+                GlobalCache.methodBodies[fullName] = dg
+            }
+        }
     }
 
     /**
@@ -384,7 +394,6 @@ class Extractor(val driver: IDriver) {
      */
     private fun clear() {
         loadedFiles.clear()
-        GlobalCache.clear()
         File(COMP_DIR).deleteRecursively()
         G.reset()
     }
