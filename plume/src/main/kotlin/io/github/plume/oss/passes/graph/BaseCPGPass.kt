@@ -1,32 +1,12 @@
-/*
- * Copyright 2020 David Baker Effendi
- * <p>
- * Licensed under the Apache License, Version 2.0 (the "License");
- * you may not use this file except in compliance with the License.
- * You may obtain a copy of the License at
- * <p>
- * http://www.apache.org/licenses/LICENSE-2.0
- * <p>
- * Unless required by applicable law or agreed to in writing, software
- * distributed under the License is distributed on an "AS IS" BASIS,
- * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- * See the License for the specific language governing permissions and
- * limitations under the License.
- */
 package io.github.plume.oss.passes.graph
 
 import io.github.plume.oss.GlobalCache
-import io.github.plume.oss.drivers.IDriver
-import io.github.plume.oss.passes.IUnitGraphPass
-import io.github.plume.oss.util.ExtractorConst.FALSE_TARGET
-import io.github.plume.oss.util.ExtractorConst.TRUE_TARGET
+import io.github.plume.oss.domain.model.DeltaGraph
+import io.github.plume.oss.util.ExtractorConst
 import io.github.plume.oss.util.SootParserUtil
 import io.github.plume.oss.util.SootToPlumeUtil
-import io.github.plume.oss.util.SootToPlumeUtil.createScalaList
-import io.shiftleft.codepropertygraph.generated.ControlStructureTypes.IF
-import io.shiftleft.codepropertygraph.generated.ControlStructureTypes.SWITCH
-import io.shiftleft.codepropertygraph.generated.DispatchTypes.DYNAMIC_DISPATCH
-import io.shiftleft.codepropertygraph.generated.DispatchTypes.STATIC_DISPATCH
+import io.shiftleft.codepropertygraph.generated.ControlStructureTypes
+import io.shiftleft.codepropertygraph.generated.DispatchTypes
 import io.shiftleft.codepropertygraph.generated.EdgeTypes.*
 import io.shiftleft.codepropertygraph.generated.Operators
 import io.shiftleft.codepropertygraph.generated.nodes.*
@@ -40,47 +20,241 @@ import soot.jimple.internal.JimpleLocalBox
 import soot.toolkits.graph.BriefUnitGraph
 
 /**
- * The [IUnitGraphPass] that constructs the vertices of the package/file/method hierarchy and connects the AST edges.
- *
- * @param driver The driver to build the AST with.
+ * Runs a AST, CFG, and PDG pass on the method body.
  */
-class ASTPass(private val driver: IDriver) : IUnitGraphPass {
-    private val logger = LogManager.getLogger(ASTPass::javaClass)
+class BaseCPGPass(private val g: BriefUnitGraph) {
 
+    private val logger = LogManager.getLogger(BaseCPGPass::javaClass)
+    private val builder = DeltaGraph.Builder()
     private var currentLine = -1
     private var currentCol = -1
-    private lateinit var graph: BriefUnitGraph
 
-    override fun runPass(gs: List<BriefUnitGraph>) = gs.map(::runPassOnGraph)
+    /**
+     * Constructs a AST, CFG, PDG pass on the [BriefUnitGraph] constructed with this object. Returns the result as a
+     * [DeltaGraph] object.
+     */
+    fun runPass(): DeltaGraph {
+        runAstPass()
+        runCfgPass()
+        runPdgPass()
+        return builder.build()
+    }
 
-    private fun runPassOnGraph(g: BriefUnitGraph): BriefUnitGraph {
+    private fun runAstPass() {
         val mtd = g.body.method
-        this.graph = g
         logger.debug("Building AST for ${mtd.declaration}")
-        // Connect and create parameters and locals
+        currentLine = mtd.javaSourceStartLineNumber
+        currentCol = mtd.javaSourceStartColumnNumber
         GlobalCache.getSootAssoc(mtd)?.let { mtdVs ->
             mtdVs.filterIsInstance<NewMethodBuilder>().firstOrNull()?.let { mtdVert ->
                 GlobalCache.addSootAssoc(mtd, buildLocals(g, mtdVert))
             }
         }
-        // Build body
         g.body.units.filterNot { it is IdentityStmt }
             .forEachIndexed { idx, u ->
-                projectUnit(u, idx + 1)
+                projectUnitAsAst(u, idx + 1)
                     ?.let {
                         runCatching {
-                            driver.addEdge(
+                            builder.addEdge(
                                 src = GlobalCache.getSootAssoc(mtd)!!.first { v -> v is NewBlockBuilder },
                                 tgt = it,
-                                edge = AST
+                                e = AST
                             )
                         }.onFailure { e ->
-                            logger.warn("Exception while adding AST edge between ${mtd.name} block and $it. " +
-                                    "Details: ${e.message}.")
+                            logger.warn(
+                                "Exception while adding AST edge between ${mtd.name} block and $it. " +
+                                        "Details: ${e.message}."
+                            )
                         }
                     }
             }
-        return g
+    }
+
+    private fun runCfgPass() {
+        val mtd = g.body.method
+        logger.debug("Building CFG for ${mtd.declaration}")
+        currentLine = mtd.javaSourceStartLineNumber
+        currentCol = mtd.javaSourceStartColumnNumber
+        // Connect entrypoint to the first CFG vertex
+        this.g.heads.forEach { head ->
+            // Select appropriate successor to start CFG chain at
+            var startingUnit = head
+            while (startingUnit is IdentityStmt) startingUnit = g.getSuccsOf(startingUnit).firstOrNull() ?: break
+            startingUnit?.let {
+                GlobalCache.getSootAssoc(it)?.firstOrNull()?.let { succVert ->
+                    val mtdV = GlobalCache.getSootAssoc(mtd)
+                    val bodyVertex = mtdV?.first { mtdVertices -> mtdVertices is NewBlockBuilder }!!
+                    mtdV.firstOrNull()?.let { mtdVertex -> builder.addEdge(mtdVertex, bodyVertex, CFG) }
+                    runCatching {
+                        builder.addEdge(bodyVertex, succVert, CFG)
+                    }.onFailure { e -> logger.warn(e.message) }
+                }
+            }
+        }
+        // Connect all units to their successors
+        this.g.body.units.filterNot { it is IdentityStmt }.forEach(this::projectUnitAsCfg)
+    }
+
+    private fun runPdgPass() {
+        val mtd = g.body.method
+        logger.debug("Building PDG for ${mtd.declaration}")
+        currentLine = mtd.javaSourceStartLineNumber
+        currentCol = mtd.javaSourceStartColumnNumber
+        // Identifier REF edges
+        (this.g.body.parameterLocals + this.g.body.locals).forEach(this::projectLocalVariable)
+        // Control structure condition vertex ARGUMENT edges
+        this.g.body.units.filterIsInstance<IfStmt>().map { it.condition }.forEach(this::projectCallArg)
+        // Invoke ARGUMENT edges
+        this.g.body.units
+            .filterIsInstance<InvokeStmt>()
+            .map { it.invokeExpr as InvokeExpr }
+            .forEach(this::projectCallArg)
+    }
+
+    private fun projectCallArg(value: Any) {
+        GlobalCache.getSootAssoc(value)?.firstOrNull { it is NewCallBuilder }?.let { src ->
+            GlobalCache.getSootAssoc(value)?.filterNot { it == src }
+                ?.forEach { tgt ->
+                    runCatching {
+                        builder.addEdge(src, tgt, ARGUMENT)
+                    }.onFailure { e -> logger.warn(e.message) }
+                }
+        }
+    }
+
+    private fun projectLocalVariable(local: Local) {
+        GlobalCache.getSootAssoc(local)?.let { assocVertices ->
+            assocVertices.filterIsInstance<NewIdentifierBuilder>().forEach { identifierV ->
+                assocVertices.firstOrNull { it is NewLocalBuilder || it is NewMethodParameterInBuilder }?.let { src ->
+                    runCatching {
+                        builder.addEdge(identifierV, src, REF)
+                    }.onFailure { e -> logger.warn(e.message) }
+                }
+            }
+        }
+    }
+
+    private fun projectUnitAsCfg(unit: Unit) {
+        when (unit) {
+            is GotoStmt -> projectUnitAsCfg(unit.target)
+            is IfStmt -> projectIfStatement(unit)
+            is LookupSwitchStmt -> projectLookupSwitch(unit)
+            is TableSwitchStmt -> projectTableSwitch(unit)
+            is ReturnStmt -> projectReturnEdge(unit)
+            is ReturnVoidStmt -> projectReturnEdge(unit)
+            is ThisRef -> Unit
+            is IdentityRef -> Unit
+            else -> {
+                val sourceUnit = if (unit is GotoStmt) unit.target else unit
+                val sourceVertex = GlobalCache.getSootAssoc(sourceUnit)?.firstOrNull()
+                g.getSuccsOf(sourceUnit).forEach {
+                    val targetUnit = if (it is GotoStmt) it.target else it
+                    if (sourceVertex != null) {
+                        GlobalCache.getSootAssoc(targetUnit)?.let { vList ->
+                            runCatching {
+                                builder.addEdge(sourceVertex, vList.first(), CFG)
+                            }.onFailure { e -> logger.warn(e.message) }
+                        }
+                    }
+                }
+            }
+        }
+    }
+
+    private fun projectTableSwitch(unit: TableSwitchStmt) {
+        val switchVertices = GlobalCache.getSootAssoc(unit)!!
+        val switchVertex = switchVertices.first { it is NewControlStructureBuilder } as NewControlStructureBuilder
+        // Handle default target jump
+        projectSwitchDefault(unit, switchVertices, switchVertex)
+        // Handle case jumps
+        unit.targets.forEachIndexed { i, tgt ->
+            if (unit.defaultTarget != tgt) projectSwitchTarget(switchVertices, i, switchVertex, tgt)
+        }
+    }
+
+    private fun projectLookupSwitch(unit: LookupSwitchStmt) {
+        val lookupVertices = GlobalCache.getSootAssoc(unit)!!
+        val lookupVertex = lookupVertices.first { it is NewControlStructureBuilder } as NewControlStructureBuilder
+        // Handle default target jump
+        projectSwitchDefault(unit, lookupVertices, lookupVertex)
+        // Handle case jumps
+        for (i in 0 until unit.targetCount) {
+            val tgt = unit.getTarget(i)
+            val lookupValue = unit.getLookupValue(i)
+            if (unit.defaultTarget != tgt) projectSwitchTarget(lookupVertices, lookupValue, lookupVertex, tgt)
+        }
+    }
+
+    private fun projectSwitchTarget(
+        lookupVertices: List<NewNodeBuilder>,
+        lookupValue: Int,
+        lookupVertex: NewControlStructureBuilder,
+        tgt: Unit
+    ) {
+        val tgtV = lookupVertices.first { it is NewJumpTargetBuilder && it.build().argumentIndex() == lookupValue }
+        projectTargetPath(lookupVertex, tgtV, tgt)
+    }
+
+    private fun projectSwitchDefault(
+        unit: SwitchStmt,
+        switchVertices: List<NewNodeBuilder>,
+        switchVertex: NewControlStructureBuilder
+    ) {
+        unit.defaultTarget.let { defaultUnit ->
+            val tgtV = switchVertices.first { it is NewJumpTargetBuilder && it.build().name() == "DEFAULT" }
+            projectTargetPath(switchVertex, tgtV, defaultUnit)
+        }
+    }
+
+    private fun projectTargetPath(
+        lookupVertex: NewControlStructureBuilder,
+        tgtV: NewNodeBuilder,
+        tgt: Unit
+    ) {
+        runCatching {
+            builder.addEdge(lookupVertex, tgtV, CFG)
+        }.onFailure { e -> logger.warn(e.message) }
+        GlobalCache.getSootAssoc(tgt)?.let { vList ->
+            runCatching {
+                builder.addEdge(tgtV, vList.first(), CFG)
+            }.onFailure { e -> logger.warn(e.message) }
+        }
+    }
+
+    private fun projectIfStatement(unit: IfStmt) {
+        val ifVertices = GlobalCache.getSootAssoc(unit)!!
+        g.getSuccsOf(unit).forEach {
+            val srcVertex = if (it == unit.target) {
+                ifVertices.first { vert ->
+                    vert is NewJumpTargetBuilder && vert.build().name() == ExtractorConst.FALSE_TARGET
+                }
+            } else {
+                ifVertices.first { vert ->
+                    vert is NewJumpTargetBuilder && vert.build().name() == ExtractorConst.TRUE_TARGET
+                }
+            }
+            val tgtVertices = if (it is GotoStmt) GlobalCache.getSootAssoc(it.target)
+            else GlobalCache.getSootAssoc(it)
+            tgtVertices?.let { vList ->
+                runCatching {
+                    builder.addEdge(ifVertices.first(), srcVertex, CFG)
+                }.onFailure { e -> logger.warn(e.message) }
+                runCatching {
+                    builder.addEdge(srcVertex, vList.first(), CFG)
+                }.onFailure { e -> logger.warn(e.message) }
+            }
+        }
+    }
+
+    private fun projectReturnEdge(unit: Stmt) {
+        GlobalCache.getSootAssoc(unit)?.firstOrNull()?.let { src ->
+            GlobalCache.getSootAssoc(g.body.method)?.filterIsInstance<NewMethodReturnBuilder>()?.firstOrNull()
+                ?.let { tgt ->
+                    runCatching {
+                        builder.addEdge(src, tgt, CFG)
+                    }.onFailure { e -> logger.warn(e.message) }
+                }
+        }
     }
 
     private fun buildLocals(graph: BriefUnitGraph, mtdVertex: NewMethodBuilder): MutableList<NewNodeBuilder> {
@@ -88,11 +262,13 @@ class ASTPass(private val driver: IDriver) : IUnitGraphPass {
         graph.body.parameterLocals
             .mapIndexed { i, local ->
                 SootToPlumeUtil.projectMethodParameterIn(local, currentLine, currentCol, i + 1)
-                    .apply { GlobalCache.addSootAssoc(local, this) }
+                    .apply {
+                        GlobalCache.addSootAssoc(local, this)
+                    }
             }
             .forEach {
                 runCatching {
-                    driver.addEdge(mtdVertex, it, AST); localVertices.add(it)
+                    builder.addEdge(mtdVertex, it, AST); localVertices.add(it)
                 }.onFailure { e -> logger.warn(e.message) }
             }
         graph.body.locals
@@ -103,19 +279,18 @@ class ASTPass(private val driver: IDriver) : IUnitGraphPass {
             }
             .forEach {
                 runCatching {
-                    driver.addEdge(mtdVertex, it, AST); localVertices.add(it)
+                    builder.addEdge(mtdVertex, it, AST); localVertices.add(it)
                 }.onFailure { e -> logger.warn(e.message) }
             }
         return localVertices
     }
-
 
     /**
      * Given a unit, will construct AST information in the graph.
      *
      * @param unit The [Unit] from which AST vertices and edges will be constructed.
      */
-    private fun projectUnit(unit: Unit, childIdx: Int): NewNodeBuilder? {
+    private fun projectUnitAsAst(unit: Unit, childIdx: Int): NewNodeBuilder? {
         currentLine = unit.javaSourceStartLineNumber
         currentCol = unit.javaSourceStartColumnNumber
 
@@ -149,11 +324,11 @@ class ASTPass(private val driver: IDriver) : IUnitGraphPass {
             .signature(signature)
             .code(code)
             .order(childIdx)
-            .dynamicTypeHintFullName(createScalaList(unit.methodRef.returnType.toQuotedString()))
+            .dynamicTypeHintFullName(SootToPlumeUtil.createScalaList(unit.methodRef.returnType.toQuotedString()))
             .lineNumber(Option.apply(currentLine))
             .columnNumber(Option.apply(currentCol))
             .argumentIndex(childIdx)
-            .dispatchType(if (unit.methodRef.isStatic) STATIC_DISPATCH else DYNAMIC_DISPATCH)
+            .dispatchType(if (unit.methodRef.isStatic) DispatchTypes.STATIC_DISPATCH else DispatchTypes.DYNAMIC_DISPATCH)
             .typeFullName(unit.type.toString())
         val callVertices = mutableListOf<NewNodeBuilder>(callVertex)
         // Create vertices for arguments
@@ -164,7 +339,8 @@ class ASTPass(private val driver: IDriver) : IUnitGraphPass {
                 else -> null
             }?.let { expressionVertex ->
                 runCatching {
-                    driver.addEdge(callVertex, expressionVertex, AST)
+                    builder.addEdge(callVertex, expressionVertex, AST)
+                    builder.addEdge(callVertex, expressionVertex, ARGUMENT)
                 }.onFailure { e -> logger.warn(e.message) }
                 callVertices.add(expressionVertex)
                 GlobalCache.addSootAssoc(arg, expressionVertex)
@@ -177,10 +353,10 @@ class ASTPass(private val driver: IDriver) : IUnitGraphPass {
             SootToPlumeUtil.createIdentifierVertex(it.value, currentLine, currentCol, unit.useBoxes.indexOf(it)).apply {
                 GlobalCache.addSootAssoc(it.value, this)
                 runCatching {
-                    driver.addEdge(callVertex, this, RECEIVER)
+                    builder.addEdge(callVertex, this, RECEIVER)
                 }.onFailure { e -> logger.warn(e.message, e) }
                 runCatching {
-                    driver.addEdge(callVertex, this, AST)
+                    builder.addEdge(callVertex, this, AST)
                 }.onFailure { e -> logger.warn(e.message, e) }
             }
         }
@@ -195,7 +371,7 @@ class ASTPass(private val driver: IDriver) : IUnitGraphPass {
      */
     private fun projectTableSwitch(unit: TableSwitchStmt, childIdx: Int): NewControlStructureBuilder {
         val switchVertex = NewControlStructureBuilder()
-            .controlStructureType(SWITCH)
+            .controlStructureType(ControlStructureTypes.SWITCH)
             .code(unit.toString())
             .lineNumber(Option.apply(currentLine))
             .columnNumber(Option.apply(currentCol))
@@ -213,7 +389,7 @@ class ASTPass(private val driver: IDriver) : IUnitGraphPass {
                     .code(tgt.toString())
                     .order(childIdx)
                 runCatching {
-                    driver.addEdge(switchVertex, tgtV, AST)
+                    builder.addEdge(switchVertex, tgtV, AST)
                 }.onFailure { e -> logger.warn(e.message) }
                 GlobalCache.addSootAssoc(unit, tgtV)
             }
@@ -229,7 +405,7 @@ class ASTPass(private val driver: IDriver) : IUnitGraphPass {
      */
     private fun projectLookupSwitch(unit: LookupSwitchStmt, childIdx: Int): NewControlStructureBuilder {
         val switchVertex = NewControlStructureBuilder()
-            .controlStructureType(SWITCH)
+            .controlStructureType(ControlStructureTypes.SWITCH)
             .code(unit.toString())
             .lineNumber(Option.apply(unit.javaSourceStartLineNumber))
             .columnNumber(Option.apply(unit.javaSourceStartColumnNumber))
@@ -249,7 +425,7 @@ class ASTPass(private val driver: IDriver) : IUnitGraphPass {
                     .code(tgt.toString())
                     .order(childIdx)
                 runCatching {
-                    driver.addEdge(switchVertex, tgtV, AST)
+                    builder.addEdge(switchVertex, tgtV, AST)
                 }.onFailure { e -> logger.warn(e.message) }
                 GlobalCache.addSootAssoc(unit, tgtV)
             }
@@ -265,7 +441,7 @@ class ASTPass(private val driver: IDriver) : IUnitGraphPass {
      */
     private fun projectSwitchDefault(unit: SwitchStmt, switchVertex: NewControlStructureBuilder) {
         val totalTgts = unit.targets.size
-        projectOp(unit.key, totalTgts + 1)?.let { driver.addEdge(switchVertex, it, CONDITION) }
+        projectOp(unit.key, totalTgts + 1)?.let { builder.addEdge(switchVertex, it, CONDITION) }
         // Handle default target jump
         unit.defaultTarget.let {
             val tgtV = NewJumpTargetBuilder()
@@ -276,7 +452,7 @@ class ASTPass(private val driver: IDriver) : IUnitGraphPass {
                 .code(it.toString())
                 .order(totalTgts + 2)
             runCatching {
-                driver.addEdge(switchVertex, tgtV, AST)
+                builder.addEdge(switchVertex, tgtV, AST)
             }.onFailure { e -> logger.warn(e.message) }
             GlobalCache.addSootAssoc(unit, tgtV)
         }
@@ -290,10 +466,10 @@ class ASTPass(private val driver: IDriver) : IUnitGraphPass {
      */
     private fun projectIfStatement(unit: IfStmt, childIdx: Int): NewControlStructureBuilder {
         val ifRootVertex = projectIfRootAndCondition(unit, childIdx)
-        graph.getSuccsOf(unit).forEach {
+        g.getSuccsOf(unit).forEach {
             val condBody: NewJumpTargetBuilder = if (it == unit.target) {
                 NewJumpTargetBuilder()
-                    .name(FALSE_TARGET)
+                    .name(ExtractorConst.FALSE_TARGET)
                     .argumentIndex(0)
                     .lineNumber(Option.apply(it.javaSourceStartLineNumber))
                     .columnNumber(Option.apply(it.javaSourceStartColumnNumber))
@@ -301,7 +477,7 @@ class ASTPass(private val driver: IDriver) : IUnitGraphPass {
                     .order(childIdx)
             } else {
                 NewJumpTargetBuilder()
-                    .name(TRUE_TARGET)
+                    .name(ExtractorConst.TRUE_TARGET)
                     .argumentIndex(1)
                     .lineNumber(Option.apply(it.javaSourceStartLineNumber))
                     .columnNumber(Option.apply(it.javaSourceStartColumnNumber))
@@ -309,7 +485,7 @@ class ASTPass(private val driver: IDriver) : IUnitGraphPass {
                     .order(childIdx)
             }
             runCatching {
-                driver.addEdge(ifRootVertex, condBody, AST)
+                builder.addEdge(ifRootVertex, condBody, AST)
             }.onFailure { e -> logger.warn(e.message) }
             GlobalCache.addSootAssoc(unit, condBody)
         }
@@ -324,17 +500,17 @@ class ASTPass(private val driver: IDriver) : IUnitGraphPass {
      */
     private fun projectIfRootAndCondition(unit: IfStmt, childIdx: Int): NewControlStructureBuilder {
         val ifRootVertex = NewControlStructureBuilder()
-            .controlStructureType(IF)
+            .controlStructureType(ControlStructureTypes.IF)
             .code(unit.toString())
             .lineNumber(Option.apply(unit.javaSourceStartLineNumber))
             .columnNumber(Option.apply(unit.javaSourceStartColumnNumber))
             .order(childIdx)
             .argumentIndex(childIdx)
-        driver.addVertex(ifRootVertex)
+        builder.addVertex(ifRootVertex)
         val condition = unit.condition as ConditionExpr
         val conditionExpr = projectFlippedConditionalExpr(condition)
         runCatching {
-            driver.addEdge(ifRootVertex, conditionExpr, CONDITION)
+            builder.addEdge(ifRootVertex, conditionExpr, CONDITION)
         }.onFailure { e -> logger.warn(e.message) }
         GlobalCache.addSootAssoc(unit, conditionExpr)
         return ifRootVertex
@@ -355,8 +531,8 @@ class ASTPass(private val driver: IDriver) : IUnitGraphPass {
             .code(unit.toString())
             .signature("${leftOp.type} = ${rightOp.type}")
             .methodFullName(Operators.assignment)
-            .dispatchType(STATIC_DISPATCH)
-            .dynamicTypeHintFullName(createScalaList(unit.rightOp.type.toQuotedString()))
+            .dispatchType(DispatchTypes.STATIC_DISPATCH)
+            .dynamicTypeHintFullName(SootToPlumeUtil.createScalaList(unit.rightOp.type.toQuotedString()))
             .order(childIdx)
             .argumentIndex(childIdx)
             .typeFullName(leftOp.type.toQuotedString())
@@ -383,14 +559,16 @@ class ASTPass(private val driver: IDriver) : IUnitGraphPass {
             }
         }?.let {
             runCatching {
-                driver.addEdge(assignBlock, it, AST)
+                builder.addEdge(assignBlock, it, AST)
+                builder.addEdge(assignBlock, it, ARGUMENT)
             }.onFailure { e -> logger.warn(e.message) }
             assignVariables.add(it)
             GlobalCache.addSootAssoc(leftOp, it)
         }
         projectOp(rightOp, 1)?.let {
             runCatching {
-                driver.addEdge(assignBlock, it, AST)
+                builder.addEdge(assignBlock, it, AST)
+                builder.addEdge(assignBlock, it, ARGUMENT)
             }.onFailure { e -> logger.warn(e.message) }
             assignVariables.add(it)
             GlobalCache.addSootAssoc(rightOp, it)
@@ -415,8 +593,8 @@ class ASTPass(private val driver: IDriver) : IUnitGraphPass {
             .code(expr.toString())
             .signature("${expr.op1.type.toQuotedString()}${expr.symbol}${expr.op2.type.toQuotedString()}")
             .methodFullName(binOpExpr)
-            .dispatchType(STATIC_DISPATCH)
-            .dynamicTypeHintFullName(createScalaList(expr.op2.type.toQuotedString()))
+            .dispatchType(DispatchTypes.STATIC_DISPATCH)
+            .dynamicTypeHintFullName(SootToPlumeUtil.createScalaList(expr.op2.type.toQuotedString()))
             .order(childIdx)
             .argumentIndex(childIdx)
             .typeFullName(expr.type.toQuotedString())
@@ -425,14 +603,16 @@ class ASTPass(private val driver: IDriver) : IUnitGraphPass {
             .apply { binopVertices.add(this) }
         projectOp(expr.op1, 0)?.let {
             runCatching {
-                driver.addEdge(binOpBlock, it, AST)
+                builder.addEdge(binOpBlock, it, AST)
+                builder.addEdge(binOpBlock, it, ARGUMENT)
             }.onFailure { e -> logger.warn(e.message) }
             binopVertices.add(it)
             GlobalCache.addSootAssoc(expr.op1, it)
         }
         projectOp(expr.op2, 1)?.let {
             runCatching {
-                driver.addEdge(binOpBlock, it, AST)
+                builder.addEdge(binOpBlock, it, AST)
+                builder.addEdge(binOpBlock, it, ARGUMENT)
             }.onFailure { e -> logger.warn(e.message) }
             binopVertices.add(it)
             GlobalCache.addSootAssoc(expr.op2, it)
@@ -450,24 +630,26 @@ class ASTPass(private val driver: IDriver) : IUnitGraphPass {
             .code(expr.toString())
             .signature("${expr.op1.type} $operator ${expr.op2.type}")
             .methodFullName(operator)
-            .dispatchType(STATIC_DISPATCH)
+            .dispatchType(DispatchTypes.STATIC_DISPATCH)
             .order(3)
             .argumentIndex(3) // under an if-condition, the condition child will be after the two paths
             .typeFullName(expr.type.toQuotedString())
             .lineNumber(Option.apply(currentLine))
             .columnNumber(Option.apply(currentCol))
-            .dynamicTypeHintFullName(createScalaList(expr.op2.type.toQuotedString()))
+            .dynamicTypeHintFullName(SootToPlumeUtil.createScalaList(expr.op2.type.toQuotedString()))
             .apply { conditionVertices.add(this) }
         projectOp(expr.op1, 1)?.let {
             runCatching {
-                driver.addEdge(binOpBlock, it, AST)
+                builder.addEdge(binOpBlock, it, AST)
+                builder.addEdge(binOpBlock, it, ARGUMENT)
             }.onFailure { e -> logger.warn(e.message) }
             conditionVertices.add(it)
             GlobalCache.addSootAssoc(expr.op1, it)
         }
         projectOp(expr.op2, 2)?.let {
             runCatching {
-                driver.addEdge(binOpBlock, it, AST)
+                builder.addEdge(binOpBlock, it, AST)
+                builder.addEdge(binOpBlock, it, ARGUMENT)
             }.onFailure { e -> logger.warn(e.message) }
             conditionVertices.add(it)
             GlobalCache.addSootAssoc(expr.op2, it)
@@ -483,8 +665,8 @@ class ASTPass(private val driver: IDriver) : IUnitGraphPass {
             .code(expr.toString())
             .signature("(${expr.castType.toQuotedString()}) ${expr.op.type.toQuotedString()}")
             .methodFullName(Operators.cast)
-            .dispatchType(STATIC_DISPATCH)
-            .dynamicTypeHintFullName(createScalaList(expr.op.type.toQuotedString()))
+            .dispatchType(DispatchTypes.STATIC_DISPATCH)
+            .dynamicTypeHintFullName(SootToPlumeUtil.createScalaList(expr.op.type.toQuotedString()))
             .order(childIdx)
             .argumentIndex(childIdx)
             .typeFullName(expr.type.toQuotedString())
@@ -493,7 +675,9 @@ class ASTPass(private val driver: IDriver) : IUnitGraphPass {
             .apply { castVertices.add(this) }
         projectOp(expr.op, 1)?.let {
             runCatching {
-                driver.addEdge(castBlock, it, AST); castVertices.add(it)
+                builder.addEdge(castBlock, it, AST)
+                builder.addEdge(castBlock, it, ARGUMENT)
+                castVertices.add(it)
             }.onFailure { e -> logger.warn(e.message) }
         }
         // Save PDG arguments
@@ -528,9 +712,8 @@ class ASTPass(private val driver: IDriver) : IUnitGraphPass {
         }
     }
 
-    // TODO: This is incorrect - arrays should be identifiers
     private fun createNewArrayExpr(expr: NewArrayExpr, childIdx: Int = 0) =
-        NewArrayInitializerBuilder()
+        NewIdentifierBuilder()
             .order(childIdx + 1)
             .argumentIndex(childIdx + 1)
             .code(expr.toString())
@@ -546,10 +729,10 @@ class ASTPass(private val driver: IDriver) : IUnitGraphPass {
             .lineNumber(Option.apply(ret.javaSourceStartLineNumber))
             .columnNumber(Option.apply(ret.javaSourceStartColumnNumber))
             .order(childIdx)
-        projectOp(ret.op, childIdx + 1)?.let { driver.addEdge(retV, it, AST) }
+        projectOp(ret.op, childIdx + 1)?.let { builder.addEdge(retV, it, AST) }
         runCatching {
-            driver.addEdge(
-                GlobalCache.getSootAssoc(graph.body.method)?.first { it is NewBlockBuilder }!!,
+            builder.addEdge(
+                GlobalCache.getSootAssoc(g.body.method)?.first { it is NewBlockBuilder }!!,
                 retV,
                 AST
             )
@@ -565,13 +748,12 @@ class ASTPass(private val driver: IDriver) : IUnitGraphPass {
             .columnNumber(Option.apply(ret.javaSourceStartColumnNumber))
             .order(childIdx)
         runCatching {
-            driver.addEdge(
-                GlobalCache.getSootAssoc(graph.body.method)?.first { it is NewBlockBuilder }!!,
+            builder.addEdge(
+                GlobalCache.getSootAssoc(g.body.method)?.first { it is NewBlockBuilder }!!,
                 retV,
                 AST
             )
         }.onFailure { e -> logger.warn(e.message) }
         return retV
     }
-
 }

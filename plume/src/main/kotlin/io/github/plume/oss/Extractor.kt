@@ -20,6 +20,7 @@ import io.github.plume.oss.domain.files.FileFactory
 import io.github.plume.oss.domain.files.JVMClassFile
 import io.github.plume.oss.domain.files.PlumeFile
 import io.github.plume.oss.domain.files.UnsupportedFile
+import io.github.plume.oss.domain.model.DeltaGraph
 import io.github.plume.oss.drivers.GremlinDriver
 import io.github.plume.oss.drivers.IDriver
 import io.github.plume.oss.drivers.Neo4jDriver
@@ -28,10 +29,8 @@ import io.github.plume.oss.metrics.ExtractorTimeKey
 import io.github.plume.oss.metrics.PlumeTimer
 import io.github.plume.oss.options.ExtractorOptions
 import io.github.plume.oss.passes.SCPGPass
-import io.github.plume.oss.passes.graph.ASTPass
-import io.github.plume.oss.passes.graph.CFGPass
+import io.github.plume.oss.passes.graph.BaseCPGPass
 import io.github.plume.oss.passes.graph.CGPass
-import io.github.plume.oss.passes.graph.PDGPass
 import io.github.plume.oss.passes.method.MethodStubPass
 import io.github.plume.oss.passes.structure.ExternalTypePass
 import io.github.plume.oss.passes.structure.FileAndPackagePass
@@ -48,6 +47,9 @@ import io.shiftleft.codepropertygraph.generated.NodeKeyNames.*
 import io.shiftleft.codepropertygraph.generated.NodeTypes.META_DATA
 import io.shiftleft.codepropertygraph.generated.NodeTypes.METHOD
 import io.shiftleft.codepropertygraph.generated.nodes.NewMetaDataBuilder
+import kotlinx.coroutines.channels.Channel
+import kotlinx.coroutines.launch
+import kotlinx.coroutines.runBlocking
 import org.apache.logging.log4j.LogManager
 import org.apache.logging.log4j.Logger
 import soot.*
@@ -60,6 +62,7 @@ import java.io.IOException
 import java.nio.file.Files
 import java.nio.file.Path
 import java.nio.file.Paths
+import java.util.concurrent.Executors
 import java.util.stream.Collectors
 import java.util.zip.ZipFile
 import kotlin.streams.asSequence
@@ -233,7 +236,7 @@ class Extractor(val driver: IDriver) {
         PlumeTimer.measure(ExtractorTimeKey.BASE_CPG_BUILDING) {
             val allMs: List<SootMethod> = (parentToChildCs.flatMap { it.second + it.first }.flatMap { it.methods }
                     + sootUnitGraphs.map { it.body.method }).distinct().toList()
-            val existingMs: List<String> = driver.getPropertyFromVertices(FULL_NAME, METHOD)
+            val existingMs = driver.getPropertyFromVertices<String>(FULL_NAME, METHOD).toSet()
             // Create method stubs while avoiding duplication
             logger.info("Building stubs for all methods")
             pipeline(
@@ -243,31 +246,67 @@ class Extractor(val driver: IDriver) {
                 existingMs.contains(fullName)
             })
             // Create method bodies while avoiding duplication
-            logger.info("Building method bodies for all internal methods")
-            pipeline(
-                // Base CPG
-                ASTPass(driver)::runPass,
-                CFGPass(driver)::runPass,
-                PDGPass(driver)::runPass,
-                // Call graph
-                CGPass(driver)::runPass,
-            ).invoke(sootUnitGraphs.filterNot { sm ->
+            val bodiesToBuild = sootUnitGraphs.filterNot { sm ->
                 val (fullName, _, _) = SootToPlumeUtil.methodToStrings(sm.body.method)
                 existingMs.contains(fullName)
-            })
+            }.toList()
+            runBlocking {
+                val chunkSize = ExtractorOptions.methodChunkSize
+                val jobCount = bodiesToBuild.size
+                val nThreads = (jobCount / chunkSize)
+                    .coerceAtLeast(1)
+                    .coerceAtMost(Runtime.getRuntime().availableProcessors())
+                val channel = Channel<DeltaGraph>()
+                logger.info("Building $jobCount method bodies for all internal methods using $nThreads thread(s).")
+                // Create jobs in chunks and submit these jobs to a thread pool
+                val threadPool = Executors.newFixedThreadPool(nThreads)
+                launch {
+                    bodiesToBuild.chunked(chunkSize)
+                        .map { chunk -> Runnable { buildBaseCPGs(chunk, channel) } }
+                        .forEach(threadPool::submit)
+                }
+                // Consumer: Receive delta graphs and write changes to the driver in serial
+                launch {
+                    repeat(jobCount) { channel.receive().apply(driver) }
+                    logger.debug("All $jobCount jobs have been applied to the driver")
+                    channel.close()
+                }.join() // Suspend until the channel is fully consumed.
+                threadPool.shutdown()
+            }
+            // Connect call edges
+            CGPass(driver).runPass(bodiesToBuild)
         }
         // Clear all Soot resources and cache
         clear()
+        GlobalCache.clear()
         /*
-            Method body level analysis. This runs over all in-case dataflow information changes on update.
+            Method body level analysis - only done on new/updated methods
          */
         logger.info("Running SCPG passes")
         PlumeTimer.measure(ExtractorTimeKey.SCPG_PASSES) { SCPGPass(driver).runPass() }
+        GlobalCache.methodBodies.clear()
         return this
     }
 
     private fun <T> pipeline(vararg functions: (T) -> T): (T) -> T =
         { functions.fold(it) { output, stage -> stage.invoke(output) } }
+
+    /**
+     * Constructs the method bodies concurrently.
+     *
+     * @param gs The list of method bodies as [BriefUnitGraph]s.
+     */
+    private fun buildBaseCPGs(gs: List<BriefUnitGraph>, channel: Channel<DeltaGraph>) = runBlocking {
+        // Producer: Create local instances of CPGs from BriefUnitGraphs map changes to DeltaGraphs
+        gs.forEach { g ->
+            launch {
+                val dg = BaseCPGPass(g).runPass()
+                channel.send(dg)
+                val (fullName, _, _) = SootToPlumeUtil.methodToStrings(g.body.method)
+                GlobalCache.methodBodies[fullName] = dg
+            }
+        }
+    }
 
     /**
      * Load all methods to construct the CPG from and convert them to [BriefUnitGraph] objects.
@@ -355,7 +394,6 @@ class Extractor(val driver: IDriver) {
      */
     private fun clear() {
         loadedFiles.clear()
-        GlobalCache.clear()
         File(COMP_DIR).deleteRecursively()
         G.reset()
     }
