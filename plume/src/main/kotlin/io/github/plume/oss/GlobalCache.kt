@@ -1,9 +1,8 @@
 package io.github.plume.oss
 
+import io.github.plume.oss.domain.model.DeltaGraph
 import io.shiftleft.codepropertygraph.generated.nodes.*
-import overflowdb.Graph
 import soot.SootClass
-import soot.SootMethod
 import soot.toolkits.graph.BriefUnitGraph
 import java.util.concurrent.ConcurrentHashMap
 
@@ -19,7 +18,7 @@ object GlobalCache {
     /**
      * Caches already built method bodies to save database requests during SCPG passes.
      */
-    val methodBodies = mutableMapOf<String, Graph>()
+    val methodBodies = mutableMapOf<String, DeltaGraph>()
 
     /**
      * Associates the given Soot object to the given [NewNode].

@@ -39,7 +39,7 @@ class SCPGPass(private val driver: IDriver) {
             val bufferedChannel = Channel<Graph>()
             val g = Graph.open(Config.withDefaults(), NodeFactories.allAsJava(), EdgeFactories.allAsJava())
             // Producer
-            GlobalCache.methodBodies.values.forEach { mg -> launch { bufferedChannel.send(mg) } }
+            GlobalCache.methodBodies.values.forEach { mg -> launch { bufferedChannel.send(mg.toOverflowDb()) } }
             // Single consumer
             launch {
                 repeat(GlobalCache.methodBodies.size) {

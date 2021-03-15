@@ -303,7 +303,7 @@ class Extractor(val driver: IDriver) {
                 val dg = BaseCPGPass(g).runPass()
                 channel.send(dg)
                 val (fullName, _, _) = SootToPlumeUtil.methodToStrings(g.body.method)
-                GlobalCache.methodBodies[fullName] = dg.toOverflowDb()
+                GlobalCache.methodBodies[fullName] = dg
             }
         }
     }
