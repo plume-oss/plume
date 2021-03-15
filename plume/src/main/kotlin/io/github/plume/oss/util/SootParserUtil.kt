@@ -1,12 +1,58 @@
 package io.github.plume.oss.util
 
-import org.objectweb.asm.Opcodes
-import io.github.plume.oss.util.ExtractorConst.PRIMITIVES
 import io.shiftleft.codepropertygraph.generated.EvaluationStrategies.*
 import io.shiftleft.codepropertygraph.generated.ModifierTypes.*
 import io.shiftleft.codepropertygraph.generated.Operators
+import org.objectweb.asm.Opcodes
+import java.util.stream.IntStream
 
 object SootParserUtil {
+    private val PRIMITIVES: Map<Char, String> = mapOf(
+        'Z' to "boolean",
+        'C' to "char",
+        'B' to "byte",
+        'S' to "short",
+        'I' to "int",
+        'F' to "float",
+        'J' to "long",
+        'D' to "double",
+        'V' to "void"
+    )
+
+    /**
+     * Given a method signature, returns a list of all the parameters separated into a list.
+     *
+     * @param signature the raw method signature from ASM5
+     * @return a list of the parameters
+     */
+    @JvmStatic
+    fun obtainParameters(signature: String): List<String> {
+        val parameters: MutableList<String> = ArrayList()
+        val sigArr = signature.toCharArray()
+        val sb = StringBuilder()
+        IntStream.range(0, sigArr.size).mapToObj { i: Int -> sigArr[i] }.forEach { c: Char ->
+            if (c == ';') {
+                val prefix = sb.toString()
+                    .replace("[", "")
+                    .substring(1)
+                    .replace("/", ".")
+                val suffix = sb.filter { it == '[' }
+                    .map { "[]" }
+                    .joinToString("")
+                parameters.add("$prefix$suffix")
+                sb.delete(0, sb.length)
+            } else if (isPrimitive(c) && sb.indexOf("L") == -1) {
+                parameters.add("${PRIMITIVES[c]!!}${sb.filter { it == '[' }.map { "[]" }.joinToString("")}")
+                sb.delete(0, sb.length)
+            } else if (isObject(c)) {
+                sb.append(c)
+            } else if (isArray(c)) {
+                sb.append(c)
+            } else sb.append(c)
+        }
+        return parameters
+    }
+
     /**
      * Given the ASM5 access parameter and method name, determines the modifier types.
      *
@@ -56,7 +102,7 @@ object SootParserUtil {
      */
     @JvmStatic
     fun determineEvaluationStrategy(paramType: String, isMethodReturn: Boolean): String {
-        return if (isArrayType(paramType) || !PRIMITIVES.contains(paramType))
+        return if (isArrayType(paramType) || !PRIMITIVES.values.contains(paramType))
             if (isMethodReturn) BY_SHARING else BY_REFERENCE
         else BY_VALUE
     }
@@ -78,6 +124,36 @@ object SootParserUtil {
             Operators.greaterThan -> Operators.lessEqualsThan
             else -> "<operator>.noOperation"
         }
+    }
+
+    /**
+     * Checks if the given character is associated with a primitive or not according to Section 2.1.3 of the ASM docs.
+     *
+     * @param c the character e.g. I, D, F, etc.
+     * @return true if the character is associated with a primitive, false if otherwise.
+     */
+    private fun isPrimitive(c: Char): Boolean {
+        return PRIMITIVES.containsKey(c)
+    }
+
+    /**
+     * Checks if the given character is associated an object or not according to Section 2.1.3 of the ASM docs.
+     *
+     * @param c the character e.g. L
+     * @return true if the character is associated with an object, false if otherwise.
+     */
+    private fun isObject(c: Char): Boolean {
+        return c == 'L'
+    }
+
+    /**
+     * Checks if the given character is associated an array or not according to Section 2.1.3 of the ASM docs.
+     *
+     * @param c the character e.g. [
+     * @return true if the character is associated with an array, false if otherwise.
+     */
+    private fun isArray(c: Char): Boolean {
+        return c == '['
     }
 
     @JvmStatic

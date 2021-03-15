@@ -88,17 +88,26 @@ class MethodStubPass(private val driver: IDriver) : IMethodPass {
         // Store return type
         val mtdRet = projectMethodReturnVertex(m.returnType, currentLine, currentCol, childIdx++)
             .apply { driver.addEdge(mtdVertex, this, AST); GlobalCache.addSootAssoc(m, this) }
-        // Create a call-to-return for external classes
+        // Extrapolate certain information manually for external classes
         if (!m.declaringClass.isApplicationClass) {
+            // Create a call-to-return for external classes
             val ret = projectReturnVertex(m.javaSourceStartLineNumber, m.javaSourceStartColumnNumber, childIdx++)
             driver.addEdge(mtdVertex, ret, CFG)
             driver.addEdge(ret, mtdRet, CFG)
+            // Create method params manually
+            projectBytecodeParams(m.bytecodeParms)
         }
         // Modifier vertices
         SootParserUtil.determineModifiers(m.modifiers, m.name)
             .map { NewModifierBuilder().modifierType(it).order(childIdx++) }
             .forEach { driver.addEdge(mtdVertex, it, AST) }
         return mtdVertex
+    }
+
+    private fun projectBytecodeParams(rawParams: String) {
+        if (rawParams.isBlank()) return
+        val params = SootParserUtil.obtainParameters(rawParams)
+        println("Params " + params)
     }
 
     private fun projectMethodReturnVertex(

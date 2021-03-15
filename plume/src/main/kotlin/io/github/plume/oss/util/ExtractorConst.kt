@@ -7,7 +7,6 @@ import io.shiftleft.codepropertygraph.generated.NodeTypes
 object ExtractorConst {
     const val LANGUAGE_FRONTEND = "Plume"
     val plumeVersion: String by lazy { javaClass.`package`.implementationVersion ?: "X.X.X" }
-    val PRIMITIVES = listOf("boolean", "byte", "char", "double", "float", "int", "long", "null", "short", "void")
     const val ENTRYPOINT = "BODY"
     const val TRUE_TARGET = "TRUE"
     const val FALSE_TARGET = "FALSE"

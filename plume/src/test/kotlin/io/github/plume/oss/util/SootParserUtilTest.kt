@@ -3,6 +3,7 @@ package io.github.plume.oss.util
 import io.github.plume.oss.util.SootParserUtil.determineEvaluationStrategy
 import io.github.plume.oss.util.SootParserUtil.determineModifiers
 import io.github.plume.oss.util.SootParserUtil.isArrayType
+import io.github.plume.oss.util.SootParserUtil.obtainParameters
 import io.shiftleft.codepropertygraph.generated.EvaluationStrategies.*
 import io.shiftleft.codepropertygraph.generated.ModifierTypes.*
 import org.junit.jupiter.api.Assertions.*
@@ -10,6 +11,16 @@ import org.junit.jupiter.api.Test
 import org.objectweb.asm.Opcodes
 
 class SootParserUtilTest {
+
+    @Test
+    fun testObtainingParameters() {
+        assertEquals(listOf("int"), obtainParameters("I"))
+        assertEquals(listOf("int", "byte"), obtainParameters("IB"))
+        assertEquals(emptyList<Any>(), obtainParameters(""))
+        assertEquals(listOf("java.util.String"), obtainParameters("Ljava/util/String;"))
+        assertEquals(listOf("java.util.String", "long"), obtainParameters("Ljava/util/String;J"))
+        assertEquals(listOf("java.util.String[]", "byte[]"), obtainParameters("[Ljava/util/String;[B"))
+    }
 
     @Test
     fun testDetermineEvaluationStrategy() {
