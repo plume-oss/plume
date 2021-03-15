@@ -5,7 +5,27 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](http://keepachangelog.com/)
 and this project adheres to [Semantic Versioning](http://semver.org/).
 
-## [0.3.2] - XXXX-XX-XX
+## [0.3.3] - XXXX-XX-XX
+
+### Added
+
+- `DeltaGraph` as a `NewNodeBuilder` variant of ShiftLeft's `DiffGraph`.
+- `BaseCpgPass` which is a combination of the `ASTPass`, `CFGPass`, and `PDGPass` and returns a `DeltaGraph` instead of
+  directly apply changes to the driver.
+
+### Changed
+
+- Replaced `ASTPass`, `CFGPass`, and `PDGPass` with `BaseCpgPass`.
+- Spawns a thread pool to run base CPG building in parallel and apply `DeltaGraph`s in serial. 
+
+### Changed
+
+- Moved the maps in `Extractor` to a dedicated `GlobalCache` object that uses `ConcurrentHashMap`s.
+- SCPG pass now concurrently pulls all methods and merges it into an input graph. This code has been moved to
+  `passes.SCPGPass.kt`
+- External method stubs have call-to-returns generated i.e. (METHOD)-CFG->(RETURN)-CFG->(METHOD_RETURN)
+
+## [0.3.2] - 2021-03-12
 
 ### Added
 
@@ -15,7 +35,7 @@ and this project adheres to [Semantic Versioning](http://semver.org/).
 ### Changed
 
 - Moved the maps in `Extractor` to a dedicated `GlobalCache` object that uses `ConcurrentHashMap`s.
-- SCPG pass now concurrently pulls all methods and merges it into an input graph. This code has been moved to 
+- SCPG pass now concurrently pulls all methods and merges it into an input graph. This code has been moved to
   `passes.SCPGPass.kt`
 - External method stubs have call-to-returns generated i.e. (METHOD)-CFG->(RETURN)-CFG->(METHOD_RETURN)
 
