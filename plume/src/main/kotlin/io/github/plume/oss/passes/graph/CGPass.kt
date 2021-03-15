@@ -40,7 +40,7 @@ import soot.toolkits.graph.BriefUnitGraph
  */
 class CGPass(private val driver: IDriver) : IUnitGraphPass {
     private val logger = LogManager.getLogger(CGPass::javaClass)
-    private lateinit var graph: BriefUnitGraph
+    private lateinit var g: BriefUnitGraph
 
     override fun runPass(gs: List<BriefUnitGraph>) =
         if (ExtractorOptions.callGraphAlg != ExtractorOptions.CallGraphAlg.NONE) gs.map(::runPassOnGraph)
@@ -49,11 +49,11 @@ class CGPass(private val driver: IDriver) : IUnitGraphPass {
     private fun runPassOnGraph(g: BriefUnitGraph): BriefUnitGraph {
         val mtd = g.body.method
         logger.debug("Building call graph edges for ${mtd.declaration}")
-        this.graph = g
+        this.g = g
         // If this was an updated method, connect call graphs
         GlobalCache.getSootAssoc(mtd)?.filterIsInstance<NewMethodBuilder>()?.first()?.let { reconnectPriorCallGraphEdges(it) }
         // Connect all units to their successors
-        this.graph.body.units.filterNot { it is IdentityStmt }.forEach(this::projectUnit)
+        this.g.body.units.filterNot { it is IdentityStmt }.forEach(this::projectUnit)
         return g
     }
 

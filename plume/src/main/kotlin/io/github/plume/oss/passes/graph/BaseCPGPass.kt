@@ -91,13 +91,13 @@ class BaseCPGPass(private val g: BriefUnitGraph) {
         // Identifier REF edges
         (this.g.body.parameterLocals + this.g.body.locals).forEach(this::projectLocalVariable)
         // Operator and Cast ARGUMENT edges
-        this.g.body.units.filterIsInstance<AssignStmt>().map { projectCallArg(it); it.rightOp }.forEach {
-            when (it) {
-                is CastExpr -> projectCallArg(it)
-                is BinopExpr -> projectCallArg(it)
-                is InvokeExpr -> projectCallArg(it)
-            }
-        }
+//        this.g.body.units.filterIsInstance<AssignStmt>().map { projectCallArg(it); it.rightOp }.forEach {
+//            when (it) {
+//                is CastExpr -> projectCallArg(it)
+//                is BinopExpr -> projectCallArg(it)
+//                is InvokeExpr -> projectCallArg(it)
+//            }
+//        }
         // Control structure condition vertex ARGUMENT edges
         this.g.body.units.filterIsInstance<IfStmt>().map { it.condition }.forEach(this::projectCallArg)
         // Invoke ARGUMENT edges
@@ -336,6 +336,7 @@ class BaseCPGPass(private val g: BriefUnitGraph) {
             }?.let { expressionVertex ->
                 runCatching {
                     builder.addEdge(callVertex, expressionVertex, AST)
+                    builder.addEdge(callVertex, expressionVertex, ARGUMENT)
                 }.onFailure { e -> logger.warn(e.message) }
                 callVertices.add(expressionVertex)
                 GlobalCache.addSootAssoc(arg, expressionVertex)
@@ -555,6 +556,7 @@ class BaseCPGPass(private val g: BriefUnitGraph) {
         }?.let {
             runCatching {
                 builder.addEdge(assignBlock, it, AST)
+                builder.addEdge(assignBlock, it, ARGUMENT)
             }.onFailure { e -> logger.warn(e.message) }
             assignVariables.add(it)
             GlobalCache.addSootAssoc(leftOp, it)
@@ -562,6 +564,7 @@ class BaseCPGPass(private val g: BriefUnitGraph) {
         projectOp(rightOp, 1)?.let {
             runCatching {
                 builder.addEdge(assignBlock, it, AST)
+                builder.addEdge(assignBlock, it, ARGUMENT)
             }.onFailure { e -> logger.warn(e.message) }
             assignVariables.add(it)
             GlobalCache.addSootAssoc(rightOp, it)
@@ -597,6 +600,7 @@ class BaseCPGPass(private val g: BriefUnitGraph) {
         projectOp(expr.op1, 0)?.let {
             runCatching {
                 builder.addEdge(binOpBlock, it, AST)
+                builder.addEdge(binOpBlock, it, ARGUMENT)
             }.onFailure { e -> logger.warn(e.message) }
             binopVertices.add(it)
             GlobalCache.addSootAssoc(expr.op1, it)
@@ -604,6 +608,7 @@ class BaseCPGPass(private val g: BriefUnitGraph) {
         projectOp(expr.op2, 1)?.let {
             runCatching {
                 builder.addEdge(binOpBlock, it, AST)
+                builder.addEdge(binOpBlock, it, ARGUMENT)
             }.onFailure { e -> logger.warn(e.message) }
             binopVertices.add(it)
             GlobalCache.addSootAssoc(expr.op2, it)
@@ -632,6 +637,7 @@ class BaseCPGPass(private val g: BriefUnitGraph) {
         projectOp(expr.op1, 1)?.let {
             runCatching {
                 builder.addEdge(binOpBlock, it, AST)
+                builder.addEdge(binOpBlock, it, ARGUMENT)
             }.onFailure { e -> logger.warn(e.message) }
             conditionVertices.add(it)
             GlobalCache.addSootAssoc(expr.op1, it)
@@ -639,6 +645,7 @@ class BaseCPGPass(private val g: BriefUnitGraph) {
         projectOp(expr.op2, 2)?.let {
             runCatching {
                 builder.addEdge(binOpBlock, it, AST)
+                builder.addEdge(binOpBlock, it, ARGUMENT)
             }.onFailure { e -> logger.warn(e.message) }
             conditionVertices.add(it)
             GlobalCache.addSootAssoc(expr.op2, it)
@@ -664,7 +671,9 @@ class BaseCPGPass(private val g: BriefUnitGraph) {
             .apply { castVertices.add(this) }
         projectOp(expr.op, 1)?.let {
             runCatching {
-                builder.addEdge(castBlock, it, AST); castVertices.add(it)
+                builder.addEdge(castBlock, it, AST)
+                builder.addEdge(castBlock, it, ARGUMENT)
+                castVertices.add(it)
             }.onFailure { e -> logger.warn(e.message) }
         }
         // Save PDG arguments
@@ -699,9 +708,8 @@ class BaseCPGPass(private val g: BriefUnitGraph) {
         }
     }
 
-    // TODO: This is incorrect - arrays should be identifiers
     private fun createNewArrayExpr(expr: NewArrayExpr, childIdx: Int = 0) =
-        NewArrayInitializerBuilder()
+        NewIdentifierBuilder()
             .order(childIdx + 1)
             .argumentIndex(childIdx + 1)
             .code(expr.toString())

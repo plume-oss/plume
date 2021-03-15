@@ -250,7 +250,6 @@ class Extractor(val driver: IDriver) {
                 val (fullName, _, _) = SootToPlumeUtil.methodToStrings(sm.body.method)
                 existingMs.contains(fullName)
             }.toList()
-            // TODO: BaseCpgPass must replace AST/CPG/PDG passes
             runBlocking {
                 val chunkSize = 50
                 val jobCount = bodiesToBuild.size
@@ -273,14 +272,8 @@ class Extractor(val driver: IDriver) {
                     channel.close()
                 }.join() // Suspend until the channel is fully consumed.
             }
-            pipeline(
-                // Base CPG TODO: This will get replaced
-//                ASTPass(driver)::runPass,
-//                CFGPass(driver)::runPass,
-//                PDGPass(driver)::runPass,
-                // Call graph
-                CGPass(driver)::runPass,
-            ).invoke(bodiesToBuild)
+            // Connect call edges
+            CGPass(driver).runPass(bodiesToBuild)
         }
         // Clear all Soot resources and cache
         clear()
