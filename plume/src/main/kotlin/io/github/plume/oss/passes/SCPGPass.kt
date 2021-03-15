@@ -1,11 +1,10 @@
 package io.github.plume.oss.passes
 
-import io.github.plume.oss.domain.mappers.VertexMapper
+import io.github.plume.oss.GlobalCache
 import io.github.plume.oss.drivers.IDriver
 import io.github.plume.oss.util.DiffGraphUtil
 import io.shiftleft.codepropertygraph.Cpg
 import io.shiftleft.codepropertygraph.generated.EdgeTypes
-import io.shiftleft.codepropertygraph.generated.NodeKeyNames
 import io.shiftleft.codepropertygraph.generated.NodeTypes
 import io.shiftleft.codepropertygraph.generated.nodes.AstNode
 import io.shiftleft.codepropertygraph.generated.nodes.Method
@@ -13,18 +12,14 @@ import io.shiftleft.dataflowengineoss.passes.reachingdef.ReachingDefPass
 import io.shiftleft.passes.DiffGraph
 import io.shiftleft.passes.ParallelCpgPass
 import io.shiftleft.semanticcpg.passes.containsedges.ContainsEdgePass
-import kotlinx.coroutines.async
 import kotlinx.coroutines.channels.Channel
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.runBlocking
-import kotlinx.coroutines.sync.Semaphore
 import org.apache.logging.log4j.LogManager
 import org.apache.logging.log4j.Logger
 import overflowdb.Config
-import overflowdb.Edge
 import overflowdb.Graph
 import scala.jdk.CollectionConverters
-import java.util.concurrent.ConcurrentLinkedDeque
 import kotlin.streams.toList
 import io.shiftleft.codepropertygraph.generated.edges.Factories as EdgeFactories
 import io.shiftleft.codepropertygraph.generated.nodes.Factories as NodeFactories
@@ -40,63 +35,33 @@ class SCPGPass(private val driver: IDriver) {
      * Calls SCPG passes. Converges all methods into a local OverflowDB graph instance. This is done concurrently.
      */
     fun runPass() {
-        val methodNames = ConcurrentLinkedDeque(
-            driver.getPropertyFromVertices<String>(NodeKeyNames.FULL_NAME, NodeTypes.METHOD)
-        )
-        val numberOfJobs = methodNames.size
-        val oldSummaries = ConcurrentLinkedDeque<Edge>()
         runBlocking {
             // We use a semaphore to avoid spamming the database with too many requests
-            val sharedCounterLock = Semaphore(10)
             val bufferedChannel = Channel<Graph>(10)
             val g = Graph.open(Config.withDefaults(), NodeFactories.allAsJava(), EdgeFactories.allAsJava())
-            // Producers
-            1.rangeTo(numberOfJobs).map {
-                async {
-                    if (methodNames.isNotEmpty()) {
-                        val mName = methodNames.poll()
-                        try {
-                            sharedCounterLock.acquire()
-                            val mg = driver.getMethod(mName, true)
-                            bufferedChannel.send(mg)
-                        } catch (e: Exception) {
-                            logger.warn("Exception while retrieving method body during SCPG phase.", e)
-                            methodNames.add(mName)
-                        } finally {
-                            sharedCounterLock.release()
-                        }
-                    }
-                }
-            }
+            // Producer
+            GlobalCache.methodBodies.values.forEach { mg -> launch { bufferedChannel.send(mg) } }
             // Single consumer
             launch {
-                repeat(numberOfJobs) {
-                    bufferedChannel.receive().use { o -> mergeGraphs(g, o).toCollection(oldSummaries) }
+                repeat(GlobalCache.methodBodies.size) {
+                    bufferedChannel.receive().use { o -> mergeGraphs(g, o) }
                 }
                 bufferedChannel.close()
             }.join() // Suspend until the channel is fully consumed.
-            // Delete old calculations that don't carry over
-            oldSummaries.forEach { e ->
-                driver.deleteEdge(
-                    VertexMapper.mapToVertex(e.outNode()),
-                    VertexMapper.mapToVertex(e.inNode()),
-                    e.label()
-                )
-            }
             // Run passes
             launch {
-                val cpg = Cpg.apply(g)
-                val methods = g.nodes(NodeTypes.METHOD).asSequence().toList()
-                // TODO: Make own contains edge pass for methods
-                runParallelPass(methods.filterIsInstance<AstNode>(), ContainsEdgePass(cpg))
-                runParallelPass(methods.filterIsInstance<Method>(), ReachingDefPass(cpg))
+                Cpg.apply(g).use { cpg ->
+                    val methods = g.nodes(NodeTypes.METHOD).asSequence().toList()
+                    // TODO: Make own contains edge pass for methods
+                    runParallelPass(methods.filterIsInstance<AstNode>(), ContainsEdgePass(cpg))
+                    runParallelPass(methods.filterIsInstance<Method>(), ReachingDefPass(cpg))
+                }
             }
         }
     }
 
     @Synchronized
-    private fun mergeGraphs(tgt: Graph, o: Graph): List<Edge> {
-        val esToRemove = mutableListOf<Edge>()
+    private fun mergeGraphs(tgt: Graph, o: Graph) {
         o.nodes().asSequence()
             .forEach { n ->
                 if (tgt.node(n.id()) == null)
@@ -109,9 +74,6 @@ class SCPGPass(private val driver: IDriver) {
                 val dst = tgt.node(e.inNode().id())
                 if (!src.out(e.label()).asSequence().contains(dst)) src.addEdge(e.label(), dst)
             }
-        // Remove previously calculated reaching defs as these change on an interprocedural context
-        o.edges().asSequence().filter { it.label() == EdgeTypes.REACHING_DEF }.toCollection(esToRemove)
-        return esToRemove
     }
 
     /**

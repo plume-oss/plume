@@ -2,6 +2,11 @@ package io.github.plume.oss.domain.model
 
 import io.github.plume.oss.drivers.IDriver
 import io.shiftleft.codepropertygraph.generated.nodes.NewNodeBuilder
+import overflowdb.Config
+import overflowdb.Graph
+import overflowdb.Node
+import io.shiftleft.codepropertygraph.generated.edges.Factories as EdgeFactories
+import io.shiftleft.codepropertygraph.generated.nodes.Factories as NodeFactories
 
 /**
  * This is based off of [io.shiftleft.passes.DiffGraph]. Where DiffGraphs do not propagate ID changes, this one does by
@@ -27,6 +32,42 @@ class DeltaGraph private constructor(private val changes: List<Delta>) {
             }
         }
     }
+
+    /**
+     * Applies the delta graph to an OverflowDB instance. To have valid IDs this must be passed into the driver with
+     * the [DeltaGraph.apply] method first.
+     */
+    fun toOverflowDb(): Graph =
+        Graph.open(
+            Config.withDefaults(),
+            NodeFactories.allAsJava(),
+            EdgeFactories.allAsJava()
+        ).let { g ->
+            fun addNode(d: VertexAdd): Node? {
+                val b = d.n.build()
+                val v = if (d.n.id() > 0) g.addNode(b.label(), d.n.id()) else g.addNode(b.label())
+                b.properties().foreachEntry { key, value -> v.setProperty(key, value) }
+                d.n.id(v.id())
+                return v
+            }
+            changes.forEach { d ->
+                when (d) {
+                    is VertexAdd -> addNode(d)
+                    is VertexDelete -> g.node(d.id)?.remove()
+                    is EdgeAdd -> {
+                        val src = g.node(d.src.id())
+                        g.node(d.dst.id())?.let { dst -> src?.addEdge(d.e, dst) }
+                    }
+                    is EdgeDelete -> {
+                        val src = g.node(d.src.id())
+                        g.node(d.dst.id())?.let { dst ->
+                            src.outE(d.e).asSequence().firstOrNull { it.inNode() == dst }?.remove()
+                        }
+                    }
+                }
+            }
+            return g
+        }
 
     /**
      * Builds an [DeltaGraph] instance by accumulating changes.

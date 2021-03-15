@@ -4,7 +4,6 @@ import io.github.plume.oss.Extractor
 import io.github.plume.oss.drivers.DriverFactory
 import io.github.plume.oss.drivers.GraphDatabase
 import io.github.plume.oss.drivers.TinkerGraphDriver
-import io.shiftleft.codepropertygraph.generated.EdgeTypes.REACHING_DEF
 import io.shiftleft.codepropertygraph.generated.nodes.Literal
 import org.junit.jupiter.api.AfterEach
 import org.junit.jupiter.api.Assertions.*
@@ -63,11 +62,7 @@ class UpdateGraphTest {
         assertTrue(literalsG1.none { it.code() == "9" })
         assertFalse(g1 == g2)
         assertEquals(g1.nodeCount(), g2.nodeCount())
-        // Don't compare calculation edges
-        assertEquals(
-            g1.edges().asSequence().filterNot { it.label() == REACHING_DEF }.toList().size,
-            g2.edges().asSequence().filterNot { it.label() == REACHING_DEF }.toList().size
-        )
+        assertEquals(g1.edgeCount(), g2.edgeCount())
         g1.close()
         g2.close()
     }
