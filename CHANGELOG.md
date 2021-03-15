@@ -18,13 +18,6 @@ and this project adheres to [Semantic Versioning](http://semver.org/).
 - Replaced `ASTPass`, `CFGPass`, and `PDGPass` with `BaseCpgPass`.
 - Spawns a thread pool to run base CPG building in parallel and apply `DeltaGraph`s in serial. 
 
-### Changed
-
-- Moved the maps in `Extractor` to a dedicated `GlobalCache` object that uses `ConcurrentHashMap`s.
-- SCPG pass now concurrently pulls all methods and merges it into an input graph. This code has been moved to
-  `passes.SCPGPass.kt`
-- External method stubs have call-to-returns generated i.e. (METHOD)-CFG->(RETURN)-CFG->(METHOD_RETURN)
-
 ## [0.3.2] - 2021-03-12
 
 ### Added
