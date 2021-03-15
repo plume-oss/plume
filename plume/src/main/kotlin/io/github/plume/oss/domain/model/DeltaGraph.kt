@@ -33,7 +33,7 @@ class DeltaGraph private constructor(private val changes: List<Delta>) {
      */
     class Builder {
 
-        private val changes = mutableSetOf<Delta>()
+        private val changes = mutableListOf<Delta>()
 
         /**
          * Returns a list of the accumulated changes.

@@ -252,28 +252,32 @@ class Extractor(val driver: IDriver) {
             }.toList()
             // TODO: BaseCpgPass must replace AST/CPG/PDG passes
             runBlocking {
-                val cores = Runtime.getRuntime().availableProcessors()
-                val channel = Channel<DeltaGraph>()
+                val chunkSize = 50
                 val jobCount = bodiesToBuild.size
-                logger.debug("Running $jobCount jobs over $cores threads.")
+                val nThreads = (jobCount / chunkSize)
+                    .coerceAtLeast(1)
+                    .coerceAtMost(Runtime.getRuntime().availableProcessors())
+                val channel = Channel<DeltaGraph>()
+                logger.debug("Running $jobCount jobs over $nThreads thread(s).")
                 // Create jobs in chunks and submit these jobs to a thread pool
-                val threadPool = Executors.newFixedThreadPool(cores)
+                val threadPool = Executors.newFixedThreadPool(nThreads)
                 launch {
-                    bodiesToBuild.chunked(50)
+                    bodiesToBuild.chunked(chunkSize)
                         .map { chunk -> Runnable { buildBaseCPGs(chunk, channel) } }
                         .forEach(threadPool::submit)
                 }
                 // Consumer: Receive delta graphs and write changes to the driver in serial
                 launch {
                     repeat(jobCount) { channel.receive().apply(driver) }
+                    logger.debug("All $jobCount jobs have been applied to the driver")
                     channel.close()
                 }.join() // Suspend until the channel is fully consumed.
             }
             pipeline(
                 // Base CPG TODO: This will get replaced
-                ASTPass(driver)::runPass,
-                CFGPass(driver)::runPass,
-                PDGPass(driver)::runPass,
+//                ASTPass(driver)::runPass,
+//                CFGPass(driver)::runPass,
+//                PDGPass(driver)::runPass,
                 // Call graph
                 CGPass(driver)::runPass,
             ).invoke(bodiesToBuild)
