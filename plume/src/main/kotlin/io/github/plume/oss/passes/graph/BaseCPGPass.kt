@@ -109,7 +109,6 @@ class BaseCPGPass(private val g: BriefUnitGraph) {
 
     private fun projectCallArg(value: Any) {
         GlobalCache.getSootAssoc(value)?.firstOrNull { it is NewCallBuilder }?.let { src ->
-            println(value)
             GlobalCache.getSootAssoc(value)?.filterNot { it == src }
                 ?.forEach { tgt ->
                     runCatching {
