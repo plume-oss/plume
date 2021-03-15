@@ -5,6 +5,15 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](http://keepachangelog.com/)
 and this project adheres to [Semantic Versioning](http://semver.org/).
 
+## [0.3.4] - 2021-03-15
+
+### Changed
+- Upped the default chunk size
+- `DeltaGraph::toOverflowDb` can now take in an optional `overflowdb.Graph` object to write to
+
+### Fixed
+- Memory leak where thread pools weren't getting shutdown
+
 ## [0.3.3] - 2021-03-15
 
 ### Added
