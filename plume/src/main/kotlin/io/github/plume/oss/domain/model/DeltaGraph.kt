@@ -38,7 +38,23 @@ class DeltaGraph private constructor(private val changes: List<Delta>) {
         /**
          * Returns a list of the accumulated changes.
          */
-        fun getChanges() = changes.toList()
+        fun getChanges() = optimizeChanges()
+
+        /**
+         * Will remove [VertexAdd] deltas if there is already an [EdgeAdd] associated with one of the vertices. This
+         * will cut down on unnecessary database operations.
+         */
+        private fun optimizeChanges(): List<Delta> {
+            val optimizedChanges = mutableListOf<Delta>()
+            val vertexAdds = changes.filterIsInstance<VertexAdd>().toMutableList()
+            changes.filterIsInstance<EdgeAdd>().forEach { ea ->
+                vertexAdds.firstOrNull { it.n == ea.src }?.let { va -> vertexAdds.remove(va) }
+                vertexAdds.firstOrNull { it.n == ea.dst }?.let { va -> vertexAdds.remove(va) }
+            }
+            changes.filterNot { it is VertexAdd }.toCollection(optimizedChanges)
+            vertexAdds.toCollection(optimizedChanges)
+            return optimizedChanges.toList()
+        }
 
         fun addVertex(n: NewNodeBuilder) = apply { changes.add(VertexAdd(n)) }
 
