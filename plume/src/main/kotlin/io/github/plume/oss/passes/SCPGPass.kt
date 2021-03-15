@@ -36,8 +36,7 @@ class SCPGPass(private val driver: IDriver) {
      */
     fun runPass() {
         runBlocking {
-            // We use a semaphore to avoid spamming the database with too many requests
-            val bufferedChannel = Channel<Graph>(10)
+            val bufferedChannel = Channel<Graph>()
             val g = Graph.open(Config.withDefaults(), NodeFactories.allAsJava(), EdgeFactories.allAsJava())
             // Producer
             GlobalCache.methodBodies.values.forEach { mg -> launch { bufferedChannel.send(mg) } }
