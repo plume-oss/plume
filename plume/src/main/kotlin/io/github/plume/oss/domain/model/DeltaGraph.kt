@@ -43,20 +43,21 @@ class DeltaGraph private constructor(private val changes: List<Delta>) {
             NodeFactories.allAsJava(),
             EdgeFactories.allAsJava()
         ).let { g ->
-            fun addNode(d: VertexAdd): Node? {
-                val b = d.n.build()
-                val v = if (d.n.id() > 0) g.addNode(b.label(), d.n.id()) else g.addNode(b.label())
+            fun addNode(n: NewNodeBuilder): Node {
+                val b = n.build()
+                val v = if (n.id() > 0) g.addNode(n.id(), b.label()) else g.addNode(b.label())
                 b.properties().foreachEntry { key, value -> v.setProperty(key, value) }
-                d.n.id(v.id())
+                n.id(v.id())
                 return v
             }
             changes.forEach { d ->
                 when (d) {
-                    is VertexAdd -> addNode(d)
+                    is VertexAdd -> addNode(d.n)
                     is VertexDelete -> g.node(d.id)?.remove()
                     is EdgeAdd -> {
-                        val src = g.node(d.src.id())
-                        g.node(d.dst.id())?.let { dst -> src?.addEdge(d.e, dst) }
+                        val src = if (g.node(d.src.id()) != null) g.node(d.src.id()) else addNode(d.src)
+                        val dst = if (g.node(d.dst.id()) != null) g.node(d.dst.id()) else addNode(d.dst)
+                        src.addEdge(d.e, dst)
                     }
                     is EdgeDelete -> {
                         val src = g.node(d.src.id())
