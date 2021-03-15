@@ -33,22 +33,23 @@ class DeltaGraph private constructor(private val changes: List<Delta>) {
      */
     class Builder {
 
-        private val changes = mutableListOf<Delta>()
+        private val changes = mutableSetOf<Delta>()
 
         /**
          * Returns a list of the accumulated changes.
          */
         fun getChanges() = changes.toList()
 
-        fun addVertex(n: NewNodeBuilder) = changes.add(VertexAdd(n))
+        fun addVertex(n: NewNodeBuilder) = apply { changes.add(VertexAdd(n)) }
 
-        fun deleteVertex(n: NewNodeBuilder) = changes.add(VertexDelete(n.id(), n.build().label()))
+        fun deleteVertex(n: NewNodeBuilder) = apply { changes.add(VertexDelete(n.id(), n.build().label())) }
 
-        fun deleteVertex(id: Long, label: String) = changes.add(VertexDelete(id, label))
+        fun deleteVertex(id: Long, label: String) = apply { changes.add(VertexDelete(id, label)) }
 
-        fun addEdge(src: NewNodeBuilder, tgt: NewNodeBuilder, e: String) = changes.add(EdgeAdd(src, tgt, e))
+        fun addEdge(src: NewNodeBuilder, tgt: NewNodeBuilder, e: String) = apply { changes.add(EdgeAdd(src, tgt, e)) }
 
-        fun deleteEdge(src: NewNodeBuilder, tgt: NewNodeBuilder, e: String) = changes.add(EdgeDelete(src, tgt, e))
+        fun deleteEdge(src: NewNodeBuilder, tgt: NewNodeBuilder, e: String) =
+            apply { changes.add(EdgeDelete(src, tgt, e)) }
 
         fun build() = DeltaGraph(this)
     }
