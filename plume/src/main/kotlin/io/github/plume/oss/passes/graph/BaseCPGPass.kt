@@ -43,6 +43,8 @@ class BaseCPGPass(private val g: BriefUnitGraph) {
     private fun runAstPass() {
         val mtd = g.body.method
         logger.debug("Building AST for ${mtd.declaration}")
+        currentLine = mtd.javaSourceStartLineNumber
+        currentCol = mtd.javaSourceStartColumnNumber
         GlobalCache.getSootAssoc(mtd)?.let { mtdVs ->
             mtdVs.filterIsInstance<NewMethodBuilder>().firstOrNull()?.let { mtdVert ->
                 GlobalCache.addSootAssoc(mtd, buildLocals(g, mtdVert))
@@ -71,6 +73,8 @@ class BaseCPGPass(private val g: BriefUnitGraph) {
     private fun runCfgPass() {
         val mtd = g.body.method
         logger.debug("Building CFG for ${mtd.declaration}")
+        currentLine = mtd.javaSourceStartLineNumber
+        currentCol = mtd.javaSourceStartColumnNumber
         // Connect entrypoint to the first CFG vertex
         this.g.heads.forEach { head ->
             // Select appropriate successor to start CFG chain at
@@ -94,6 +98,8 @@ class BaseCPGPass(private val g: BriefUnitGraph) {
     private fun runPdgPass() {
         val mtd = g.body.method
         logger.debug("Building PDG for ${mtd.declaration}")
+        currentLine = mtd.javaSourceStartLineNumber
+        currentCol = mtd.javaSourceStartColumnNumber
         // Identifier REF edges
         (this.g.body.parameterLocals + this.g.body.locals).forEach(this::projectLocalVariable)
         // Control structure condition vertex ARGUMENT edges

@@ -20,7 +20,7 @@ class MethodParameterTests extends PlumeCodeToCpgSuite {
     val List(x) = cpg.parameter.name("param1").l
     x.code shouldBe "int param1"
     x.typeFullName shouldBe "int"
-    x.lineNumber shouldBe Some(2)
+    x.lineNumber shouldBe Some(3)
     // x.columnNumber shouldBe Some(11)
     x.order shouldBe 1
 
