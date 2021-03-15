@@ -246,7 +246,6 @@ class Extractor(val driver: IDriver) {
                 existingMs.contains(fullName)
             })
             // Create method bodies while avoiding duplication
-            logger.info("Building method bodies for all internal methods")
             val bodiesToBuild = sootUnitGraphs.filterNot { sm ->
                 val (fullName, _, _) = SootToPlumeUtil.methodToStrings(sm.body.method)
                 existingMs.contains(fullName)
@@ -258,7 +257,7 @@ class Extractor(val driver: IDriver) {
                     .coerceAtLeast(1)
                     .coerceAtMost(Runtime.getRuntime().availableProcessors())
                 val channel = Channel<DeltaGraph>()
-                logger.debug("Running $jobCount jobs over $nThreads thread(s).")
+                logger.info("Building $jobCount method bodies for all internal methods using $nThreads thread(s).")
                 // Create jobs in chunks and submit these jobs to a thread pool
                 val threadPool = Executors.newFixedThreadPool(nThreads)
                 launch {
