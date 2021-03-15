@@ -4,6 +4,7 @@ import io.github.plume.oss.Extractor
 import io.github.plume.oss.drivers.DriverFactory
 import io.github.plume.oss.drivers.GraphDatabase
 import io.github.plume.oss.drivers.OverflowDbDriver
+import io.github.plume.oss.options.ExtractorOptions
 import io.shiftleft.codepropertygraph.generated.Operators
 import io.shiftleft.codepropertygraph.generated.nodes.Call
 import io.shiftleft.codepropertygraph.generated.nodes.Local
@@ -41,6 +42,7 @@ class BasicExtractorTest {
             validClassFile = getTestResource("${TEST_PATH}Test2.class")
             validJarFile = getTestResource("${TEST_PATH}Test3.jar")
             validDirectory = getTestResource("${TEST_PATH}dir_test")
+            ExtractorOptions.methodChunkSize = 5
             extractor = Extractor(driver)
         }
     }

@@ -252,7 +252,7 @@ class Extractor(val driver: IDriver) {
                 existingMs.contains(fullName)
             }.toList()
             runBlocking {
-                val chunkSize = 25
+                val chunkSize = ExtractorOptions.methodChunkSize
                 val jobCount = bodiesToBuild.size
                 val nThreads = (jobCount / chunkSize)
                     .coerceAtLeast(1)

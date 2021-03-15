@@ -13,6 +13,7 @@ and this project adheres to [Semantic Versioning](http://semver.org/).
 - `BaseCpgPass` which is a combination of the `ASTPass`, `CFGPass`, and `PDGPass` and returns a `DeltaGraph` instead of
   directly apply changes to the driver.
 - `methodBodies` was added to `GlobalCache` to save on database requests when moving to `SCPGPass` after `BaseCpgPass`
+- Chunk size can now be configured via `ExtractorOptions::methodChunkSize`
 
 ### Changed
 
