@@ -1,10 +1,10 @@
 package io.github.plume.oss.passes
 
 import io.github.plume.oss.GlobalCache
+import io.github.plume.oss.domain.model.DeltaGraph
 import io.github.plume.oss.drivers.IDriver
 import io.github.plume.oss.util.DiffGraphUtil
 import io.shiftleft.codepropertygraph.Cpg
-import io.shiftleft.codepropertygraph.generated.EdgeTypes
 import io.shiftleft.codepropertygraph.generated.NodeTypes
 import io.shiftleft.codepropertygraph.generated.nodes.AstNode
 import io.shiftleft.codepropertygraph.generated.nodes.Method
@@ -36,15 +36,13 @@ class SCPGPass(private val driver: IDriver) {
      */
     fun runPass() {
         runBlocking {
-            val bufferedChannel = Channel<Graph>()
+            val bufferedChannel = Channel<DeltaGraph>()
             val g = Graph.open(Config.withDefaults(), NodeFactories.allAsJava(), EdgeFactories.allAsJava())
             // Producer
-            GlobalCache.methodBodies.values.forEach { mg -> launch { bufferedChannel.send(mg.toOverflowDb()) } }
+            GlobalCache.methodBodies.values.forEach { mg -> launch { bufferedChannel.send(mg) } }
             // Single consumer
             launch {
-                repeat(GlobalCache.methodBodies.size) {
-                    bufferedChannel.receive().use { o -> mergeGraphs(g, o) }
-                }
+                repeat(GlobalCache.methodBodies.size) { bufferedChannel.receive().toOverflowDb(g) }
                 bufferedChannel.close()
             }.join() // Suspend until the channel is fully consumed.
             // Run passes
@@ -57,22 +55,6 @@ class SCPGPass(private val driver: IDriver) {
                 }
             }
         }
-    }
-
-    @Synchronized
-    private fun mergeGraphs(tgt: Graph, o: Graph) {
-        o.nodes().asSequence()
-            .forEach { n ->
-                if (tgt.node(n.id()) == null)
-                    tgt.addNode(n.id(), n.label())
-                        .let { tn -> n.propertyMap().forEach { (t, u) -> tn.setProperty(t, u) } }
-            }
-        o.edges().asSequence().filterNot { it.label() == EdgeTypes.REACHING_DEF }
-            .forEach { e ->
-                val src = tgt.node(e.outNode().id())
-                val dst = tgt.node(e.inNode().id())
-                if (!src.out(e.label()).asSequence().contains(dst)) src.addEdge(e.label(), dst)
-            }
     }
 
     /**

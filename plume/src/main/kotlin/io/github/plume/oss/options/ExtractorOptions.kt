@@ -35,7 +35,7 @@ object ExtractorOptions {
     /**
      * Specifies how large each chunk should be when giving a thread method bodies to project into base CPGs.
      */
-    var methodChunkSize = 25
+    var methodChunkSize = 50
 
     init {
         sparkOpts["verbose"] = "false"

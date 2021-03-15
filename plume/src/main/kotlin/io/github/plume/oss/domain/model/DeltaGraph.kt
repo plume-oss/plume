@@ -36,13 +36,12 @@ class DeltaGraph private constructor(private val changes: List<Delta>) {
     /**
      * Applies the delta graph to an OverflowDB instance. To have valid IDs this must be passed into the driver with
      * the [DeltaGraph.apply] method first.
+     *
+     * @param existingG optionally one can write the deltas to the given OverflowDB graph.
+     * @return An OverflowDB graph with the changes from this [DeltaGraph] applied to it.
      */
-    fun toOverflowDb(): Graph =
-        Graph.open(
-            Config.withDefaults(),
-            NodeFactories.allAsJava(),
-            EdgeFactories.allAsJava()
-        ).let { g ->
+    fun toOverflowDb(existingG: Graph? = null): Graph {
+        fun d2g(g: Graph) {
             fun addNode(n: NewNodeBuilder): Node {
                 val b = n.build()
                 val v = if (n.id() > 0) g.addNode(n.id(), b.label()) else g.addNode(b.label())
@@ -67,8 +66,20 @@ class DeltaGraph private constructor(private val changes: List<Delta>) {
                     }
                 }
             }
-            return g
         }
+        if (existingG != null) {
+            return existingG.apply { d2g(this) }
+        } else {
+            Graph.open(
+                Config.withDefaults(),
+                NodeFactories.allAsJava(),
+                EdgeFactories.allAsJava()
+            ).let { g ->
+                return g.apply { d2g(this) }
+            }
+        }
+    }
+
 
     /**
      * Builds an [DeltaGraph] instance by accumulating changes.

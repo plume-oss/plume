@@ -272,6 +272,7 @@ class Extractor(val driver: IDriver) {
                     logger.debug("All $jobCount jobs have been applied to the driver")
                     channel.close()
                 }.join() // Suspend until the channel is fully consumed.
+                threadPool.shutdown()
             }
             // Connect call edges
             CGPass(driver).runPass(bodiesToBuild)
