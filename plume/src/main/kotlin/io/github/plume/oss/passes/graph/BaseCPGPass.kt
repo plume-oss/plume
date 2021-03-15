@@ -19,14 +19,20 @@ import soot.jimple.*
 import soot.jimple.internal.JimpleLocalBox
 import soot.toolkits.graph.BriefUnitGraph
 
+/**
+ * Runs a AST, CFG, and PDG pass on the method body.
+ */
 class BaseCPGPass(private val g: BriefUnitGraph) {
 
     private val logger = LogManager.getLogger(BaseCPGPass::javaClass)
     private val builder = DeltaGraph.Builder()
     private var currentLine = -1
     private var currentCol = -1
-    private val sootCache = mutableMapOf<Any, List<NewNodeBuilder>>()
 
+    /**
+     * Constructs a AST, CFG, PDG pass on the [BriefUnitGraph] constructed with this object. Returns the result as a
+     * [DeltaGraph] object.
+     */
     fun runPass(): DeltaGraph {
         runAstPass()
         runCfgPass()
@@ -90,14 +96,6 @@ class BaseCPGPass(private val g: BriefUnitGraph) {
         logger.debug("Building PDG for ${mtd.declaration}")
         // Identifier REF edges
         (this.g.body.parameterLocals + this.g.body.locals).forEach(this::projectLocalVariable)
-        // Operator and Cast ARGUMENT edges
-//        this.g.body.units.filterIsInstance<AssignStmt>().map { projectCallArg(it); it.rightOp }.forEach {
-//            when (it) {
-//                is CastExpr -> projectCallArg(it)
-//                is BinopExpr -> projectCallArg(it)
-//                is InvokeExpr -> projectCallArg(it)
-//            }
-//        }
         // Control structure condition vertex ARGUMENT edges
         this.g.body.units.filterIsInstance<IfStmt>().map { it.condition }.forEach(this::projectCallArg)
         // Invoke ARGUMENT edges
