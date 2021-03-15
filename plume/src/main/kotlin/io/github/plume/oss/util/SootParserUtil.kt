@@ -101,7 +101,7 @@ object SootParserUtil {
      * @return the type of evaluation strategy used
      */
     @JvmStatic
-    fun determineEvaluationStrategy(paramType: String, isMethodReturn: Boolean): String {
+    fun determineEvaluationStrategy(paramType: String, isMethodReturn: Boolean = false): String {
         return if (isArrayType(paramType) || !PRIMITIVES.values.contains(paramType))
             if (isMethodReturn) BY_SHARING else BY_REFERENCE
         else BY_VALUE

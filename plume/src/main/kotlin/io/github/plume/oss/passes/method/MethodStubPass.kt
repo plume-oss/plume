@@ -5,8 +5,11 @@ import io.github.plume.oss.drivers.IDriver
 import io.github.plume.oss.passes.IMethodPass
 import io.github.plume.oss.util.ExtractorConst
 import io.github.plume.oss.util.SootParserUtil
+import io.github.plume.oss.util.SootParserUtil.determineEvaluationStrategy
 import io.github.plume.oss.util.SootToPlumeUtil
 import io.shiftleft.codepropertygraph.generated.EdgeTypes.*
+import io.shiftleft.codepropertygraph.generated.EvaluationStrategies.BY_REFERENCE
+import io.shiftleft.codepropertygraph.generated.EvaluationStrategies.BY_SHARING
 import io.shiftleft.codepropertygraph.generated.NodeKeyNames.FULL_NAME
 import io.shiftleft.codepropertygraph.generated.NodeKeyNames.NAME
 import io.shiftleft.codepropertygraph.generated.NodeTypes.FILE
@@ -106,8 +109,32 @@ class MethodStubPass(private val driver: IDriver) : IMethodPass {
 
     private fun projectBytecodeParams(rawParams: String) {
         if (rawParams.isBlank()) return
-        val params = SootParserUtil.obtainParameters(rawParams)
-        println("Params " + params)
+        SootParserUtil.obtainParameters(rawParams).forEachIndexed { i, p ->
+            // TODO: Link to Type node
+            // TODO: Make method param
+            val eval = determineEvaluationStrategy(p)
+            val name = "param$i"
+            val code = "$p param$i"
+            NewMethodParameterInBuilder()
+                .name(name)
+                .code(code)
+                .order(i)
+                .typeFullName(p)
+                .lineNumber(Option.apply(-1))
+                .columnNumber(Option.apply(-1))
+                .evaluationStrategy(eval)
+            // TODO: Make method param out
+            if (eval == BY_REFERENCE) {
+                NewMethodParameterOutBuilder()
+                    .name(name)
+                    .code(code)
+                    .order(i)
+                    .typeFullName(p)
+                    .lineNumber(Option.apply(-1))
+                    .columnNumber(Option.apply(-1))
+                    .evaluationStrategy(BY_SHARING)
+            }
+        }
     }
 
     private fun projectMethodReturnVertex(
