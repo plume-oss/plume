@@ -48,7 +48,7 @@ class BaseCPGPass(private val g: BriefUnitGraph) {
         currentCol = mtd.javaSourceStartColumnNumber
         GlobalCache.getSootAssoc(mtd)?.let { mtdVs ->
             mtdVs.filterIsInstance<NewMethodBuilder>().firstOrNull()?.let { mtdVert ->
-                GlobalCache.addSootAssoc(mtd, buildLocals(g, mtdVert))
+                GlobalCache.addSootAssoc(mtd, buildLocals(g).onEach { builder.addEdge(mtdVert, it, AST) })
             }
         }
         g.body.units.filterNot { it is IdentityStmt }
@@ -229,7 +229,7 @@ class BaseCPGPass(private val g: BriefUnitGraph) {
         }
     }
 
-    private fun buildLocals(graph: BriefUnitGraph, mtdVertex: NewMethodBuilder): MutableList<NewNodeBuilder> {
+    private fun buildLocals(graph: BriefUnitGraph): MutableList<NewNodeBuilder> {
         val localVertices = mutableListOf<NewNodeBuilder>()
         graph.body.parameterLocals
             .mapIndexed { i, local ->
@@ -238,6 +238,7 @@ class BaseCPGPass(private val g: BriefUnitGraph) {
                         if (this.build().evaluationStrategy() == BY_REFERENCE) {
                             SootToPlumeUtil.projectMethodParameterOut(local, currentLine, currentCol, i + 1)
                                 .let { mpo ->
+                                    localVertices.add(mpo)
                                     GlobalCache.getType(this.build().typeFullName())
                                         ?.let { t -> builder.addEdge(mpo, t, EVAL_TYPE) }
                                 }
@@ -247,7 +248,7 @@ class BaseCPGPass(private val g: BriefUnitGraph) {
                             ?.let { t -> builder.addEdge(this, t, EVAL_TYPE) }
                     }
             }
-            .forEach { builder.addEdge(mtdVertex, it, AST); localVertices.add(it) }
+            .forEach { localVertices.add(it) }
         graph.body.locals
             .filter { !graph.body.parameterLocals.contains(it) }
             .mapIndexed { i, local ->
@@ -256,7 +257,7 @@ class BaseCPGPass(private val g: BriefUnitGraph) {
             }
             .forEach {
                 GlobalCache.getType(it.build().typeFullName())?.let { t -> builder.addEdge(it, t, EVAL_TYPE) }
-                builder.addEdge(mtdVertex, it, AST); localVertices.add(it)
+                localVertices.add(it)
             }
         return localVertices
     }

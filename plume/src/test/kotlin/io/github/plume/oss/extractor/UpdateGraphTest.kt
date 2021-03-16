@@ -49,6 +49,7 @@ class UpdateGraphTest {
         listOf(testFile1, testFile2).forEach { extractor.load(it) }
         extractor.project()
         val g1 = driver.getWholeGraph()
+        driver.exportGraph("/tmp/plume/u1.xml")
         // Update file and do an update projection
         testFile2 = rewriteFileContents(testFile2, testFile2Update)
         listOf(testFile1, testFile2).forEach { extractor.load(it) }

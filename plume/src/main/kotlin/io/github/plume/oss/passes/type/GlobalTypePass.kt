@@ -1,5 +1,6 @@
 package io.github.plume.oss.passes.type
 
+import io.github.plume.oss.GlobalCache
 import io.github.plume.oss.drivers.IDriver
 import io.github.plume.oss.passes.ITypePass
 import io.github.plume.oss.passes.structure.TypePass
@@ -54,9 +55,7 @@ class GlobalTypePass(private val driver: IDriver) : ITypePass {
     }
 
     private fun getGlobalTypeDecl(t: Type): NewNodeBuilder {
-        return nodeCache
-            .filterIsInstance<NewTypeDeclBuilder>()
-            .find { it.build().properties().get(FULL_NAME).get() == t.toQuotedString() }
+        return GlobalCache.getTypeDecl(t.toQuotedString())
             ?: NewTypeDeclBuilder()
                 .name(t.toQuotedString())
                 .fullName(t.toQuotedString())
@@ -64,20 +63,17 @@ class GlobalTypePass(private val driver: IDriver) : ITypePass {
                 .order(-1)
                 .filename(UNKNOWN)
                 .astParentType(NAMESPACE_BLOCK)
-                .astParentFullName(GLOBAL).apply { nodeCache.add(this) }
+                .astParentFullName(GLOBAL).apply { GlobalCache.addTypeDecl(this) }
     }
 
     private fun getGlobalType(tdFullName: String): NewNodeBuilder {
         val shortName = if (tdFullName.contains('.')) tdFullName.substringAfterLast('.')
         else tdFullName
-        return nodeCache
-            .filterIsInstance<NewTypeBuilder>()
-            .find { it.build().properties().get(FULL_NAME).get() == tdFullName }
-            ?: driver.getVerticesByProperty(FULL_NAME, tdFullName, TYPE).firstOrNull()?.apply { nodeCache.add(this) }
+        return GlobalCache.getType(tdFullName)
             ?: NewTypeBuilder()
                 .name(shortName)
                 .fullName(tdFullName)
                 .typeDeclFullName(tdFullName)
-                .apply { nodeCache.add(this) }
+                .apply { GlobalCache.addType(this) }
     }
 }
