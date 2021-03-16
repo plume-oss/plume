@@ -2,6 +2,7 @@ package io.github.plume.oss.domain.model
 
 import io.github.plume.oss.drivers.IDriver
 import io.shiftleft.codepropertygraph.generated.nodes.NewNodeBuilder
+import org.apache.logging.log4j.LogManager
 import overflowdb.Config
 import overflowdb.Graph
 import overflowdb.Node
@@ -15,6 +16,8 @@ import io.shiftleft.codepropertygraph.generated.nodes.Factories as NodeFactories
  */
 class DeltaGraph private constructor(private val changes: List<Delta>) {
 
+    private val logger = LogManager.getLogger(DeltaGraph::javaClass)
+
     private constructor(builder: Builder) : this(builder.getChanges())
 
     /**
@@ -24,12 +27,14 @@ class DeltaGraph private constructor(private val changes: List<Delta>) {
      */
     fun apply(driver: IDriver) {
         changes.forEach { d ->
-            when (d) {
-                is VertexAdd -> driver.addVertex(d.n)
-                is VertexDelete -> driver.deleteVertex(d.id, d.label)
-                is EdgeAdd -> driver.addEdge(d.src, d.dst, d.e)
-                is EdgeDelete -> driver.deleteEdge(d.src, d.dst, d.e)
-            }
+            runCatching {
+                when (d) {
+                    is VertexAdd -> driver.addVertex(d.n)
+                    is VertexDelete -> driver.deleteVertex(d.id, d.label)
+                    is EdgeAdd -> driver.addEdge(d.src, d.dst, d.e)
+                    is EdgeDelete -> driver.deleteEdge(d.src, d.dst, d.e)
+                }
+            }.onFailure { e -> logger.warn(e.message) }
         }
     }
 
