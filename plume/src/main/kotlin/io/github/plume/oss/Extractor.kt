@@ -273,7 +273,6 @@ class Extractor(val driver: IDriver) {
                     launch {
                         repeat(headsToBuild.size) { channel.receive().apply(driver) }
                         logger.debug("All ${headsToBuild.size} method heads have been applied to the driver")
-                        channel.close()
                     }.join() // Suspend until the channel is fully consumed.
                 }
                 runBlocking {

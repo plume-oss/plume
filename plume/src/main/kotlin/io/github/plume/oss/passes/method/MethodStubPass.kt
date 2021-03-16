@@ -91,8 +91,8 @@ class MethodStubPass(private val m: SootMethod) : IMethodPass {
     }
 
     /**
-     * METHOD_PARAMETER_IN -REF-> TYPE
-     * METHOD_PARAMETER_OUT -REF-> TYPE
+     * METHOD_PARAMETER_IN -EVAL_TYPE-> TYPE
+     * METHOD_PARAMETER_OUT -EVAL_TYPE-> TYPE
      *
      * @return a list of the METHOD_PARAMETER_* nodes.
      */
@@ -110,7 +110,7 @@ class MethodStubPass(private val m: SootMethod) : IMethodPass {
                     .lineNumber(Option.apply(-1))
                     .columnNumber(Option.apply(-1))
                     .evaluationStrategy(eval)
-                GlobalCache.getType(p)?.let { t -> builder.addEdge(mpi, t, REF) }
+                GlobalCache.getType(p)?.let { t -> builder.addEdge(mpi, t, EVAL_TYPE) }
                 yield(mpi)
                 if (eval == BY_REFERENCE) {
                     val mpo = NewMethodParameterOutBuilder()
@@ -121,7 +121,7 @@ class MethodStubPass(private val m: SootMethod) : IMethodPass {
                         .lineNumber(Option.apply(-1))
                         .columnNumber(Option.apply(-1))
                         .evaluationStrategy(BY_SHARING)
-                    GlobalCache.getType(p)?.let { t -> builder.addEdge(mpo, t, REF) }
+                    GlobalCache.getType(p)?.let { t -> builder.addEdge(mpo, t, EVAL_TYPE) }
                     yield(mpo)
                 }
             }.toList()
