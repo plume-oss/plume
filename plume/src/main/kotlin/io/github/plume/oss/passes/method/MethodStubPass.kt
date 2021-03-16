@@ -10,9 +10,6 @@ import io.github.plume.oss.util.SootToPlumeUtil
 import io.shiftleft.codepropertygraph.generated.EdgeTypes.*
 import io.shiftleft.codepropertygraph.generated.EvaluationStrategies.BY_REFERENCE
 import io.shiftleft.codepropertygraph.generated.EvaluationStrategies.BY_SHARING
-import io.shiftleft.codepropertygraph.generated.NodeKeyNames.FULL_NAME
-import io.shiftleft.codepropertygraph.generated.NodeKeyNames.NAME
-import io.shiftleft.codepropertygraph.generated.NodeTypes.FILE
 import io.shiftleft.codepropertygraph.generated.NodeTypes.TYPE_DECL
 import io.shiftleft.codepropertygraph.generated.nodes.*
 import scala.Option
@@ -82,7 +79,9 @@ class MethodStubPass(private val m: SootMethod) : IMethodPass {
             builder.addEdge(mtdVertex, ret, CFG)
             builder.addEdge(ret, mtdRet, CFG)
             // Create method params manually
-            projectBytecodeParams(m.bytecodeParms)
+            projectBytecodeParams(m.bytecodeParms).forEach { mtdParam_ ->
+                builder.addEdge(mtdVertex, mtdParam_, AST)
+            }
         }
         // Modifier vertices
         SootParserUtil.determineModifiers(m.modifiers, m.name)
@@ -91,34 +90,42 @@ class MethodStubPass(private val m: SootMethod) : IMethodPass {
         return mtdVertex
     }
 
-    private fun projectBytecodeParams(rawParams: String) {
-        if (rawParams.isBlank()) return
-        SootParserUtil.obtainParameters(rawParams).forEachIndexed { i, p ->
-            // TODO: Link to Type node
-            // TODO: Make method param
-            val eval = determineEvaluationStrategy(p)
-            val name = "param$i"
-            val code = "$p param$i"
-            NewMethodParameterInBuilder()
-                .name(name)
-                .code(code)
-                .order(i)
-                .typeFullName(p)
-                .lineNumber(Option.apply(-1))
-                .columnNumber(Option.apply(-1))
-                .evaluationStrategy(eval)
-            // TODO: Make method param out
-            if (eval == BY_REFERENCE) {
-                NewMethodParameterOutBuilder()
+    /**
+     * METHOD_PARAMETER_IN -REF-> TYPE
+     * METHOD_PARAMETER_OUT -REF-> TYPE
+     *
+     * @return a list of the METHOD_PARAMETER_* nodes.
+     */
+    private fun projectBytecodeParams(rawParams: String): List<NewNodeBuilder> {
+        if (rawParams.isBlank()) return emptyList()
+        return SootParserUtil.obtainParameters(rawParams).mapIndexed { i, p ->
+            sequence {
+                val eval = determineEvaluationStrategy(p)
+                val name = "param$i"
+                val mpi = NewMethodParameterInBuilder()
                     .name(name)
-                    .code(code)
-                    .order(i)
+                    .code(name)
+                    .order(i + 1)
                     .typeFullName(p)
                     .lineNumber(Option.apply(-1))
                     .columnNumber(Option.apply(-1))
-                    .evaluationStrategy(BY_SHARING)
-            }
-        }
+                    .evaluationStrategy(eval)
+                GlobalCache.getType(p)?.let { t -> builder.addEdge(mpi, t, REF) }
+                yield(mpi)
+                if (eval == BY_REFERENCE) {
+                    val mpo = NewMethodParameterOutBuilder()
+                        .name(name)
+                        .code(name)
+                        .order(i + 1)
+                        .typeFullName(p)
+                        .lineNumber(Option.apply(-1))
+                        .columnNumber(Option.apply(-1))
+                        .evaluationStrategy(BY_SHARING)
+                    GlobalCache.getType(p)?.let { t -> builder.addEdge(mpo, t, REF) }
+                    yield(mpo)
+                }
+            }.toList()
+        }.flatten().toList()
     }
 
     private fun projectMethodReturnVertex(

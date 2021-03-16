@@ -5,6 +5,18 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](http://keepachangelog.com/)
 and this project adheres to [Semantic Versioning](http://semver.org/).
 
+## [0.3.5] - Unreleased
+
+### Added
+- `IDriver::getVerticesOfType` to aid in caching from existing database vertices.
+- External methods signatures are parsed to figure out their method parameters.
+- `MethodStubPass` now includes `METHOD_PARAM_IN` and `METHOD_PARAM_OUT` and connects them to their type.
+
+### Changed
+- Many of the `nodeCache` uses in `IProgramPass` passes were converted to using the `GlobalCache` instead.
+
+### Fixed
+
 ## [0.3.4] - 2021-03-15
 
 ### Changed
