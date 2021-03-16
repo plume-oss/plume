@@ -50,7 +50,7 @@ object SootToPlumeUtil {
     ): NewMethodParameterInBuilder =
         NewMethodParameterInBuilder()
             .name(local.name)
-            .code(local.name)
+            .code("${local.type.toQuotedString()} ${local.name}")
             .evaluationStrategy(determineEvaluationStrategy(local.type.toString(), isMethodReturn = false))
             .typeFullName(local.type.toString())
             .lineNumber(Option.apply(currentLine))
@@ -71,7 +71,7 @@ object SootToPlumeUtil {
     ): NewMethodParameterOutBuilder =
         NewMethodParameterOutBuilder()
             .name(local.name)
-            .code(local.name)
+            .code("${local.type.toQuotedString()} ${local.name}")
             .evaluationStrategy(BY_SHARING)
             .typeFullName(local.type.toString())
             .lineNumber(Option.apply(currentLine))

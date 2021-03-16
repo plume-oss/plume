@@ -102,10 +102,11 @@ class MethodStubPass(private val m: SootMethod) : IMethodPass {
         return SootParserUtil.obtainParameters(rawParams).mapIndexed { i, p ->
             sequence {
                 val eval = determineEvaluationStrategy(p)
-                val name = "param$i"
+                val name = "param${i + 1}"
+                val code = "$p $name"
                 val mpi = NewMethodParameterInBuilder()
                     .name(name)
-                    .code(name)
+                    .code(code)
                     .order(i + 1)
                     .typeFullName(p)
                     .lineNumber(Option.apply(-1))
@@ -116,7 +117,7 @@ class MethodStubPass(private val m: SootMethod) : IMethodPass {
                 if (eval == BY_REFERENCE) {
                     val mpo = NewMethodParameterOutBuilder()
                         .name(name)
-                        .code(name)
+                        .code(code)
                         .order(i + 1)
                         .typeFullName(p)
                         .lineNumber(Option.apply(-1))
