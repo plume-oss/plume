@@ -15,8 +15,8 @@
  */
 package io.github.plume.oss.passes
 
+import io.github.plume.oss.domain.model.DeltaGraph
 import soot.SootClass
-import soot.SootMethod
 import soot.toolkits.graph.BriefUnitGraph
 
 /**
@@ -32,15 +32,14 @@ interface IUnitGraphPass {
 }
 
 /**
- * A pass that builds on the CPG based on method head information.
+ * A pass that builds on the CPG based on method head information. The method information should be passed via the
+ * constructor.
  */
 interface IMethodPass {
     /**
      * Run the pass on the method head.
-     *
-     * @param ms The [SootMethod] to build from.
      */
-    fun runPass(ms: List<SootMethod>): List<SootMethod>
+    fun runPass(): DeltaGraph
 }
 
 

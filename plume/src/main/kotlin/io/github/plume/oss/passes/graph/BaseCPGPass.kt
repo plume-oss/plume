@@ -8,6 +8,7 @@ import io.github.plume.oss.util.SootToPlumeUtil
 import io.shiftleft.codepropertygraph.generated.ControlStructureTypes
 import io.shiftleft.codepropertygraph.generated.DispatchTypes
 import io.shiftleft.codepropertygraph.generated.EdgeTypes.*
+import io.shiftleft.codepropertygraph.generated.EvaluationStrategies.BY_REFERENCE
 import io.shiftleft.codepropertygraph.generated.Operators
 import io.shiftleft.codepropertygraph.generated.nodes.*
 import org.apache.logging.log4j.LogManager
@@ -47,25 +48,18 @@ class BaseCPGPass(private val g: BriefUnitGraph) {
         currentCol = mtd.javaSourceStartColumnNumber
         GlobalCache.getSootAssoc(mtd)?.let { mtdVs ->
             mtdVs.filterIsInstance<NewMethodBuilder>().firstOrNull()?.let { mtdVert ->
-                GlobalCache.addSootAssoc(mtd, buildLocals(g, mtdVert))
+                GlobalCache.addSootAssoc(mtd, buildLocals(g).onEach { builder.addEdge(mtdVert, it, AST) })
             }
         }
         g.body.units.filterNot { it is IdentityStmt }
             .forEachIndexed { idx, u ->
                 projectUnitAsAst(u, idx + 1)
                     ?.let {
-                        runCatching {
-                            builder.addEdge(
-                                src = GlobalCache.getSootAssoc(mtd)!!.first { v -> v is NewBlockBuilder },
-                                tgt = it,
-                                e = AST
-                            )
-                        }.onFailure { e ->
-                            logger.warn(
-                                "Exception while adding AST edge between ${mtd.name} block and $it. " +
-                                        "Details: ${e.message}."
-                            )
-                        }
+                        builder.addEdge(
+                            src = GlobalCache.getSootAssoc(mtd)!!.first { v -> v is NewBlockBuilder },
+                            tgt = it,
+                            e = AST
+                        )
                     }
             }
     }
@@ -85,9 +79,7 @@ class BaseCPGPass(private val g: BriefUnitGraph) {
                     val mtdV = GlobalCache.getSootAssoc(mtd)
                     val bodyVertex = mtdV?.first { mtdVertices -> mtdVertices is NewBlockBuilder }!!
                     mtdV.firstOrNull()?.let { mtdVertex -> builder.addEdge(mtdVertex, bodyVertex, CFG) }
-                    runCatching {
-                        builder.addEdge(bodyVertex, succVert, CFG)
-                    }.onFailure { e -> logger.warn(e.message) }
+                    builder.addEdge(bodyVertex, succVert, CFG)
                 }
             }
         }
@@ -114,11 +106,7 @@ class BaseCPGPass(private val g: BriefUnitGraph) {
     private fun projectCallArg(value: Any) {
         GlobalCache.getSootAssoc(value)?.firstOrNull { it is NewCallBuilder }?.let { src ->
             GlobalCache.getSootAssoc(value)?.filterNot { it == src }
-                ?.forEach { tgt ->
-                    runCatching {
-                        builder.addEdge(src, tgt, ARGUMENT)
-                    }.onFailure { e -> logger.warn(e.message) }
-                }
+                ?.forEach { tgt -> builder.addEdge(src, tgt, ARGUMENT) }
         }
     }
 
@@ -126,9 +114,7 @@ class BaseCPGPass(private val g: BriefUnitGraph) {
         GlobalCache.getSootAssoc(local)?.let { assocVertices ->
             assocVertices.filterIsInstance<NewIdentifierBuilder>().forEach { identifierV ->
                 assocVertices.firstOrNull { it is NewLocalBuilder || it is NewMethodParameterInBuilder }?.let { src ->
-                    runCatching {
-                        builder.addEdge(identifierV, src, REF)
-                    }.onFailure { e -> logger.warn(e.message) }
+                    builder.addEdge(identifierV, src, REF)
                 }
             }
         }
@@ -151,9 +137,7 @@ class BaseCPGPass(private val g: BriefUnitGraph) {
                     val targetUnit = if (it is GotoStmt) it.target else it
                     if (sourceVertex != null) {
                         GlobalCache.getSootAssoc(targetUnit)?.let { vList ->
-                            runCatching {
-                                builder.addEdge(sourceVertex, vList.first(), CFG)
-                            }.onFailure { e -> logger.warn(e.message) }
+                            builder.addEdge(sourceVertex, vList.first(), CFG)
                         }
                     }
                 }
@@ -211,14 +195,8 @@ class BaseCPGPass(private val g: BriefUnitGraph) {
         tgtV: NewNodeBuilder,
         tgt: Unit
     ) {
-        runCatching {
-            builder.addEdge(lookupVertex, tgtV, CFG)
-        }.onFailure { e -> logger.warn(e.message) }
-        GlobalCache.getSootAssoc(tgt)?.let { vList ->
-            runCatching {
-                builder.addEdge(tgtV, vList.first(), CFG)
-            }.onFailure { e -> logger.warn(e.message) }
-        }
+        builder.addEdge(lookupVertex, tgtV, CFG)
+        GlobalCache.getSootAssoc(tgt)?.let { vList -> builder.addEdge(tgtV, vList.first(), CFG) }
     }
 
     private fun projectIfStatement(unit: IfStmt) {
@@ -236,12 +214,8 @@ class BaseCPGPass(private val g: BriefUnitGraph) {
             val tgtVertices = if (it is GotoStmt) GlobalCache.getSootAssoc(it.target)
             else GlobalCache.getSootAssoc(it)
             tgtVertices?.let { vList ->
-                runCatching {
-                    builder.addEdge(ifVertices.first(), srcVertex, CFG)
-                }.onFailure { e -> logger.warn(e.message) }
-                runCatching {
-                    builder.addEdge(srcVertex, vList.first(), CFG)
-                }.onFailure { e -> logger.warn(e.message) }
+                builder.addEdge(ifVertices.first(), srcVertex, CFG)
+                builder.addEdge(srcVertex, vList.first(), CFG)
             }
         }
     }
@@ -250,27 +224,31 @@ class BaseCPGPass(private val g: BriefUnitGraph) {
         GlobalCache.getSootAssoc(unit)?.firstOrNull()?.let { src ->
             GlobalCache.getSootAssoc(g.body.method)?.filterIsInstance<NewMethodReturnBuilder>()?.firstOrNull()
                 ?.let { tgt ->
-                    runCatching {
-                        builder.addEdge(src, tgt, CFG)
-                    }.onFailure { e -> logger.warn(e.message) }
+                    builder.addEdge(src, tgt, CFG)
                 }
         }
     }
 
-    private fun buildLocals(graph: BriefUnitGraph, mtdVertex: NewMethodBuilder): MutableList<NewNodeBuilder> {
+    private fun buildLocals(graph: BriefUnitGraph): MutableList<NewNodeBuilder> {
         val localVertices = mutableListOf<NewNodeBuilder>()
         graph.body.parameterLocals
             .mapIndexed { i, local ->
                 SootToPlumeUtil.projectMethodParameterIn(local, currentLine, currentCol, i + 1)
                     .apply {
+                        if (this.build().evaluationStrategy() == BY_REFERENCE) {
+                            SootToPlumeUtil.projectMethodParameterOut(local, currentLine, currentCol, i + 1)
+                                .let { mpo ->
+                                    localVertices.add(mpo)
+                                    GlobalCache.getType(this.build().typeFullName())
+                                        ?.let { t -> builder.addEdge(mpo, t, EVAL_TYPE) }
+                                }
+                        }
                         GlobalCache.addSootAssoc(local, this)
+                        GlobalCache.getType(this.build().typeFullName())
+                            ?.let { t -> builder.addEdge(this, t, EVAL_TYPE) }
                     }
             }
-            .forEach {
-                runCatching {
-                    builder.addEdge(mtdVertex, it, AST); localVertices.add(it)
-                }.onFailure { e -> logger.warn(e.message) }
-            }
+            .forEach { localVertices.add(it) }
         graph.body.locals
             .filter { !graph.body.parameterLocals.contains(it) }
             .mapIndexed { i, local ->
@@ -278,12 +256,12 @@ class BaseCPGPass(private val g: BriefUnitGraph) {
                     .apply { GlobalCache.addSootAssoc(local, this) }
             }
             .forEach {
-                runCatching {
-                    builder.addEdge(mtdVertex, it, AST); localVertices.add(it)
-                }.onFailure { e -> logger.warn(e.message) }
+                GlobalCache.getType(it.build().typeFullName())?.let { t -> builder.addEdge(it, t, EVAL_TYPE) }
+                localVertices.add(it)
             }
         return localVertices
     }
+
 
     /**
      * Given a unit, will construct AST information in the graph.
@@ -338,10 +316,8 @@ class BaseCPGPass(private val g: BriefUnitGraph) {
                 is Constant -> SootToPlumeUtil.createLiteralVertex(arg, currentLine, currentCol, i + 1)
                 else -> null
             }?.let { expressionVertex ->
-                runCatching {
-                    builder.addEdge(callVertex, expressionVertex, AST)
-                    builder.addEdge(callVertex, expressionVertex, ARGUMENT)
-                }.onFailure { e -> logger.warn(e.message) }
+                builder.addEdge(callVertex, expressionVertex, AST)
+                builder.addEdge(callVertex, expressionVertex, ARGUMENT)
                 callVertices.add(expressionVertex)
                 GlobalCache.addSootAssoc(arg, expressionVertex)
             }
@@ -352,12 +328,8 @@ class BaseCPGPass(private val g: BriefUnitGraph) {
         unit.useBoxes.filterIsInstance<JimpleLocalBox>().firstOrNull()?.let {
             SootToPlumeUtil.createIdentifierVertex(it.value, currentLine, currentCol, unit.useBoxes.indexOf(it)).apply {
                 GlobalCache.addSootAssoc(it.value, this)
-                runCatching {
-                    builder.addEdge(callVertex, this, RECEIVER)
-                }.onFailure { e -> logger.warn(e.message, e) }
-                runCatching {
-                    builder.addEdge(callVertex, this, AST)
-                }.onFailure { e -> logger.warn(e.message, e) }
+                builder.addEdge(callVertex, this, RECEIVER)
+                builder.addEdge(callVertex, this, AST)
             }
         }
         return callVertex
@@ -388,9 +360,7 @@ class BaseCPGPass(private val g: BriefUnitGraph) {
                     .columnNumber(Option.apply(tgt.javaSourceStartColumnNumber))
                     .code(tgt.toString())
                     .order(childIdx)
-                runCatching {
-                    builder.addEdge(switchVertex, tgtV, AST)
-                }.onFailure { e -> logger.warn(e.message) }
+                builder.addEdge(switchVertex, tgtV, AST)
                 GlobalCache.addSootAssoc(unit, tgtV)
             }
         }
@@ -424,9 +394,7 @@ class BaseCPGPass(private val g: BriefUnitGraph) {
                     .columnNumber(Option.apply(tgt.javaSourceStartColumnNumber))
                     .code(tgt.toString())
                     .order(childIdx)
-                runCatching {
-                    builder.addEdge(switchVertex, tgtV, AST)
-                }.onFailure { e -> logger.warn(e.message) }
+                builder.addEdge(switchVertex, tgtV, AST)
                 GlobalCache.addSootAssoc(unit, tgtV)
             }
         }
@@ -451,9 +419,7 @@ class BaseCPGPass(private val g: BriefUnitGraph) {
                 .columnNumber(Option.apply(it.javaSourceStartColumnNumber))
                 .code(it.toString())
                 .order(totalTgts + 2)
-            runCatching {
-                builder.addEdge(switchVertex, tgtV, AST)
-            }.onFailure { e -> logger.warn(e.message) }
+            builder.addEdge(switchVertex, tgtV, AST)
             GlobalCache.addSootAssoc(unit, tgtV)
         }
     }
@@ -484,9 +450,7 @@ class BaseCPGPass(private val g: BriefUnitGraph) {
                     .code("IF_BODY")
                     .order(childIdx)
             }
-            runCatching {
-                builder.addEdge(ifRootVertex, condBody, AST)
-            }.onFailure { e -> logger.warn(e.message) }
+            builder.addEdge(ifRootVertex, condBody, AST)
             GlobalCache.addSootAssoc(unit, condBody)
         }
         return ifRootVertex
@@ -509,9 +473,7 @@ class BaseCPGPass(private val g: BriefUnitGraph) {
         builder.addVertex(ifRootVertex)
         val condition = unit.condition as ConditionExpr
         val conditionExpr = projectFlippedConditionalExpr(condition)
-        runCatching {
-            builder.addEdge(ifRootVertex, conditionExpr, CONDITION)
-        }.onFailure { e -> logger.warn(e.message) }
+        builder.addEdge(ifRootVertex, conditionExpr, CONDITION)
         GlobalCache.addSootAssoc(unit, conditionExpr)
         return ifRootVertex
     }
@@ -558,18 +520,14 @@ class BaseCPGPass(private val g: BriefUnitGraph) {
                 null
             }
         }?.let {
-            runCatching {
-                builder.addEdge(assignBlock, it, AST)
-                builder.addEdge(assignBlock, it, ARGUMENT)
-            }.onFailure { e -> logger.warn(e.message) }
+            builder.addEdge(assignBlock, it, AST)
+            builder.addEdge(assignBlock, it, ARGUMENT)
             assignVariables.add(it)
             GlobalCache.addSootAssoc(leftOp, it)
         }
         projectOp(rightOp, 1)?.let {
-            runCatching {
-                builder.addEdge(assignBlock, it, AST)
-                builder.addEdge(assignBlock, it, ARGUMENT)
-            }.onFailure { e -> logger.warn(e.message) }
+            builder.addEdge(assignBlock, it, AST)
+            builder.addEdge(assignBlock, it, ARGUMENT)
             assignVariables.add(it)
             GlobalCache.addSootAssoc(rightOp, it)
         }
@@ -602,18 +560,14 @@ class BaseCPGPass(private val g: BriefUnitGraph) {
             .columnNumber(Option.apply(currentCol))
             .apply { binopVertices.add(this) }
         projectOp(expr.op1, 0)?.let {
-            runCatching {
-                builder.addEdge(binOpBlock, it, AST)
-                builder.addEdge(binOpBlock, it, ARGUMENT)
-            }.onFailure { e -> logger.warn(e.message) }
+            builder.addEdge(binOpBlock, it, AST)
+            builder.addEdge(binOpBlock, it, ARGUMENT)
             binopVertices.add(it)
             GlobalCache.addSootAssoc(expr.op1, it)
         }
         projectOp(expr.op2, 1)?.let {
-            runCatching {
-                builder.addEdge(binOpBlock, it, AST)
-                builder.addEdge(binOpBlock, it, ARGUMENT)
-            }.onFailure { e -> logger.warn(e.message) }
+            builder.addEdge(binOpBlock, it, AST)
+            builder.addEdge(binOpBlock, it, ARGUMENT)
             binopVertices.add(it)
             GlobalCache.addSootAssoc(expr.op2, it)
         }
@@ -639,18 +593,14 @@ class BaseCPGPass(private val g: BriefUnitGraph) {
             .dynamicTypeHintFullName(SootToPlumeUtil.createScalaList(expr.op2.type.toQuotedString()))
             .apply { conditionVertices.add(this) }
         projectOp(expr.op1, 1)?.let {
-            runCatching {
-                builder.addEdge(binOpBlock, it, AST)
-                builder.addEdge(binOpBlock, it, ARGUMENT)
-            }.onFailure { e -> logger.warn(e.message) }
+            builder.addEdge(binOpBlock, it, AST)
+            builder.addEdge(binOpBlock, it, ARGUMENT)
             conditionVertices.add(it)
             GlobalCache.addSootAssoc(expr.op1, it)
         }
         projectOp(expr.op2, 2)?.let {
-            runCatching {
-                builder.addEdge(binOpBlock, it, AST)
-                builder.addEdge(binOpBlock, it, ARGUMENT)
-            }.onFailure { e -> logger.warn(e.message) }
+            builder.addEdge(binOpBlock, it, AST)
+            builder.addEdge(binOpBlock, it, ARGUMENT)
             conditionVertices.add(it)
             GlobalCache.addSootAssoc(expr.op2, it)
         }
@@ -674,11 +624,9 @@ class BaseCPGPass(private val g: BriefUnitGraph) {
             .columnNumber(Option.apply(currentCol))
             .apply { castVertices.add(this) }
         projectOp(expr.op, 1)?.let {
-            runCatching {
-                builder.addEdge(castBlock, it, AST)
-                builder.addEdge(castBlock, it, ARGUMENT)
-                castVertices.add(it)
-            }.onFailure { e -> logger.warn(e.message) }
+            builder.addEdge(castBlock, it, AST)
+            builder.addEdge(castBlock, it, ARGUMENT)
+            castVertices.add(it)
         }
         // Save PDG arguments
         GlobalCache.addSootAssoc(expr, castVertices)
@@ -730,13 +678,11 @@ class BaseCPGPass(private val g: BriefUnitGraph) {
             .columnNumber(Option.apply(ret.javaSourceStartColumnNumber))
             .order(childIdx)
         projectOp(ret.op, childIdx + 1)?.let { builder.addEdge(retV, it, AST) }
-        runCatching {
-            builder.addEdge(
-                GlobalCache.getSootAssoc(g.body.method)?.first { it is NewBlockBuilder }!!,
-                retV,
-                AST
-            )
-        }.onFailure { e -> logger.warn(e.message) }
+        builder.addEdge(
+            GlobalCache.getSootAssoc(g.body.method)?.first { it is NewBlockBuilder }!!,
+            retV,
+            AST
+        )
         return retV
     }
 
@@ -747,13 +693,11 @@ class BaseCPGPass(private val g: BriefUnitGraph) {
             .lineNumber(Option.apply(ret.javaSourceStartLineNumber))
             .columnNumber(Option.apply(ret.javaSourceStartColumnNumber))
             .order(childIdx)
-        runCatching {
-            builder.addEdge(
-                GlobalCache.getSootAssoc(g.body.method)?.first { it is NewBlockBuilder }!!,
-                retV,
-                AST
-            )
-        }.onFailure { e -> logger.warn(e.message) }
+        builder.addEdge(
+            GlobalCache.getSootAssoc(g.body.method)?.first { it is NewBlockBuilder }!!,
+            retV,
+            AST
+        )
         return retV
     }
 }

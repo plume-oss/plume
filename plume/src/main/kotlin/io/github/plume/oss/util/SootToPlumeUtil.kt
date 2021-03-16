@@ -19,6 +19,7 @@ import io.github.plume.oss.GlobalCache
 import io.github.plume.oss.domain.mappers.VertexMapper.mapToVertex
 import io.github.plume.oss.drivers.IDriver
 import io.github.plume.oss.util.SootParserUtil.determineEvaluationStrategy
+import io.shiftleft.codepropertygraph.generated.EvaluationStrategies.BY_SHARING
 import io.shiftleft.codepropertygraph.generated.NodeTypes.*
 import io.shiftleft.codepropertygraph.generated.Operators
 import io.shiftleft.codepropertygraph.generated.nodes.*
@@ -36,7 +37,7 @@ object SootToPlumeUtil {
     private val logger = LogManager.getLogger(SootToPlumeUtil::class.java)
 
     /**
-     * Given an [soot.Local], will construct method parameter information in the graph.
+     * Given an [soot.Local], will construct method parameter in information in the graph.
      *
      * @param local The [soot.Local] from which a [NewMethodParameterInBuilder] will be constructed.
      * @return the constructed vertex.
@@ -49,8 +50,29 @@ object SootToPlumeUtil {
     ): NewMethodParameterInBuilder =
         NewMethodParameterInBuilder()
             .name(local.name)
-            .code("${local.type} ${local.name}")
+            .code("${local.type.toQuotedString()} ${local.name}")
             .evaluationStrategy(determineEvaluationStrategy(local.type.toString(), isMethodReturn = false))
+            .typeFullName(local.type.toString())
+            .lineNumber(Option.apply(currentLine))
+            .columnNumber(Option.apply(currentCol))
+            .order(childIdx)
+
+    /**
+     * Given an [soot.Local], will construct method parameter out information in the graph.
+     *
+     * @param local The [soot.Local] from which a [NewMethodParameterOutBuilder] will be constructed.
+     * @return the constructed vertex.
+     */
+    fun projectMethodParameterOut(
+        local: soot.Local,
+        currentLine: Int,
+        currentCol: Int,
+        childIdx: Int
+    ): NewMethodParameterOutBuilder =
+        NewMethodParameterOutBuilder()
+            .name(local.name)
+            .code("${local.type.toQuotedString()} ${local.name}")
+            .evaluationStrategy(BY_SHARING)
             .typeFullName(local.type.toString())
             .lineNumber(Option.apply(currentLine))
             .columnNumber(Option.apply(currentCol))

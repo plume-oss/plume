@@ -17,14 +17,14 @@ class MethodParameterTests extends PlumeCodeToCpgSuite {
   "should return exactly two parameters with correct fields" in {
     cpg.parameter.name.toSet shouldBe Set("param1", "param2")
 
-    val List(x) = cpg.parameter.name("param1").l
+    val List(x) = cpg.parameter.filter(_.method.name == "foo").name("param1").l
     x.code shouldBe "int param1"
     x.typeFullName shouldBe "int"
     x.lineNumber shouldBe Some(3)
     // x.columnNumber shouldBe Some(11)
     x.order shouldBe 1
 
-    val List(y) = cpg.parameter.name("param2").l
+    val List(y) = cpg.parameter.filter(_.method.name == "foo").name("param2").l
     y.code shouldBe "int param2"
     y.typeFullName shouldBe "int"
     y.lineNumber shouldBe Some(3)
@@ -33,7 +33,7 @@ class MethodParameterTests extends PlumeCodeToCpgSuite {
   }
 
   "should allow traversing from parameter to method" in {
-    cpg.parameter.name("param1").method.name.l shouldBe List("foo")
+    cpg.parameter.name("param1").method.filter(_.isExternal == false).name.l shouldBe List("foo")
   }
 
 }

@@ -74,7 +74,7 @@ class TinkerGraphDriverIntTest {
             val testFiles = arrayOf(File(testGraphML), File(testGraphSON), File(testGryo))
             Arrays.stream(testFiles).forEach { file: File ->
                 try {
-                    if (!file.delete()) logger.warn("Could not clear test resources.")
+                    if (file.exists() && !file.delete()) logger.warn("Could not clear test resources.")
                 } catch (e: Exception) {
                     logger.warn("Could not clear test resources.", e)
                 }
@@ -728,6 +728,16 @@ class TinkerGraphDriverIntTest {
             assertTrue(r.any { it is NewTypeDeclBuilder })
             assertTrue(r.any { it is NewMethodBuilder })
             assertTrue(driver.getVerticesByProperty(IS_EXTERNAL, BOOL_1, TYPE_DECL).size == 1)
+        }
+
+        @Test
+        fun getVertexOfType() {
+            val r1 = driver.getVerticesOfType(METHOD)
+            assertEquals(1, r1.size)
+            assertTrue(r1.any { it is NewMethodBuilder })
+            val r2 = driver.getVerticesOfType(NAMESPACE_BLOCK)
+            assertEquals(2, r2.size)
+            assertTrue(r2.all { it is NewNamespaceBlockBuilder })
         }
     }
 }

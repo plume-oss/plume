@@ -1,5 +1,6 @@
 package io.github.plume.oss.domain.mappers
 
+import io.github.plume.oss.util.ExtractorConst.UNKNOWN
 import io.github.plume.oss.util.SootToPlumeUtil.createScalaList
 import io.shiftleft.codepropertygraph.generated.NodeKeyNames.*
 import io.shiftleft.codepropertygraph.generated.nodes.*
@@ -57,7 +58,6 @@ object VertexMapper {
                 else -> map[it] = value as Any
             }
         }
-        val unknown = io.shiftleft.semanticcpg.language.types.structure.File.UNKNOWN()
         return when (map["label"] as String) {
             ArrayInitializer.Label() -> NewArrayInitializerBuilder()
                 .order(map[ORDER] as Int)
@@ -72,7 +72,7 @@ object VertexMapper {
                 .version(map[VERSION] as String)
             File.Label() -> NewFileBuilder()
                 .name(map[NAME] as String)
-                .hash(Option.apply(map.getOrDefault(HASH, unknown) as String))
+                .hash(Option.apply(map.getOrDefault(HASH, UNKNOWN) as String))
                 .order(map[ORDER] as Int)
             Method.Label() -> NewMethodBuilder()
                 .astParentFullName(map[AST_PARENT_FULL_NAME] as String)
@@ -86,6 +86,14 @@ object VertexMapper {
                 .columnNumber(Option.apply(map[COLUMN_NUMBER] as Int))
                 .order(map[ORDER] as Int)
             MethodParameterIn.Label() -> NewMethodParameterInBuilder()
+                .code(map[CODE] as String)
+                .name(map[NAME] as String)
+                .evaluationStrategy(map[EVALUATION_STRATEGY] as String)
+                .typeFullName(map[TYPE_FULL_NAME] as String)
+                .lineNumber(Option.apply(map[LINE_NUMBER] as Int))
+                .columnNumber(Option.apply(map[COLUMN_NUMBER] as Int))
+                .order(map[ORDER] as Int)
+            MethodParameterOut.Label() -> NewMethodParameterOutBuilder()
                 .code(map[CODE] as String)
                 .name(map[NAME] as String)
                 .evaluationStrategy(map[EVALUATION_STRATEGY] as String)
@@ -265,6 +273,7 @@ object VertexMapper {
             File.Label() -> File.`Edges$`.`MODULE$`.Out().contains(edge)
             Method.Label() -> Method.`Edges$`.`MODULE$`.Out().contains(edge)
             MethodParameterIn.Label() -> MethodParameterIn.`Edges$`.`MODULE$`.Out().contains(edge)
+            MethodParameterOut.Label() -> MethodParameterOut.`Edges$`.`MODULE$`.Out().contains(edge)
             MethodReturn.Label() -> MethodReturn.`Edges$`.`MODULE$`.Out().contains(edge)
             Modifier.Label() -> Modifier.`Edges$`.`MODULE$`.Out().contains(edge)
             Type.Label() -> Type.`Edges$`.`MODULE$`.Out().contains(edge)
@@ -297,6 +306,7 @@ object VertexMapper {
             File.Label() -> File.`Edges$`.`MODULE$`.In().contains(edge)
             Method.Label() -> Method.`Edges$`.`MODULE$`.In().contains(edge)
             MethodParameterIn.Label() -> MethodParameterIn.`Edges$`.`MODULE$`.In().contains(edge)
+            MethodParameterOut.Label() -> MethodParameterOut.`Edges$`.`MODULE$`.In().contains(edge)
             MethodReturn.Label() -> MethodReturn.`Edges$`.`MODULE$`.In().contains(edge)
             Modifier.Label() -> Modifier.`Edges$`.`MODULE$`.In().contains(edge)
             Type.Label() -> Type.`Edges$`.`MODULE$`.In().contains(edge)
@@ -325,6 +335,8 @@ object VertexMapper {
         return outRule && toRule
     }
 
+    // TODO: This may be linked to this bug https://github.com/plume-oss/plume/issues/88
+    // TODO: The fix may be to get onto https://github.com/plume-oss/plume/issues/86
     fun extractAttributesFromMap(propertyMap: MutableMap<String, Any>): MutableMap<String, Any> {
         val attributes = mutableMapOf<String, Any>()
         propertyMap.computeIfPresent(DYNAMIC_TYPE_HINT_FULL_NAME) { _, value ->

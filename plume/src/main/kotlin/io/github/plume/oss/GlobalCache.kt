@@ -14,11 +14,26 @@ object GlobalCache {
     private val sootToPlume = ConcurrentHashMap<Any, MutableList<NewNodeBuilder>>()
     private val fHashes = ConcurrentHashMap<SootClass, String>()
     private val savedCallGraphEdges = ConcurrentHashMap<String, MutableList<NewCallBuilder>>()
+    private val typeCache = ConcurrentHashMap<String, NewTypeBuilder>()
+    private val typeDeclCache = ConcurrentHashMap<String, NewTypeDeclBuilder>()
+    private val fileCache = ConcurrentHashMap<String, NewFileBuilder>()
 
     /**
      * Caches already built method bodies to save database requests during SCPG passes.
      */
     val methodBodies = mutableMapOf<String, DeltaGraph>()
+
+    fun addType(t: NewTypeBuilder) { typeCache[t.build().fullName()] = t }
+
+    fun getType(fullName: String): NewTypeBuilder? = typeCache[fullName]
+
+    fun addTypeDecl(td: NewTypeDeclBuilder) { typeDeclCache[td.build().fullName()] = td }
+
+    fun getTypeDecl(fullName: String): NewTypeDeclBuilder? = typeDeclCache[fullName]
+
+    fun addFile(f: NewFileBuilder) { fileCache[f.build().name()] = f }
+
+    fun getFile(name: String): NewFileBuilder? = fileCache[name]
 
     /**
      * Associates the given Soot object to the given [NewNode].
@@ -92,5 +107,8 @@ object GlobalCache {
         fHashes.clear()
         sootToPlume.clear()
         savedCallGraphEdges.clear()
+        typeCache.clear()
+        typeDeclCache.clear()
+        fileCache.clear()
     }
 }

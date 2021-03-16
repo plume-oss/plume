@@ -1,16 +1,17 @@
 package io.github.plume.oss.passes.method
 
 import io.github.plume.oss.GlobalCache
-import io.github.plume.oss.drivers.IDriver
+import io.github.plume.oss.domain.model.DeltaGraph
 import io.github.plume.oss.passes.IMethodPass
 import io.github.plume.oss.util.ExtractorConst
 import io.github.plume.oss.util.SootParserUtil
+import io.github.plume.oss.util.SootParserUtil.determineEvaluationStrategy
 import io.github.plume.oss.util.SootToPlumeUtil
 import io.shiftleft.codepropertygraph.generated.EdgeTypes.*
-import io.shiftleft.codepropertygraph.generated.NodeKeyNames.FULL_NAME
-import io.shiftleft.codepropertygraph.generated.NodeKeyNames.NAME
-import io.shiftleft.codepropertygraph.generated.NodeTypes.FILE
+import io.shiftleft.codepropertygraph.generated.EvaluationStrategies.BY_REFERENCE
+import io.shiftleft.codepropertygraph.generated.EvaluationStrategies.BY_SHARING
 import io.shiftleft.codepropertygraph.generated.NodeTypes.TYPE_DECL
+import io.shiftleft.codepropertygraph.generated.Operators
 import io.shiftleft.codepropertygraph.generated.nodes.*
 import scala.Option
 import soot.SootMethod
@@ -18,9 +19,9 @@ import soot.SootMethod
 /**
  * Builds the method stubs which includes modifiers, parameters, and method returns.
  */
-class MethodStubPass(private val driver: IDriver) : IMethodPass {
+class MethodStubPass(private val m: SootMethod) : IMethodPass {
 
-    private val nodeCache = mutableSetOf<NewNodeBuilder>()
+    private val builder = DeltaGraph.Builder()
 
     /**
      * Builds method stubs and connects them to their respective TYPE_DECLs, i.e.
@@ -29,32 +30,16 @@ class MethodStubPass(private val driver: IDriver) : IMethodPass {
      *     TYPE_DECL -CONTAINS-> CONTAINS
      *     METHOD -SOURCE_FILE-> FILE
      */
-    override fun runPass(ms: List<SootMethod>): List<SootMethod> {
-        ms.map { sm -> Pair(sm, buildMethodStub(sm)) }.forEach { p ->
-            val (sm, m) = p
-            val typeFullName = sm.declaringClass.type.toQuotedString()
-            val filename = SootToPlumeUtil.sootClassToFileName(sm.declaringClass)
-            getTypeDecl(typeFullName).let { t ->
-                    driver.addEdge(t, m, AST)
-                    driver.addEdge(t, m, CONTAINS)
-                }
-            getSourceFile(filename).let { f -> driver.addEdge(m, f, SOURCE_FILE) }
+    override fun runPass(): DeltaGraph {
+        val mNode = buildMethodStub(m)
+        val typeFullName = m.declaringClass.type.toQuotedString()
+        val filename = SootToPlumeUtil.sootClassToFileName(m.declaringClass)
+        GlobalCache.getTypeDecl(typeFullName)?.let { t ->
+            builder.addEdge(t, mNode, AST)
+            builder.addEdge(t, mNode, CONTAINS)
         }
-        return ms
-    }
-
-    private fun getTypeDecl(typeFullName: String): NewNodeBuilder {
-        return nodeCache.filterIsInstance<NewTypeDeclBuilder>()
-            .find { it.build().properties().get(FULL_NAME).get() == typeFullName }
-            ?: driver.getVerticesByProperty(FULL_NAME, typeFullName, TYPE_DECL)
-                .first().apply { nodeCache.add(this) }
-    }
-
-    private fun getSourceFile(filename: String): NewNodeBuilder {
-        return nodeCache.filterIsInstance<NewFileBuilder>()
-            .find { it.build().properties().get(NAME).get() == filename }
-            ?: driver.getVerticesByProperty(NAME, filename, FILE)
-                .first().apply { nodeCache.add(this) }
+        GlobalCache.getFile(filename)?.let { f -> builder.addEdge(mNode, f, SOURCE_FILE) }
+        return builder.build()
     }
 
     private fun buildMethodStub(m: SootMethod): NewMethodBuilder {
@@ -84,21 +69,65 @@ class MethodStubPass(private val driver: IDriver) : IMethodPass {
             .argumentIndex(0)
             .lineNumber(Option.apply(currentLine))
             .columnNumber(Option.apply(currentCol))
-            .apply { driver.addEdge(mtdVertex, this, AST); GlobalCache.addSootAssoc(m, this) }
+            .apply { builder.addEdge(mtdVertex, this, AST); GlobalCache.addSootAssoc(m, this) }
         // Store return type
         val mtdRet = projectMethodReturnVertex(m.returnType, currentLine, currentCol, childIdx++)
-            .apply { driver.addEdge(mtdVertex, this, AST); GlobalCache.addSootAssoc(m, this) }
-        // Create a call-to-return for external classes
+            .apply { builder.addEdge(mtdVertex, this, AST); GlobalCache.addSootAssoc(m, this) }
+        // Extrapolate certain information manually for external classes
         if (!m.declaringClass.isApplicationClass) {
+            // Create a call-to-return for external classes
             val ret = projectReturnVertex(m.javaSourceStartLineNumber, m.javaSourceStartColumnNumber, childIdx++)
-            driver.addEdge(mtdVertex, ret, CFG)
-            driver.addEdge(ret, mtdRet, CFG)
+            builder.addEdge(mtdVertex, ret, CFG)
+            builder.addEdge(ret, mtdRet, CFG)
+            // Create method params manually
+            projectBytecodeParams(m.bytecodeParms).forEach { mtdParam_ ->
+                builder.addEdge(mtdVertex, mtdParam_, AST)
+            }
         }
         // Modifier vertices
         SootParserUtil.determineModifiers(m.modifiers, m.name)
             .map { NewModifierBuilder().modifierType(it).order(childIdx++) }
-            .forEach { driver.addEdge(mtdVertex, it, AST) }
+            .forEach { builder.addEdge(mtdVertex, it, AST) }
         return mtdVertex
+    }
+
+    /**
+     * METHOD_PARAMETER_IN -EVAL_TYPE-> TYPE
+     * METHOD_PARAMETER_OUT -EVAL_TYPE-> TYPE
+     *
+     * @return a list of the METHOD_PARAMETER_* nodes.
+     */
+    private fun projectBytecodeParams(rawParams: String): List<NewNodeBuilder> {
+        if (rawParams.isBlank()) return emptyList()
+        return SootParserUtil.obtainParameters(rawParams).mapIndexed { i, p ->
+            sequence {
+                val eval = determineEvaluationStrategy(p)
+                val name = "param${i + 1}"
+                val code = "$p $name"
+                val mpi = NewMethodParameterInBuilder()
+                    .name(name)
+                    .code(code)
+                    .order(i + 1)
+                    .typeFullName(p)
+                    .lineNumber(Option.apply(-1))
+                    .columnNumber(Option.apply(-1))
+                    .evaluationStrategy(eval)
+                GlobalCache.getType(p)?.let { t -> builder.addEdge(mpi, t, EVAL_TYPE) }
+                yield(mpi)
+                if (eval == BY_REFERENCE) {
+                    val mpo = NewMethodParameterOutBuilder()
+                        .name(name)
+                        .code(code)
+                        .order(i + 1)
+                        .typeFullName(p)
+                        .lineNumber(Option.apply(-1))
+                        .columnNumber(Option.apply(-1))
+                        .evaluationStrategy(BY_SHARING)
+                    GlobalCache.getType(p)?.let { t -> builder.addEdge(mpo, t, EVAL_TYPE) }
+                    yield(mpo)
+                }
+            }.toList()
+        }.flatten().toList()
     }
 
     private fun projectMethodReturnVertex(
@@ -109,7 +138,7 @@ class MethodStubPass(private val driver: IDriver) : IMethodPass {
     ): NewMethodReturnBuilder =
         NewMethodReturnBuilder()
             .code(type.toQuotedString())
-            .evaluationStrategy(SootParserUtil.determineEvaluationStrategy(type.toQuotedString(), true))
+            .evaluationStrategy(determineEvaluationStrategy(type.toQuotedString(), true))
             .typeFullName(type.toQuotedString())
             .lineNumber(Option.apply(currentLine))
             .columnNumber(Option.apply(currentCol))

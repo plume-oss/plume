@@ -89,14 +89,7 @@ class FileAndPackagePass(private val driver: IDriver) : IProgramStructurePass {
      */
     private fun getFile(c: SootClass): NewNodeBuilder {
         val fileName = SootToPlumeUtil.sootClassToFileName(c)
-        nodeCache.filterIsInstance<NewFileBuilder>()
-            .find { it.build().properties().get(NAME).get() == fileName }
-            ?.let { return it }
-        return driver.getVerticesByProperty(
-            propertyKey = NAME,
-            propertyValue = fileName,
-            label = FILE
-        ).firstOrNull() ?: buildFile(c)
+        return GlobalCache.getFile(fileName) ?: buildFile(c).apply { GlobalCache.addFile(this) }
     }
 
     private fun buildFile(c: SootClass): NewFileBuilder {
