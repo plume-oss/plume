@@ -10,10 +10,12 @@ and this project adheres to [Semantic Versioning](http://semver.org/).
 ### Added
 - `IDriver::getVerticesOfType` to aid in caching from existing database vertices.
 - External methods signatures are parsed to figure out their method parameters.
-- `MethodStubPass` now includes `METHOD_PARAM_IN` and `METHOD_PARAM_OUT` and connects them to their type.
+- `MethodStubPass` and `BaseCPGPass` now includes `METHOD_PARAM_IN` and `METHOD_PARAM_OUT` and connects them to their 
+  type.
 
 ### Changed
 - Many of the `nodeCache` uses in `IProgramPass` passes were converted to using the `GlobalCache` instead.
+- `MethodStubPass` now runs in parallel if possible.
 
 ### Fixed
 
