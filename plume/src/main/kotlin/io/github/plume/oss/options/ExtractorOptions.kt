@@ -33,9 +33,10 @@ object ExtractorOptions {
     val sparkOpts = mutableMapOf<String, String>()
 
     /**
-     * Specifies how large each chunk should be when giving a thread method bodies to project into base CPGs.
+     * Specifies how large each chunk should be when giving a thread method bodies to project into base CPGs. Default
+     * value is 300.
      */
-    var methodChunkSize = 50
+    var methodChunkSize = 300
 
     init {
         sparkOpts["verbose"] = "false"
