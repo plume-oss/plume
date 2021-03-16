@@ -1,4 +1,4 @@
-# Plume
+[![Plume Banner](https://plume-oss.github.io/plume-docs/assets/images/logo-text.png)](https://plume-oss.github.io/plume-docs/)
 
 Plume is a language front-end to construct an [intermediate
 representation](https://en.wikipedia.org/wiki/Intermediate_representation) called a [code-property
