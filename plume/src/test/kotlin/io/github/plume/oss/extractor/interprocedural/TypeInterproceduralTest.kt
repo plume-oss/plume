@@ -51,7 +51,6 @@ class TypeInterproceduralTest {
 
     @Test
     fun type1Test() {
-        driver.exportGraph("/tmp/plume/huh.xml")
         val ns = g.nodes().asSequence().toList()
         ns.filterIsInstance<Local>().let { localList ->
             assertNotNull(localList.firstOrNull { it.name() == "intList" && it.typeFullName() == "java.util.LinkedList" })

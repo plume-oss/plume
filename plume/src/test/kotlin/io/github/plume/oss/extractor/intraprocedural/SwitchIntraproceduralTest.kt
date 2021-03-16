@@ -86,7 +86,6 @@ class SwitchIntraproceduralTest {
 
     @Test
     fun switch2Test() {
-        driver.exportGraph("/tmp/plume/s.xml")
         val ns = g.nodes().asSequence().toList()
         assertNotNull(ns.find { it is Local && it.name() == "animal" })
         assertNotNull(ns.find { it is Local && it.name() == "result" })
