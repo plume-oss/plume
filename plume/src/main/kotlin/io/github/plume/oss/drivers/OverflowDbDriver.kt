@@ -305,6 +305,17 @@ class OverflowDbDriver internal constructor() : IDriver {
         return l
     }
 
+    override fun getVerticesOfType(label: String): List<NewNodeBuilder> {
+        val l = mutableListOf<NewNodeBuilder>()
+        PlumeTimer.measure(ExtractorTimeKey.DATABASE_READ) {
+            graph.nodes(label).asSequence()
+                .map(VertexMapper::mapToVertex)
+                .toList()
+                .toCollection(l)
+        }
+        return l
+    }
+
     override fun close() {
         require(connected) { "Cannot close a graph that is not already connected!" }
         try {

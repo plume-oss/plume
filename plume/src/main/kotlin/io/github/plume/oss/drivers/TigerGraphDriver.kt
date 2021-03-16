@@ -372,6 +372,14 @@ class TigerGraphDriver internal constructor() : IOverridenIdDriver, ISchemaSafeD
         return result.map { it as T }
     }
 
+    override fun getVerticesOfType(label: String): List<NewNodeBuilder> {
+        val result = (get(
+            endpoint = "query/$GRAPH_NAME/getVerticesOfType",
+            params = mapOf("LABEL" to label)
+        ).first() as JSONObject)["result"] as JSONArray
+        return result.map { vertexPayloadToNode(it as JSONObject) }.toList()
+    }
+
     override fun getVertexIds(lowerBound: Long, upperBound: Long): Set<Long> {
         val result = (get(
             endpoint = "query/$GRAPH_NAME/getVertexIds",
@@ -884,6 +892,14 @@ CREATE QUERY get${t.first()}PropertyFromVertices(STRING PROPERTY_KEY, STRING LAB
         """.trimIndent()
                 }
             }
+
+CREATE QUERY getVerticesOfType(STRING LABEL) FOR GRAPH <GRAPH_NAME> {
+  start = {ANY};
+  result = SELECT src
+           FROM start:src
+           WHERE src.label == LABEL;
+  PRINT result;
+}
 
 INSTALL QUERY ALL
 

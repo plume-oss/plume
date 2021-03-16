@@ -591,6 +591,24 @@ class Neo4jDriver internal constructor() : IDriver {
         return l
     }
 
+    override fun getVerticesOfType(label: String): List<NewNodeBuilder> {
+        val l = mutableListOf<NewNodeBuilder>()
+        PlumeTimer.measure(ExtractorTimeKey.DATABASE_READ) {
+            driver.session().use { session ->
+                session.writeTransaction { tx ->
+                    tx.run(
+                        """
+                    MATCH (n:$label)
+                    RETURN n
+                    """.trimIndent()
+                    ).list().map { it["n"].asNode() }
+                        .map { mapToVertex(it.asMap() + mapOf("id" to it.id())) }
+                }.toCollection(l)
+            }
+        }
+        return l
+    }
+
     private fun newOverflowGraph(): Graph = Graph.open(
         Config.withDefaults(),
         NodeFactories.allAsJava(),

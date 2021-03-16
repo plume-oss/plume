@@ -94,8 +94,10 @@ interface IDriver : AutoCloseable {
      *
      * @return The [Graph] containing the type data of the CPG.
      */
-    @Deprecated("Too expensive of a query and should be done in parts with getProgramStructure. " +
-            "Will be removed in 0.4.0")
+    @Deprecated(
+        "Too expensive of a query and should be done in parts with getProgramStructure. " +
+                "Will be removed in 0.4.0"
+    )
     fun getProgramTypeData(): Graph
 
     /**
@@ -164,7 +166,14 @@ interface IDriver : AutoCloseable {
      * @param label An optional vertex label if known to further filter results by.
      * @return A list of the values from the given key using the specified type.
      */
-    fun <T: Any> getPropertyFromVertices(propertyKey: String, label: String? = null): List<T>
+    fun <T : Any> getPropertyFromVertices(propertyKey: String, label: String? = null): List<T>
+
+    /**
+     * Obtains a list of all the vertices of a given type.
+     *
+     * @param label The type of the vertex to obtain.
+     */
+    fun getVerticesOfType(label: String): List<NewNodeBuilder>
 
 }
 

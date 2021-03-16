@@ -383,6 +383,21 @@ abstract class GremlinDriver : IDriver {
         return l
     }
 
+    override fun getVerticesOfType(label: String): List<NewNodeBuilder> {
+        val l = mutableListOf<NewNodeBuilder>()
+        PlumeTimer.measure(ExtractorTimeKey.DATABASE_READ) {
+            g.V().hasLabel(label)
+                .valueMap<Any>()
+                .with(WithOptions.tokens)
+                .by(un.unfold<Any>())
+                .toList()
+                .map(::mapVertexKeys)
+                .map(VertexMapper::mapToVertex)
+                .toCollection(l)
+        }
+        return l
+    }
+
     protected open fun mapVertexKeys(props: Map<Any, Any>) = props.mapKeys { it.key.toString() }
 
     private fun gremlinToPlume(es: List<Edge>): overflowdb.Graph {
