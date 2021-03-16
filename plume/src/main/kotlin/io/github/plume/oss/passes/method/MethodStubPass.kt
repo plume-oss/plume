@@ -11,6 +11,7 @@ import io.shiftleft.codepropertygraph.generated.EdgeTypes.*
 import io.shiftleft.codepropertygraph.generated.EvaluationStrategies.BY_REFERENCE
 import io.shiftleft.codepropertygraph.generated.EvaluationStrategies.BY_SHARING
 import io.shiftleft.codepropertygraph.generated.NodeTypes.TYPE_DECL
+import io.shiftleft.codepropertygraph.generated.Operators
 import io.shiftleft.codepropertygraph.generated.nodes.*
 import scala.Option
 import soot.SootMethod
@@ -136,7 +137,7 @@ class MethodStubPass(private val m: SootMethod) : IMethodPass {
     ): NewMethodReturnBuilder =
         NewMethodReturnBuilder()
             .code(type.toQuotedString())
-            .evaluationStrategy(SootParserUtil.determineEvaluationStrategy(type.toQuotedString(), true))
+            .evaluationStrategy(determineEvaluationStrategy(type.toQuotedString(), true))
             .typeFullName(type.toQuotedString())
             .lineNumber(Option.apply(currentLine))
             .columnNumber(Option.apply(currentCol))

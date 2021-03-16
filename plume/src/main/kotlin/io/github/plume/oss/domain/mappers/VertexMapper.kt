@@ -335,6 +335,8 @@ object VertexMapper {
         return outRule && toRule
     }
 
+    // TODO: This may be linked to this bug https://github.com/plume-oss/plume/issues/88
+    // TODO: The fix may be to get onto https://github.com/plume-oss/plume/issues/86
     fun extractAttributesFromMap(propertyMap: MutableMap<String, Any>): MutableMap<String, Any> {
         val attributes = mutableMapOf<String, Any>()
         propertyMap.computeIfPresent(DYNAMIC_TYPE_HINT_FULL_NAME) { _, value ->

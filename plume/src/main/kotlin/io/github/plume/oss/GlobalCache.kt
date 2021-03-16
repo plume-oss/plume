@@ -108,5 +108,7 @@ object GlobalCache {
         sootToPlume.clear()
         savedCallGraphEdges.clear()
         typeCache.clear()
+        typeDeclCache.clear()
+        fileCache.clear()
     }
 }
