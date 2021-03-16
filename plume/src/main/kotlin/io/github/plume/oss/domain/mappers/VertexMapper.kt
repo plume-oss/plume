@@ -1,5 +1,6 @@
 package io.github.plume.oss.domain.mappers
 
+import io.github.plume.oss.util.ExtractorConst.UNKNOWN
 import io.github.plume.oss.util.SootToPlumeUtil.createScalaList
 import io.shiftleft.codepropertygraph.generated.NodeKeyNames.*
 import io.shiftleft.codepropertygraph.generated.nodes.*
@@ -57,7 +58,6 @@ object VertexMapper {
                 else -> map[it] = value as Any
             }
         }
-        val unknown = io.shiftleft.semanticcpg.language.types.structure.File.UNKNOWN()
         return when (map["label"] as String) {
             ArrayInitializer.Label() -> NewArrayInitializerBuilder()
                 .order(map[ORDER] as Int)
@@ -72,7 +72,7 @@ object VertexMapper {
                 .version(map[VERSION] as String)
             File.Label() -> NewFileBuilder()
                 .name(map[NAME] as String)
-                .hash(Option.apply(map.getOrDefault(HASH, unknown) as String))
+                .hash(Option.apply(map.getOrDefault(HASH, UNKNOWN) as String))
                 .order(map[ORDER] as Int)
             Method.Label() -> NewMethodBuilder()
                 .astParentFullName(map[AST_PARENT_FULL_NAME] as String)

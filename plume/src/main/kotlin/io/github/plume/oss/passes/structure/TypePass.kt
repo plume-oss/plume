@@ -53,17 +53,11 @@ open class TypePass(private val driver: IDriver) : IProgramStructurePass {
      */
     private fun linkSourceFile(c: SootClass, t: NewTypeDeclBuilder) {
         val fileName = SootToPlumeUtil.sootClassToFileName(c)
-        val f = getFile(fileName)
-        logger.debug("Found file $f for type ${c.type.toQuotedString()}")
-        driver.addEdge(t, f, SOURCE_FILE)
-        driver.addEdge(f, t, CONTAINS)
-    }
-
-    private fun getFile(fileName: String): NewNodeBuilder {
-        return nodeCache.filter { it.build().properties().keySet().contains(NAME) }.find { it.build().properties().get(NAME).get() == fileName }
-            ?: driver.getVerticesByProperty(NAME, fileName, FILE).firstOrNull()?.apply { nodeCache.add(this) }
-            ?: nodeCache.filter { it.build().properties().keySet().contains(NAME) }.find { it.build().properties().get(NAME).get() == UNKNOWN }
-            ?: driver.getVerticesByProperty(NAME, UNKNOWN, FILE).first().apply { nodeCache.add(this) }
+        GlobalCache.getFile(fileName)?.let { f ->
+            logger.debug("Linking file $f to type ${c.type.toQuotedString()}")
+            driver.addEdge(t, f, SOURCE_FILE)
+            driver.addEdge(f, t, CONTAINS)
+        }
     }
 
     /*
@@ -98,7 +92,7 @@ open class TypePass(private val driver: IDriver) : IProgramStructurePass {
             .fullName(fullName)
             .filename(filename)
             .astParentFullName(parentType)
-            .astParentType(NodeTypes.NAMESPACE_BLOCK)
+            .astParentType(NAMESPACE_BLOCK)
             .order(1)
             .isExternal(false)
 
@@ -120,6 +114,8 @@ open class TypePass(private val driver: IDriver) : IProgramStructurePass {
             .typeDeclFullName(type.toQuotedString())
         val td = buildTypeDecNode(shortName, type.toQuotedString(), filename, parentType)
         driver.addEdge(t, td, REF)
+        GlobalCache.addType(t)
+        GlobalCache.addTypeDecl(td)
         return td
     }
 
