@@ -542,10 +542,9 @@ class BaseCPGPass(private val g: BriefUnitGraph) {
             is Local -> SootToPlumeUtil.createIdentifierVertex(leftOp, currentLine, currentCol, 0).apply {
                 GlobalCache.addSootAssoc(leftOp, this)
             }
-            is FieldRef -> SootToPlumeUtil.createFieldIdentifierVertex(leftOp, currentLine, currentCol, 0)
-                .apply {
-                    GlobalCache.addSootAssoc(leftOp.field, this)
-                }
+            is FieldRef -> projectFieldAccess(leftOp, 0).apply {
+                GlobalCache.addSootAssoc(leftOp, this)   //Review-TODO: Done it inside of the method.
+            }
             is ArrayRef -> SootToPlumeUtil.createArrayRefIdentifier(leftOp, currentLine, currentCol, 0)
                 .apply {
                     GlobalCache.addSootAssoc(leftOp.base, this)
@@ -692,12 +691,7 @@ class BaseCPGPass(private val g: BriefUnitGraph) {
             is CastExpr -> projectCastExpr(expr, childIdx)
             is BinopExpr -> projectBinopExpr(expr, childIdx)
             is InvokeExpr -> projectCallVertex(expr, childIdx)
-            is StaticFieldRef -> SootToPlumeUtil.createFieldIdentifierVertex(
-                expr,
-                currentLine,
-                currentCol,
-                childIdx
-            )
+            is StaticFieldRef -> projectFieldAccess(expr, childIdx)
             is NewExpr -> SootToPlumeUtil.createNewExpr(expr, currentLine, currentCol, childIdx)
             is NewArrayExpr -> createNewArrayExpr(expr, childIdx)
             is CaughtExceptionRef -> SootToPlumeUtil.createIdentifierVertex(
@@ -711,6 +705,54 @@ class BaseCPGPass(private val g: BriefUnitGraph) {
             }
         }
     }
+
+    private fun projectFieldAccess(fieldRef: FieldRef, childIdx: Int): NewCallBuilder{
+        val fieldAccessVars = mutableListOf<NewNodeBuilder>()
+        val leftOp = when(fieldRef){
+            is StaticFieldRef ->  fieldRef.fieldRef.declaringClass().type
+            is InstanceFieldRef -> fieldRef.base.type
+            else -> fieldRef.fieldRef.declaringClass().type
+        }
+
+        val fieldAccessBlock = NewCallBuilder()
+                .name(Operators.fieldAccess)
+                .code(fieldRef.toString()) // Review-TODO: Check Code is valid
+                .signature("(${leftOp.toQuotedString()}).(${fieldRef.toString()})") // Review-TODO: Signature of  [(Static/Instance) Field = Signature of Right Tree]
+                .methodFullName(Operators.fieldAccess)
+                .dispatchType(if(fieldRef is StaticFieldRef) DispatchTypes.STATIC_DISPATCH else DispatchTypes.DYNAMIC_DISPATCH)   // Review-TODO: How to handle which instance(Variable) is being used?
+                .dynamicTypeHintFullName(SootToPlumeUtil.createScalaList(leftOp.toQuotedString()))
+                .order(childIdx)
+                .argumentIndex(childIdx)
+                .typeFullName(leftOp.toQuotedString())
+                .lineNumber(Option.apply(currentLine))
+                .columnNumber(Option.apply(currentCol))
+                .apply{ fieldAccessVars.add(this) }
+        when(fieldRef){
+            is StaticFieldRef ->{ // Handle Static as Type_ref?
+                Pair(SootToPlumeUtil.createTypeRefVertex(fieldRef.type, currentLine, currentCol, 0),  // Type_Ref childIdx 1? cuz 0 is reserved.. for this as schema document
+                        SootToPlumeUtil.createFieldIdentifierVertex(fieldRef,  currentLine, currentCol, 1))  // FieldIdentifier, chilIdx 2?
+            }
+            is InstanceFieldRef -> { // Handle Local? and Identifier?
+                Pair(SootToPlumeUtil.createIdentifierVertex(fieldRef.base, currentLine, currentCol, 0),
+                        SootToPlumeUtil.createFieldIdentifierVertex(fieldRef, currentLine, currentCol, 1))
+            }
+            else -> null
+        }?.let {
+            it.toList().asSequence().forEach {
+                runCatching {  //Review-TODO: Need more Edges? or  can we pass them to scpg-passes
+                    builder.addEdge(fieldAccessBlock, it, AST)
+                    builder.addEdge(fieldAccessBlock, it, ARGUMENT)
+                    fieldAccessVars.add(it)
+                }.onFailure { e -> logger.warn(e.message) }
+            }
+        }
+
+        // Call for <op>.fieldAccess, cast doesn't need <RECEIVER>?
+        // Save PDG arguments
+        GlobalCache.addSootAssoc(fieldRef, fieldAccessVars)  // Review-TODO: Is this right for using cache.
+        return fieldAccessBlock
+    }
+
 
     private fun createNewArrayExpr(expr: NewArrayExpr, childIdx: Int = 0) =
         NewIdentifierBuilder()
