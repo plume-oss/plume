@@ -3,7 +3,8 @@ package io.github.plume.oss
 import io.github.plume.oss.domain.model.DeltaGraph
 import io.shiftleft.codepropertygraph.generated.nodes.*
 import soot.SootClass
-import soot.toolkits.graph.BriefUnitGraph
+import soot.SootMethod
+import soot.jimple.InvokeExpr
 import java.util.concurrent.ConcurrentHashMap
 
 /**
@@ -11,62 +12,74 @@ import java.util.concurrent.ConcurrentHashMap
  */
 object GlobalCache {
 
-    private val sootToPlume = ConcurrentHashMap<Any, MutableList<NewNodeBuilder>>()
+    private val methodCache = ConcurrentHashMap<SootMethod, MutableList<NewNodeBuilder>>()
     private val fHashes = ConcurrentHashMap<SootClass, String>()
     private val savedCallGraphEdges = ConcurrentHashMap<String, MutableList<NewCallBuilder>>()
     private val typeCache = ConcurrentHashMap<String, NewTypeBuilder>()
     private val typeDeclCache = ConcurrentHashMap<String, NewTypeDeclBuilder>()
     private val fileCache = ConcurrentHashMap<String, NewFileBuilder>()
+    private val callCache = mutableMapOf<InvokeExpr, NewCallBuilder>()
 
     /**
      * Caches already built method bodies to save database requests during SCPG passes.
      */
     val methodBodies = mutableMapOf<String, DeltaGraph>()
 
-    fun addType(t: NewTypeBuilder) { typeCache[t.build().fullName()] = t }
+    fun addType(t: NewTypeBuilder) {
+        typeCache[t.build().fullName()] = t
+    }
 
     fun getType(fullName: String): NewTypeBuilder? = typeCache[fullName]
 
-    fun addTypeDecl(td: NewTypeDeclBuilder) { typeDeclCache[td.build().fullName()] = td }
+    fun addTypeDecl(td: NewTypeDeclBuilder) {
+        typeDeclCache[td.build().fullName()] = td
+    }
 
     fun getTypeDecl(fullName: String): NewTypeDeclBuilder? = typeDeclCache[fullName]
 
-    fun addFile(f: NewFileBuilder) { fileCache[f.build().name()] = f }
+    fun addFile(f: NewFileBuilder) {
+        fileCache[f.build().name()] = f
+    }
 
     fun getFile(name: String): NewFileBuilder? = fileCache[name]
 
+    fun addCall(i: InvokeExpr, c: NewCallBuilder) {
+        callCache[i] = c
+    }
+
+    fun getCall(i: InvokeExpr): NewCallBuilder? = callCache[i]
     /**
-     * Associates the given Soot object to the given [NewNode].
+     * Caches the given Soot method to the given [NewNodeBuilder].
      *
-     * @param sootObject The object from a Soot [BriefUnitGraph] to associate from.
-     * @param node The [NewNode] to associate to.
-     * @param index The index to place the associated [NewNode] at.
+     * @param sootMtd The method from Soot to cache for.
+     * @param node The [NewNodeBuilder] to associate to.
+     * @param index The index to place the associated [NewNodeBuilder] at.
      */
-    fun addSootAssoc(sootObject: Any, node: NewNodeBuilder, index: Int = -1) {
-        if (!sootToPlume.containsKey(sootObject)) sootToPlume[sootObject] = mutableListOf(node)
-        else if (index <= -1) sootToPlume[sootObject]?.add(node)
-        else sootToPlume[sootObject]?.add(index, node)
+    fun addToMethodCache(sootMtd: SootMethod, node: NewNodeBuilder, index: Int = -1) {
+        if (!methodCache.containsKey(sootMtd)) methodCache[sootMtd] = mutableListOf(node)
+        else if (index <= -1) methodCache[sootMtd]?.add(node)
+        else methodCache[sootMtd]?.add(index, node)
     }
 
     /**
-     * Associates the given Soot object to the given list of [NewNode]s.
+     * Caches the given Soot method to the given [NewNodeBuilder].
      *
-     * @param sootObject The object from a Soot [BriefUnitGraph] to associate from.
-     * @param nodes The list of [NewNode]s to associate to.
-     * @param index The index to place the associated [PlumeVertex](s) at.
+     * @param sootMtd The method from Soot to cache for.
+     * @param nodes The list of [NewNodeBuilder]s to associate to.
+     * @param index The index to place the associated [NewNodeBuilder](s) at.
      */
-    fun addSootAssoc(sootObject: Any, nodes: MutableList<NewNodeBuilder>, index: Int = -1) {
-        if (!sootToPlume.containsKey(sootObject)) sootToPlume[sootObject] = nodes
-        else if (index <= -1) sootToPlume[sootObject]?.addAll(nodes)
-        else sootToPlume[sootObject]?.addAll(index, nodes)
+    fun addToMethodCache(sootMtd: SootMethod, nodes: MutableList<NewNodeBuilder>, index: Int = -1) {
+        if (!methodCache.containsKey(sootMtd)) methodCache[sootMtd] = nodes
+        else if (index <= -1) methodCache[sootMtd]?.addAll(nodes)
+        else methodCache[sootMtd]?.addAll(index, nodes)
     }
 
     /**
-     * Retrieves the list of [NewNode] associations to the given Soot object.
+     * Retrieves the list of [NewNodeBuilder] associations to the given Soot method.
      *
-     * @param sootObject The object from a Soot [BriefUnitGraph] to get associations from.
+     * @param sootMtd The method from Soot to cache for.
      */
-    fun getSootAssoc(sootObject: Any): List<NewNodeBuilder>? = sootToPlume[sootObject]
+    fun getMethodCache(sootMtd: SootMethod): List<NewNodeBuilder>? = methodCache[sootMtd]
 
     /**
      * Associates the given [SootClass] with its source file's hash.
@@ -105,10 +118,11 @@ object GlobalCache {
 
     fun clear() {
         fHashes.clear()
-        sootToPlume.clear()
+        methodCache.clear()
         savedCallGraphEdges.clear()
         typeCache.clear()
         typeDeclCache.clear()
         fileCache.clear()
+        callCache.clear()
     }
 }

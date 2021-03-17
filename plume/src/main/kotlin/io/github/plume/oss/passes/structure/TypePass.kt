@@ -7,7 +7,6 @@ import io.github.plume.oss.util.SootParserUtil
 import io.github.plume.oss.util.SootToPlumeUtil
 import io.shiftleft.codepropertygraph.generated.EdgeTypes.*
 import io.shiftleft.codepropertygraph.generated.NodeKeyNames.*
-import io.shiftleft.codepropertygraph.generated.NodeTypes
 import io.shiftleft.codepropertygraph.generated.NodeTypes.*
 import io.shiftleft.codepropertygraph.generated.nodes.*
 import org.apache.logging.log4j.LogManager
@@ -67,7 +66,8 @@ open class TypePass(private val driver: IDriver) : IProgramStructurePass {
         c.fields.forEachIndexed { i, field ->
             projectMember(field, i + 1).let { memberVertex ->
                 driver.addEdge(t, memberVertex, AST)
-                GlobalCache.addSootAssoc(field, memberVertex)
+                // TODO: Check tthis
+//                GlobalCache.addToMethodCache(field, memberVertex)
             }
         }
     }

@@ -114,7 +114,6 @@ object SootToPlumeUtil {
             .order(childIdx)
             .lineNumber(Option.apply(currentLine))
             .columnNumber(Option.apply(currentCol))
-            .apply { GlobalCache.addSootAssoc(expr, this) }
     }
 
     /**
