@@ -5,7 +5,7 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](http://keepachangelog.com/)
 and this project adheres to [Semantic Versioning](http://semver.org/).
 
-## [0.3.5] - Unreleased
+## [0.3.5] - 2021-03-17
 
 ### Added
 - `IDriver::getVerticesOfType` to aid in caching from existing database vertices.
@@ -14,6 +14,7 @@ and this project adheres to [Semantic Versioning](http://semver.org/).
   type.
 - Field accesses are now constructed as a `Call` vertex.
 - Plume now has a new logo and branding.
+- Better logging for loaded files.
 
 ### Changed
 - Many of the `nodeCache` uses in `IProgramPass` passes were converted to using the `GlobalCache` instead.

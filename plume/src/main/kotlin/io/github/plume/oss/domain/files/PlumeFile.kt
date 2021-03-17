@@ -5,7 +5,7 @@ import java.io.File
 /**
  * Generic wrapper for supported Plume source/class files.
  */
-abstract class PlumeFile(pathname: String) : File(pathname) {
+abstract class PlumeFile(pathname: String, val fileType: PlumeFileType) : File(pathname) {
 
     override fun hashCode() = if (this.exists())
         FileFactory.getFileHash(this)
@@ -13,7 +13,7 @@ abstract class PlumeFile(pathname: String) : File(pathname) {
 
     override fun equals(other: Any?): Boolean {
         if (this === other) return true
-        if (other !is JavaFile) return false
+        if (other !is PlumeFile) return false
         if (!super.equals(other)) return false
         return true
     }

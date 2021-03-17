@@ -15,13 +15,13 @@ object FileFactory {
      * Creates a [File] given the pathname.
      *
      * @param pathname The path at which the file resides.
-     * @return A [File] object if not one of the supported file types or a supported file type such as [JavaFile].
+     * @return A [File] object if not one of the supported file types or a supported file type such as [JavaSourceFile].
      */
     @JvmStatic
     operator fun invoke(pathname: String): PlumeFile {
         return when {
-            pathname.endsWith(".java") -> JavaFile(pathname)
-            pathname.endsWith(".class") -> JVMClassFile(pathname)
+            pathname.endsWith(".java") -> JavaSourceFile(pathname)
+            pathname.endsWith(".class") -> JavaClassFile(pathname)
             else -> UnsupportedFile(pathname)
         }
     }
@@ -30,13 +30,13 @@ object FileFactory {
      * Creates a [File] given the pathname.
      *
      * @param f A generic [File] pointer for the file to cast.
-     * @return A [File] object if not one of the supported file types or a supported file type such as [JavaFile].
+     * @return A [File] object if not one of the supported file types or a supported file type such as [JavaSourceFile].
      */
     @JvmStatic
     operator fun invoke(f: File): PlumeFile {
         return when {
-            f.name.endsWith(".java") -> JavaFile(f.absolutePath)
-            f.name.endsWith(".class") -> JVMClassFile(f.absolutePath)
+            f.name.endsWith(".java") -> JavaSourceFile(f.absolutePath)
+            f.name.endsWith(".class") -> JavaClassFile(f.absolutePath)
             else -> UnsupportedFile(f.absolutePath)
         }
     }
@@ -69,30 +69,35 @@ object FileFactory {
 /**
  * Class wrapper for Java source files.
  */
-class JavaFile(pathname: String) : PlumeFile(pathname)
+class JavaSourceFile internal constructor(pathname: String) : PlumeFile(pathname, PlumeFileType.JAVA_SOURCE)
 
 /**
  * Class wrapper for JVM class files.
  */
-class JVMClassFile(pathname: String) : PlumeFile(pathname)
+class JavaClassFile internal constructor(pathname: String) : PlumeFile(pathname, PlumeFileType.JAVA_CLASS)
 
 /**
  * Class wrapper for unsupported files.
  */
-class UnsupportedFile(pathname: String) : PlumeFile(pathname)
+class UnsupportedFile internal constructor (pathname: String) : PlumeFile(pathname, PlumeFileType.UNSUPPORTED)
 
 /**
- * The file types supported by Plume's [Extractor].
+ * The file types ingested by Plume's [Extractor].
  */
-enum class SupportedFile {
+enum class PlumeFileType {
     /**
      * Java is a class-based, object-oriented programming language that is designed to have as few implementation
      * dependencies as possible.
      */
-    JAVA,
+    JAVA_SOURCE,
 
     /**
      * Java bytecode is the instruction set of the Java virtual machine.
      */
-    JVM_CLASS,
+    JAVA_CLASS,
+
+    /**
+     * Any file that is not supporte.
+     */
+    UNSUPPORTED
 }

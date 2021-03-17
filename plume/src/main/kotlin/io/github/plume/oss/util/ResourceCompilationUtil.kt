@@ -16,10 +16,10 @@
 package io.github.plume.oss.util
 
 import io.github.plume.oss.domain.exceptions.PlumeCompileException
-import io.github.plume.oss.domain.files.JVMClassFile
-import io.github.plume.oss.domain.files.JavaFile
+import io.github.plume.oss.domain.files.JavaClassFile
+import io.github.plume.oss.domain.files.JavaSourceFile
 import io.github.plume.oss.domain.files.PlumeFile
-import io.github.plume.oss.domain.files.SupportedFile
+import io.github.plume.oss.domain.files.PlumeFileType
 import org.apache.logging.log4j.LogManager
 import org.objectweb.asm.ClassReader
 import org.objectweb.asm.ClassReader.SKIP_CODE
@@ -50,7 +50,7 @@ object ResourceCompilationUtil {
      * @param files the source files to compile.
      * @throws PlumeCompileException if there is no suitable Java compiler found.
      */
-    fun compileJavaFiles(files: List<PlumeFile>): List<JVMClassFile> {
+    fun compileJavaFiles(files: List<PlumeFile>): List<JavaClassFile> {
         if (files.isEmpty()) return emptyList()
         val javac = getJavaCompiler()
         val fileManager = javac.getStandardFileManager(null, null, null)
@@ -67,7 +67,7 @@ object ResourceCompilationUtil {
                 StandardLocation.CLASS_OUTPUT,
                 "", Collections.singleton(JavaFileObject.Kind.CLASS), true
             )) {
-                yield(JVMClassFile(jfo.name))
+                yield(JavaClassFile(jfo.name))
             }
         }.toList()
     }
@@ -77,7 +77,7 @@ object ResourceCompilationUtil {
      *
      * @param files the class files to move.
      */
-    fun moveClassFiles(files: List<JVMClassFile>): List<JVMClassFile> {
+    private fun moveClassFiles(files: List<JavaClassFile>): List<JavaClassFile> {
         lateinit var destPath: String
 
         class ClassPathVisitor : ClassVisitor(Opcodes.ASM8) {
@@ -99,7 +99,7 @@ object ResourceCompilationUtil {
                 val rootVisitor = ClassPathVisitor()
                 cr.accept(rootVisitor, SKIP_CODE)
             }
-            val dstFile = JVMClassFile(destPath)
+            val dstFile = JavaClassFile(destPath)
             dstFile.mkdirs()
             Files.copy(f.toPath(), dstFile.toPath(), StandardCopyOption.REPLACE_EXISTING)
             dstFile
@@ -146,25 +146,26 @@ object ResourceCompilationUtil {
      * @param files [PlumeFile] pointers to source files.
      * @return A set of [PlumeFile] pointers to the compiled class files.
      */
-    fun compileLoadedFiles(files: HashSet<PlumeFile>): Set<JVMClassFile> {
-        val splitFiles = mapOf<SupportedFile, MutableList<PlumeFile>>(
-            SupportedFile.JAVA to mutableListOf(),
-            SupportedFile.JVM_CLASS to mutableListOf()
+    fun compileLoadedFiles(files: HashSet<PlumeFile>): Set<JavaClassFile> {
+        val splitFiles = mapOf<PlumeFileType, MutableList<PlumeFile>>(
+            PlumeFileType.JAVA_SOURCE to mutableListOf(),
+            PlumeFileType.JAVA_CLASS to mutableListOf()
         )
         // Organize file in the map. Perform this sequentially if there are less than 100,000 files.
         files.stream().let { if (files.size >= 100000) it.parallel() else it.sequential() }
             .toList().stream().forEach {
                 when (it) {
-                    is JavaFile -> splitFiles[SupportedFile.JAVA]?.add(it)
-                    is JVMClassFile -> splitFiles[SupportedFile.JVM_CLASS]?.add(it)
+                    is JavaSourceFile -> splitFiles[PlumeFileType.JAVA_SOURCE]?.add(it)
+                    is JavaClassFile -> splitFiles[PlumeFileType.JAVA_CLASS]?.add(it)
                 }
             }
         return splitFiles.keys.map {
-            val filesToCompile = (splitFiles[it] ?: emptyList<JVMClassFile>()).toList()
+            val filesToCompile = (splitFiles[it] ?: emptyList<JavaClassFile>()).toList()
             return@map when (it) {
-                SupportedFile.JAVA -> compileJavaFiles(filesToCompile)
-                SupportedFile.JVM_CLASS -> moveClassFiles(filesToCompile.map { f -> f as JVMClassFile }.toList())
+                PlumeFileType.JAVA_SOURCE -> compileJavaFiles(filesToCompile)
+                PlumeFileType.JAVA_CLASS -> moveClassFiles(filesToCompile.map { f -> f as JavaClassFile }.toList())
+                PlumeFileType.UNSUPPORTED -> null
             }
-        }.asSequence().flatten().toHashSet()
+        }.asSequence().filterNotNull().flatten().toHashSet()
     }
 }

@@ -16,10 +16,7 @@
 package io.github.plume.oss
 
 import io.github.plume.oss.domain.exceptions.PlumeCompileException
-import io.github.plume.oss.domain.files.FileFactory
-import io.github.plume.oss.domain.files.JVMClassFile
-import io.github.plume.oss.domain.files.PlumeFile
-import io.github.plume.oss.domain.files.UnsupportedFile
+import io.github.plume.oss.domain.files.*
 import io.github.plume.oss.domain.model.DeltaGraph
 import io.github.plume.oss.drivers.GremlinDriver
 import io.github.plume.oss.drivers.IDriver
@@ -151,9 +148,14 @@ class Extractor(val driver: IDriver) {
         /*
             Load and compile files then feed them into Soot
          */
-        logger.info("Compiling and unpacking loaded files, directories, and/or JARs")
+        val groupedFs = loadedFiles.groupBy { it.fileType }.mapValues { it.value.size }.toMap()
+        if (loadedFiles.isEmpty()) return apply { logger.info("No files loaded, returning") }
+        val nCs = if (groupedFs.containsKey(PlumeFileType.JAVA_CLASS)) groupedFs[PlumeFileType.JAVA_CLASS] else 0
+        val nSs = if (groupedFs.containsKey(PlumeFileType.JAVA_SOURCE)) groupedFs[PlumeFileType.JAVA_SOURCE] else 0
+        val nUs = if (groupedFs.containsKey(PlumeFileType.UNSUPPORTED)) groupedFs[PlumeFileType.UNSUPPORTED] else 0
+        logger.info("Preparing $nCs class and $nSs source file(s). Ignoring $nUs unsupported file(s).")
         val cs = mutableListOf<SootClass>()
-        val compiledFiles = mutableSetOf<JVMClassFile>()
+        val compiledFiles = mutableSetOf<JavaClassFile>()
         PlumeTimer.measure(ExtractorTimeKey.COMPILING_AND_UNPACKING) {
             ResourceCompilationUtil.compileLoadedFiles(loadedFiles).toCollection(compiledFiles)
             if (compiledFiles.isNotEmpty()) upsertMetaData()
@@ -413,7 +415,7 @@ class Extractor(val driver: IDriver) {
      * @param classNames A set of class files.
      * @return the given class files as a list of [SootClass].
      */
-    private fun loadClassesIntoSoot(classNames: Set<JVMClassFile>): List<SootClass> {
+    private fun loadClassesIntoSoot(classNames: Set<JavaClassFile>): List<SootClass> {
         if (classNames.isEmpty()) return emptyList()
         classNames.map(this::getQualifiedClassPath).forEach(Scene.v()::addBasicClass)
         Scene.v().loadBasicClasses()
