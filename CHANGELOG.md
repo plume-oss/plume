@@ -12,6 +12,8 @@ and this project adheres to [Semantic Versioning](http://semver.org/).
 - External methods signatures are parsed to figure out their method parameters.
 - `MethodStubPass` and `BaseCPGPass` now includes `METHOD_PARAM_IN` and `METHOD_PARAM_OUT` and connects them to their 
   type.
+- Field accesses are now constructed as a `Call` vertex.
+- Plume now has a new logo and branding.
 
 ### Changed
 - Many of the `nodeCache` uses in `IProgramPass` passes were converted to using the `GlobalCache` instead.
