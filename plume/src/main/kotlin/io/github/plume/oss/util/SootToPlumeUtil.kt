@@ -154,7 +154,7 @@ object SootToPlumeUtil {
         constant: Constant,
         currentLine: Int,
         currentCol: Int,
-        childIdx: Int = 0
+        childIdx: Int = 1
     ): NewLiteralBuilder =
         NewLiteralBuilder()
             .code(constant.toString())
@@ -171,7 +171,7 @@ object SootToPlumeUtil {
             type: Type,
             currentLine: Int,
             currentCol: Int,
-            childIdx: Int = 0
+            childIdx: Int = 1
     ): NewTypeRefBuilder =
             NewTypeRefBuilder()
                     .code(type.toString())
@@ -189,7 +189,7 @@ object SootToPlumeUtil {
         local: Value,
         currentLine: Int,
         currentCol: Int,
-        childIdx: Int = 0
+        childIdx: Int = 1
     ): NewIdentifierBuilder =
         NewIdentifierBuilder()
             .code(local.toString())
@@ -207,7 +207,7 @@ object SootToPlumeUtil {
         arrRef: ArrayRef,
         currentLine: Int,
         currentCol: Int,
-        childIdx: Int = 0
+        childIdx: Int = 1
     ): NewIdentifierBuilder =
         NewIdentifierBuilder()
             .code(arrRef.toString())
@@ -225,7 +225,7 @@ object SootToPlumeUtil {
         field: FieldRef,
         currentLine: Int,
         currentCol: Int,
-        childIdx: Int = 0
+        childIdx: Int = 1
     ): NewFieldIdentifierBuilder =
         NewFieldIdentifierBuilder()
             .canonicalName(field.field.signature)
