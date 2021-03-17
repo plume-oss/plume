@@ -9,6 +9,7 @@ import io.shiftleft.codepropertygraph.generated.ControlStructureTypes
 import io.shiftleft.codepropertygraph.generated.DispatchTypes
 import io.shiftleft.codepropertygraph.generated.EdgeTypes.*
 import io.shiftleft.codepropertygraph.generated.EvaluationStrategies.BY_REFERENCE
+import io.shiftleft.codepropertygraph.generated.NodeKeyNames.NAME
 import io.shiftleft.codepropertygraph.generated.Operators
 import io.shiftleft.codepropertygraph.generated.nodes.*
 import org.apache.logging.log4j.LogManager
@@ -52,16 +53,16 @@ class BaseCPGPass(private val g: BriefUnitGraph) {
             }
         }
         g.body.units.filterNot { it is IdentityStmt }
-            .forEachIndexed { idx, u ->
-                projectUnitAsAst(u, idx + 1)
-                    ?.let {
-                        builder.addEdge(
-                            src = GlobalCache.getSootAssoc(mtd)!!.first { v -> v is NewBlockBuilder },
-                            tgt = it,
-                            e = AST
-                        )
-                    }
-            }
+                .forEachIndexed { idx, u ->
+                    projectUnitAsAst(u, idx + 1)
+                            ?.let {
+                                builder.addEdge(
+                                        src = GlobalCache.getSootAssoc(mtd)!!.first { v -> v is NewBlockBuilder },
+                                        tgt = it,
+                                        e = AST
+                                )
+                            }
+                }
     }
 
     private fun runCfgPass() {
@@ -98,15 +99,15 @@ class BaseCPGPass(private val g: BriefUnitGraph) {
         this.g.body.units.filterIsInstance<IfStmt>().map { it.condition }.forEach(this::projectCallArg)
         // Invoke ARGUMENT edges
         this.g.body.units
-            .filterIsInstance<InvokeStmt>()
-            .map { it.invokeExpr as InvokeExpr }
-            .forEach(this::projectCallArg)
+                .filterIsInstance<InvokeStmt>()
+                .map { it.invokeExpr as InvokeExpr }
+                .forEach(this::projectCallArg)
     }
 
     private fun projectCallArg(value: Any) {
         GlobalCache.getSootAssoc(value)?.firstOrNull { it is NewCallBuilder }?.let { src ->
             GlobalCache.getSootAssoc(value)?.filterNot { it == src }
-                ?.forEach { tgt -> builder.addEdge(src, tgt, ARGUMENT) }
+                    ?.forEach { tgt -> builder.addEdge(src, tgt, ARGUMENT) }
         }
     }
 
@@ -237,15 +238,15 @@ class BaseCPGPass(private val g: BriefUnitGraph) {
                     .apply {
                         if (this.build().evaluationStrategy() == BY_REFERENCE) {
                             SootToPlumeUtil.projectMethodParameterOut(local, currentLine, currentCol, i + 1)
-                                .let { mpo ->
-                                    localVertices.add(mpo)
-                                    GlobalCache.getType(this.build().typeFullName())
-                                        ?.let { t -> builder.addEdge(mpo, t, EVAL_TYPE) }
-                                }
+                                    .let { mpo ->
+                                        localVertices.add(mpo)
+                                        GlobalCache.getType(this.build().typeFullName())
+                                                ?.let { t -> builder.addEdge(mpo, t, EVAL_TYPE) }
+                                    }
                         }
                         GlobalCache.addSootAssoc(local, this)
                         GlobalCache.getType(this.build().typeFullName())
-                            ?.let { t -> builder.addEdge(this, t, EVAL_TYPE) }
+                                ?.let { t -> builder.addEdge(this, t, EVAL_TYPE) }
                     }
             }
             .forEach { localVertices.add(it) }
@@ -253,7 +254,7 @@ class BaseCPGPass(private val g: BriefUnitGraph) {
             .filter { !graph.body.parameterLocals.contains(it) }
             .mapIndexed { i, local ->
                 SootToPlumeUtil.projectLocalVariable(local, currentLine, currentCol, i)
-                    .apply { GlobalCache.addSootAssoc(local, this) }
+                        .apply { GlobalCache.addSootAssoc(local, this) }
             }
             .forEach {
                 GlobalCache.getType(it.build().typeFullName())?.let { t -> builder.addEdge(it, t, EVAL_TYPE) }
@@ -261,7 +262,6 @@ class BaseCPGPass(private val g: BriefUnitGraph) {
             }
         return localVertices
     }
-
 
     /**
      * Given a unit, will construct AST information in the graph.
@@ -424,6 +424,7 @@ class BaseCPGPass(private val g: BriefUnitGraph) {
         }
     }
 
+
     /**
      * Given an [IfStmt], will construct if statement information in the graph.
      *
@@ -504,7 +505,7 @@ class BaseCPGPass(private val g: BriefUnitGraph) {
             is Local -> SootToPlumeUtil.createIdentifierVertex(leftOp, currentLine, currentCol, 0).apply {
                 GlobalCache.addSootAssoc(leftOp, this)
             }
-            is FieldRef -> SootToPlumeUtil.createFieldIdentifierVertex(leftOp, currentLine, currentCol, 0)
+            is FieldRef -> projectFieldAccess(leftOp, 0)
                 .apply {
                     GlobalCache.addSootAssoc(leftOp.field, this)
                 }
@@ -522,12 +523,14 @@ class BaseCPGPass(private val g: BriefUnitGraph) {
         }?.let {
             builder.addEdge(assignBlock, it, AST)
             builder.addEdge(assignBlock, it, ARGUMENT)
+            if(it is NewCallBuilder) builder.addEdge(assignBlock, it, RECEIVER)
             assignVariables.add(it)
             GlobalCache.addSootAssoc(leftOp, it)
         }
         projectOp(rightOp, 1)?.let {
             builder.addEdge(assignBlock, it, AST)
             builder.addEdge(assignBlock, it, ARGUMENT)
+            if(it is NewCallBuilder) builder.addEdge(assignBlock, it, RECEIVER)
             assignVariables.add(it)
             GlobalCache.addSootAssoc(rightOp, it)
         }
@@ -560,14 +563,18 @@ class BaseCPGPass(private val g: BriefUnitGraph) {
             .columnNumber(Option.apply(currentCol))
             .apply { binopVertices.add(this) }
         projectOp(expr.op1, 0)?.let {
-            builder.addEdge(binOpBlock, it, AST)
-            builder.addEdge(binOpBlock, it, ARGUMENT)
+            runCatching {
+                builder.addEdge(binOpBlock, it, AST)
+                builder.addEdge(binOpBlock, it, ARGUMENT)
+            }.onFailure { e -> logger.warn(e.message) }
             binopVertices.add(it)
             GlobalCache.addSootAssoc(expr.op1, it)
         }
         projectOp(expr.op2, 1)?.let {
-            builder.addEdge(binOpBlock, it, AST)
-            builder.addEdge(binOpBlock, it, ARGUMENT)
+            runCatching {
+                builder.addEdge(binOpBlock, it, AST)
+                builder.addEdge(binOpBlock, it, ARGUMENT)
+            }.onFailure { e -> logger.warn(e.message) }
             binopVertices.add(it)
             GlobalCache.addSootAssoc(expr.op2, it)
         }
@@ -640,12 +647,7 @@ class BaseCPGPass(private val g: BriefUnitGraph) {
             is CastExpr -> projectCastExpr(expr, childIdx)
             is BinopExpr -> projectBinopExpr(expr, childIdx)
             is InvokeExpr -> projectCallVertex(expr, childIdx)
-            is StaticFieldRef -> SootToPlumeUtil.createFieldIdentifierVertex(
-                expr,
-                currentLine,
-                currentCol,
-                childIdx
-            )
+            is StaticFieldRef -> projectFieldAccess(expr, childIdx)
             is NewExpr -> SootToPlumeUtil.createNewExpr(expr, currentLine, currentCol, childIdx)
             is NewArrayExpr -> createNewArrayExpr(expr, childIdx)
             is CaughtExceptionRef -> SootToPlumeUtil.createIdentifierVertex(
@@ -654,11 +656,61 @@ class BaseCPGPass(private val g: BriefUnitGraph) {
                 currentCol,
                 childIdx
             )
+            is InstanceFieldRef -> projectFieldAccess(expr, childIdx)
+            is InstanceOfExpr -> { logger.debug("projectOp unhandled class ${expr.javaClass}"); null} //TODO: <operator>.instanceOf
             else -> {
                 logger.debug("projectOp unhandled class ${expr.javaClass}"); null
             }
         }
     }
+
+    private fun projectFieldAccess(fieldRef: FieldRef, childIdx: Int): NewCallBuilder{
+        val fieldAccessVars = mutableListOf<NewNodeBuilder>()
+        val leftOp = when(fieldRef){
+            is StaticFieldRef ->  fieldRef.fieldRef.declaringClass().type
+            is InstanceFieldRef -> fieldRef.base.type
+            else -> fieldRef.fieldRef.declaringClass().type
+        }
+
+        val fieldAccessBlock = NewCallBuilder()
+                .name(Operators.fieldAccess)
+                .code("${leftOp.toQuotedString()}.${fieldRef.field.name}")
+                .signature("(${leftOp.toQuotedString()}).(${fieldRef.field.name})")
+                .methodFullName(Operators.fieldAccess)
+                .dispatchType(if(fieldRef.fieldRef.isStatic) DispatchTypes.STATIC_DISPATCH else DispatchTypes.DYNAMIC_DISPATCH)   // Review-TODO: How to handle which instance(Variable) is being used?
+                .dynamicTypeHintFullName(SootToPlumeUtil.createScalaList(leftOp.toQuotedString()))
+                .order(childIdx)
+                .argumentIndex(childIdx)
+                .typeFullName(leftOp.toQuotedString())
+                .lineNumber(Option.apply(currentLine))
+                .columnNumber(Option.apply(currentCol))
+                .apply{ fieldAccessVars.add(this) }
+        when(fieldRef){
+            is StaticFieldRef ->{ // Handle Static as Type_ref?
+                Pair(SootToPlumeUtil.createTypeRefVertex(fieldRef.type, currentLine, currentCol, 1),
+                        SootToPlumeUtil.createFieldIdentifierVertex(fieldRef,  currentLine, currentCol, 2))
+            }
+            is InstanceFieldRef -> { // Handle Local? and Identifier?
+                Pair(SootToPlumeUtil.createIdentifierVertex(fieldRef.base, currentLine, currentCol, 1),
+                        SootToPlumeUtil.createFieldIdentifierVertex(fieldRef, currentLine, currentCol, 2))
+            }
+            else -> null
+        }?.let {
+            it.toList().asSequence().forEach {
+                runCatching {  //Review-TODO: Need more Edges? or can we pass them to scpg-passes
+                    builder.addEdge(fieldAccessBlock, it, AST)
+                    builder.addEdge(fieldAccessBlock, it, ARGUMENT)
+                    fieldAccessVars.add(it)
+                }.onFailure { e -> logger.warn(e.message) }
+            }
+        }
+
+        // Call for <op>.fieldAccess, cast doesn't need <RECEIVER>?
+        // Save PDG arguments
+        GlobalCache.addSootAssoc(fieldRef, fieldAccessVars)  // Review-TODO: Is this right for using cache.
+        return fieldAccessBlock
+    }
+
 
     private fun createNewArrayExpr(expr: NewArrayExpr, childIdx: Int = 0) =
         NewIdentifierBuilder()

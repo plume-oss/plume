@@ -27,6 +27,7 @@ import org.apache.logging.log4j.LogManager
 import scala.Option
 import scala.jdk.CollectionConverters
 import soot.*
+import soot.Type
 import soot.jimple.*
 
 /**
@@ -153,7 +154,7 @@ object SootToPlumeUtil {
         constant: Constant,
         currentLine: Int,
         currentCol: Int,
-        childIdx: Int = 0
+        childIdx: Int = 1
     ): NewLiteralBuilder =
         NewLiteralBuilder()
             .code(constant.toString())
@@ -164,13 +165,31 @@ object SootToPlumeUtil {
             .columnNumber(Option.apply(currentCol))
 
     /**
+     * Creates a [NewTypeRef] from a [Value].
+     */
+    fun createTypeRefVertex(
+            type: Type,
+            currentLine: Int,
+            currentCol: Int,
+            childIdx: Int = 1
+    ): NewTypeRefBuilder =
+            NewTypeRefBuilder()
+                    .code(type.toString())
+                    .order(childIdx)
+                    .argumentIndex(childIdx)
+                    .typeFullName(type.toQuotedString())
+                    .lineNumber(Option.apply(currentLine))
+                    .columnNumber(Option.apply(currentCol))
+
+
+    /**
      * Creates a [NewIdentifier] from a [Value].
      */
     fun createIdentifierVertex(
         local: Value,
         currentLine: Int,
         currentCol: Int,
-        childIdx: Int = 0
+        childIdx: Int = 1
     ): NewIdentifierBuilder =
         NewIdentifierBuilder()
             .code(local.toString())
@@ -188,7 +207,7 @@ object SootToPlumeUtil {
         arrRef: ArrayRef,
         currentLine: Int,
         currentCol: Int,
-        childIdx: Int = 0
+        childIdx: Int = 1
     ): NewIdentifierBuilder =
         NewIdentifierBuilder()
             .code(arrRef.toString())
@@ -206,7 +225,7 @@ object SootToPlumeUtil {
         field: FieldRef,
         currentLine: Int,
         currentCol: Int,
-        childIdx: Int = 0
+        childIdx: Int = 1
     ): NewFieldIdentifierBuilder =
         NewFieldIdentifierBuilder()
             .canonicalName(field.field.signature)
