@@ -31,8 +31,12 @@ class BaseCPGPass(private val g: BriefUnitGraph) {
     private var currentLine = -1
     private var currentCol = -1
 
-    private fun addToCache(e: Any, vararg ns: NewNodeBuilder) {
-        localCache.computeIfPresent(e) { _: Any, u: List<NewNodeBuilder> -> u + ns.toList() }
+    private fun addToCache(e: Any, vararg ns: NewNodeBuilder, index: Int = -1) {
+        if (index == -1)
+            localCache.computeIfPresent(e) { _: Any, u: List<NewNodeBuilder> -> u + ns.toList() }
+        else localCache.computeIfPresent(e) { _: Any, u: List<NewNodeBuilder> ->
+            u.subList(0, index) + ns.toList() + u.subList(index, u.size)
+        }
         localCache.computeIfAbsent(e) { ns.toList() }
     }
 
@@ -229,7 +233,7 @@ class BaseCPGPass(private val g: BriefUnitGraph) {
             val tgtVertices = if (succ is GotoStmt) getFromCache(succ.target)
             else getFromCache(succ)
             tgtVertices?.let { vList ->
-                builder.addEdge(ifVertices.first { it is NewControlStructureBuilder }, srcVertex, CFG)
+                builder.addEdge(ifVertices.first(), srcVertex, CFG)
                 builder.addEdge(srcVertex, vList.first(), CFG)
             }
         }
@@ -297,7 +301,7 @@ class BaseCPGPass(private val g: BriefUnitGraph) {
                 logger.debug("Unhandled class in projectUnit ${unit.javaClass} $unit"); null
             }
         }
-        return unitVertex?.apply { if (this !is InvokeStmt) addToCache(unit, this) }
+        return unitVertex?.apply { if (this !is InvokeStmt) addToCache(unit, this, index = 0) }
     }
 
     /**
@@ -713,13 +717,12 @@ class BaseCPGPass(private val g: BriefUnitGraph) {
             }
             else -> null
         }?.let { ns ->
-            ns.toList().forEach {
-                builder.addEdge(fieldAccessBlock, it, AST)
-                builder.addEdge(fieldAccessBlock, it, ARGUMENT)
-                fieldAccessVars.add(it)
+            ns.toList().forEach { n ->
+                builder.addEdge(fieldAccessBlock, n, AST)
+                builder.addEdge(fieldAccessBlock, n, ARGUMENT)
+                fieldAccessVars.add(n)
             }
         }
-
         // Call for <op>.fieldAccess, cast doesn't need <RECEIVER>?
         // Save PDG arguments
         addToCache(fieldRef, *fieldAccessVars.toTypedArray())
