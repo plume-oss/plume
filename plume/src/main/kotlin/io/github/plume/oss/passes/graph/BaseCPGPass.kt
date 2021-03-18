@@ -210,8 +210,8 @@ class BaseCPGPass(private val g: BriefUnitGraph) {
 
     private fun projectIfStatement(unit: IfStmt) {
         val ifVertices = getFromCache(unit)!!
-        g.getSuccsOf(unit).forEach {
-            val srcVertex = if (it == unit.target) {
+        g.getSuccsOf(unit).forEach { succ ->
+            val srcVertex = if (succ == unit.target) {
                 ifVertices.first { vert ->
                     vert is NewJumpTargetBuilder && vert.build().name() == ExtractorConst.FALSE_TARGET
                 }
@@ -220,10 +220,10 @@ class BaseCPGPass(private val g: BriefUnitGraph) {
                     vert is NewJumpTargetBuilder && vert.build().name() == ExtractorConst.TRUE_TARGET
                 }
             }
-            val tgtVertices = if (it is GotoStmt) getFromCache(it.target)
-            else getFromCache(it)
+            val tgtVertices = if (succ is GotoStmt) getFromCache(succ.target)
+            else getFromCache(succ)
             tgtVertices?.let { vList ->
-                builder.addEdge(ifVertices.first(), srcVertex, CFG)
+                builder.addEdge(ifVertices.first { it is NewControlStructureBuilder }, srcVertex, CFG)
                 builder.addEdge(srcVertex, vList.first(), CFG)
             }
         }
