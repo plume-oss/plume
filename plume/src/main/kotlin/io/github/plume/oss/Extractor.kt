@@ -80,7 +80,6 @@ class Extractor(val driver: IDriver) {
     init {
         File(COMP_DIR).let { f -> if (f.exists()) f.deleteRecursively(); f.deleteOnExit() }
         checkDriverConnection(driver)
-        PlumeTimer.reset()
     }
 
     /**
