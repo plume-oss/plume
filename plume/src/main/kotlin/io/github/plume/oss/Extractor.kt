@@ -40,6 +40,7 @@ import io.github.plume.oss.util.ResourceCompilationUtil
 import io.github.plume.oss.util.ResourceCompilationUtil.COMP_DIR
 import io.github.plume.oss.util.ResourceCompilationUtil.TEMP_DIR
 import io.github.plume.oss.util.SootToPlumeUtil
+import io.shiftleft.codepropertygraph.generated.EdgeTypes.INHERITS_FROM
 import io.shiftleft.codepropertygraph.generated.NodeKeyNames.*
 import io.shiftleft.codepropertygraph.generated.NodeTypes.*
 import io.shiftleft.codepropertygraph.generated.nodes.NewFileBuilder
@@ -208,7 +209,7 @@ class Extractor(val driver: IDriver) {
             ).invoke(ts)
         }
         /*
-            TODO: Handle inheritance
+            Obtain inheritance information
         */
         logger.info("Obtaining class hierarchy")
         val parentToChildCs: MutableList<Pair<SootClass, Set<SootClass>>> = mutableListOf()
@@ -231,6 +232,19 @@ class Extractor(val driver: IDriver) {
                 FileAndPackagePass(driver)::runPass,
                 ExternalTypePass(driver)::runPass,
             ).invoke(filteredExtTypes.map { it.sootClass })
+        }
+        /*
+            Build inheritance edges, i.e.
+            TYPE_DECL -INHERITS_FROM-> TYPE
+        */
+        PlumeTimer.measure(ExtractorTimeKey.BASE_CPG_BUILDING) {
+            parentToChildCs.forEach { (c, children) ->
+                GlobalCache.getType(c.type.toQuotedString())?.let { t ->
+                    children.intersect(csToBuild)
+                        .mapNotNull { child -> GlobalCache.getTypeDecl(child.type.toQuotedString()) }
+                        .forEach { td -> driver.addEdge(td, t, INHERITS_FROM) }
+                }
+            }
         }
         csToBuild.clear() // Done using csToBuild
         /*
@@ -255,9 +269,11 @@ class Extractor(val driver: IDriver) {
                 .coerceAtLeast(1)
                 .coerceAtMost(Runtime.getRuntime().availableProcessors())
             val channel = Channel<DeltaGraph>()
-            logger.info("""
+            logger.info(
+                """
                 Building ${headsToBuild.size} method heads and ${bodiesToBuild.size} method bodies over $nThreads thread(s).
-            """.trimIndent())
+            """.trimIndent()
+            )
             // Create jobs in chunks and submit these jobs to a thread pool
             val threadPool = Executors.newFixedThreadPool(nThreads)
             try {
