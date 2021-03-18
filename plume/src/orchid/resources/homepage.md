@@ -1,5 +1,3 @@
-# Plume
-
 Plume is a language front-end to construct an [intermediate
 representation](https://en.wikipedia.org/wiki/Intermediate_representation) called a [code-property
 graphs](https://github.com/ShiftLeftSecurity/codepropertygraph) from JVM bytecode. Plume is graph
@@ -20,8 +18,8 @@ For more documentation and basic guides, check out the [project homepage](https:
   page](https://github.com/plume-oss/plume/discussions).
 * Joern's [Gitter](https://gitter.im/joern-code-analyzer/community).
 * Plume is primarily maintained by [David Baker Effendi](https://davidbakereffendi.github.io/)
-    * DM on [Twitter](https://twitter.com/SDBakerEffendi)
-    * Email at dbe@sun.ac.za
+  * DM on [Twitter](https://twitter.com/SDBakerEffendi)
+  * Email at dbe@sun.ac.za
 
 ## Adding Plume as a Dependency
 
@@ -67,8 +65,8 @@ Maven:
 Gradle:
 ```groovy
 repositories {
-    jcenter()
-    maven { url "https://jitpack.io" }
+  jcenter()
+  maven { url "https://jitpack.io" }
 }
 ```
 
@@ -129,7 +127,7 @@ implementation 'com.tigergraph.client:gsql_client'
 #### _Amazon Neptune_
 ```groovy
   implementation 'org.apache.tinkerpop:gremlin-core'
-  implementation 'org.apache.tinkerpop:gremlin-driver'
+implementation 'org.apache.tinkerpop:gremlin-driver'
 ```
 #### _Neo4j_
 ```groovy
