@@ -79,7 +79,7 @@ object GlobalCache {
      *
      * @param sootMtd The method from Soot to cache for.
      */
-    fun getMethodCache(sootMtd: SootMethod): List<NewNodeBuilder>? = methodCache[sootMtd]
+    fun getMethodCache(sootMtd: SootMethod): List<NewNodeBuilder> = methodCache[sootMtd] ?: emptyList()
 
     /**
      * Associates the given [SootClass] with its source file's hash.

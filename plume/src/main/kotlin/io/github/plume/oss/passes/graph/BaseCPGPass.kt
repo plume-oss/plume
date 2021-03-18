@@ -46,7 +46,15 @@ class BaseCPGPass(private val g: BriefUnitGraph) {
         runAstPass()
         runCfgPass()
         runPdgPass()
-        localCache.clear()
+        // METHOD -CONTAINS-> NODE (excluding head nodes)
+        GlobalCache.getMethodCache(g.body.method).let { mvs ->
+            mvs.firstOrNull { it is NewMethodBuilder }?.let { m ->
+                localCache.let { cache ->
+                    cache.values.flatten().minus(mvs).forEach { n -> builder.addEdge(m, n, CONTAINS) }
+                }
+                localCache.clear()
+            }
+        }
         return builder.build()
     }
 
@@ -55,21 +63,18 @@ class BaseCPGPass(private val g: BriefUnitGraph) {
         logger.debug("Building AST for ${mtd.declaration}")
         currentLine = mtd.javaSourceStartLineNumber
         currentCol = mtd.javaSourceStartColumnNumber
-        GlobalCache.getMethodCache(mtd)?.let { mtdVs ->
+        GlobalCache.getMethodCache(mtd).let { mtdVs ->
             mtdVs.filterIsInstance<NewMethodBuilder>().firstOrNull()?.let { mtdVert ->
                 GlobalCache.addToMethodCache(mtd, buildLocals(g).onEach { builder.addEdge(mtdVert, it, AST) })
             }
         }
         g.body.units.filterNot { it is IdentityStmt }
             .forEachIndexed { idx, u ->
-                projectUnitAsAst(u, idx + 1)
-                    ?.let {
-                        builder.addEdge(
-                            src = GlobalCache.getMethodCache(mtd)!!.first { v -> v is NewBlockBuilder },
-                            tgt = it,
-                            e = AST
-                        )
+                projectUnitAsAst(u, idx + 1)?.let {
+                    GlobalCache.getMethodCache(mtd).firstOrNull { v -> v is NewBlockBuilder }?.let { block ->
+                        builder.addEdge(block, it, AST)
                     }
+                }
             }
     }
 
@@ -86,9 +91,10 @@ class BaseCPGPass(private val g: BriefUnitGraph) {
             startingUnit?.let {
                 getFromCache(it)?.firstOrNull()?.let { succVert ->
                     val mtdV = GlobalCache.getMethodCache(mtd)
-                    val bodyVertex = mtdV?.first { mtdVertices -> mtdVertices is NewBlockBuilder }!!
-                    mtdV.firstOrNull()?.let { mtdVertex -> builder.addEdge(mtdVertex, bodyVertex, CFG) }
-                    builder.addEdge(bodyVertex, succVert, CFG)
+                    mtdV.firstOrNull { mtdVertices -> mtdVertices is NewBlockBuilder }?.let { bodyVertex ->
+                        mtdV.firstOrNull()?.let { mtdVertex -> builder.addEdge(mtdVertex, bodyVertex, CFG) }
+                        builder.addEdge(bodyVertex, succVert, CFG)
+                    }
                 }
             }
         }
@@ -231,10 +237,9 @@ class BaseCPGPass(private val g: BriefUnitGraph) {
 
     private fun projectReturnEdge(unit: Stmt) {
         getFromCache(unit)?.firstOrNull()?.let { src ->
-            GlobalCache.getMethodCache(g.body.method)?.filterIsInstance<NewMethodReturnBuilder>()?.firstOrNull()
-                ?.let { tgt ->
-                    builder.addEdge(src, tgt, CFG)
-                }
+            GlobalCache.getMethodCache(g.body.method)
+                .filterIsInstance<NewMethodReturnBuilder>()
+                .firstOrNull()?.let { tgt -> builder.addEdge(src, tgt, CFG) }
         }
     }
 
@@ -740,11 +745,9 @@ class BaseCPGPass(private val g: BriefUnitGraph) {
             .columnNumber(Option.apply(ret.javaSourceStartColumnNumber))
             .order(childIdx)
         projectOp(ret.op, childIdx + 1)?.let { builder.addEdge(retV, it, AST) }
-        builder.addEdge(
-            GlobalCache.getMethodCache(g.body.method)?.first { it is NewBlockBuilder }!!,
-            retV,
-            AST
-        )
+        GlobalCache.getMethodCache(g.body.method)
+            .firstOrNull { it is NewBlockBuilder }
+            ?.let { block -> builder.addEdge(block, retV, AST) }
         return retV
     }
 
@@ -755,11 +758,9 @@ class BaseCPGPass(private val g: BriefUnitGraph) {
             .lineNumber(Option.apply(ret.javaSourceStartLineNumber))
             .columnNumber(Option.apply(ret.javaSourceStartColumnNumber))
             .order(childIdx)
-        builder.addEdge(
-            GlobalCache.getMethodCache(g.body.method)?.first { it is NewBlockBuilder }!!,
-            retV,
-            AST
-        )
+        GlobalCache.getMethodCache(g.body.method)
+            .firstOrNull { it is NewBlockBuilder }
+            ?.let { block -> builder.addEdge(block, retV, AST) }
         return retV
     }
 }
