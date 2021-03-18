@@ -5,6 +5,14 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](http://keepachangelog.com/)
 and this project adheres to [Semantic Versioning](http://semver.org/).
 
+## [0.3.6] - [Unreleased]
+
+### Added
+- `CONTAINS` edges are generated for `METHOD` to body vertices.
+
+### Changed
+- `BaseCpgPass` now uses a local cache for method body nodes instead of relying solely on `GlobalCache`
+
 ## [0.3.5] - 2021-03-17
 
 ### Added
@@ -19,8 +27,6 @@ and this project adheres to [Semantic Versioning](http://semver.org/).
 ### Changed
 - Many of the `nodeCache` uses in `IProgramPass` passes were converted to using the `GlobalCache` instead.
 - `MethodStubPass` now runs in parallel if possible.
-
-### Fixed
 
 ## [0.3.4] - 2021-03-15
 

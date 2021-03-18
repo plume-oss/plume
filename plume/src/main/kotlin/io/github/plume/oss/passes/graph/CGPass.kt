@@ -22,13 +22,13 @@ import io.github.plume.oss.passes.IUnitGraphPass
 import io.shiftleft.codepropertygraph.generated.EdgeTypes.CALL
 import io.shiftleft.codepropertygraph.generated.NodeKeyNames.FULL_NAME
 import io.shiftleft.codepropertygraph.generated.NodeTypes.METHOD
-import io.shiftleft.codepropertygraph.generated.nodes.NewCallBuilder
 import io.shiftleft.codepropertygraph.generated.nodes.NewMethodBuilder
 import org.apache.logging.log4j.LogManager
 import soot.Scene
 import soot.Unit
 import soot.jimple.AssignStmt
 import soot.jimple.IdentityStmt
+import soot.jimple.InvokeExpr
 import soot.jimple.InvokeStmt
 import soot.jimple.toolkits.callgraph.Edge
 import soot.toolkits.graph.BriefUnitGraph
@@ -51,7 +51,8 @@ class CGPass(private val driver: IDriver) : IUnitGraphPass {
         logger.debug("Building call graph edges for ${mtd.declaration}")
         this.g = g
         // If this was an updated method, connect call graphs
-        GlobalCache.getSootAssoc(mtd)?.filterIsInstance<NewMethodBuilder>()?.first()?.let { reconnectPriorCallGraphEdges(it) }
+        GlobalCache.getMethodCache(mtd).filterIsInstance<NewMethodBuilder>()
+            .firstOrNull()?.let { reconnectPriorCallGraphEdges(it) }
         // Connect all units to their successors
         this.g.body.units.filterNot { it is IdentityStmt }.forEach(this::projectUnit)
         return g
@@ -60,41 +61,30 @@ class CGPass(private val driver: IDriver) : IUnitGraphPass {
     private fun projectUnit(unit: Unit) {
         val cg = Scene.v().callGraph
         val edges = cg.edgesOutOf(unit) as Iterator<Edge>
-        // Attempt to use Soot calculated call graph edges, these are usually quite precise
-        edges.forEach { e: Edge ->
-            // If Soot points to the assignment as the call source then this is most likely from the rightOp. Let's
-            // hope this is not the source of a bug
-            val srcUnit = if (unit is AssignStmt) unit.rightOp else unit
-            GlobalCache.getSootAssoc(srcUnit)
-                ?.filterIsInstance<NewCallBuilder>()
-                ?.firstOrNull()
-                ?.let { srcPlumeVertex ->
-                    GlobalCache.getSootAssoc(e.tgt.method())
-                        ?.firstOrNull()?.let { tgtPlumeVertex ->
-                            runCatching {
-                                driver.addEdge(srcPlumeVertex, tgtPlumeVertex, CALL)
-                            }.onFailure { e -> logger.warn(e.message) }
-                        }
-                }
-        }
-        // If call graph analysis fails because there is no main method, we will need to figure out call edges ourselves
-        // We can do this by looking if our call unit does not have any outgoing CALL edges.
-        when (unit) {
-            is AssignStmt -> GlobalCache.getSootAssoc(unit.rightOp)?.filterIsInstance<NewCallBuilder>()?.firstOrNull()
-            is InvokeStmt -> GlobalCache.getSootAssoc(unit.invokeExpr)?.filterIsInstance<NewCallBuilder>()?.firstOrNull()
+        // If Soot points to the assignment as the call source then this is most likely from the rightOp.
+        val srcUnit = if (unit is AssignStmt) unit.rightOp else unit
+        when (srcUnit) {
+            is InvokeExpr -> GlobalCache.getCall(srcUnit)
+            is InvokeStmt -> GlobalCache.getCall(srcUnit.invokeExpr)
             else -> null
         }?.let { callV ->
-            driver.getNeighbours(callV).use { g ->
-                // If there is no outgoing call edge from this call, then we should attempt to find it's target method
-                if (g.node(callV.id())?.outE(CALL)?.hasNext() != true) {
-                    val v = callV.build()
-                    if (v.methodFullName().length > 1) {
-                        driver.getVerticesByProperty(FULL_NAME, v.methodFullName(), METHOD).firstOrNull()?.let { mtdV ->
-                            // Since this method already exists, we don't need to build a new method, only provide
-                            // an existing ID
-                            driver.addEdge(callV, mtdV, CALL)
-                        }
+            var foundAndConnectedCallTgt = false
+            edges.forEach { e: Edge ->
+                GlobalCache.getMethodCache(e.tgt.method())
+                    .filterIsInstance<NewMethodBuilder>()
+                    .firstOrNull()?.let { tgtPlumeVertex ->
+                        runCatching { driver.addEdge(callV, tgtPlumeVertex, CALL); foundAndConnectedCallTgt = true }
+                            .onFailure { e -> logger.warn(e.message) }
                     }
+            }
+            // If call graph analysis fails because there is no main method, we will need to figure out call edges ourselves
+            // We can do this by looking if our call unit does not have any outgoing CALL edges.
+            // If there is no outgoing call edge from this call, then we should attempt to find it's target method
+            if (!foundAndConnectedCallTgt) {
+                val v = callV.build()
+                if (v.methodFullName().length > 1) {
+                    driver.getVerticesByProperty(FULL_NAME, v.methodFullName(), METHOD).firstOrNull()
+                        ?.let { mtdV -> driver.addEdge(callV, mtdV, CALL) }
                 }
             }
         }

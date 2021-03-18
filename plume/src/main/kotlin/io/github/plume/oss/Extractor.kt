@@ -148,11 +148,8 @@ class Extractor(val driver: IDriver) {
         /*
             Load and compile files then feed them into Soot
          */
-        val groupedFs = loadedFiles.groupBy { it.fileType }.mapValues { it.value.size }.toMap()
         if (loadedFiles.isEmpty()) return apply { logger.info("No files loaded, returning") }
-        val nCs = if (groupedFs.containsKey(PlumeFileType.JAVA_CLASS)) groupedFs[PlumeFileType.JAVA_CLASS] else 0
-        val nSs = if (groupedFs.containsKey(PlumeFileType.JAVA_SOURCE)) groupedFs[PlumeFileType.JAVA_SOURCE] else 0
-        val nUs = if (groupedFs.containsKey(PlumeFileType.UNSUPPORTED)) groupedFs[PlumeFileType.UNSUPPORTED] else 0
+        val (nCs, nSs, nUs) = loadedFileGroupCount()
         logger.info("Preparing $nCs class and $nSs source file(s). Ignoring $nUs unsupported file(s).")
         val cs = mutableListOf<SootClass>()
         val compiledFiles = mutableSetOf<JavaClassFile>()
@@ -307,6 +304,14 @@ class Extractor(val driver: IDriver) {
         PlumeTimer.measure(ExtractorTimeKey.SCPG_PASSES) { SCPGPass(driver).runPass() }
         GlobalCache.methodBodies.clear()
         return this
+    }
+
+    private fun loadedFileGroupCount(): Triple<Int?, Int?, Int?> {
+        val groupedFs = loadedFiles.groupBy { it.fileType }.mapValues { it.value.size }.toMap()
+        val nCs = if (groupedFs.containsKey(PlumeFileType.JAVA_CLASS)) groupedFs[PlumeFileType.JAVA_CLASS] else 0
+        val nSs = if (groupedFs.containsKey(PlumeFileType.JAVA_SOURCE)) groupedFs[PlumeFileType.JAVA_SOURCE] else 0
+        val nUs = if (groupedFs.containsKey(PlumeFileType.UNSUPPORTED)) groupedFs[PlumeFileType.UNSUPPORTED] else 0
+        return Triple(nCs, nSs, nUs)
     }
 
     private fun populateGlobalTypeCache() {

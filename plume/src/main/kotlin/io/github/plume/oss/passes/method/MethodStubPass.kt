@@ -11,7 +11,6 @@ import io.shiftleft.codepropertygraph.generated.EdgeTypes.*
 import io.shiftleft.codepropertygraph.generated.EvaluationStrategies.BY_REFERENCE
 import io.shiftleft.codepropertygraph.generated.EvaluationStrategies.BY_SHARING
 import io.shiftleft.codepropertygraph.generated.NodeTypes.TYPE_DECL
-import io.shiftleft.codepropertygraph.generated.Operators
 import io.shiftleft.codepropertygraph.generated.nodes.*
 import scala.Option
 import soot.SootMethod
@@ -60,7 +59,7 @@ class MethodStubPass(private val m: SootMethod) : IMethodPass {
             .order(childIdx++)
             .astParentFullName("${m.declaringClass}")
             .astParentType(TYPE_DECL)
-        GlobalCache.addSootAssoc(m, mtdVertex)
+        GlobalCache.addToMethodCache(m, mtdVertex)
         // Store method vertex
         NewBlockBuilder()
             .typeFullName(m.returnType.toQuotedString())
@@ -69,10 +68,10 @@ class MethodStubPass(private val m: SootMethod) : IMethodPass {
             .argumentIndex(0)
             .lineNumber(Option.apply(currentLine))
             .columnNumber(Option.apply(currentCol))
-            .apply { builder.addEdge(mtdVertex, this, AST); GlobalCache.addSootAssoc(m, this) }
+            .apply { builder.addEdge(mtdVertex, this, AST); GlobalCache.addToMethodCache(m, this) }
         // Store return type
         val mtdRet = projectMethodReturnVertex(m.returnType, currentLine, currentCol, childIdx++)
-            .apply { builder.addEdge(mtdVertex, this, AST); GlobalCache.addSootAssoc(m, this) }
+            .apply { builder.addEdge(mtdVertex, this, AST); GlobalCache.addToMethodCache(m, this) }
         // Extrapolate certain information manually for external classes
         if (!m.declaringClass.isApplicationClass) {
             // Create a call-to-return for external classes

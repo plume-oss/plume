@@ -49,8 +49,6 @@ class SCPGPass(private val driver: IDriver) {
             launch {
                 Cpg.apply(g).use { cpg ->
                     val methods = g.nodes(NodeTypes.METHOD).asSequence().toList()
-                    // TODO: Make own contains edge pass for methods
-                    runParallelPass(methods.filterIsInstance<AstNode>(), ContainsEdgePass(cpg))
                     runParallelPass(methods.filterIsInstance<Method>(), ReachingDefPass(cpg))
                 }
             }
