@@ -25,7 +25,7 @@ import io.github.plume.oss.drivers.OverflowDbDriver
 import io.github.plume.oss.metrics.ExtractorTimeKey
 import io.github.plume.oss.metrics.PlumeTimer
 import io.github.plume.oss.options.ExtractorOptions
-import io.github.plume.oss.passes.SCPGPass
+import io.github.plume.oss.passes.DataFlowPass
 import io.github.plume.oss.passes.graph.BaseCPGPass
 import io.github.plume.oss.passes.graph.CGPass
 import io.github.plume.oss.passes.method.MethodStubPass
@@ -170,7 +170,7 @@ class Extractor(val driver: IDriver) {
          */
         logger.info("Building internal program structure and type information")
         val csToBuild = mutableListOf<SootClass>()
-        PlumeTimer.measure(ExtractorTimeKey.BASE_CPG_BUILDING) {
+        PlumeTimer.measure(ExtractorTimeKey.PROGRAM_STRUCTURE_BUILDING) {
             // First read the existing TYPE, TYPE_DECL, and FILEs from the driver and load it into the cache
             populateGlobalTypeCache()
             pipeline(
@@ -190,7 +190,7 @@ class Extractor(val driver: IDriver) {
             Obtain all referenced types from fields, returns, and locals
          */
         val ts = mutableListOf<Type>()
-        PlumeTimer.measure(ExtractorTimeKey.BASE_CPG_BUILDING) {
+        PlumeTimer.measure(ExtractorTimeKey.PROGRAM_STRUCTURE_BUILDING) {
             val fieldsAndRets = csToBuild.map { c -> c.fields.map { it.type } + c.methods.map { it.returnType } }
                 .flatten().toSet()
             val locals = sootUnitGraphs.map { it.body.locals + it.body.parameterLocals }
@@ -203,7 +203,7 @@ class Extractor(val driver: IDriver) {
          */
         logger.info("Building primitive type information")
         logger.debug("All referenced types: ${ts.groupBy { it.javaClass }.mapValues { it.value.size }}}")
-        PlumeTimer.measure(ExtractorTimeKey.BASE_CPG_BUILDING) {
+        PlumeTimer.measure(ExtractorTimeKey.PROGRAM_STRUCTURE_BUILDING) {
             pipeline(
                 GlobalTypePass(driver)::runPass
             ).invoke(ts)
@@ -237,7 +237,7 @@ class Extractor(val driver: IDriver) {
             Build inheritance edges, i.e.
             TYPE_DECL -INHERITS_FROM-> TYPE
         */
-        PlumeTimer.measure(ExtractorTimeKey.BASE_CPG_BUILDING) {
+        PlumeTimer.measure(ExtractorTimeKey.PROGRAM_STRUCTURE_BUILDING) {
             parentToChildCs.forEach { (c, children) ->
                 GlobalCache.getType(c.type.toQuotedString())?.let { t ->
                     children.intersect(csToBuild)
@@ -316,8 +316,8 @@ class Extractor(val driver: IDriver) {
         /*
             Method body level analysis - only done on new/updated methods
          */
-        logger.info("Running SCPG passes")
-        PlumeTimer.measure(ExtractorTimeKey.SCPG_PASSES) { SCPGPass(driver).runPass() }
+        logger.info("Running data flow passes")
+        PlumeTimer.measure(ExtractorTimeKey.DATA_FLOW_PASS) { DataFlowPass(driver).runPass() }
         GlobalCache.methodBodies.clear()
         return this
     }

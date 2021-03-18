@@ -17,6 +17,8 @@ and this project adheres to [Semantic Versioning](http://semver.org/).
 ### Changed
 
 - `BaseCpgPass` now uses a local cache for method body nodes instead of relying solely on `GlobalCache`
+- `SCPGPass` now known as `DataFlowPass` as all passes now come from `dataflowengineoss`.
+- Added `PROGRAM_STRUCTURE` to timer keys.
 
 ## [0.3.5] - 2021-03-17
 
