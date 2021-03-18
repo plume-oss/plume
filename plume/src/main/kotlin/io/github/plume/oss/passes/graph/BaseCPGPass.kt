@@ -1,6 +1,7 @@
 package io.github.plume.oss.passes.graph
 
 import io.github.plume.oss.GlobalCache
+import io.github.plume.oss.domain.mappers.ListMapper
 import io.github.plume.oss.domain.model.DeltaGraph
 import io.github.plume.oss.util.ExtractorConst
 import io.github.plume.oss.util.SootParserUtil
@@ -319,7 +320,7 @@ class BaseCPGPass(private val g: BriefUnitGraph) {
             .signature(signature)
             .code(code)
             .order(childIdx)
-            .dynamicTypeHintFullName(SootToPlumeUtil.createScalaList(unit.methodRef.returnType.toQuotedString()))
+            .dynamicTypeHintFullName(ListMapper.stringToScalaList(unit.methodRef.returnType.toQuotedString()))
             .lineNumber(Option.apply(currentLine))
             .columnNumber(Option.apply(currentCol))
             .argumentIndex(childIdx)
@@ -513,7 +514,7 @@ class BaseCPGPass(private val g: BriefUnitGraph) {
             .signature("${leftOp.type} = ${rightOp.type}")
             .methodFullName(Operators.assignment)
             .dispatchType(DispatchTypes.STATIC_DISPATCH)
-            .dynamicTypeHintFullName(SootToPlumeUtil.createScalaList(unit.rightOp.type.toQuotedString()))
+            .dynamicTypeHintFullName(ListMapper.stringToScalaList(unit.rightOp.type.toQuotedString()))
             .order(childIdx)
             .argumentIndex(childIdx)
             .typeFullName(leftOp.type.toQuotedString())
@@ -573,7 +574,7 @@ class BaseCPGPass(private val g: BriefUnitGraph) {
             .signature("${expr.op1.type.toQuotedString()}${expr.symbol}${expr.op2.type.toQuotedString()}")
             .methodFullName(binOpExpr)
             .dispatchType(DispatchTypes.STATIC_DISPATCH)
-            .dynamicTypeHintFullName(SootToPlumeUtil.createScalaList(expr.op2.type.toQuotedString()))
+            .dynamicTypeHintFullName(ListMapper.stringToScalaList(expr.op2.type.toQuotedString()))
             .order(childIdx)
             .argumentIndex(childIdx)
             .typeFullName(expr.type.toQuotedString())
@@ -611,7 +612,7 @@ class BaseCPGPass(private val g: BriefUnitGraph) {
             .typeFullName(expr.type.toQuotedString())
             .lineNumber(Option.apply(currentLine))
             .columnNumber(Option.apply(currentCol))
-            .dynamicTypeHintFullName(SootToPlumeUtil.createScalaList(expr.op2.type.toQuotedString()))
+            .dynamicTypeHintFullName(ListMapper.stringToScalaList(expr.op2.type.toQuotedString()))
             .apply { conditionVertices.add(this) }
         projectOp(expr.op1, 1)?.let {
             builder.addEdge(binOpBlock, it, AST)
@@ -637,7 +638,7 @@ class BaseCPGPass(private val g: BriefUnitGraph) {
             .signature("(${expr.castType.toQuotedString()}) ${expr.op.type.toQuotedString()}")
             .methodFullName(Operators.cast)
             .dispatchType(DispatchTypes.STATIC_DISPATCH)
-            .dynamicTypeHintFullName(SootToPlumeUtil.createScalaList(expr.op.type.toQuotedString()))
+            .dynamicTypeHintFullName(ListMapper.stringToScalaList(expr.op.type.toQuotedString()))
             .order(childIdx)
             .argumentIndex(childIdx)
             .typeFullName(expr.type.toQuotedString())
@@ -695,7 +696,7 @@ class BaseCPGPass(private val g: BriefUnitGraph) {
             .signature("")
             .methodFullName(Operators.fieldAccess)
             .dispatchType(if (fieldRef.fieldRef.isStatic) DispatchTypes.STATIC_DISPATCH else DispatchTypes.DYNAMIC_DISPATCH)
-            .dynamicTypeHintFullName(SootToPlumeUtil.createScalaList(leftOp.toQuotedString()))
+            .dynamicTypeHintFullName(ListMapper.stringToScalaList(leftOp.toQuotedString()))
             .order(childIdx)
             .argumentIndex(childIdx)
             .typeFullName(leftOp.toQuotedString())

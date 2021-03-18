@@ -1,6 +1,6 @@
 package io.github.plume.oss.graphio
 
-import io.github.plume.oss.domain.mappers.VertexMapper.extractAttributesFromMap
+import io.github.plume.oss.domain.mappers.VertexMapper.prepareListsInMap
 import overflowdb.Graph
 import overflowdb.Node
 import java.io.OutputStreamWriter
@@ -34,7 +34,7 @@ object GraphSONWriter {
 
     private fun vertexToJSON(v: Node, graph: Graph): String {
         val sb = StringBuilder()
-        val properties = extractAttributesFromMap(v.propertyMap())
+        val properties = prepareListsInMap(v.propertyMap())
         sb.append("{")
         sb.append("\"id\":{\"@type\":\"g:Int64\",\"@value\":${v.id()}},")
         sb.append("\"label\":\"${v.label()}\",")
@@ -92,7 +92,7 @@ object GraphSONWriter {
         val sb = StringBuilder()
         sb.append("{")
         var i = 0
-        extractAttributesFromMap(properties).forEach { (k, v) ->
+        prepareListsInMap(properties).forEach { (k, v) ->
             sb.append("\"$k\":[{")
             sb.append("\"id\":{\"@type\":\"g:Int64\",\"@value\":${propertyId++}}")
             when (v) {

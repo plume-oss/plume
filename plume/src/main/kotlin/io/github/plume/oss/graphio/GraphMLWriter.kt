@@ -75,7 +75,7 @@ object GraphMLWriter {
     private fun writeVertices(fw: OutputStreamWriter, vertices: MutableIterator<Node>) {
         vertices.forEach { v ->
             fw.write("<node id=\"${v.id()}\">")
-            VertexMapper.extractAttributesFromMap(v.propertyMap())
+            VertexMapper.prepareListsInMap(v.propertyMap())
                 .apply { fw.write("<data key=\"labelV\">${v.label()}</data>") }
                 .forEach { (t, u) -> fw.write("<data key=\"$t\">${escape(u)}</data>") }
             fw.write("</node>")
