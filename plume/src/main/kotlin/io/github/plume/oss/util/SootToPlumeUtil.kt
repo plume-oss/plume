@@ -16,6 +16,7 @@
 package io.github.plume.oss.util
 
 import io.github.plume.oss.GlobalCache
+import io.github.plume.oss.domain.mappers.ListMapper
 import io.github.plume.oss.domain.mappers.VertexMapper.mapToVertex
 import io.github.plume.oss.drivers.IDriver
 import io.github.plume.oss.util.SootParserUtil.determineEvaluationStrategy
@@ -176,6 +177,7 @@ object SootToPlumeUtil {
                     .code(type.toString())
                     .order(childIdx)
                     .argumentIndex(childIdx)
+                    .dynamicTypeHintFullName(ListMapper.stringToScalaList(type.toQuotedString()))
                     .typeFullName(type.toQuotedString())
                     .lineNumber(Option.apply(currentLine))
                     .columnNumber(Option.apply(currentCol))
@@ -233,11 +235,6 @@ object SootToPlumeUtil {
             .lineNumber(Option.apply(currentLine))
             .columnNumber(Option.apply(currentCol))
             .order(childIdx)
-
-    fun <T> createScalaList(vararg item: T): scala.collection.immutable.List<T> {
-        val list = listOf(*item)
-        return CollectionConverters.ListHasAsScala(list).asScala().toList() as scala.collection.immutable.List<T>
-    }
 
     fun parseBinopExpr(op: BinopExpr): String = parseBinopExpr(op.symbol.trim())
 

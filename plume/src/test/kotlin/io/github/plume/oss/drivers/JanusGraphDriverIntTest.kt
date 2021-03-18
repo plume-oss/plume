@@ -32,7 +32,7 @@ import io.github.plume.oss.TestDomainResources.Companion.typeParameterVertex
 import io.github.plume.oss.TestDomainResources.Companion.typeRefVertex
 import io.github.plume.oss.TestDomainResources.Companion.unknownVertex
 import io.github.plume.oss.domain.exceptions.PlumeSchemaViolationException
-import io.github.plume.oss.util.SootToPlumeUtil
+import io.github.plume.oss.domain.mappers.ListMapper
 import io.shiftleft.codepropertygraph.generated.EdgeTypes
 import io.shiftleft.codepropertygraph.generated.EdgeTypes.*
 import io.shiftleft.codepropertygraph.generated.NodeKeyNames
@@ -56,7 +56,8 @@ class JanusGraphDriverIntTest {
 
         private fun testPayloadContents() {
             val payload = driver.buildSchemaPayload()
-            NodeKeyNames.ALL.filterNot { it == NodeKeyNames.NODE_LABEL }.map(payload::contains).forEach(Assertions::assertTrue)
+            NodeKeyNames.ALL.filterNot { it == NODE_LABEL }.map(payload::contains)
+                .forEach(Assertions::assertTrue)
             EdgeTypes.ALL.map(payload::contains).forEach(Assertions::assertTrue)
         }
 
@@ -183,11 +184,11 @@ class JanusGraphDriverIntTest {
         @Test
         fun findTypeRefVertex() {
             val v1 = NewTypeRefBuilder().typeFullName(STRING_1).dynamicTypeHintFullName(
-                SootToPlumeUtil.createScalaList(STRING_2)
+                ListMapper.stringToScalaList(STRING_2)
             ).code(STRING_1).argumentIndex(INT_1).order(INT_1).lineNumber(Option.apply(INT_1))
                 .columnNumber(Option.apply(INT_1))
             val v2 = NewTypeRefBuilder().typeFullName(STRING_2).dynamicTypeHintFullName(
-                SootToPlumeUtil.createScalaList(STRING_1)
+                ListMapper.stringToScalaList(STRING_1)
             ).code(STRING_1).argumentIndex(INT_1).order(INT_1).lineNumber(Option.apply(INT_1))
                 .columnNumber(Option.apply(INT_1))
             assertFalse(driver.exists(v1))

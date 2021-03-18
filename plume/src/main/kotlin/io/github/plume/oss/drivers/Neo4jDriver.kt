@@ -127,7 +127,7 @@ class Neo4jDriver internal constructor() : IDriver {
     }
 
     private fun extractAttributesFromMap(propertyMap: MutableMap<String, Any>): MutableMap<String, Any> {
-        val attributes = VertexMapper.extractAttributesFromMap(propertyMap)
+        val attributes = VertexMapper.prepareListsInMap(propertyMap)
         propertyMap.forEach { e ->
             if (attributes[e.key] is Int) attributes[e.key] = (attributes[e.key] as Int).toLong()
         }

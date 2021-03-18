@@ -2,6 +2,9 @@ package io.github.plume.oss.domain.mappers
 
 import scala.jdk.CollectionConverters
 
+/**
+ * Contains functions to serialize and deserialize Scala lists.
+ */
 object ListMapper {
 
     /**
@@ -10,7 +13,7 @@ object ListMapper {
      * @param list The list to convert.
      * @return a comma-delimited string.
      */
-    fun scalaListToString(list: scala.collection.immutable.List<String>): String =
+    fun scalaListToString(list: scala.collection.immutable.List<*>): String =
         CollectionConverters.IterableHasAsJava(list).asJava().joinToString(separator = ",")
 
     /**

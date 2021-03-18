@@ -1,7 +1,7 @@
 package io.github.plume.oss
 
+import io.github.plume.oss.domain.mappers.ListMapper
 import io.github.plume.oss.drivers.IDriver
-import io.github.plume.oss.util.SootToPlumeUtil.createScalaList
 import io.shiftleft.codepropertygraph.generated.DispatchTypes.DYNAMIC_DISPATCH
 import io.shiftleft.codepropertygraph.generated.DispatchTypes.STATIC_DISPATCH
 import io.shiftleft.codepropertygraph.generated.EdgeTypes.*
@@ -34,7 +34,7 @@ class TestDomainResources {
                 .lineNumber(Option.apply(INT_1)).columnNumber(Option.apply(INT_1)),
             NewCallBuilder().methodFullName(STRING_1).argumentIndex(INT_1).dispatchType(DISPATCH_1)
                 .typeFullName(STRING_1)
-                .dynamicTypeHintFullName(createScalaList(STRING_1))
+                .dynamicTypeHintFullName(ListMapper.stringToScalaList(STRING_1))
                 .name(STRING_1).signature(STRING_1).code(STRING_1).order(INT_1).lineNumber(Option.apply(INT_1))
                 .columnNumber(Option.apply(INT_1)),
             NewControlStructureBuilder().controlStructureType(STRING_2).code(STRING_1).lineNumber(Option.apply(INT_1))
@@ -68,7 +68,7 @@ class TestDomainResources {
             NewTypeDeclBuilder().name(STRING_1).fullName(STRING_1).order(INT_1).isExternal(BOOL_1),
             NewTypeParameterBuilder().name(STRING_1).order(INT_1),
             NewTypeRefBuilder().typeFullName(STRING_1)
-                .dynamicTypeHintFullName(createScalaList(STRING_1))
+                .dynamicTypeHintFullName(ListMapper.stringToScalaList(STRING_1))
                 .code(STRING_1).argumentIndex(INT_1).order(INT_1).lineNumber(Option.apply(INT_1))
                 .columnNumber(Option.apply(INT_1)),
             NewTypeBuilder().name(STRING_1).fullName(STRING_1).typeDeclFullName(STRING_1),
@@ -78,7 +78,8 @@ class TestDomainResources {
 
         val methodVertex: NewMethodBuilder =
             NewMethodBuilder().code(STRING_1).name(STRING_1).fullName(STRING_1).order(INT_1)
-                .lineNumber(Option.apply(INT_1)).columnNumber(Option.apply(INT_1)).signature(STRING_2).filename(STRING_1)
+                .lineNumber(Option.apply(INT_1)).columnNumber(Option.apply(INT_1)).signature(STRING_2)
+                .filename(STRING_1)
                 .astParentFullName(STRING_1).astParentType(STRING_2).isExternal(BOOL_1)
         val mtdParamInVertex: NewMethodParameterInBuilder =
             NewMethodParameterInBuilder().code(STRING_1).evaluationStrategy(EVAL_1).typeFullName(STRING_1)
@@ -89,7 +90,7 @@ class TestDomainResources {
         val callVertex: NewCallBuilder =
             NewCallBuilder().methodFullName(STRING_1).argumentIndex(INT_1).dispatchType(DISPATCH_1)
                 .typeFullName(STRING_1)
-                .dynamicTypeHintFullName(createScalaList(STRING_1))
+                .dynamicTypeHintFullName(ListMapper.stringToScalaList(STRING_1))
                 .name(STRING_1).signature(STRING_1).code(STRING_1).order(INT_1).lineNumber(Option.apply(INT_1))
                 .columnNumber(Option.apply(INT_1))
         val localVertex: NewLocalBuilder =
@@ -131,7 +132,7 @@ class TestDomainResources {
             NewMethodRefBuilder().methodInstFullName(Option.apply(STRING_1)).methodFullName(STRING_1).code(STRING_1)
                 .order(INT_1).argumentIndex(INT_1).lineNumber(Option.apply(INT_1)).columnNumber(Option.apply(INT_1))
         val typeRefVertex: NewTypeRefBuilder = NewTypeRefBuilder().typeFullName(STRING_1)
-            .dynamicTypeHintFullName(createScalaList(STRING_1))
+            .dynamicTypeHintFullName(ListMapper.stringToScalaList(STRING_1))
             .code(STRING_1).argumentIndex(INT_1).order(INT_1).lineNumber(Option.apply(INT_1))
             .columnNumber(Option.apply(INT_1))
         val unknownVertex: NewUnknownBuilder =

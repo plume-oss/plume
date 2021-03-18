@@ -8,33 +8,41 @@ and this project adheres to [Semantic Versioning](http://semver.org/).
 ## [0.3.6] - [Unreleased]
 
 ### Added
+
 - `CONTAINS` edges are generated for `METHOD` to body vertices.
+- `ListMapper` to process Scala lists to a serialized string and back. More formally processing Scala lists to and from
+  OverflowDB node objects.
 
 ### Changed
+
 - `BaseCpgPass` now uses a local cache for method body nodes instead of relying solely on `GlobalCache`
 
 ## [0.3.5] - 2021-03-17
 
 ### Added
+
 - `IDriver::getVerticesOfType` to aid in caching from existing database vertices.
 - External methods signatures are parsed to figure out their method parameters.
-- `MethodStubPass` and `BaseCPGPass` now includes `METHOD_PARAM_IN` and `METHOD_PARAM_OUT` and connects them to their 
+- `MethodStubPass` and `BaseCPGPass` now includes `METHOD_PARAM_IN` and `METHOD_PARAM_OUT` and connects them to their
   type.
 - Field accesses are now constructed as a `Call` vertex.
 - Plume now has a new logo and branding.
 - Better logging for loaded files.
 
 ### Changed
+
 - Many of the `nodeCache` uses in `IProgramPass` passes were converted to using the `GlobalCache` instead.
 - `MethodStubPass` now runs in parallel if possible.
 
 ## [0.3.4] - 2021-03-15
 
 ### Changed
+
 - Upped the default chunk size
 - `DeltaGraph::toOverflowDb` can now take in an optional `overflowdb.Graph` object to write to
 
 ### Fixed
+
 - Memory leak where thread pools weren't getting shutdown
 
 ## [0.3.3] - 2021-03-15

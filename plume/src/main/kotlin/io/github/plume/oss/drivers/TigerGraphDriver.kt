@@ -236,7 +236,7 @@ class TigerGraphDriver internal constructor() : IOverridenIdDriver, ISchemaSafeD
     }
 
     private fun extractAttributesFromMap(propertyMap: MutableMap<String, Any>): MutableMap<String, Any> =
-        VertexMapper.extractAttributesFromMap(propertyMap)
+        VertexMapper.prepareListsInMap(propertyMap)
             .mapKeys { if (it.key != "label") "_${it.key}" else it.key }
             .mapValues { mapOf("value" to it.value) }
             .toMutableMap()

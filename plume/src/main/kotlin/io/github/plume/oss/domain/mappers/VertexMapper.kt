@@ -1,7 +1,6 @@
 package io.github.plume.oss.domain.mappers
 
 import io.github.plume.oss.util.ExtractorConst.UNKNOWN
-import io.github.plume.oss.util.SootToPlumeUtil.createScalaList
 import io.shiftleft.codepropertygraph.generated.NodeKeyNames.*
 import io.shiftleft.codepropertygraph.generated.nodes.*
 import org.apache.logging.log4j.LogManager
@@ -11,8 +10,6 @@ import scala.Option
 import scala.collection.immutable.`$colon$colon`
 import scala.collection.immutable.`Nil$`
 import scala.jdk.CollectionConverters
-import java.util.*
-import kotlin.collections.HashMap
 
 
 /**
@@ -28,7 +25,7 @@ object VertexMapper {
      * @return a [NewNodeBuilder] represented by the information in the givennode.
      */
     fun mapToVertex(v: Node): NewNodeBuilder {
-        val map = v.propertyMap() + mapOf<String, Any>("id" to v.id(), "label" to v.label())
+        val map = prepareListsInMap(v.propertyMap()) + mapOf<String, Any>("id" to v.id(), "label" to v.label())
         return mapToVertex(map)
     }
 
@@ -39,7 +36,8 @@ object VertexMapper {
      * @return a [NewNodeBuilder] represented by the information in the givennode.
      */
     fun mapToVertex(v: NewNode): NewNodeBuilder {
-        val map = CollectionConverters.MapHasAsJava(v.properties()).asJava() + mapOf<String, Any>("label" to v.label())
+        val map = prepareListsInMap(CollectionConverters.MapHasAsJava(v.properties()).asJava()) +
+                mapOf<String, Any>("label" to v.label())
         return mapToVertex(map)
     }
 
@@ -158,13 +156,7 @@ object VertexMapper {
                 .signature(map[SIGNATURE] as String)
                 .dispatchType(map[DISPATCH_TYPE] as String)
                 .methodFullName(map[METHOD_FULL_NAME] as String)
-                .dynamicTypeHintFullName(
-                    when (map[DYNAMIC_TYPE_HINT_FULL_NAME]) {
-                        is String -> createScalaList(map[DYNAMIC_TYPE_HINT_FULL_NAME] as String)
-                        is `$colon$colon`<*> -> createScalaList((map[DYNAMIC_TYPE_HINT_FULL_NAME] as `$colon$colon`<*>).head() as String)
-                        else -> createScalaList("")
-                    }
-                )
+                .dynamicTypeHintFullName(ListMapper.stringToScalaList(map[DYNAMIC_TYPE_HINT_FULL_NAME] as String))
             Local.Label() -> NewLocalBuilder()
                 .typeFullName(map[TYPE_FULL_NAME] as String)
                 .code(map[CODE] as String)
@@ -210,13 +202,7 @@ object VertexMapper {
                 .argumentIndex(map[ARGUMENT_INDEX] as Int)
             TypeRef.Label() -> NewTypeRefBuilder()
                 .typeFullName(map[TYPE_FULL_NAME] as String)
-                .dynamicTypeHintFullName(
-                    when (map[DYNAMIC_TYPE_HINT_FULL_NAME]) {
-                        is String -> createScalaList(map[DYNAMIC_TYPE_HINT_FULL_NAME] as String)
-                        is `$colon$colon`<*> -> createScalaList((map[DYNAMIC_TYPE_HINT_FULL_NAME] as `$colon$colon`<*>).head() as String)
-                        else -> createScalaList("")
-                    }
-                )
+                .dynamicTypeHintFullName(ListMapper.stringToScalaList(map[DYNAMIC_TYPE_HINT_FULL_NAME] as String))
                 .code(map[CODE] as String)
                 .order(map[ORDER] as Int)
                 .lineNumber(Option.apply(map[LINE_NUMBER] as Int))
@@ -335,26 +321,17 @@ object VertexMapper {
         return outRule && toRule
     }
 
-    // TODO: This may be linked to this bug https://github.com/plume-oss/plume/issues/88
-    // TODO: The fix may be to get onto https://github.com/plume-oss/plume/issues/86
-    fun extractAttributesFromMap(propertyMap: MutableMap<String, Any>): MutableMap<String, Any> {
+    /**
+     * All Scala sequences or lists are converted to strings in this map.
+     */
+    fun prepareListsInMap(propertyMap: MutableMap<String, Any>): MutableMap<String, Any> {
         val attributes = mutableMapOf<String, Any>()
-        propertyMap.computeIfPresent(DYNAMIC_TYPE_HINT_FULL_NAME) { _, value ->
+        propertyMap.forEach { (key, value) ->
             when (value) {
-                is `$colon$colon`<*> -> value.head()
-                is `Nil$` -> ""
-                else -> value
+                is `$colon$colon`<*> -> attributes[key] = ListMapper.scalaListToString(value)
+                is `Nil$` -> attributes[key] = ListMapper.scalaListToString(value)
+                else -> attributes[key] = value
             }
-        }
-        propertyMap.forEach {
-            val key: Optional<String> = when (it.key) {
-                PARSER_TYPE_NAME -> Optional.empty()
-                POLICY_DIRECTORIES -> Optional.empty()
-                INHERITS_FROM_TYPE_FULL_NAME -> Optional.empty()
-                OVERLAYS -> Optional.empty()
-                else -> Optional.of(it.key)
-            }
-            if (key.isPresent) attributes[key.get()] = it.value
         }
         return attributes
     }
