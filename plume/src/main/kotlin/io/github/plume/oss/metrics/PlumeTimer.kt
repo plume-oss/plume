@@ -8,17 +8,21 @@ object PlumeTimer {
     private val totalTimes = mutableMapOf(
         ExtractorTimeKey.COMPILING_AND_UNPACKING to 0L,
         ExtractorTimeKey.SOOT to 0L,
+        ExtractorTimeKey.BASE_CPG_BUILDING to 0L,
+        ExtractorTimeKey.PROGRAM_STRUCTURE_BUILDING to 0L,
         ExtractorTimeKey.DATABASE_WRITE to 0L,
         ExtractorTimeKey.DATABASE_READ to 0L,
-        ExtractorTimeKey.SCPG_PASSES to 0L
+        ExtractorTimeKey.DATA_FLOW_PASS to 0L
     )
 
     private val stopwatch = mutableMapOf(
         ExtractorTimeKey.COMPILING_AND_UNPACKING to System.nanoTime(),
         ExtractorTimeKey.SOOT to System.nanoTime(),
+        ExtractorTimeKey.BASE_CPG_BUILDING to System.nanoTime(),
+        ExtractorTimeKey.PROGRAM_STRUCTURE_BUILDING to System.nanoTime(),
         ExtractorTimeKey.DATABASE_WRITE to System.nanoTime(),
         ExtractorTimeKey.DATABASE_READ to System.nanoTime(),
-        ExtractorTimeKey.SCPG_PASSES to System.nanoTime()
+        ExtractorTimeKey.DATA_FLOW_PASS to System.nanoTime()
     )
 
     /**
@@ -98,6 +102,11 @@ enum class ExtractorTimeKey {
     BASE_CPG_BUILDING,
 
     /**
+     * Wall clock time taken to build type, package, and file information.
+     */
+    PROGRAM_STRUCTURE_BUILDING,
+
+    /**
      * CPU time spent on database writes.
      */
     DATABASE_WRITE,
@@ -108,9 +117,8 @@ enum class ExtractorTimeKey {
     DATABASE_READ,
 
     /**
-     * Wall clock time spent running semantic code property graph passes from [io.shiftleft.semanticcpg.passes] and
-     * [io.shiftleft.dataflowengineoss.passes].
+     * Wall clock time spent running semantic code property graph passes from [io.shiftleft.dataflowengineoss.passes].
      */
-    SCPG_PASSES
+    DATA_FLOW_PASS
 }
 
