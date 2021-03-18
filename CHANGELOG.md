@@ -11,7 +11,7 @@ and this project adheres to [Semantic Versioning](http://semver.org/).
 - `CONTAINS` edges are generated for `METHOD` to body vertices.
 
 ### Changed
-- `BaseCpgPass` now uses local cache for method body nodes instead of relying soley on `GlobalCache`
+- `BaseCpgPass` now uses a local cache for method body nodes instead of relying solely on `GlobalCache`
 
 ## [0.3.5] - 2021-03-17
 
