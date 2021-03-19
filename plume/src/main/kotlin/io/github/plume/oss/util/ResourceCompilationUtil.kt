@@ -39,10 +39,15 @@ import kotlin.streams.toList
 
 
 object ResourceCompilationUtil {
+
     private val logger = LogManager.getLogger(ResourceCompilationUtil::class.java)
 
     val TEMP_DIR = "${System.getProperty("java.io.tmpdir")}${File.separator}plume"
     val COMP_DIR = "$TEMP_DIR${File.separator}build"
+
+    init {
+        logger.info("Using temporary folder at $TEMP_DIR")
+    }
 
     /**
      * Given paths to a Java source files, programmatically compiles the source (.java) files.

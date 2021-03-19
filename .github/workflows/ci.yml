@@ -53,16 +53,6 @@ jobs:
         if: ${{ runner.os }} == Linux
         run: ./gradlew neo4jIntTest
 
-      - name: Print logs on fail (Linux)
-        if: ${{ failure() }} && ${{ runner.os }} == Linux
-        run: echo | cat $TEMP_DIR/plume/plume-test.log
-      - name: Print logs on fail (macOS)
-        if: ${{ failure() }} && ${{ runner.os }} == macOS
-        run: echo | cat $TEMP_DIR/plume/plume-test.log
-      - name: Print logs on fail (Windows)
-        if: ${{ failure() }} && ${{ runner.os }} == Windows
-        run: type $TEMP_DIR\plume\plume-test.log
-
       - name: Compile coverage report
         if: ${{ runner.os }} == Linux
         run: ./gradlew jacocoTestReport

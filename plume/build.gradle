@@ -102,6 +102,13 @@ task allTests(
         ]
 ) { group = "verification" }
 
+tasks.withType(Test) {
+    testLogging {
+        outputs.upToDateWhen {false}
+        showStandardStreams = true
+    }
+}
+
 test {
     useJUnitPlatform()
     exclude "**/*IntTest*", "**/extractor/**"
