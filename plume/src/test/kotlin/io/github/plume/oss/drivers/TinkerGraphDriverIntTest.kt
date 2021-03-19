@@ -707,7 +707,7 @@ class TinkerGraphDriverIntTest {
         }
 
         @Test
-        fun testGetNoneExistentProperty() {
+        fun testGetNonExistentProperty() {
             assertEquals(emptyList<String>(), driver.getPropertyFromVertices<String>("<dne>"))
         }
 
@@ -719,6 +719,14 @@ class TinkerGraphDriverIntTest {
             assertTrue(r.any { it is NewTypeDeclBuilder })
             assertTrue(r.any { it is NewMethodBuilder })
             assertTrue(driver.getVerticesByProperty(FULL_NAME, STRING_1, TYPE_DECL).size == 1)
+        }
+
+        @Test
+        fun getNonExistentVertexByProperty() {
+            val r1 = driver.getVerticesByProperty(FULL_NAME, "<dne>")
+            assertTrue(r1.isEmpty())
+            val r2 = driver.getVerticesByProperty(FULL_NAME, "<dne>", NAMESPACE_BLOCK)
+            assertTrue(r2.isEmpty())
         }
 
         @Test
