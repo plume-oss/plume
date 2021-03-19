@@ -8,8 +8,12 @@ on:
 
 jobs:
   test:
-    name: Test on JDK 11 and Ubuntu 20.04
-    runs-on: ubuntu-20.04
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ ubuntu-20.04, macos-11.0, windows-2019 ]
+    name: Test on JDK 11 and ${{ matrix.os }}
+    runs-on: ${{ matrix.os }}
 
     steps:
       - uses: actions/checkout@v2
@@ -38,19 +42,27 @@ jobs:
       - name: Run OverflowDb integration tests
         run: ./gradlew overflowDbIntTest
       - name: Run JanusGraph integration tests
+        if: ${{ matrix.os }} != 'ubuntu-20.04'
         run: ./gradlew janusGraphIntTest
       - name: Run TigerGraph integration tests
+        if: ${{ matrix.os }} != 'ubuntu-20.04'
         run: ./gradlew tigerGraphIntTest
       - name: Run Neo4j integration tests
+        if: ${{ matrix.os }} != 'ubuntu-20.04'
         run: ./gradlew neo4jIntTest
 
-      - name: Print logs on fail
-        if: ${{ failure() }}
+      - name: Print logs on fail (Unix)
+        if: ${{ failure() }} && (${{ matrix.os }} == 'ubuntu-20.04' || ${{ matrix.os }} == 'macos-11.0')
         run: echo | cat /tmp/plume/plume-test.log
+      - name: Print logs on fail (Windows)
+        if: ${{ failure() }} && ${{ matrix.os }} == 'windows-2019'
+        run: echo | cat %TEMP%\plume\plume-test.log
 
       - name: Compile coverage report
+        if: ${{ matrix.os }} != 'ubuntu-20.04'
         run: ./gradlew jacocoTestReport
       - name: Upload coverage to Codecov
+        if: ${{ matrix.os }} != 'ubuntu-20.04'
         uses: codecov/codecov-action@v1
         with:
           token: ${{ secrets.CODECOV_TOKEN }}
