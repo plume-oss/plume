@@ -105,11 +105,8 @@ task allTests(
 tasks.withType(Test) {
     useJUnitPlatform()
     testLogging {
-        events "FAILED",
-               "SKIPPED",
-               "STANDARD_ERROR",
-               "STANDARD_OUT"
-        outputs.upToDateWhen {false}
+        events "FAILED", "SKIPPED", "STANDARD_ERROR"
+        outputs.upToDateWhen { false }
         exceptionFormat "FULL"
         showCauses true
         showExceptions true
