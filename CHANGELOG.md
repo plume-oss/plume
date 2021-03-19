@@ -10,6 +10,7 @@ and this project adheres to [Semantic Versioning](http://semver.org/).
 ### Fixed
 - `TigerGraphDriver` bug where empty strings for intentional properties would be unintentionally excluded.
 - `Member.name` and `FieldIdentifier.code` properly handled
+- Fixed temp dir resolution issue on macOS and Windows
 
 ## [0.3.6] - 2021-03-18
 

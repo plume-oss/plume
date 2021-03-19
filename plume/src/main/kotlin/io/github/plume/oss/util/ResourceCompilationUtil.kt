@@ -42,7 +42,9 @@ object ResourceCompilationUtil {
 
     private val logger = LogManager.getLogger(ResourceCompilationUtil::class.java)
 
-    val TEMP_DIR = "${System.getProperty("java.io.tmpdir")}${File.separator}plume"
+    val TEMP_DIR = "${System.getProperty("java.io.tmpdir")}${
+        if (System.getProperty("java.io.tmpdir").endsWith(File.separator)) "" else File.separator
+    }plume"
     val COMP_DIR = "$TEMP_DIR${File.separator}build"
 
     init {
