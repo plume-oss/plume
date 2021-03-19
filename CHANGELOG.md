@@ -5,6 +5,12 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](http://keepachangelog.com/)
 and this project adheres to [Semantic Versioning](http://semver.org/).
 
+## [0.3.7] - [Unreleased]
+
+### Fixed
+- `TigerGraphDriver` bug where empty strings for intentional properties would be unintentionally excluded.
+- `Member.name` and `FieldIdentifier.code` properly handled
+
 ## [0.3.6] - 2021-03-18
 
 ### Added

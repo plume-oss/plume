@@ -420,8 +420,8 @@ class TigerGraphDriver internal constructor() : IOverridenIdDriver, ISchemaSafeD
 
     private fun vertexPayloadToNode(o: JSONObject): NewNodeBuilder {
         val attributes = o["attributes"] as JSONObject
-        val vertexMap = HashMap<String, Any>()
-        attributes.keySet().filter { attributes[it] != "" }
+        val vertexMap = mutableMapOf<String, Any>()
+        attributes.keySet()
             .map {
                 if (it == "id") Pair(it, attributes[it].toString().toLong())
                 else Pair(it.removePrefix("_"), attributes[it])
@@ -556,7 +556,7 @@ class TigerGraphDriver internal constructor() : IOverridenIdDriver, ISchemaSafeD
         )
         val codeControl = CodeControl()
         runCatching {
-            logger.debug("Posting payload \"${payload.replace("\\s".toRegex(), " ").subSequence(0, 40)}...\"")
+            logger.debug("Posting payload:\n$payload")
             codeControl.disableSystemExit()
             val output = executeGsqlClient(args)
             logger.debug(output)
