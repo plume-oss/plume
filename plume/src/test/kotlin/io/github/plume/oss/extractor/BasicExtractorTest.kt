@@ -22,6 +22,7 @@ class BasicExtractorTest {
     companion object {
         private val driver = DriverFactory(GraphDatabase.OVERFLOWDB) as OverflowDbDriver
         private val TEST_PATH = "extractor_tests${File.separator}"
+        private val sep = File.separator
         private lateinit var extractor: Extractor
         private lateinit var g: Graph
         private lateinit var validSourceFile: File
@@ -60,7 +61,7 @@ class BasicExtractorTest {
         g = driver.getWholeGraph()
         val ns = g.nodes().asSequence().toList()
         assertNotNull(ns.filterIsInstance<NamespaceBlock>().find { it.name() == "extractor_tests" })
-        ns.filterIsInstance<ODBFile>().find { it.name() == "/extractor_tests/Test1.class" }
+        ns.filterIsInstance<ODBFile>().find { it.name() == "/extractor_tests/Test1.class".replace("/", sep) }
             .let { assertNotNull(it) }
         ns.filterIsInstance<Method>().find { it.name() == "main" }.let { assertNotNull(it) }
         ns.filterIsInstance<Local>().find { it.name() == "a" }
@@ -80,7 +81,7 @@ class BasicExtractorTest {
         val ns = g.nodes().asSequence().toList()
         assertNotNull(
             ns.filterIsInstance<NamespaceBlock>().find { it.name() == "extractor_tests" })
-        ns.filterIsInstance<ODBFile>().find { it.name() == "/extractor_tests/Test2.class" }
+        ns.filterIsInstance<ODBFile>().find { it.name() == "/extractor_tests/Test2.class".replace("/", sep) }
             .let { assertNotNull(it) }
         ns.filterIsInstance<Method>().find { it.name() == "main" }.let { assertNotNull(it) }
         ns.filterIsInstance<Local>().find { it.name() == "l1" }
@@ -99,8 +100,8 @@ class BasicExtractorTest {
         g = driver.getProgramStructure()
         val ns = g.nodes().asSequence().toList()
         ns.filterIsInstance<ODBFile>().let { fileList ->
-            assertNotNull(fileList.firstOrNull { it.name() == "/extractor_tests/dir_test/Dir1.class" })
-            assertNotNull(fileList.firstOrNull { it.name() == "/extractor_tests/dir_test/pack/Dir2.class" })
+            assertNotNull(fileList.firstOrNull { it.name() == "/extractor_tests/dir_test/Dir1.class".replace("/", sep) })
+            assertNotNull(fileList.firstOrNull { it.name() == "/extractor_tests/dir_test/pack/Dir2.class".replace("/", sep) })
         }
         assertNotNull(
             ns.filterIsInstance<NamespaceBlock>().firstOrNull { it.name() == "extractor_tests.dir_test.pack" })
@@ -114,8 +115,8 @@ class BasicExtractorTest {
         g = driver.getProgramStructure()
         val ns = g.nodes().asSequence().toList()
         ns.filterIsInstance<ODBFile>().let { fileList ->
-            assertNotNull(fileList.firstOrNull { it.name() == "/intraprocedural/basic/Basic6.class" })
-            assertNotNull(fileList.firstOrNull { it.name() == "/intraprocedural/basic/basic6/Basic6.class" })
+            assertNotNull(fileList.firstOrNull { it.name() == "/intraprocedural/basic/Basic6.class".replace("/", sep) })
+            assertNotNull(fileList.firstOrNull { it.name() == "/intraprocedural/basic/basic6/Basic6.class".replace("/", sep) })
         }
         ns.filterIsInstance<NamespaceBlock>().let { nsList ->
             assertNotNull(nsList.firstOrNull { it.name() == "intraprocedural.basic" })

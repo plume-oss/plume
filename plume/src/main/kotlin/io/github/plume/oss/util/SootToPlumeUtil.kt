@@ -15,21 +15,22 @@
  */
 package io.github.plume.oss.util
 
-import io.github.plume.oss.GlobalCache
 import io.github.plume.oss.domain.mappers.ListMapper
 import io.github.plume.oss.domain.mappers.VertexMapper.mapToVertex
 import io.github.plume.oss.drivers.IDriver
 import io.github.plume.oss.util.SootParserUtil.determineEvaluationStrategy
 import io.shiftleft.codepropertygraph.generated.EvaluationStrategies.BY_SHARING
-import io.shiftleft.codepropertygraph.generated.NodeTypes.*
+import io.shiftleft.codepropertygraph.generated.NodeTypes.METHOD
 import io.shiftleft.codepropertygraph.generated.Operators
 import io.shiftleft.codepropertygraph.generated.nodes.*
 import org.apache.logging.log4j.LogManager
 import scala.Option
-import scala.jdk.CollectionConverters
-import soot.*
+import soot.SootClass
+import soot.SootMethod
 import soot.Type
+import soot.Value
 import soot.jimple.*
+import java.io.File
 
 /**
  * A utility class of methods to convert Soot objects to [NewNodeBuilder] items and construct pieces of the CPG.
@@ -125,26 +126,10 @@ object SootToPlumeUtil {
     fun sootClassToFileName(cls: SootClass): String {
         val packageName = cls.packageName
         return if (packageName != null) {
-            "/" + cls.name.replace(".", "/") + ".class"
+            File.separator + cls.name.replace(".", File.separator) + ".class"
         } else {
             io.shiftleft.semanticcpg.language.types.structure.File.UNKNOWN()
         }
-    }
-
-    /**
-     * Obtains corresponding [SootMethod] from the database.
-     *
-     * @param mtd The [SootMethod] to obtain from the database.
-     * @param driver The [IDriver] via which the method should get obtained from.
-     * @return The method vertex if found, null if otherwise.
-     */
-    private fun getMethodFromSootMethod(mtd: SootMethod, driver: IDriver): NewMethodBuilder? {
-        val (fullName, _, _) = methodToStrings(mtd)
-        var returnMtd: NewMethodBuilder? = null
-        driver.getMethod(fullName).use { g ->
-            if (g.nodes(METHOD).hasNext()) returnMtd = mapToVertex(g.nodes(METHOD).next()) as NewMethodBuilder
-        }
-        return returnMtd
     }
 
     /**
@@ -168,19 +153,19 @@ object SootToPlumeUtil {
      * Creates a [NewTypeRef] from a [Value].
      */
     fun createTypeRefVertex(
-            type: Type,
-            currentLine: Int,
-            currentCol: Int,
-            childIdx: Int = 1
+        type: Type,
+        currentLine: Int,
+        currentCol: Int,
+        childIdx: Int = 1
     ): NewTypeRefBuilder =
-            NewTypeRefBuilder()
-                    .code(type.toString())
-                    .order(childIdx)
-                    .argumentIndex(childIdx)
-                    .dynamicTypeHintFullName(ListMapper.stringToScalaList(type.toQuotedString()))
-                    .typeFullName(type.toQuotedString())
-                    .lineNumber(Option.apply(currentLine))
-                    .columnNumber(Option.apply(currentCol))
+        NewTypeRefBuilder()
+            .code(type.toString())
+            .order(childIdx)
+            .argumentIndex(childIdx)
+            .dynamicTypeHintFullName(ListMapper.stringToScalaList(type.toQuotedString()))
+            .typeFullName(type.toQuotedString())
+            .lineNumber(Option.apply(currentLine))
+            .columnNumber(Option.apply(currentCol))
 
 
     /**
