@@ -3,6 +3,7 @@ package io.github.plume.oss.querying
 import io.github.plume.oss.PlumeCodeToCpgSuite
 import io.shiftleft.semanticcpg.language._
 import io.shiftleft.semanticcpg.language.types.structure.File
+import java.io.{File => JFile}
 
 class FileTests extends PlumeCodeToCpgSuite {
 
@@ -20,9 +21,9 @@ class FileTests extends PlumeCodeToCpgSuite {
 
   "should contain exactly two non-placeholder file with absolute path in `name`" in {
     val List(x, y) = cpg.file.nameNot(File.UNKNOWN).l
-    x.name should startWith("/")
+    x.name should startWith(JFile.separator)
     x.hash.isDefined shouldBe true
-    y.name should startWith("/")
+    y.name should startWith(JFile.separator)
     y.hash.isDefined shouldBe false
   }
 
@@ -31,7 +32,7 @@ class FileTests extends PlumeCodeToCpgSuite {
   }
 
   "should allow traversing from file to its methods via namespace block" in {
-    cpg.file.name("/a/b/Foo.class").method.name.toSet shouldBe Set("<init>", "bar")
+    cpg.file.name("/a/b/Foo.class".replace("/", s"\\${JFile.separator}")).method.name.toSet shouldBe Set("<init>", "bar")
   }
 
   "should allow traversing from file to its type declarations via namespace block" in {
