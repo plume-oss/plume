@@ -14,8 +14,6 @@ jobs:
         os: [ ubuntu-20.04, macos-10.15, windows-2019 ]
     name: Test on JDK 11 and ${{ matrix.os }}
     runs-on: ${{ matrix.os }}
-    env:
-      TEMP_DIR: runner.temp
 
     steps:
       - uses: actions/checkout@v2
@@ -44,20 +42,20 @@ jobs:
       - name: Run OverflowDb integration tests
         run: ./gradlew overflowDbIntTest
       - name: Run JanusGraph integration tests
-        if: ${{ runner.os }} == Linux
+        if: runner.os == 'Linux'
         run: ./gradlew janusGraphIntTest
       - name: Run TigerGraph integration tests
-        if: ${{ runner.os }} == Linux
+        if: runner.os == 'Linux'
         run: ./gradlew tigerGraphIntTest
       - name: Run Neo4j integration tests
-        if: ${{ runner.os }} == Linux
+        if: runner.os == 'Linux'
         run: ./gradlew neo4jIntTest
 
       - name: Compile coverage report
-        if: ${{ runner.os }} == Linux
+        if: runner.os == 'Linux'
         run: ./gradlew jacocoTestReport
       - name: Upload coverage to Codecov
-        if: ${{ runner.os }} == Linux
+        if: runner.os == 'Linux'
         uses: codecov/codecov-action@v1
         with:
           token: ${{ secrets.CODECOV_TOKEN }}
