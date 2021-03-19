@@ -1,6 +1,7 @@
 package io.github.plume.oss.querying
 import io.github.plume.oss.PlumeCodeToCpgSuite
 import io.shiftleft.semanticcpg.language._
+import java.io.File
 
 class MethodTests extends PlumeCodeToCpgSuite {
 
@@ -20,7 +21,7 @@ class MethodTests extends PlumeCodeToCpgSuite {
     x.signature shouldBe "int(int,int)"
     x.isExternal shouldBe false
     x.order shouldBe 1
-    x.filename.startsWith("/") shouldBe true
+    x.filename.startsWith(File.separator) shouldBe true
     x.filename.endsWith(".class") shouldBe true
     x.lineNumber shouldBe Some(2)
     // x.lineNumberEnd shouldBe Some(3)

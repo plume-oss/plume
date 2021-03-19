@@ -8,8 +8,12 @@ on:
 
 jobs:
   test:
-    name: Test on JDK 11 and Ubuntu 20.04
-    runs-on: ubuntu-20.04
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ ubuntu-20.04, macos-10.15, windows-2019 ]
+    name: Test on JDK 11 and ${{ matrix.os }}
+    runs-on: ${{ matrix.os }}
 
     steps:
       - uses: actions/checkout@v2
@@ -38,19 +42,20 @@ jobs:
       - name: Run OverflowDb integration tests
         run: ./gradlew overflowDbIntTest
       - name: Run JanusGraph integration tests
+        if: runner.os == 'Linux'
         run: ./gradlew janusGraphIntTest
       - name: Run TigerGraph integration tests
+        if: runner.os == 'Linux'
         run: ./gradlew tigerGraphIntTest
       - name: Run Neo4j integration tests
+        if: runner.os == 'Linux'
         run: ./gradlew neo4jIntTest
 
-      - name: Print logs on fail
-        if: ${{ failure() }}
-        run: echo | cat /tmp/plume/plume-test.log
-
       - name: Compile coverage report
+        if: runner.os == 'Linux'
         run: ./gradlew jacocoTestReport
       - name: Upload coverage to Codecov
+        if: runner.os == 'Linux'
         uses: codecov/codecov-action@v1
         with:
           token: ${{ secrets.CODECOV_TOKEN }}

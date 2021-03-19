@@ -102,68 +102,64 @@ task allTests(
         ]
 ) { group = "verification" }
 
-test {
+tasks.withType(Test) {
     useJUnitPlatform()
+    testLogging {
+        events "FAILED", "SKIPPED", "STANDARD_ERROR"
+        outputs.upToDateWhen { false }
+        exceptionFormat "FULL"
+        showCauses true
+        showExceptions true
+        showStackTraces true
+    }
+}
+
+test {
     exclude "**/*IntTest*", "**/extractor/**"
-    testLogging { events "FAILED", "SKIPPED" }
 }
 
 task extractorTest(type: Test) {
-    useJUnitPlatform()
     description = "Execute extractor tests."
     group = "verification"
     include "**/extractor/**"
-    testLogging { events "FAILED", "SKIPPED" }
 }
 
 task tinkerGraphIntTest(type: Test) {
-    useJUnitPlatform()
     description = "Execute TinkerGraph integration tests."
     group = "verification"
     include "**/*TinkerGraph*"
-    testLogging { events "FAILED", "SKIPPED" }
 }
 
 task overflowDbIntTest(type: Test) {
-    useJUnitPlatform()
     description = "Execute OverflowDb integration tests."
     group = "verification"
     include "**/*OverflowDb*"
-    testLogging { events "FAILED", "SKIPPED" }
 }
 
 task janusGraphIntTest(type: Test) {
-    useJUnitPlatform()
     description = "Execute JanusGraph integration tests."
     group = "verification"
     include "**/*JanusGraph*"
-    testLogging { events "FAILED", "SKIPPED" }
     doFirst { dockerCompose.exposeAsEnvironment(janusGraphIntTest) }
 }
 
 task tigerGraphIntTest(type: Test) {
-    useJUnitPlatform()
     description = "Execute TigerGraph integration tests."
     group = "verification"
     include "**/*TigerGraph*"
-    testLogging { events "FAILED", "SKIPPED" }
     doFirst { dockerCompose.exposeAsEnvironment(tigerGraphIntTest) }
 }
 
 task neptuneIntTest(type: Test) {
-    useJUnitPlatform()
     description = "Execute Neptune integration tests."
     group = "verification"
     include "**/*Neptune*"
-    testLogging { events "FAILED", "SKIPPED" }
 }
 
 task neo4jIntTest(type: Test) {
-    useJUnitPlatform()
     description = "Execute Neo4j integration tests."
     group = "verification"
     include "**/*Neo4j*"
-    testLogging { events "FAILED", "SKIPPED" }
     doFirst { dockerCompose.exposeAsEnvironment(neo4jIntTest) }
 }
 

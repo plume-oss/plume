@@ -39,10 +39,17 @@ import kotlin.streams.toList
 
 
 object ResourceCompilationUtil {
+
     private val logger = LogManager.getLogger(ResourceCompilationUtil::class.java)
 
-    val TEMP_DIR = "${System.getProperty("java.io.tmpdir")}${File.separator}plume"
+    val TEMP_DIR = "${System.getProperty("java.io.tmpdir")}${
+        if (System.getProperty("java.io.tmpdir").endsWith(File.separator)) "" else File.separator
+    }plume"
     val COMP_DIR = "$TEMP_DIR${File.separator}build"
+
+    init {
+        logger.info("Using temporary folder at $TEMP_DIR")
+    }
 
     /**
      * Given paths to a Java source files, programmatically compiles the source (.java) files.
@@ -50,7 +57,7 @@ object ResourceCompilationUtil {
      * @param files the source files to compile.
      * @throws PlumeCompileException if there is no suitable Java compiler found.
      */
-    fun compileJavaFiles(files: List<PlumeFile>): List<JavaClassFile> {
+    private fun compileJavaFiles(files: List<PlumeFile>): List<JavaClassFile> {
         if (files.isEmpty()) return emptyList()
         val javac = getJavaCompiler()
         val fileManager = javac.getStandardFileManager(null, null, null)
@@ -124,7 +131,7 @@ object ResourceCompilationUtil {
             // Copy zipped files across
             zip.entries().asSequence().filter { !it.isDirectory }.forEach { entry ->
                 val destFile = File(COMP_DIR + File.separator + entry.name)
-                val dirName = destFile.absolutePath.substringBeforeLast('/')
+                val dirName = destFile.absolutePath.substringBeforeLast(File.separator)
                 // Create directory path
                 File(dirName).mkdirs()
                 runCatching {

@@ -25,7 +25,7 @@ class SwitchIntraproceduralTest {
         private val driver = DriverFactory(GraphDatabase.TINKER_GRAPH) as TinkerGraphDriver
         private lateinit var g: Graph
         private var PATH: File
-        private val TEST_PATH = "intraprocedural${File.separator}switches"
+        private val TEST_PATH = "intraprocedural/switches"
 
         init {
             val testFileUrl = SwitchIntraproceduralTest::class.java.classLoader.getResource(TEST_PATH)

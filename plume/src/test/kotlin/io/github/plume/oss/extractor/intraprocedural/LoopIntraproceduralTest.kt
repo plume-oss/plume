@@ -23,7 +23,7 @@ class LoopIntraproceduralTest {
         private val driver = DriverFactory(GraphDatabase.TINKER_GRAPH) as TinkerGraphDriver
         private lateinit var g: Graph
         private var PATH: File
-        private val TEST_PATH = "intraprocedural${File.separator}loop"
+        private val TEST_PATH = "intraprocedural/loop"
 
         init {
             val testFileUrl = LoopIntraproceduralTest::class.java.classLoader.getResource(TEST_PATH)
