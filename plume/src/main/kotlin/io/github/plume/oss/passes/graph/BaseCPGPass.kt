@@ -456,7 +456,7 @@ class BaseCPGPass(private val g: BriefUnitGraph) {
             val condBody: NewJumpTargetBuilder = if (it == unit.target) {
                 NewJumpTargetBuilder()
                     .name(ExtractorConst.FALSE_TARGET)
-                    .argumentIndex(0)
+                    .argumentIndex(1)
                     .lineNumber(Option.apply(it.javaSourceStartLineNumber))
                     .columnNumber(Option.apply(it.javaSourceStartColumnNumber))
                     .code("ELSE_BODY")
@@ -464,7 +464,7 @@ class BaseCPGPass(private val g: BriefUnitGraph) {
             } else {
                 NewJumpTargetBuilder()
                     .name(ExtractorConst.TRUE_TARGET)
-                    .argumentIndex(1)
+                    .argumentIndex(2)
                     .lineNumber(Option.apply(it.javaSourceStartLineNumber))
                     .columnNumber(Option.apply(it.javaSourceStartColumnNumber))
                     .code("IF_BODY")
@@ -521,14 +521,14 @@ class BaseCPGPass(private val g: BriefUnitGraph) {
             .lineNumber(Option.apply(unit.javaSourceStartLineNumber))
             .columnNumber(Option.apply(unit.javaSourceStartColumnNumber))
         when (leftOp) {
-            is Local -> SootToPlumeUtil.createIdentifierVertex(leftOp, currentLine, currentCol, 0).apply {
+            is Local -> SootToPlumeUtil.createIdentifierVertex(leftOp, currentLine, currentCol, 1).apply {
                 addToCache(leftOp, this)
             }
-            is FieldRef -> projectFieldAccess(leftOp, 0)
+            is FieldRef -> projectFieldAccess(leftOp, 1)
                 .apply {
                     addToCache(leftOp.field, this)
                 }
-            is ArrayRef -> SootToPlumeUtil.createArrayRefIdentifier(leftOp, currentLine, currentCol, 0)
+            is ArrayRef -> SootToPlumeUtil.createArrayRefIdentifier(leftOp, currentLine, currentCol, 1)
                 .apply {
                     addToCache(leftOp.base, this)
                 }
@@ -542,14 +542,12 @@ class BaseCPGPass(private val g: BriefUnitGraph) {
         }?.let {
             builder.addEdge(assignBlock, it, AST)
             builder.addEdge(assignBlock, it, ARGUMENT)
-            if (it is NewCallBuilder) builder.addEdge(assignBlock, it, RECEIVER)
             assignVariables.add(it)
             addToCache(leftOp, it)
         }
         projectOp(rightOp, 1)?.let {
             builder.addEdge(assignBlock, it, AST)
             builder.addEdge(assignBlock, it, ARGUMENT)
-            if (it is NewCallBuilder) builder.addEdge(assignBlock, it, RECEIVER)
             assignVariables.add(it)
             addToCache(rightOp, it)
         }
@@ -581,13 +579,13 @@ class BaseCPGPass(private val g: BriefUnitGraph) {
             .lineNumber(Option.apply(currentLine))
             .columnNumber(Option.apply(currentCol))
             .apply { binopVertices.add(this) }
-        projectOp(expr.op1, 0)?.let {
+        projectOp(expr.op1, 1)?.let {
             builder.addEdge(binOpBlock, it, AST)
             builder.addEdge(binOpBlock, it, ARGUMENT)
             binopVertices.add(it)
             addToCache(expr.op1, it)
         }
-        projectOp(expr.op2, 1)?.let {
+        projectOp(expr.op2, 2)?.let {
             builder.addEdge(binOpBlock, it, AST)
             builder.addEdge(binOpBlock, it, ARGUMENT)
             binopVertices.add(it)
@@ -695,7 +693,7 @@ class BaseCPGPass(private val g: BriefUnitGraph) {
             .code("${leftOp.toQuotedString()}.${fieldRef.field.name}")
             .signature("")
             .methodFullName(Operators.fieldAccess)
-            .dispatchType(if (fieldRef.fieldRef.isStatic) DispatchTypes.STATIC_DISPATCH else DispatchTypes.DYNAMIC_DISPATCH)
+            .dispatchType(DispatchTypes.STATIC_DISPATCH)
             .dynamicTypeHintFullName(ListMapper.stringToScalaList(leftOp.toQuotedString()))
             .order(childIdx)
             .argumentIndex(childIdx)
@@ -748,7 +746,8 @@ class BaseCPGPass(private val g: BriefUnitGraph) {
             .lineNumber(Option.apply(ret.javaSourceStartLineNumber))
             .columnNumber(Option.apply(ret.javaSourceStartColumnNumber))
             .order(childIdx)
-        projectOp(ret.op, childIdx + 1)?.let { builder.addEdge(retV, it, AST) }
+        projectOp(ret.op, childIdx + 1)?.let { builder.addEdge(retV, it, AST)
+        builder.addEdge(retV, it, ARGUMENT)}
         GlobalCache.getMethodCache(g.body.method)
             .firstOrNull { it is NewBlockBuilder }
             ?.let { block -> builder.addEdge(block, retV, AST) }
