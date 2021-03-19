@@ -16,7 +16,7 @@ import java.io.FileOutputStream
 class UpdateGraphTest {
     companion object {
         private val driver = DriverFactory(GraphDatabase.TINKER_GRAPH) as TinkerGraphDriver
-        private val TEST_PATH = "extractor_tests${File.separator}update_test${File.separator}"
+        private val TEST_PATH = "extractor_tests/update_test/"
         private lateinit var extractor: Extractor
         private lateinit var testFile1: File
         private lateinit var testFile2: File

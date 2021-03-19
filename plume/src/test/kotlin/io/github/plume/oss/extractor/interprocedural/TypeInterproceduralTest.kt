@@ -21,7 +21,7 @@ class TypeInterproceduralTest {
         private val driver = DriverFactory(GraphDatabase.TINKER_GRAPH) as TinkerGraphDriver
         private lateinit var g: Graph
         private var PATH: File
-        private val TEST_PATH = "interprocedural${File.separator}type"
+        private val TEST_PATH = "interprocedural/type"
 
         init {
             val testFileUrl = TypeInterproceduralTest::class.java.classLoader.getResource(TEST_PATH)

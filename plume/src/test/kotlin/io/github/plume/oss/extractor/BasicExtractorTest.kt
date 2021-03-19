@@ -21,7 +21,7 @@ import io.shiftleft.codepropertygraph.generated.nodes.File as ODBFile
 class BasicExtractorTest {
     companion object {
         private val driver = DriverFactory(GraphDatabase.OVERFLOWDB) as OverflowDbDriver
-        private val TEST_PATH = "extractor_tests${File.separator}"
+        private val TEST_PATH = "extractor_tests/"
         private val sep = File.separator
         private lateinit var extractor: Extractor
         private lateinit var g: Graph

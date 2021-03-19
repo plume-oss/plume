@@ -24,7 +24,7 @@ class InheritanceInterproceduralTest {
         private val TEST_PATH = "interprocedural${File.separator}inheritance"
 
         init {
-            val testFileUrl = InheritanceInterproceduralTest::class.java.classLoader.getResource(TEST_PATH)
+            val testFileUrl = InheritanceInterproceduralTest::class.java.classLoader.getResource(TEST_PATH.replace(File.separator, "/"))
                 ?: throw NullPointerException("Unable to obtain test resource")
             PATH = File(testFileUrl.file)
             CLS_PATH = File(
@@ -45,6 +45,7 @@ class InheritanceInterproceduralTest {
         ExtractorOptions.callGraphAlg = ExtractorOptions.CallGraphAlg.NONE
         // Load test resource and project + export graph
         val f = File(CLS_PATH.absolutePath + File.separator + TEST_PATH)
+        println(f.absolutePath)
         extractor.load(f).project()
         g = driver.getWholeGraph()
         // Check calls

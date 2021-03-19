@@ -21,7 +21,7 @@ class ArithmeticTest {
         private val driver = DriverFactory(GraphDatabase.TINKER_GRAPH) as TinkerGraphDriver
         private lateinit var g: Graph
         private var PATH: File
-        private val TEST_PATH = "intraprocedural${File.separator}arithmetic"
+        private val TEST_PATH = "intraprocedural/arithmetic"
 
         init {
             val testFileUrl = ArithmeticTest::class.java.classLoader.getResource(TEST_PATH)
