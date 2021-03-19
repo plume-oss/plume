@@ -230,7 +230,7 @@ object SootToPlumeUtil {
     ): NewFieldIdentifierBuilder =
         NewFieldIdentifierBuilder()
             .canonicalName(field.field.signature)
-            .code(field.field.declaration)
+            .code(field.field.name)
             .argumentIndex(childIdx)
             .lineNumber(Option.apply(currentLine))
             .columnNumber(Option.apply(currentCol))
