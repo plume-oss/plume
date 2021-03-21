@@ -1,4 +1,4 @@
-package io.github.plume.oss
+package io.github.plume.oss.cache
 
 import io.github.plume.oss.domain.model.DeltaGraph
 import io.shiftleft.codepropertygraph.generated.nodes.*
@@ -12,13 +12,15 @@ import java.util.concurrent.ConcurrentHashMap
  */
 object GlobalCache {
 
-    private val methodCache = ConcurrentHashMap<SootMethod, MutableList<NewNodeBuilder>>()
+    private val methodBodyCache = ConcurrentHashMap<SootMethod, MutableList<NewNodeBuilder>>()
     private val fHashes = ConcurrentHashMap<SootClass, String>()
     private val savedCallGraphEdges = ConcurrentHashMap<String, MutableList<NewCallBuilder>>()
     private val typeCache = ConcurrentHashMap<String, NewTypeBuilder>()
     private val typeDeclCache = ConcurrentHashMap<String, NewTypeDeclBuilder>()
     private val fileCache = ConcurrentHashMap<String, NewFileBuilder>()
     private val callCache = mutableMapOf<InvokeExpr, NewCallBuilder>()
+    private val methodCache = ConcurrentHashMap<String, NewMethodBuilder>()
+    private val namespaceBlockCache = mutableMapOf<String, NewNamespaceBlockBuilder>()
 
     /**
      * Caches already built method bodies to save database requests during SCPG passes.
@@ -48,6 +50,19 @@ object GlobalCache {
     }
 
     fun getCall(i: InvokeExpr): NewCallBuilder? = callCache[i]
+
+    fun addMethod(m: NewMethodBuilder) {
+        methodCache[m.build().fullName()] = m
+    }
+
+    fun getMethod(name: String): NewMethodBuilder? = methodCache[name]
+
+    fun addNamespaceBlock(m: NewNamespaceBlockBuilder) {
+        namespaceBlockCache[m.build().fullName()] = m
+    }
+
+    fun getNamespaceBlock(name: String): NewNamespaceBlockBuilder? = namespaceBlockCache[name]
+
     /**
      * Caches the given Soot method to the given [NewNodeBuilder].
      *
@@ -56,9 +71,9 @@ object GlobalCache {
      * @param index The index to place the associated [NewNodeBuilder] at.
      */
     fun addToMethodCache(sootMtd: SootMethod, node: NewNodeBuilder, index: Int = -1) {
-        if (!methodCache.containsKey(sootMtd)) methodCache[sootMtd] = mutableListOf(node)
-        else if (index <= -1) methodCache[sootMtd]?.add(node)
-        else methodCache[sootMtd]?.add(index, node)
+        if (!methodBodyCache.containsKey(sootMtd)) methodBodyCache[sootMtd] = mutableListOf(node)
+        else if (index <= -1) methodBodyCache[sootMtd]?.add(node)
+        else methodBodyCache[sootMtd]?.add(index, node)
     }
 
     /**
@@ -69,9 +84,9 @@ object GlobalCache {
      * @param index The index to place the associated [NewNodeBuilder](s) at.
      */
     fun addToMethodCache(sootMtd: SootMethod, nodes: MutableList<NewNodeBuilder>, index: Int = -1) {
-        if (!methodCache.containsKey(sootMtd)) methodCache[sootMtd] = nodes
-        else if (index <= -1) methodCache[sootMtd]?.addAll(nodes)
-        else methodCache[sootMtd]?.addAll(index, nodes)
+        if (!methodBodyCache.containsKey(sootMtd)) methodBodyCache[sootMtd] = nodes
+        else if (index <= -1) methodBodyCache[sootMtd]?.addAll(nodes)
+        else methodBodyCache[sootMtd]?.addAll(index, nodes)
     }
 
     /**
@@ -79,7 +94,7 @@ object GlobalCache {
      *
      * @param sootMtd The method from Soot to cache for.
      */
-    fun getMethodCache(sootMtd: SootMethod): List<NewNodeBuilder> = methodCache[sootMtd] ?: emptyList()
+    fun getMethodCache(sootMtd: SootMethod): List<NewNodeBuilder> = methodBodyCache[sootMtd] ?: emptyList()
 
     /**
      * Associates the given [SootClass] with its source file's hash.
@@ -118,11 +133,21 @@ object GlobalCache {
 
     fun clear() {
         fHashes.clear()
-        methodCache.clear()
+        methodBodyCache.clear()
         savedCallGraphEdges.clear()
         typeCache.clear()
         typeDeclCache.clear()
         fileCache.clear()
         callCache.clear()
+        methodCache.clear()
+        namespaceBlockCache.clear()
+    }
+
+    fun <K, V> createLRUMap(maxEntries: Int): Map<K, V> {
+        return object : LinkedHashMap<K, V>(maxEntries * 10 / 7, 0.7f, true) {
+            override fun removeEldestEntry(eldest: Map.Entry<K, V>?): Boolean {
+                return size > maxEntries
+            }
+        }
     }
 }

@@ -1,6 +1,7 @@
 package io.github.plume.oss.passes.structure
 
-import io.github.plume.oss.GlobalCache
+import io.github.plume.oss.cache.CacheManager
+import io.github.plume.oss.cache.GlobalCache
 import io.github.plume.oss.domain.mappers.VertexMapper
 import io.github.plume.oss.drivers.IDriver
 import io.github.plume.oss.passes.IProgramStructurePass
@@ -20,7 +21,9 @@ import soot.SootClass
  * involves deleting the associated FILE, METHOD, TYPE_DECL and any V where (TYPE_DECL)-AST->(v).
  */
 class MarkForRebuildPass(private val driver: IDriver) : IProgramStructurePass {
+
     private val logger: Logger = LogManager.getLogger(MarkForRebuildPass::javaClass)
+    private val cacheManager = CacheManager(driver)
 
     private enum class FileChange { UPDATE, NEW, NOP }
 
@@ -45,18 +48,17 @@ class MarkForRebuildPass(private val driver: IDriver) : IProgramStructurePass {
      */
     private fun checkIfClassNeedsAnUpdate(c: SootClass): Pair<SootClass, FileChange> {
         val newCName = SootToPlumeUtil.sootClassToFileName(c)
-        driver.getVerticesByProperty(NAME, newCName, FILE).firstOrNull()
-            ?.let { oldCNode: NewNodeBuilder ->
-                val currentCHash = GlobalCache.getFileHash(c)
-                logger.info("Found an existing class with name ${c.name}...")
-                return if (oldCNode.build().properties().get(HASH).get() != currentCHash) {
-                    logger.info("Class hashes differ, marking ${c.name} for rebuild.")
-                    Pair(c, FileChange.UPDATE)
-                } else {
-                    logger.info("Classes are identical - no update necessary.")
-                    Pair(c, FileChange.NOP)
-                }
+        cacheManager.tryGetFile(newCName)?.let { oldCNode: NewNodeBuilder ->
+            val currentCHash = GlobalCache.getFileHash(c)
+            logger.info("Found an existing class with name ${c.name}...")
+            return if (oldCNode.build().properties().get(HASH).get() != currentCHash) {
+                logger.info("Class hashes differ, marking ${c.name} for rebuild.")
+                Pair(c, FileChange.UPDATE)
+            } else {
+                logger.info("Classes are identical - no update necessary.")
+                Pair(c, FileChange.NOP)
             }
+        }
         logger.debug("No existing class for ${c.name} found.")
         return Pair(c, FileChange.NEW)
     }
@@ -65,12 +67,12 @@ class MarkForRebuildPass(private val driver: IDriver) : IProgramStructurePass {
         val newCName = SootToPlumeUtil.sootClassToFileName(c)
         driver.getVerticesByProperty(NAME, newCName, FILE).firstOrNull()
             ?.let { oldCNode: NewNodeBuilder ->
-            driver.getNeighbours(oldCNode).use { fNeighbours ->
-                val nodes = fNeighbours.nodes().asSequence().toList()
-                dropTypeDecl(nodes, c.type.toQuotedString())
-                dropFile(oldCNode)
+                driver.getNeighbours(oldCNode).use { fNeighbours ->
+                    val nodes = fNeighbours.nodes().asSequence().toList()
+                    dropTypeDecl(nodes, c.type.toQuotedString())
+                    dropFile(oldCNode)
+                }
             }
-        }
     }
 
     private fun dropMethod(m: Method) {

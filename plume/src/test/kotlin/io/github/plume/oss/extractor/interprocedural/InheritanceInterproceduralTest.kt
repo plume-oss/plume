@@ -45,7 +45,6 @@ class InheritanceInterproceduralTest {
         ExtractorOptions.callGraphAlg = ExtractorOptions.CallGraphAlg.NONE
         // Load test resource and project + export graph
         val f = File(CLS_PATH.absolutePath + File.separator + TEST_PATH)
-        println(f.absolutePath)
         extractor.load(f).project()
         g = driver.getWholeGraph()
         // Check calls

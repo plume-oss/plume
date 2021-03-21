@@ -1,6 +1,6 @@
 package io.github.plume.oss.passes
 
-import io.github.plume.oss.GlobalCache
+import io.github.plume.oss.cache.GlobalCache
 import io.github.plume.oss.domain.model.DeltaGraph
 import io.github.plume.oss.drivers.IDriver
 import io.github.plume.oss.util.DiffGraphUtil

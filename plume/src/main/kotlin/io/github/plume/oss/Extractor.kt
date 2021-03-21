@@ -15,6 +15,8 @@
  */
 package io.github.plume.oss
 
+import io.github.plume.oss.cache.CacheManager
+import io.github.plume.oss.cache.GlobalCache
 import io.github.plume.oss.domain.exceptions.PlumeCompileException
 import io.github.plume.oss.domain.files.*
 import io.github.plume.oss.domain.model.DeltaGraph
@@ -43,13 +45,13 @@ import io.github.plume.oss.util.SootToPlumeUtil
 import io.shiftleft.codepropertygraph.generated.EdgeTypes.INHERITS_FROM
 import io.shiftleft.codepropertygraph.generated.NodeKeyNames.*
 import io.shiftleft.codepropertygraph.generated.NodeTypes.*
-import io.shiftleft.codepropertygraph.generated.nodes.NewFileBuilder
 import io.shiftleft.codepropertygraph.generated.nodes.NewMetaDataBuilder
-import io.shiftleft.codepropertygraph.generated.nodes.NewTypeBuilder
-import io.shiftleft.codepropertygraph.generated.nodes.NewTypeDeclBuilder
 import kotlinx.coroutines.channels.Channel
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.runBlocking
+import me.tongfei.progressbar.ProgressBar
+import me.tongfei.progressbar.ProgressBarStyle
+import org.apache.logging.log4j.Level
 import org.apache.logging.log4j.LogManager
 import org.apache.logging.log4j.Logger
 import soot.*
@@ -62,6 +64,8 @@ import java.io.IOException
 import java.nio.file.Files
 import java.nio.file.Path
 import java.nio.file.Paths
+import java.time.Duration
+import java.time.temporal.ChronoUnit
 import java.util.concurrent.Executors
 import java.util.stream.Collectors
 import java.util.zip.ZipFile
@@ -73,9 +77,10 @@ import kotlin.streams.asSequence
  * @param driver the [IDriver] with which the graph will be constructed with.
  */
 class Extractor(val driver: IDriver) {
-    private val logger: Logger = LogManager.getLogger(Extractor::javaClass)
 
+    private val logger: Logger = LogManager.getLogger(Extractor::javaClass)
     private val loadedFiles: HashSet<PlumeFile> = HashSet()
+    private val cacheManager = CacheManager(driver)
 
     init {
         File(COMP_DIR).let { f -> if (f.exists()) f.deleteRecursively(); f.deleteOnExit() }
@@ -171,7 +176,6 @@ class Extractor(val driver: IDriver) {
         val csToBuild = mutableListOf<SootClass>()
         PlumeTimer.measure(ExtractorTimeKey.PROGRAM_STRUCTURE_BUILDING) {
             // First read the existing TYPE, TYPE_DECL, and FILEs from the driver and load it into the cache
-            populateGlobalTypeCache()
             pipeline(
                 MarkForRebuildPass(driver)::runPass,
                 FileAndPackagePass(driver)::runPass,
@@ -238,9 +242,9 @@ class Extractor(val driver: IDriver) {
         */
         PlumeTimer.measure(ExtractorTimeKey.PROGRAM_STRUCTURE_BUILDING) {
             parentToChildCs.forEach { (c, children) ->
-                GlobalCache.getType(c.type.toQuotedString())?.let { t ->
+                cacheManager.tryGetType(c.type.toQuotedString())?.let { t ->
                     children.intersect(csToBuild)
-                        .mapNotNull { child -> GlobalCache.getTypeDecl(child.type.toQuotedString()) }
+                        .mapNotNull { child -> cacheManager.tryGetTypeDecl(child.type.toQuotedString()) }
                         .forEach { td -> driver.addEdge(td, t, INHERITS_FROM) }
                 }
             }
@@ -249,66 +253,7 @@ class Extractor(val driver: IDriver) {
         /*
             Construct the CPGs for methods
          */
-        PlumeTimer.measure(ExtractorTimeKey.BASE_CPG_BUILDING) {
-            val allMs: List<SootMethod> = (parentToChildCs.flatMap { it.second + it.first }.flatMap { it.methods }
-                    + sootUnitGraphs.map { it.body.method }).distinct().toList()
-            val existingMs = driver.getPropertyFromVertices<String>(FULL_NAME, METHOD).toSet()
-            // Create method heads while avoiding duplication
-            val headsToBuild = allMs.filterNot { sm ->
-                val (fullName, _, _) = SootToPlumeUtil.methodToStrings(sm)
-                existingMs.contains(fullName)
-            }
-            // Create method bodies while avoiding duplication
-            val bodiesToBuild = sootUnitGraphs.filterNot { sm ->
-                val (fullName, _, _) = SootToPlumeUtil.methodToStrings(sm.body.method)
-                existingMs.contains(fullName)
-            }.toList()
-            val chunkSize = ExtractorOptions.methodChunkSize
-            val nThreads = (bodiesToBuild.size / chunkSize)
-                .coerceAtLeast(1)
-                .coerceAtMost(Runtime.getRuntime().availableProcessors())
-            val channel = Channel<DeltaGraph>()
-            logger.info(
-                """
-                Building ${headsToBuild.size} method heads and ${bodiesToBuild.size} method bodies over $nThreads thread(s).
-            """.trimIndent()
-            )
-            // Create jobs in chunks and submit these jobs to a thread pool
-            val threadPool = Executors.newFixedThreadPool(nThreads)
-            try {
-                runBlocking {
-                    // Producer: Build method bodies and channel them through as delta graphs
-                    launch {
-                        headsToBuild.chunked(chunkSize)
-                            .map { chunk -> Runnable { buildMethodHeads(chunk, channel) } }
-                            .forEach(threadPool::submit)
-                    }
-                    // Consumer: Receive delta graphs and write changes to the driver in serial
-                    launch {
-                        repeat(headsToBuild.size) { channel.receive().apply(driver) }
-                        logger.debug("All ${headsToBuild.size} method heads have been applied to the driver")
-                    }.join() // Suspend until the channel is fully consumed.
-                }
-                runBlocking {
-                    // Producer: Build method bodies and channel them through as delta graphs
-                    launch {
-                        bodiesToBuild.chunked(chunkSize)
-                            .map { chunk -> Runnable { buildBaseCPGs(chunk, channel) } }
-                            .forEach(threadPool::submit)
-                    }
-                    // Consumer: Receive delta graphs and write changes to the driver in serial
-                    launch {
-                        repeat(bodiesToBuild.size) { channel.receive().apply(driver) }
-                        logger.debug("All ${bodiesToBuild.size} method bodies have been applied to the driver")
-                        channel.close()
-                    }.join() // Suspend until the channel is fully consumed.
-                }
-                // Connect call edges
-                CGPass(driver).runPass(bodiesToBuild)
-            } finally {
-                threadPool.shutdown()
-            }
-        }
+        PlumeTimer.measure(ExtractorTimeKey.BASE_CPG_BUILDING) { buildMethods(parentToChildCs, sootUnitGraphs) }
         // Clear all Soot resources and cache
         clear()
         GlobalCache.clear()
@@ -321,24 +266,116 @@ class Extractor(val driver: IDriver) {
         return this
     }
 
+    private fun buildMethods(
+        parentToChildCs: MutableList<Pair<SootClass, Set<SootClass>>>,
+        sootUnitGraphs: MutableList<BriefUnitGraph>
+    ) {
+        val allMs: List<SootMethod> = (parentToChildCs.flatMap { it.second + it.first }.flatMap { it.methods }
+                + sootUnitGraphs.map { it.body.method }).distinct().toList()
+        val existingMs = driver.getPropertyFromVertices<String>(FULL_NAME, METHOD).toSet()
+        // Create method heads while avoiding duplication
+        val headsToBuild = allMs.filterNot { sm ->
+            val (fullName, _, _) = SootToPlumeUtil.methodToStrings(sm)
+            existingMs.contains(fullName)
+        }
+        // Create method bodies while avoiding duplication
+        val bodiesToBuild = sootUnitGraphs.filterNot { sm ->
+            val (fullName, _, _) = SootToPlumeUtil.methodToStrings(sm.body.method)
+            existingMs.contains(fullName)
+        }.toList()
+        val chunkSize = ExtractorOptions.methodChunkSize
+        val nThreads = (bodiesToBuild.size / chunkSize)
+            .coerceAtLeast(1)
+            .coerceAtMost(Runtime.getRuntime().availableProcessors())
+        val channel = Channel<DeltaGraph>()
+        logger.info("Spawning $nThreads thread(s).")
+        // Create jobs in chunks and submit these jobs to a thread pool
+        val threadPool = Executors.newFixedThreadPool(nThreads)
+        try {
+            logger.info("Building ${headsToBuild.size} method heads")
+            runBlocking {
+                // Producer: Build method bodies and channel them through as delta graphs
+                launch {
+                    headsToBuild.chunked(chunkSize)
+                        .map { chunk -> Runnable { buildMethodHeads(chunk, channel) } }
+                        .forEach(threadPool::submit)
+                }
+                // Consumer: Receive delta graphs and write changes to the driver in serial
+                launch {
+                    runInsideProgressBar("Method Heads", headsToBuild.size.toLong()) { pb ->
+                        repeat(headsToBuild.size) { launch { channel.receive().apply(driver); pb?.step() } }
+                    }
+                    logger.debug("All ${headsToBuild.size} method heads have been applied to the driver")
+                }.join() // Suspend until the channel is fully consumed.
+            }
+            logger.info("Building ${bodiesToBuild.size} method bodies")
+            runBlocking {
+                // Producer: Build method bodies and channel them through as delta graphs
+                launch {
+                    bodiesToBuild.chunked(chunkSize)
+                        .map { chunk -> Runnable { buildBaseCPGs(chunk, channel) } }
+                        .forEach(threadPool::submit)
+                }
+                // Consumer: Receive delta graphs and write changes to the driver in serial
+                launch {
+                    runInsideProgressBar("Method Bodies", bodiesToBuild.size.toLong()) { pb ->
+                        repeat(bodiesToBuild.size) { launch { channel.receive().apply(driver); pb?.step() } }
+                    }
+                    logger.debug("All ${bodiesToBuild.size} method bodies have been applied to the driver")
+                }.join() // Suspend until the channel is fully consumed.
+            }
+        } finally {
+            threadPool.shutdown()
+        }
+        // Connect call edges. This is not done in parallel but asynchronously
+        logger.info("Constructing call graph edges")
+        runBlocking {
+            if (ExtractorOptions.callGraphAlg != ExtractorOptions.CallGraphAlg.NONE) {
+                // Producer: Build method calls and channel them through as delta graphs
+                launch {
+                    bodiesToBuild.chunked(chunkSize)
+                        .forEach { chunk -> buildCallGraph(chunk, channel) }
+                }
+                // Consumer: Receive delta graphs and write changes to the driver in serial
+                launch {
+                    runInsideProgressBar("Method Calls", bodiesToBuild.size.toLong()) { pb ->
+                        repeat(bodiesToBuild.size) { launch { channel.receive().apply(driver); pb?.step() } }
+                    }
+                    logger.debug("All ${bodiesToBuild.size} method calls have been applied to the driver")
+                }.join() // Suspend until the channel is fully consumed.
+            }
+        }
+        channel.close()
+    }
+
+    private fun runInsideProgressBar(pbName: String, barMax: Long, f: (pb: ProgressBar?) -> Unit) {
+        val level = logger.level
+        if (level >= Level.INFO) {
+            ProgressBar(
+                pbName,
+                barMax,
+                1000,
+                System.out,
+                ProgressBarStyle.ASCII,
+                "",
+                1,
+                false,
+                null,
+                ChronoUnit.SECONDS,
+                0L,
+                Duration.ZERO
+            ).use { pb -> f(pb) }
+        } else {
+            f(null)
+        }
+    }
+
     private fun loadedFileGroupCount(): Triple<Int?, Int?, Int?> {
         val groupedFs = loadedFiles.groupBy { it.fileType }.mapValues { it.value.size }.toMap()
         val nCs = if (groupedFs.containsKey(PlumeFileType.JAVA_CLASS)) groupedFs[PlumeFileType.JAVA_CLASS] else 0
         val nSs = if (groupedFs.containsKey(PlumeFileType.JAVA_SOURCE)) groupedFs[PlumeFileType.JAVA_SOURCE] else 0
         val nUs = if (groupedFs.containsKey(PlumeFileType.UNSUPPORTED)) groupedFs[PlumeFileType.UNSUPPORTED] else 0
         return Triple(nCs, nSs, nUs)
-    }
-
-    private fun populateGlobalTypeCache() {
-        driver.getVerticesOfType(TYPE)
-            .filterIsInstance<NewTypeBuilder>()
-            .forEach(GlobalCache::addType)
-        driver.getVerticesOfType(TYPE_DECL)
-            .filterIsInstance<NewTypeDeclBuilder>()
-            .forEach(GlobalCache::addTypeDecl)
-        driver.getVerticesOfType(FILE)
-            .filterIsInstance<NewFileBuilder>()
-            .forEach(GlobalCache::addFile)
     }
 
     private fun <T> pipeline(vararg functions: (T) -> T): (T) -> T =
@@ -350,13 +387,7 @@ class Extractor(val driver: IDriver) {
      * @param ms The list of method heads as [SootMethod]s.
      */
     private fun buildMethodHeads(ms: List<SootMethod>, channel: Channel<DeltaGraph>) = runBlocking {
-        ms.forEach { m ->
-            launch {
-                val dg = MethodStubPass(m).runPass()
-                channel.send(dg)
-                // TODO: Cache these
-            }
-        }
+        ms.forEach { m -> launch { channel.send(MethodStubPass(m).runPass()) } }
     }
 
     /**
@@ -373,6 +404,15 @@ class Extractor(val driver: IDriver) {
                 GlobalCache.methodBodies[fullName] = dg
             }
         }
+    }
+
+    /**
+     * Constructs the CALL edges concurrently.
+     *
+     * @param gs The list of method bodies as [BriefUnitGraph]s.
+     */
+    private fun buildCallGraph(gs: List<BriefUnitGraph>, channel: Channel<DeltaGraph>) = runBlocking {
+        gs.forEach { g -> launch { channel.send(CGPass(g, driver).runPass()) } }
     }
 
     /**

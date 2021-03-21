@@ -43,6 +43,7 @@ dependencies {
     compile "org.slf4j:jul-to-slf4j:$slf4jVersion" // JUL bridge
     compile "org.slf4j:jcl-over-slf4j:$slf4jVersion" // Apache Commons Logging (JCL) bridge
     compile "org.slf4j:log4j-over-slf4j:$slf4jVersion" // log4j1.2 bridge
+    compile "me.tongfei:progressbar:$progressBarVersion" // simple progress bar
 
     // Core dependencies
     implementation "org.apache.tinkerpop:gremlin-core:$gremlinVersion"
@@ -58,6 +59,7 @@ dependencies {
     implementation "io.shiftleft:semanticcpg_2.13:$shiftleftVersion"
     implementation "org.soot-oss:soot:$sootVersion"
     implementation "org.lz4:lz4-java:$lz4Version"
+    implementation "com.github.ben-manes.caffeine:caffeine:$caffeineVersion"
 
     // Sub-project integration
     subProject project(":cpgconv")

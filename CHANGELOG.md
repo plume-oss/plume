@@ -5,6 +5,14 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](http://keepachangelog.com/)
 and this project adheres to [Semantic Versioning](http://semver.org/).
 
+## [0.3.8] - [Unreleased]
+
+### Added
+- Progress bar when logging level is `>= Level.INFO` for method related operations
+
+### Changed
+- Improved the node caching and centralized `tryGet` and `getOrMake`-style operations to `CacheManager.kt`
+
 ## [0.3.7] - 2021-03-19
 
 ### Fixed

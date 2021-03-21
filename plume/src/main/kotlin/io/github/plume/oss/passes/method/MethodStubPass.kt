@@ -1,6 +1,6 @@
 package io.github.plume.oss.passes.method
 
-import io.github.plume.oss.GlobalCache
+import io.github.plume.oss.cache.GlobalCache
 import io.github.plume.oss.domain.model.DeltaGraph
 import io.github.plume.oss.passes.IMethodPass
 import io.github.plume.oss.util.ExtractorConst
@@ -17,6 +17,8 @@ import soot.SootMethod
 
 /**
  * Builds the method stubs which includes modifiers, parameters, and method returns.
+ *
+ * @param m The method head to build off of.
  */
 class MethodStubPass(private val m: SootMethod) : IMethodPass {
 
@@ -60,6 +62,7 @@ class MethodStubPass(private val m: SootMethod) : IMethodPass {
             .astParentFullName("${m.declaringClass}")
             .astParentType(TYPE_DECL)
         GlobalCache.addToMethodCache(m, mtdVertex)
+        GlobalCache.addMethod(mtdVertex)
         // Store method vertex
         NewBlockBuilder()
             .typeFullName(m.returnType.toQuotedString())

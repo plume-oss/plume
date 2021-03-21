@@ -1,6 +1,6 @@
 package io.github.plume.oss.passes.graph
 
-import io.github.plume.oss.GlobalCache
+import io.github.plume.oss.cache.GlobalCache
 import io.github.plume.oss.domain.mappers.ListMapper
 import io.github.plume.oss.domain.model.DeltaGraph
 import io.github.plume.oss.util.ExtractorConst
