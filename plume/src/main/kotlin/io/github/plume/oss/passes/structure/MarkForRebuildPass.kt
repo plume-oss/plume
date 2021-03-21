@@ -1,7 +1,7 @@
 package io.github.plume.oss.passes.structure
 
 import io.github.plume.oss.cache.CacheManager
-import io.github.plume.oss.cache.GlobalCache
+import io.github.plume.oss.cache.NodeCache
 import io.github.plume.oss.domain.mappers.VertexMapper
 import io.github.plume.oss.drivers.IDriver
 import io.github.plume.oss.passes.IProgramStructurePass
@@ -49,7 +49,7 @@ class MarkForRebuildPass(private val driver: IDriver) : IProgramStructurePass {
     private fun checkIfClassNeedsAnUpdate(c: SootClass): Pair<SootClass, FileChange> {
         val newCName = SootToPlumeUtil.sootClassToFileName(c)
         cacheManager.tryGetFile(newCName)?.let { oldCNode: NewNodeBuilder ->
-            val currentCHash = GlobalCache.getFileHash(c)
+            val currentCHash = NodeCache.getFileHash(c)
             logger.info("Found an existing class with name ${c.name}...")
             return if (oldCNode.build().properties().get(HASH).get() != currentCHash) {
                 logger.info("Class hashes differ, marking ${c.name} for rebuild.")
@@ -90,7 +90,7 @@ class MarkForRebuildPass(private val driver: IDriver) : IProgramStructurePass {
                         ns.V(m1.id()).next().`in`(CALL).asSequence()
                             .filterIsInstance<Call>()
                             .forEach {
-                                GlobalCache.saveCallEdge(
+                                NodeCache.saveCallEdge(
                                     m2Build.fullName(),
                                     VertexMapper.mapToVertex(it) as NewCallBuilder
                                 )

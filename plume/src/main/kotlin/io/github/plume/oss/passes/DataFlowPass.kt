@@ -1,6 +1,6 @@
 package io.github.plume.oss.passes
 
-import io.github.plume.oss.cache.GlobalCache
+import io.github.plume.oss.cache.NodeCache
 import io.github.plume.oss.domain.model.DeltaGraph
 import io.github.plume.oss.drivers.IDriver
 import io.github.plume.oss.util.DiffGraphUtil
@@ -37,10 +37,10 @@ class DataFlowPass(private val driver: IDriver) {
             val bufferedChannel = Channel<DeltaGraph>()
             val g = Graph.open(Config.withDefaults(), NodeFactories.allAsJava(), EdgeFactories.allAsJava())
             // Producer
-            GlobalCache.methodBodies.values.forEach { mg -> launch { bufferedChannel.send(mg) } }
+            NodeCache.methodBodies.values.forEach { mg -> launch { bufferedChannel.send(mg) } }
             // Single consumer
             launch {
-                repeat(GlobalCache.methodBodies.size) { bufferedChannel.receive().toOverflowDb(g) }
+                repeat(NodeCache.methodBodies.size) { bufferedChannel.receive().toOverflowDb(g) }
                 bufferedChannel.close()
             }.join() // Suspend until the channel is fully consumed.
             // Run passes

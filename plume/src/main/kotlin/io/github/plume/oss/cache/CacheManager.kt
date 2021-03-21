@@ -18,10 +18,10 @@ import java.io.File
 class CacheManager(private val driver: IDriver) {
 
     fun tryGetFile(name: String): NewFileBuilder? =
-        GlobalCache.getFile(name) ?: (driver.getVerticesByProperty(
+        NodeCache.getFile(name) ?: (driver.getVerticesByProperty(
             NAME, name,
             FILE
-        ).firstOrNull() as NewFileBuilder?)?.apply { GlobalCache.addFile(this) }
+        ).firstOrNull() as NewFileBuilder?)?.apply { NodeCache.addFile(this) }
 
     /**
      * This will first see if there is a FILE in the cache, if not then will look in the graph,
@@ -29,20 +29,20 @@ class CacheManager(private val driver: IDriver) {
      */
     fun getOrMakeFile(c: SootClass): NewFileBuilder {
         val fileName = SootToPlumeUtil.sootClassToFileName(c)
-        val fileHash = GlobalCache.getFileHash(c)
+        val fileHash = NodeCache.getFileHash(c)
         return tryGetFile(fileName)
             ?: (NewFileBuilder()
                 .name(fileName)
                 .order(1)
                 .hash(Option.apply(fileHash)))
-                .apply { GlobalCache.addFile(this) }
+                .apply { NodeCache.addFile(this) }
     }
 
     fun tryGetNamespaceBlock(fullName: String): NewNamespaceBlockBuilder? =
-        GlobalCache.getNamespaceBlock(fullName) ?: (driver.getVerticesByProperty(
+        NodeCache.getNamespaceBlock(fullName) ?: (driver.getVerticesByProperty(
             FULL_NAME, fullName, NAMESPACE_BLOCK
         ).firstOrNull() as NewNamespaceBlockBuilder?)?.apply {
-            GlobalCache.addNamespaceBlock(this)
+            NodeCache.addNamespaceBlock(this)
         }
 
     /**
@@ -57,29 +57,29 @@ class CacheManager(private val driver: IDriver) {
             .order(1)
             .name(c.packageName)
             .fullName("$fileName:${c.packageName}")).apply {
-                GlobalCache.addNamespaceBlock(this)
+                NodeCache.addNamespaceBlock(this)
             }
     }
 
-    fun tryGetType(fullName: String): NewTypeBuilder? = GlobalCache.getType(fullName)
+    fun tryGetType(fullName: String): NewTypeBuilder? = NodeCache.getType(fullName)
         ?: (driver.getVerticesByProperty(
             FULL_NAME,
             fullName,
             TYPE
-        ).firstOrNull() as NewTypeBuilder?)?.apply { GlobalCache.addType(this) }
+        ).firstOrNull() as NewTypeBuilder?)?.apply { NodeCache.addType(this) }
 
     fun getOrMakeType(t: Type): NewTypeBuilder {
         val fullName = t.toQuotedString()
         val shortName = if (fullName.contains('.')) fullName.substringAfterLast('.') else fullName
         return tryGetType(fullName) ?: NewTypeBuilder().name(shortName)
             .fullName(fullName)
-            .typeDeclFullName(fullName).apply { GlobalCache.addType(this) }
+            .typeDeclFullName(fullName).apply { NodeCache.addType(this) }
     }
 
     fun tryGetTypeDecl(fullName: String): NewTypeDeclBuilder? =
-        GlobalCache.getTypeDecl(fullName) ?: (driver.getVerticesByProperty(
+        NodeCache.getTypeDecl(fullName) ?: (driver.getVerticesByProperty(
             FULL_NAME, fullName, TYPE_DECL
-        ).firstOrNull() as NewTypeDeclBuilder?)?.apply { GlobalCache.addTypeDecl(this) }
+        ).firstOrNull() as NewTypeDeclBuilder?)?.apply { NodeCache.addTypeDecl(this) }
 
     fun getOrMakeTypeDecl(t: Type): NewTypeDeclBuilder {
         val fullName = t.toQuotedString()
@@ -102,10 +102,10 @@ class CacheManager(private val driver: IDriver) {
     }
 
     fun tryGetGlobalTypeDecl(fullName: String): NewTypeDeclBuilder? =
-        GlobalCache.getTypeDecl(fullName)
+        NodeCache.getTypeDecl(fullName)
             ?: (driver.getVerticesByProperty(
                 FULL_NAME, fullName, TYPE_DECL
-            ).firstOrNull() as NewTypeDeclBuilder?)?.apply { GlobalCache.addTypeDecl(this) }
+            ).firstOrNull() as NewTypeDeclBuilder?)?.apply { NodeCache.addTypeDecl(this) }
 
     fun getOrMakeGlobalTypeDecl(t: Type): NewTypeDeclBuilder {
         return tryGetGlobalTypeDecl(t.toQuotedString())
@@ -116,13 +116,13 @@ class CacheManager(private val driver: IDriver) {
                 .order(-1)
                 .filename(UNKNOWN)
                 .astParentType(NAMESPACE_BLOCK)
-                .astParentFullName(GLOBAL)).apply { GlobalCache.addTypeDecl(this) }
+                .astParentFullName(GLOBAL)).apply { NodeCache.addTypeDecl(this) }
     }
 
-    fun tryGetGlobalType(fullName: String): NewTypeBuilder? = GlobalCache.getType(fullName)
+    fun tryGetGlobalType(fullName: String): NewTypeBuilder? = NodeCache.getType(fullName)
         ?: (driver.getVerticesByProperty(
             FULL_NAME, fullName, TYPE
-        ).firstOrNull() as NewTypeBuilder?)?.apply { GlobalCache.addType(this) }
+        ).firstOrNull() as NewTypeBuilder?)?.apply { NodeCache.addType(this) }
 
     fun getOrMakeGlobalType(t: Type): NewTypeBuilder {
         val tdFullName = t.toQuotedString()
@@ -133,7 +133,7 @@ class CacheManager(private val driver: IDriver) {
                 .name(shortName)
                 .fullName(tdFullName)
                 .typeDeclFullName(tdFullName)
-                    ).apply { GlobalCache.addType(this) }
+                    ).apply { NodeCache.addType(this) }
     }
 
 }

@@ -1,7 +1,7 @@
 package io.github.plume.oss.passes.structure
 
 import io.github.plume.oss.cache.CacheManager
-import io.github.plume.oss.cache.GlobalCache
+import io.github.plume.oss.cache.NodeCache
 import io.github.plume.oss.drivers.IDriver
 import io.github.plume.oss.passes.IProgramStructurePass
 import io.github.plume.oss.util.ExtractorConst.GLOBAL
@@ -58,13 +58,13 @@ class FileAndPackagePass(private val driver: IDriver) : IProgramStructurePass {
         if (cacheManager.tryGetFile(UNKNOWN) == null) {
             val unknownFile = NewFileBuilder().name(UNKNOWN).order(0).hash(Option.apply(UNKNOWN))
             driver.addVertex(unknownFile)
-            GlobalCache.addFile(unknownFile)
+            NodeCache.addFile(unknownFile)
         }
         if (cacheManager.tryGetNamespaceBlock(GLOBAL) == null) {
             val gNamespace = NewNamespaceBuilder().name(GLOBAL).order(0)
             val gNamespaceBlock = NewNamespaceBlockBuilder().name(GLOBAL).fullName(GLOBAL).order(0).filename("")
             driver.addEdge(gNamespaceBlock, gNamespace, REF)
-            GlobalCache.addNamespaceBlock(gNamespaceBlock)
+            NodeCache.addNamespaceBlock(gNamespaceBlock)
             namespaceCache[GLOBAL] = gNamespace
         }
     }

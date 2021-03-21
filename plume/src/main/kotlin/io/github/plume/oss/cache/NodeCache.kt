@@ -8,12 +8,12 @@ import soot.jimple.InvokeExpr
 import java.util.concurrent.ConcurrentHashMap
 
 /**
- * A cache to reduce read calls to the database.
+ * A node cache to reduce read calls to the database.
  */
-object GlobalCache {
+object NodeCache {
 
     private val methodBodyCache = ConcurrentHashMap<SootMethod, MutableList<NewNodeBuilder>>()
-    private val fHashes = ConcurrentHashMap<SootClass, String>()
+    private val fileHashes = ConcurrentHashMap<SootClass, String>()
     private val savedCallGraphEdges = ConcurrentHashMap<String, MutableList<NewCallBuilder>>()
     private val typeCache = ConcurrentHashMap<String, NewTypeBuilder>()
     private val typeDeclCache = ConcurrentHashMap<String, NewTypeDeclBuilder>()
@@ -103,7 +103,7 @@ object GlobalCache {
      * @param hash The hash for the file's contents.
      */
     fun putFileHash(cls: SootClass, hash: String) {
-        fHashes[cls] = hash
+        fileHashes[cls] = hash
     }
 
     /**
@@ -111,7 +111,7 @@ object GlobalCache {
      *
      * @param cls The representative [SootClass].
      */
-    fun getFileHash(cls: SootClass) = fHashes[cls]
+    fun getFileHash(cls: SootClass) = fileHashes[cls]
 
     /**
      * Saves call graph edges to the [NewMethod] from the [NewCallBuilder].
@@ -132,7 +132,7 @@ object GlobalCache {
     fun getCallEdgeIn(fullName: String) = savedCallGraphEdges[fullName]
 
     fun clear() {
-        fHashes.clear()
+        fileHashes.clear()
         methodBodyCache.clear()
         savedCallGraphEdges.clear()
         typeCache.clear()

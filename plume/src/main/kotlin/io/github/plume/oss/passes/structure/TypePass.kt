@@ -1,7 +1,7 @@
 package io.github.plume.oss.passes.structure
 
 import io.github.plume.oss.cache.CacheManager
-import io.github.plume.oss.cache.GlobalCache
+import io.github.plume.oss.cache.NodeCache
 import io.github.plume.oss.drivers.IDriver
 import io.github.plume.oss.passes.IProgramStructurePass
 import io.github.plume.oss.util.SootParserUtil
@@ -56,7 +56,7 @@ open class TypePass(private val driver: IDriver) : IProgramStructurePass {
      */
     private fun linkSourceFile(c: SootClass, t: NewTypeDeclBuilder) {
         val fileName = SootToPlumeUtil.sootClassToFileName(c)
-        GlobalCache.getFile(fileName)?.let { f ->
+        NodeCache.getFile(fileName)?.let { f ->
             logger.debug("Linking file $f to type ${c.type.toQuotedString()}")
             driver.addEdge(t, f, SOURCE_FILE)
             driver.addEdge(f, t, CONTAINS)

@@ -15,7 +15,7 @@
  */
 package io.github.plume.oss.passes.graph
 
-import io.github.plume.oss.cache.GlobalCache
+import io.github.plume.oss.cache.NodeCache
 import io.github.plume.oss.domain.model.DeltaGraph
 import io.github.plume.oss.drivers.IDriver
 import io.github.plume.oss.passes.IUnitGraphPass
@@ -49,7 +49,7 @@ class CGPass(private val g: BriefUnitGraph, private val driver: IDriver) : IUnit
         val mtd = g.body.method
         logger.debug("Building call graph edges for ${mtd.declaringClass.name}:${mtd.name}")
         // If this was an updated method, connect call graphs
-        GlobalCache.getMethodCache(mtd).filterIsInstance<NewMethodBuilder>()
+        NodeCache.getMethodCache(mtd).filterIsInstance<NewMethodBuilder>()
             .firstOrNull()?.let { reconnectPriorCallGraphEdges(it) }
         // Connect all calls to their methods
         this.g.body.units.filterNot { it is IdentityStmt }.forEach(this::projectUnit)
@@ -62,13 +62,13 @@ class CGPass(private val g: BriefUnitGraph, private val driver: IDriver) : IUnit
         // If Soot points to the assignment as the call source then this is most likely from the rightOp.
         val srcUnit = if (unit is AssignStmt) unit.rightOp else unit
         when (srcUnit) {
-            is InvokeExpr -> GlobalCache.getCall(srcUnit)
-            is InvokeStmt -> GlobalCache.getCall(srcUnit.invokeExpr)
+            is InvokeExpr -> NodeCache.getCall(srcUnit)
+            is InvokeStmt -> NodeCache.getCall(srcUnit.invokeExpr)
             else -> null
         }?.let { callV ->
             var foundAndConnectedCallTgt = false
             edges.forEach { e: Edge ->
-                GlobalCache.getMethodCache(e.tgt.method())
+                NodeCache.getMethodCache(e.tgt.method())
                     .filterIsInstance<NewMethodBuilder>()
                     .firstOrNull()?.let { tgtPlumeVertex ->
                         builder.addEdge(callV, tgtPlumeVertex, CALL)
@@ -88,14 +88,14 @@ class CGPass(private val g: BriefUnitGraph, private val driver: IDriver) : IUnit
     }
 
     private fun getMethodHead(fullName: String): NewNodeBuilder? =
-        GlobalCache.getMethod(fullName)
+        NodeCache.getMethod(fullName)
             ?: driver.getVerticesByProperty(FULL_NAME, fullName, METHOD).firstOrNull()
-                ?.apply { GlobalCache.addMethod(this as NewMethodBuilder) }
+                ?.apply { NodeCache.addMethod(this as NewMethodBuilder) }
 
 
     private fun reconnectPriorCallGraphEdges(mtdV: NewMethodBuilder) {
         val mtd = mtdV.build()
-        GlobalCache.getCallEdgeIn(mtd.fullName())?.let { incomingVs ->
+        NodeCache.getCallEdgeIn(mtd.fullName())?.let { incomingVs ->
             if (incomingVs.isNotEmpty()) {
                 logger.debug("Saved call graph edges found - reconnecting incoming call graph edges")
                 incomingVs.forEach { inV -> builder.addEdge(inV, mtdV, CALL) }

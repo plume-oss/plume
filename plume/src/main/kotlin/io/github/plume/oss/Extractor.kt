@@ -16,7 +16,7 @@
 package io.github.plume.oss
 
 import io.github.plume.oss.cache.CacheManager
-import io.github.plume.oss.cache.GlobalCache
+import io.github.plume.oss.cache.NodeCache
 import io.github.plume.oss.domain.exceptions.PlumeCompileException
 import io.github.plume.oss.domain.files.*
 import io.github.plume.oss.domain.model.DeltaGraph
@@ -256,13 +256,13 @@ class Extractor(val driver: IDriver) {
         PlumeTimer.measure(ExtractorTimeKey.BASE_CPG_BUILDING) { buildMethods(parentToChildCs, sootUnitGraphs) }
         // Clear all Soot resources and cache
         clear()
-        GlobalCache.clear()
+        NodeCache.clear()
         /*
             Method body level analysis - only done on new/updated methods
          */
         logger.info("Running data flow passes")
         PlumeTimer.measure(ExtractorTimeKey.DATA_FLOW_PASS) { DataFlowPass(driver).runPass() }
-        GlobalCache.methodBodies.clear()
+        NodeCache.methodBodies.clear()
         return this
     }
 
@@ -401,7 +401,7 @@ class Extractor(val driver: IDriver) {
                 val dg = BaseCPGPass(g).runPass()
                 channel.send(dg)
                 val (fullName, _, _) = SootToPlumeUtil.methodToStrings(g.body.method)
-                GlobalCache.methodBodies[fullName] = dg
+                NodeCache.methodBodies[fullName] = dg
             }
         }
     }
@@ -485,7 +485,7 @@ class Extractor(val driver: IDriver) {
             .map { clsPair: Pair<File, SootClass> ->
                 val f = clsPair.first
                 val c = clsPair.second
-                c.setApplicationClass(); GlobalCache.putFileHash(c, f.hashCode().toString())
+                c.setApplicationClass(); NodeCache.putFileHash(c, f.hashCode().toString())
                 c
             }
         when (ExtractorOptions.callGraphAlg) {
