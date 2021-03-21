@@ -9,6 +9,8 @@ and this project adheres to [Semantic Versioning](http://semver.org/).
 
 ### Added
 - Progress bar when logging level is `>= Level.INFO` for method related operations
+- Added cache2k to handle caching
+- `CacheMetrics` to track hits and misses
 
 ### Changed
 - Improved the node caching and centralized `tryGet` and `getOrMake`-style operations to `DriverCache.kt`

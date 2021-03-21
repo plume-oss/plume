@@ -4,6 +4,7 @@ import io.github.plume.oss.store.DriverCache
 import io.github.plume.oss.drivers.IDriver
 import io.github.plume.oss.passes.ITypePass
 import io.github.plume.oss.passes.structure.TypePass
+import io.github.plume.oss.store.LocalCache
 import io.github.plume.oss.util.ExtractorConst.GLOBAL
 import io.github.plume.oss.util.ExtractorConst.UNKNOWN
 import io.shiftleft.codepropertygraph.generated.EdgeTypes.*
@@ -33,8 +34,9 @@ class GlobalTypePass(private val driver: IDriver) : ITypePass {
      *     TYPE_DECL -(AST)-> *MODIFIER ?
      */
     override fun runPass(ts: List<Type>): List<Type> {
-        val n = driver.getVerticesByProperty(NAME, GLOBAL, NAMESPACE_BLOCK).first()
-        val f = driver.getVerticesByProperty(NAME, UNKNOWN, FILE).first()
+        // These should not be null as this pass has already happened prior and should be in cache
+        val n = cache.tryGetNamespaceBlock(GLOBAL)!!
+        val f = cache.tryGetFile(UNKNOWN)!!
         // Fill up cache
         ts.filterNot { it is RefType }
             .map { Pair(cache.getOrMakeGlobalTypeDecl(it), it) }
@@ -43,9 +45,7 @@ class GlobalTypePass(private val driver: IDriver) : ITypePass {
                 driver.addEdge(n, td, AST)
                 driver.addEdge(td, f, SOURCE_FILE)
                 driver.addEdge(f, td, CONTAINS)
-                cache.getOrMakeGlobalType(st).apply {
-                    driver.addEdge(this, td, REF)
-                }
+                cache.getOrMakeGlobalType(st).apply { driver.addEdge(this, td, REF) }
             }
         return ts
     }

@@ -1,6 +1,7 @@
 package io.github.plume.oss.store
 
 import io.github.plume.oss.drivers.IDriver
+import io.github.plume.oss.util.ExtractorConst
 import io.github.plume.oss.util.ExtractorConst.GLOBAL
 import io.github.plume.oss.util.SootToPlumeUtil
 import io.shiftleft.codepropertygraph.generated.NodeKeyNames.FULL_NAME
@@ -151,7 +152,7 @@ class DriverCache(private val driver: IDriver) {
                 .fullName(t.toQuotedString())
                 .isExternal(false)
                 .order(-1)
-                .filename(UNKNOWN)
+                .filename(ExtractorConst.UNKNOWN)
                 .astParentType(NAMESPACE_BLOCK)
                 .astParentFullName(GLOBAL)).apply { LocalCache.addTypeDecl(this) }
     }
