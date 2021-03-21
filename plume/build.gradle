@@ -59,7 +59,8 @@ dependencies {
     implementation "io.shiftleft:semanticcpg_2.13:$shiftleftVersion"
     implementation "org.soot-oss:soot:$sootVersion"
     implementation "org.lz4:lz4-java:$lz4Version"
-    implementation "com.github.ben-manes.caffeine:caffeine:$caffeineVersion"
+    implementation "org.cache2k:cache2k-api:$cache2kVersion"
+    runtimeOnly "org.cache2k:cache2k-core:$cache2kVersion"
 
     // Sub-project integration
     subProject project(":cpgconv")
