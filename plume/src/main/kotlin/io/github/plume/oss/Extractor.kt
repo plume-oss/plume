@@ -256,8 +256,7 @@ class Extractor(val driver: IDriver) {
          */
         PlumeTimer.measure(ExtractorTimeKey.BASE_CPG_BUILDING) { buildMethods(parentToChildCs, sootUnitGraphs) }
         // Clear all Soot resources and storage
-        clear()
-        PlumeStorage.clear()
+        this.clear()
         /*
             Method body level analysis - only done on new/updated methods
          */
@@ -502,6 +501,7 @@ class Extractor(val driver: IDriver) {
      * Clears build resources, loaded files, and resets Soot.
      */
     private fun clear() {
+        PlumeStorage.clear()
         loadedFiles.clear()
         File(COMP_DIR).deleteRecursively()
         G.reset()

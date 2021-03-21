@@ -4,6 +4,7 @@ import io.github.plume.oss.store.DriverCache
 import io.github.plume.oss.domain.mappers.VertexMapper
 import io.github.plume.oss.drivers.IDriver
 import io.github.plume.oss.passes.IProgramStructurePass
+import io.github.plume.oss.store.LocalCache
 import io.github.plume.oss.store.PlumeStorage
 import io.github.plume.oss.util.SootToPlumeUtil
 import io.shiftleft.codepropertygraph.generated.EdgeTypes.*
@@ -65,8 +66,8 @@ class MarkForRebuildPass(private val driver: IDriver) : IProgramStructurePass {
 
     private fun dropClassFromGraph(c: SootClass) {
         val newCName = SootToPlumeUtil.sootClassToFileName(c)
-        driver.getVerticesByProperty(NAME, newCName, FILE).firstOrNull()
-            ?.let { oldCNode: NewNodeBuilder ->
+        driver.getVerticesByProperty(NAME, newCName, FILE).filterIsInstance<NewFileBuilder>().firstOrNull()
+            ?.let { oldCNode: NewFileBuilder ->
                 driver.getNeighbours(oldCNode).use { fNeighbours ->
                     val nodes = fNeighbours.nodes().asSequence().toList()
                     dropTypeDecl(nodes, c.type.toQuotedString())
@@ -101,8 +102,10 @@ class MarkForRebuildPass(private val driver: IDriver) : IProgramStructurePass {
         }
     }
 
-    private fun dropFile(c: NewNodeBuilder) {
-        logger.debug("Deleting $FILE for ${c.build().properties().get(NAME).get()}")
+    private fun dropFile(c: NewFileBuilder) {
+        val fileName = c.build().name()
+        logger.debug("Deleting $FILE for $fileName")
+        LocalCache.removeFile(fileName)
         driver.deleteVertex(c.id(), FILE)
     }
 
@@ -111,6 +114,8 @@ class MarkForRebuildPass(private val driver: IDriver) : IProgramStructurePass {
             .filter { it.property(FULL_NAME) == typeFullName }
             .forEach { typeDecl ->
                 logger.debug("Deleting $TYPE_DECL $typeFullName")
+                LocalCache.removeTypeDecl(typeFullName)
+                LocalCache.removeType(typeFullName)
                 driver.getNeighbours(VertexMapper.mapToVertex(typeDecl)).use { n ->
                     n.nodes(typeDecl.id()).next()
                         .out(AST)
