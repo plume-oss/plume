@@ -1,8 +1,9 @@
 package io.github.plume.oss.passes.method
 
-import io.github.plume.oss.cache.NodeCache
+import io.github.plume.oss.store.LocalCache
 import io.github.plume.oss.domain.model.DeltaGraph
 import io.github.plume.oss.passes.IMethodPass
+import io.github.plume.oss.store.PlumeStorage
 import io.github.plume.oss.util.ExtractorConst
 import io.github.plume.oss.util.SootParserUtil
 import io.github.plume.oss.util.SootParserUtil.determineEvaluationStrategy
@@ -35,11 +36,11 @@ class MethodStubPass(private val m: SootMethod) : IMethodPass {
         val mNode = buildMethodStub(m)
         val typeFullName = m.declaringClass.type.toQuotedString()
         val filename = SootToPlumeUtil.sootClassToFileName(m.declaringClass)
-        NodeCache.getTypeDecl(typeFullName)?.let { t ->
+        LocalCache.getTypeDecl(typeFullName)?.let { t ->
             builder.addEdge(t, mNode, AST)
             builder.addEdge(t, mNode, CONTAINS)
         }
-        NodeCache.getFile(filename)?.let { f -> builder.addEdge(mNode, f, SOURCE_FILE) }
+        LocalCache.getFile(filename)?.let { f -> builder.addEdge(mNode, f, SOURCE_FILE) }
         return builder.build()
     }
 
@@ -61,8 +62,8 @@ class MethodStubPass(private val m: SootMethod) : IMethodPass {
             .order(childIdx++)
             .astParentFullName("${m.declaringClass}")
             .astParentType(TYPE_DECL)
-        NodeCache.addToMethodCache(m, mtdVertex)
-        NodeCache.addMethod(mtdVertex)
+        PlumeStorage.storeMethodNode(m, mtdVertex)
+        PlumeStorage.addMethod(mtdVertex)
         // Store method vertex
         NewBlockBuilder()
             .typeFullName(m.returnType.toQuotedString())
@@ -71,10 +72,10 @@ class MethodStubPass(private val m: SootMethod) : IMethodPass {
             .argumentIndex(0)
             .lineNumber(Option.apply(currentLine))
             .columnNumber(Option.apply(currentCol))
-            .apply { builder.addEdge(mtdVertex, this, AST); NodeCache.addToMethodCache(m, this) }
+            .apply { builder.addEdge(mtdVertex, this, AST); PlumeStorage.storeMethodNode(m, this) }
         // Store return type
         val mtdRet = projectMethodReturnVertex(m.returnType, currentLine, currentCol, childIdx++)
-            .apply { builder.addEdge(mtdVertex, this, AST); NodeCache.addToMethodCache(m, this) }
+            .apply { builder.addEdge(mtdVertex, this, AST); PlumeStorage.storeMethodNode(m, this) }
         // Extrapolate certain information manually for external classes
         if (!m.declaringClass.isApplicationClass) {
             // Create a call-to-return for external classes
@@ -114,7 +115,7 @@ class MethodStubPass(private val m: SootMethod) : IMethodPass {
                     .lineNumber(Option.apply(-1))
                     .columnNumber(Option.apply(-1))
                     .evaluationStrategy(eval)
-                NodeCache.getType(p)?.let { t -> builder.addEdge(mpi, t, EVAL_TYPE) }
+                LocalCache.getType(p)?.let { t -> builder.addEdge(mpi, t, EVAL_TYPE) }
                 yield(mpi)
                 if (eval == BY_REFERENCE) {
                     val mpo = NewMethodParameterOutBuilder()
@@ -125,7 +126,7 @@ class MethodStubPass(private val m: SootMethod) : IMethodPass {
                         .lineNumber(Option.apply(-1))
                         .columnNumber(Option.apply(-1))
                         .evaluationStrategy(BY_SHARING)
-                    NodeCache.getType(p)?.let { t -> builder.addEdge(mpo, t, EVAL_TYPE) }
+                    LocalCache.getType(p)?.let { t -> builder.addEdge(mpo, t, EVAL_TYPE) }
                     yield(mpo)
                 }
             }.toList()

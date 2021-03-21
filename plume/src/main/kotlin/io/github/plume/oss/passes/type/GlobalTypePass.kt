@@ -1,6 +1,6 @@
 package io.github.plume.oss.passes.type
 
-import io.github.plume.oss.cache.CacheManager
+import io.github.plume.oss.store.DriverCache
 import io.github.plume.oss.drivers.IDriver
 import io.github.plume.oss.passes.ITypePass
 import io.github.plume.oss.passes.structure.TypePass
@@ -20,7 +20,7 @@ import soot.Type
 class GlobalTypePass(private val driver: IDriver) : ITypePass {
 
     private val logger: Logger = LogManager.getLogger(TypePass::javaClass)
-    private val cacheManager = CacheManager(driver)
+    private val cache = DriverCache(driver)
 
     /**
      * Creates a global TYPE_DECL and connects it to the global namespace block. i.e
@@ -37,13 +37,13 @@ class GlobalTypePass(private val driver: IDriver) : ITypePass {
         val f = driver.getVerticesByProperty(NAME, UNKNOWN, FILE).first()
         // Fill up cache
         ts.filterNot { it is RefType }
-            .map { Pair(cacheManager.getOrMakeGlobalTypeDecl(it), it) }
+            .map { Pair(cache.getOrMakeGlobalTypeDecl(it), it) }
             .forEach { (td, st) ->
                 logger.debug("Upserting and linking for global type ${st.toQuotedString()}")
                 driver.addEdge(n, td, AST)
                 driver.addEdge(td, f, SOURCE_FILE)
                 driver.addEdge(f, td, CONTAINS)
-                cacheManager.getOrMakeGlobalType(st).apply {
+                cache.getOrMakeGlobalType(st).apply {
                     driver.addEdge(this, td, REF)
                 }
             }

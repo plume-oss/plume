@@ -11,7 +11,8 @@ and this project adheres to [Semantic Versioning](http://semver.org/).
 - Progress bar when logging level is `>= Level.INFO` for method related operations
 
 ### Changed
-- Improved the node caching and centralized `tryGet` and `getOrMake`-style operations to `CacheManager.kt`
+- Improved the node caching and centralized `tryGet` and `getOrMake`-style operations to `DriverCache.kt`
+- Separated the cache and storage into `storage._Cache` classes and `storage.PlumeStorage`
 
 ## [0.3.7] - 2021-03-19
 

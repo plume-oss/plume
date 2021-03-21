@@ -4,6 +4,7 @@ import io.github.plume.oss.Extractor
 import io.github.plume.oss.drivers.DriverFactory
 import io.github.plume.oss.drivers.GraphDatabase
 import io.github.plume.oss.drivers.TinkerGraphDriver
+import io.github.plume.oss.store.LocalCache
 import io.shiftleft.codepropertygraph.generated.NodeKeyNames.FULL_NAME
 import io.shiftleft.codepropertygraph.generated.NodeTypes.TYPE
 import io.shiftleft.codepropertygraph.generated.nodes.Literal
@@ -42,6 +43,7 @@ class UpdateGraphTest {
 
     @AfterEach
     fun tearDown() {
+        LocalCache.clear()
         driver.close()
     }
 

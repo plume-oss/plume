@@ -4,6 +4,7 @@ import io.github.plume.oss.Extractor
 import io.github.plume.oss.drivers.DriverFactory
 import io.github.plume.oss.drivers.GraphDatabase
 import io.github.plume.oss.drivers.TinkerGraphDriver
+import io.github.plume.oss.store.LocalCache
 import io.shiftleft.codepropertygraph.generated.EdgeTypes.AST
 import io.shiftleft.codepropertygraph.generated.EdgeTypes.CFG
 import io.shiftleft.codepropertygraph.generated.nodes.Block
@@ -52,6 +53,7 @@ class ExceptionInterproceduralTest {
 
     @AfterEach
     fun tearDown() {
+        LocalCache.clear()
         driver.close()
         g.close()
     }

@@ -1,10 +1,10 @@
 package io.github.plume.oss.passes.structure
 
-import io.github.plume.oss.cache.CacheManager
-import io.github.plume.oss.cache.NodeCache
+import io.github.plume.oss.store.DriverCache
 import io.github.plume.oss.domain.mappers.VertexMapper
 import io.github.plume.oss.drivers.IDriver
 import io.github.plume.oss.passes.IProgramStructurePass
+import io.github.plume.oss.store.PlumeStorage
 import io.github.plume.oss.util.SootToPlumeUtil
 import io.shiftleft.codepropertygraph.generated.EdgeTypes.*
 import io.shiftleft.codepropertygraph.generated.NodeKeyNames.*
@@ -23,7 +23,7 @@ import soot.SootClass
 class MarkForRebuildPass(private val driver: IDriver) : IProgramStructurePass {
 
     private val logger: Logger = LogManager.getLogger(MarkForRebuildPass::javaClass)
-    private val cacheManager = CacheManager(driver)
+    private val cache = DriverCache(driver)
 
     private enum class FileChange { UPDATE, NEW, NOP }
 
@@ -48,8 +48,8 @@ class MarkForRebuildPass(private val driver: IDriver) : IProgramStructurePass {
      */
     private fun checkIfClassNeedsAnUpdate(c: SootClass): Pair<SootClass, FileChange> {
         val newCName = SootToPlumeUtil.sootClassToFileName(c)
-        cacheManager.tryGetFile(newCName)?.let { oldCNode: NewNodeBuilder ->
-            val currentCHash = NodeCache.getFileHash(c)
+        cache.tryGetFile(newCName)?.let { oldCNode: NewNodeBuilder ->
+            val currentCHash = PlumeStorage.getFileHash(c)
             logger.info("Found an existing class with name ${c.name}...")
             return if (oldCNode.build().properties().get(HASH).get() != currentCHash) {
                 logger.info("Class hashes differ, marking ${c.name} for rebuild.")
@@ -90,7 +90,7 @@ class MarkForRebuildPass(private val driver: IDriver) : IProgramStructurePass {
                         ns.V(m1.id()).next().`in`(CALL).asSequence()
                             .filterIsInstance<Call>()
                             .forEach {
-                                NodeCache.saveCallEdge(
+                                PlumeStorage.storeCallEdge(
                                     m2Build.fullName(),
                                     VertexMapper.mapToVertex(it) as NewCallBuilder
                                 )

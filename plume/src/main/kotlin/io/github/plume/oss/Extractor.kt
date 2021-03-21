@@ -15,8 +15,6 @@
  */
 package io.github.plume.oss
 
-import io.github.plume.oss.cache.CacheManager
-import io.github.plume.oss.cache.NodeCache
 import io.github.plume.oss.domain.exceptions.PlumeCompileException
 import io.github.plume.oss.domain.files.*
 import io.github.plume.oss.domain.model.DeltaGraph
@@ -36,6 +34,8 @@ import io.github.plume.oss.passes.structure.FileAndPackagePass
 import io.github.plume.oss.passes.structure.MarkForRebuildPass
 import io.github.plume.oss.passes.structure.TypePass
 import io.github.plume.oss.passes.type.GlobalTypePass
+import io.github.plume.oss.store.DriverCache
+import io.github.plume.oss.store.PlumeStorage
 import io.github.plume.oss.util.ExtractorConst.LANGUAGE_FRONTEND
 import io.github.plume.oss.util.ExtractorConst.plumeVersion
 import io.github.plume.oss.util.ResourceCompilationUtil
@@ -44,7 +44,8 @@ import io.github.plume.oss.util.ResourceCompilationUtil.TEMP_DIR
 import io.github.plume.oss.util.SootToPlumeUtil
 import io.shiftleft.codepropertygraph.generated.EdgeTypes.INHERITS_FROM
 import io.shiftleft.codepropertygraph.generated.NodeKeyNames.*
-import io.shiftleft.codepropertygraph.generated.NodeTypes.*
+import io.shiftleft.codepropertygraph.generated.NodeTypes.META_DATA
+import io.shiftleft.codepropertygraph.generated.NodeTypes.METHOD
 import io.shiftleft.codepropertygraph.generated.nodes.NewMetaDataBuilder
 import kotlinx.coroutines.channels.Channel
 import kotlinx.coroutines.launch
@@ -80,7 +81,7 @@ class Extractor(val driver: IDriver) {
 
     private val logger: Logger = LogManager.getLogger(Extractor::javaClass)
     private val loadedFiles: HashSet<PlumeFile> = HashSet()
-    private val cacheManager = CacheManager(driver)
+    private val cache = DriverCache(driver)
 
     init {
         File(COMP_DIR).let { f -> if (f.exists()) f.deleteRecursively(); f.deleteOnExit() }
@@ -242,9 +243,9 @@ class Extractor(val driver: IDriver) {
         */
         PlumeTimer.measure(ExtractorTimeKey.PROGRAM_STRUCTURE_BUILDING) {
             parentToChildCs.forEach { (c, children) ->
-                cacheManager.tryGetType(c.type.toQuotedString())?.let { t ->
+                cache.tryGetType(c.type.toQuotedString())?.let { t ->
                     children.intersect(csToBuild)
-                        .mapNotNull { child -> cacheManager.tryGetTypeDecl(child.type.toQuotedString()) }
+                        .mapNotNull { child -> cache.tryGetTypeDecl(child.type.toQuotedString()) }
                         .forEach { td -> driver.addEdge(td, t, INHERITS_FROM) }
                 }
             }
@@ -254,15 +255,15 @@ class Extractor(val driver: IDriver) {
             Construct the CPGs for methods
          */
         PlumeTimer.measure(ExtractorTimeKey.BASE_CPG_BUILDING) { buildMethods(parentToChildCs, sootUnitGraphs) }
-        // Clear all Soot resources and cache
+        // Clear all Soot resources and storage
         clear()
-        NodeCache.clear()
+        PlumeStorage.clear()
         /*
             Method body level analysis - only done on new/updated methods
          */
         logger.info("Running data flow passes")
         PlumeTimer.measure(ExtractorTimeKey.DATA_FLOW_PASS) { DataFlowPass(driver).runPass() }
-        NodeCache.methodBodies.clear()
+        PlumeStorage.methodCpgs.clear()
         return this
     }
 
@@ -401,7 +402,7 @@ class Extractor(val driver: IDriver) {
                 val dg = BaseCPGPass(g).runPass()
                 channel.send(dg)
                 val (fullName, _, _) = SootToPlumeUtil.methodToStrings(g.body.method)
-                NodeCache.methodBodies[fullName] = dg
+                PlumeStorage.methodCpgs[fullName] = dg
             }
         }
     }
@@ -483,10 +484,11 @@ class Extractor(val driver: IDriver) {
         val cs = classNames.map { Pair(it, getQualifiedClassPath(it)) }
             .map { Pair(it.first, Scene.v().loadClassAndSupport(it.second)) }
             .map { clsPair: Pair<File, SootClass> ->
-                val f = clsPair.first
-                val c = clsPair.second
-                c.setApplicationClass(); NodeCache.putFileHash(c, f.hashCode().toString())
-                c
+                clsPair.second.apply {
+                    val f = clsPair.first
+                    this.setApplicationClass()
+                    PlumeStorage.storeFileHash(this, f.hashCode().toString())
+                }
             }
         when (ExtractorOptions.callGraphAlg) {
             ExtractorOptions.CallGraphAlg.CHA -> CHATransformer.v().transform()
@@ -497,7 +499,7 @@ class Extractor(val driver: IDriver) {
     }
 
     /**
-     * Clears resources of files and caches.
+     * Clears build resources, loaded files, and resets Soot.
      */
     private fun clear() {
         loadedFiles.clear()

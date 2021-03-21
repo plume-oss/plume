@@ -11,7 +11,7 @@ class ExternalTypePass(driver: IDriver) : TypePass(driver) {
 
     // Overridden to avoid building a duplicate type
     override fun buildTypeDeclaration(type: Type): NewTypeDeclBuilder? {
-        cacheManager.tryGetTypeDecl(type.toQuotedString())?.let { return null }
+        cache.tryGetTypeDecl(type.toQuotedString())?.let { return null }
         return super.buildTypeDeclaration(type)
     }
 

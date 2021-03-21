@@ -1,8 +1,9 @@
 package io.github.plume.oss.passes.graph
 
-import io.github.plume.oss.cache.NodeCache
+import io.github.plume.oss.store.LocalCache
 import io.github.plume.oss.domain.mappers.ListMapper
 import io.github.plume.oss.domain.model.DeltaGraph
+import io.github.plume.oss.store.PlumeStorage
 import io.github.plume.oss.util.ExtractorConst
 import io.github.plume.oss.util.SootParserUtil
 import io.github.plume.oss.util.SootToPlumeUtil
@@ -52,7 +53,7 @@ class BaseCPGPass(private val g: BriefUnitGraph) {
         runCfgPass()
         runPdgPass()
         // METHOD -CONTAINS-> NODE (excluding head nodes)
-        NodeCache.getMethodCache(g.body.method).let { mvs ->
+        PlumeStorage.getMethodStore(g.body.method).let { mvs ->
             mvs.firstOrNull { it is NewMethodBuilder }?.let { m ->
                 localCache.let { cache ->
                     cache.values.flatten().minus(mvs).forEach { n -> builder.addEdge(m, n, CONTAINS) }
@@ -68,15 +69,15 @@ class BaseCPGPass(private val g: BriefUnitGraph) {
         logger.debug("Building AST for ${mtd.declaration}")
         currentLine = mtd.javaSourceStartLineNumber
         currentCol = mtd.javaSourceStartColumnNumber
-        NodeCache.getMethodCache(mtd).let { mtdVs ->
+        PlumeStorage.getMethodStore(mtd).let { mtdVs ->
             mtdVs.filterIsInstance<NewMethodBuilder>().firstOrNull()?.let { mtdVert ->
-                NodeCache.addToMethodCache(mtd, buildLocals(g).onEach { builder.addEdge(mtdVert, it, AST) })
+                PlumeStorage.storeMethodNode(mtd, buildLocals(g).onEach { builder.addEdge(mtdVert, it, AST) })
             }
         }
         g.body.units.filterNot { it is IdentityStmt }
             .forEachIndexed { idx, u ->
                 projectUnitAsAst(u, idx + 1)?.let {
-                    NodeCache.getMethodCache(mtd).firstOrNull { v -> v is NewBlockBuilder }?.let { block ->
+                    PlumeStorage.getMethodStore(mtd).firstOrNull { v -> v is NewBlockBuilder }?.let { block ->
                         builder.addEdge(block, it, AST)
                     }
                 }
@@ -95,7 +96,7 @@ class BaseCPGPass(private val g: BriefUnitGraph) {
             while (startingUnit is IdentityStmt) startingUnit = g.getSuccsOf(startingUnit).firstOrNull() ?: break
             startingUnit?.let {
                 getFromCache(it)?.firstOrNull()?.let { succVert ->
-                    val mtdV = NodeCache.getMethodCache(mtd)
+                    val mtdV = PlumeStorage.getMethodStore(mtd)
                     mtdV.firstOrNull { mtdVertices -> mtdVertices is NewBlockBuilder }?.let { bodyVertex ->
                         mtdV.firstOrNull()?.let { mtdVertex -> builder.addEdge(mtdVertex, bodyVertex, CFG) }
                         builder.addEdge(bodyVertex, succVert, CFG)
@@ -242,7 +243,7 @@ class BaseCPGPass(private val g: BriefUnitGraph) {
 
     private fun projectReturnEdge(unit: Stmt) {
         getFromCache(unit)?.firstOrNull()?.let { src ->
-            NodeCache.getMethodCache(g.body.method)
+            PlumeStorage.getMethodStore(g.body.method)
                 .filterIsInstance<NewMethodReturnBuilder>()
                 .firstOrNull()?.let { tgt -> builder.addEdge(src, tgt, CFG) }
         }
@@ -258,12 +259,12 @@ class BaseCPGPass(private val g: BriefUnitGraph) {
                             SootToPlumeUtil.projectMethodParameterOut(local, currentLine, currentCol, i + 1)
                                 .let { mpo ->
                                     localVertices.add(mpo)
-                                    NodeCache.getType(this.build().typeFullName())
+                                    LocalCache.getType(this.build().typeFullName())
                                         ?.let { t -> builder.addEdge(mpo, t, EVAL_TYPE) }
                                 }
                         }
                         addToCache(local, this)
-                        NodeCache.getType(this.build().typeFullName())
+                        LocalCache.getType(this.build().typeFullName())
                             ?.let { t -> builder.addEdge(this, t, EVAL_TYPE) }
                     }
             }
@@ -275,7 +276,7 @@ class BaseCPGPass(private val g: BriefUnitGraph) {
                     .apply { addToCache(local, this) }
             }
             .forEach {
-                NodeCache.getType(it.build().typeFullName())?.let { t -> builder.addEdge(it, t, EVAL_TYPE) }
+                LocalCache.getType(it.build().typeFullName())?.let { t -> builder.addEdge(it, t, EVAL_TYPE) }
                 localVertices.add(it)
             }
         return localVertices
@@ -327,7 +328,7 @@ class BaseCPGPass(private val g: BriefUnitGraph) {
             .dispatchType(if (unit.methodRef.isStatic) DispatchTypes.STATIC_DISPATCH else DispatchTypes.DYNAMIC_DISPATCH)
             .typeFullName(unit.type.toString())
         val callVertices = mutableListOf<NewNodeBuilder>(callVertex)
-        NodeCache.addCall(unit, callVertex)
+        PlumeStorage.addCall(unit, callVertex)
         // Create vertices for arguments
         unit.args.forEachIndexed { i, arg ->
             when (arg) {
@@ -748,7 +749,7 @@ class BaseCPGPass(private val g: BriefUnitGraph) {
             .order(childIdx)
         projectOp(ret.op, childIdx + 1)?.let { builder.addEdge(retV, it, AST)
         builder.addEdge(retV, it, ARGUMENT)}
-        NodeCache.getMethodCache(g.body.method)
+        PlumeStorage.getMethodStore(g.body.method)
             .firstOrNull { it is NewBlockBuilder }
             ?.let { block -> builder.addEdge(block, retV, AST) }
         return retV
@@ -761,7 +762,7 @@ class BaseCPGPass(private val g: BriefUnitGraph) {
             .lineNumber(Option.apply(ret.javaSourceStartLineNumber))
             .columnNumber(Option.apply(ret.javaSourceStartColumnNumber))
             .order(childIdx)
-        NodeCache.getMethodCache(g.body.method)
+        PlumeStorage.getMethodStore(g.body.method)
             .firstOrNull { it is NewBlockBuilder }
             ?.let { block -> builder.addEdge(block, retV, AST) }
         return retV

@@ -5,6 +5,7 @@ import io.github.plume.oss.drivers.DriverFactory
 import io.github.plume.oss.drivers.GraphDatabase
 import io.github.plume.oss.drivers.OverflowDbDriver
 import io.github.plume.oss.options.ExtractorOptions
+import io.github.plume.oss.store.LocalCache
 import io.shiftleft.codepropertygraph.generated.Operators
 import io.shiftleft.codepropertygraph.generated.nodes.Call
 import io.shiftleft.codepropertygraph.generated.nodes.Local
@@ -50,6 +51,7 @@ class BasicExtractorTest {
 
     @AfterEach
     fun tearDown() {
+        LocalCache.clear()
         driver.clearGraph()
         if (!g.isClosed) g.close()
     }

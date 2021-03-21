@@ -1,7 +1,7 @@
 package io.github.plume.oss.passes.structure
 
-import io.github.plume.oss.cache.CacheManager
-import io.github.plume.oss.cache.NodeCache
+import io.github.plume.oss.store.DriverCache
+import io.github.plume.oss.store.LocalCache
 import io.github.plume.oss.drivers.IDriver
 import io.github.plume.oss.passes.IProgramStructurePass
 import io.github.plume.oss.util.SootParserUtil
@@ -23,7 +23,7 @@ import soot.Type
 open class TypePass(private val driver: IDriver) : IProgramStructurePass {
 
     private val logger: Logger = LogManager.getLogger(TypePass::javaClass)
-    protected val cacheManager = CacheManager(driver)
+    protected val cache = DriverCache(driver)
 
     /**
      * This pass will build type declarations, their modifiers and members and linking them to
@@ -37,7 +37,7 @@ open class TypePass(private val driver: IDriver) : IProgramStructurePass {
      *     TYPE_DECL <-(AST)- NAMESPACE_BLOCK
      */
     override fun runPass(cs: List<SootClass>): List<SootClass> {
-        cs.filter { c -> cacheManager.tryGetTypeDecl(c.type.toQuotedString()) == null }
+        cs.filter { c -> cache.tryGetTypeDecl(c.type.toQuotedString()) == null }
             .forEach { c ->
                 logger.debug("Building type declaration, modifiers and fields for ${c.type}")
                 buildTypeDeclaration(c.type)?.let { t ->
@@ -56,7 +56,7 @@ open class TypePass(private val driver: IDriver) : IProgramStructurePass {
      */
     private fun linkSourceFile(c: SootClass, t: NewTypeDeclBuilder) {
         val fileName = SootToPlumeUtil.sootClassToFileName(c)
-        NodeCache.getFile(fileName)?.let { f ->
+        LocalCache.getFile(fileName)?.let { f ->
             logger.debug("Linking file $f to type ${c.type.toQuotedString()}")
             driver.addEdge(t, f, SOURCE_FILE)
             driver.addEdge(f, t, CONTAINS)
@@ -84,12 +84,12 @@ open class TypePass(private val driver: IDriver) : IProgramStructurePass {
     /**
      * Returns the TYPE before it is processed in the database.
      */
-    protected open fun getTypeNode(type: Type): NewTypeBuilder = cacheManager.getOrMakeType(type)
+    protected open fun getTypeNode(type: Type): NewTypeBuilder = cache.getOrMakeType(type)
 
     /**
      * Returns the TYPE_DECL before it is processed in the database.
      */
-    protected open fun getTypeDeclNode(type: Type): NewTypeDeclBuilder = cacheManager.getOrMakeTypeDecl(type)
+    protected open fun getTypeDeclNode(type: Type): NewTypeDeclBuilder = cache.getOrMakeTypeDecl(type)
 
     /*
      * TYPE -(REF)-> TYPE_DECL
@@ -114,7 +114,7 @@ open class TypePass(private val driver: IDriver) : IProgramStructurePass {
     private fun linkNamespaceBlock(c: SootClass, t: NewTypeDeclBuilder) {
         val fileName = SootToPlumeUtil.sootClassToFileName(c)
         val fullName = "$fileName:${c.packageName}"
-        cacheManager.tryGetNamespaceBlock(fullName)?.let { n -> driver.addEdge(n, t, AST) }
+        cache.tryGetNamespaceBlock(fullName)?.let { n -> driver.addEdge(n, t, AST) }
     }
 
 }

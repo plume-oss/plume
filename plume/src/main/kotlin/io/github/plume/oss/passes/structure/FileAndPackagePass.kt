@@ -1,7 +1,7 @@
 package io.github.plume.oss.passes.structure
 
-import io.github.plume.oss.cache.CacheManager
-import io.github.plume.oss.cache.NodeCache
+import io.github.plume.oss.store.DriverCache
+import io.github.plume.oss.store.LocalCache
 import io.github.plume.oss.drivers.IDriver
 import io.github.plume.oss.passes.IProgramStructurePass
 import io.github.plume.oss.util.ExtractorConst.GLOBAL
@@ -22,7 +22,7 @@ import soot.SootClass
 class FileAndPackagePass(private val driver: IDriver) : IProgramStructurePass {
 
     private val namespaceCache = mutableMapOf<String, NewNamespaceBuilder>()
-    private val cacheManager = CacheManager(driver)
+    private val cache = DriverCache(driver)
 
     /**
      * This pass will build and link file and namespace information, i.e.
@@ -38,8 +38,8 @@ class FileAndPackagePass(private val driver: IDriver) : IProgramStructurePass {
     }
 
     private fun buildFileAndPackage(c: SootClass, ns: List<NewNodeBuilder>): SootClass {
-        val nb = cacheManager.getOrMakeNamespaceBlock(c)
-        val f = cacheManager.getOrMakeFile(c)
+        val nb = cache.getOrMakeNamespaceBlock(c)
+        val f = cache.getOrMakeFile(c)
         // (NAMESPACE_BLOCK) -REF-> (NAMESPACE)
         ns.find { it.build().properties().get(NAME).get() == c.packageName }
             ?.let { namespace -> driver.addEdge(nb, namespace, REF) }
@@ -55,16 +55,16 @@ class FileAndPackagePass(private val driver: IDriver) : IProgramStructurePass {
             ?: NewNamespaceBuilder().name(c.packageName).order(-1)).apply { namespaceCache[c.packageName] = this }
 
     private fun createDefaultVertices() {
-        if (cacheManager.tryGetFile(UNKNOWN) == null) {
+        if (cache.tryGetFile(UNKNOWN) == null) {
             val unknownFile = NewFileBuilder().name(UNKNOWN).order(0).hash(Option.apply(UNKNOWN))
             driver.addVertex(unknownFile)
-            NodeCache.addFile(unknownFile)
+            LocalCache.addFile(unknownFile)
         }
-        if (cacheManager.tryGetNamespaceBlock(GLOBAL) == null) {
+        if (cache.tryGetNamespaceBlock(GLOBAL) == null) {
             val gNamespace = NewNamespaceBuilder().name(GLOBAL).order(0)
             val gNamespaceBlock = NewNamespaceBlockBuilder().name(GLOBAL).fullName(GLOBAL).order(0).filename("")
             driver.addEdge(gNamespaceBlock, gNamespace, REF)
-            NodeCache.addNamespaceBlock(gNamespaceBlock)
+            LocalCache.addNamespaceBlock(gNamespaceBlock)
             namespaceCache[GLOBAL] = gNamespace
         }
     }

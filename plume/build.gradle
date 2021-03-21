@@ -60,7 +60,7 @@ dependencies {
     implementation "org.soot-oss:soot:$sootVersion"
     implementation "org.lz4:lz4-java:$lz4Version"
     implementation "org.cache2k:cache2k-api:$cache2kVersion"
-    runtimeOnly "org.cache2k:cache2k-core:$cache2kVersion"
+    testRuntimeOnly "org.cache2k:cache2k-core:$cache2kVersion"
 
     // Sub-project integration
     subProject project(":cpgconv")
