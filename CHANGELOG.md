@@ -8,17 +8,25 @@ and this project adheres to [Semantic Versioning](http://semver.org/).
 ## [0.3.8] - [Unreleased]
 
 ### Added
+
 - Progress bar when logging level is `>= Level.INFO` for method related operations
 - Added cache2k to handle caching
 - `CacheMetrics` to track hits and misses
+- `METHOD_PARAMETER_IN` -`PARAMETER_LINK`-> `METHOD_PARAMETER_OUT` edge was included
 
 ### Changed
+
 - Improved the node caching and centralized `tryGet` and `getOrMake`-style operations to `DriverCache.kt`
 - Separated the cache and storage into `storage._Cache` classes and `storage.PlumeStorage`
+
+### Fixed
+
+- Method/Local/MethodParameterIn have been created more closely to Ocular's output.
 
 ## [0.3.7] - 2021-03-19
 
 ### Fixed
+
 - `TigerGraphDriver` bug where empty strings for intentional properties would be unintentionally excluded.
 - `Member.name` and `FieldIdentifier.code` properly handled
 - Fixed temp dir resolution issue on macOS and Windows

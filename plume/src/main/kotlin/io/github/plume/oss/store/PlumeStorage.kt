@@ -58,8 +58,8 @@ object PlumeStorage {
      * @param nodes The list of [NewNodeBuilder]s to associate to.
      * @param index The index to place the associated [NewNodeBuilder](s) at.
      */
-    fun storeMethodNode(sootMtd: SootMethod, nodes: MutableList<NewNodeBuilder>, index: Int = -1) {
-        if (!methodBodyNodes.containsKey(sootMtd)) methodBodyNodes[sootMtd] = nodes
+    fun storeMethodNode(sootMtd: SootMethod, nodes: List<NewNodeBuilder>, index: Int = -1) {
+        if (!methodBodyNodes.containsKey(sootMtd)) methodBodyNodes[sootMtd] = nodes.toMutableList()
         else if (index <= -1) methodBodyNodes[sootMtd]?.addAll(nodes)
         else methodBodyNodes[sootMtd]?.addAll(index, nodes)
     }

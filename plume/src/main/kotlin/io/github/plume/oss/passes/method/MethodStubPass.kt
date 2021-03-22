@@ -97,6 +97,7 @@ class MethodStubPass(private val m: SootMethod) : IMethodPass {
     /**
      * METHOD_PARAMETER_IN -EVAL_TYPE-> TYPE
      * METHOD_PARAMETER_OUT -EVAL_TYPE-> TYPE
+     * METHOD_PARAMETER_IN -PARAMETER_LINK-> METHOD_PARAMETER_OUT
      *
      * @return a list of the METHOD_PARAMETER_* nodes.
      */
@@ -128,6 +129,7 @@ class MethodStubPass(private val m: SootMethod) : IMethodPass {
                         .evaluationStrategy(BY_SHARING)
                     LocalCache.getType(p)?.let { t -> builder.addEdge(mpo, t, EVAL_TYPE) }
                     yield(mpo)
+                    builder.addEdge(mpi, mpo, PARAMETER_LINK)
                 }
             }.toList()
         }.flatten().toList()
