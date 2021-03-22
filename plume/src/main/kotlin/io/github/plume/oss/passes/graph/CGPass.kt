@@ -15,10 +15,10 @@
  */
 package io.github.plume.oss.passes.graph
 
-import io.github.plume.oss.GlobalCache
+import io.github.plume.oss.domain.model.DeltaGraph
 import io.github.plume.oss.drivers.IDriver
-import io.github.plume.oss.options.ExtractorOptions
 import io.github.plume.oss.passes.IUnitGraphPass
+import io.github.plume.oss.store.PlumeStorage
 import io.shiftleft.codepropertygraph.generated.EdgeTypes.CALL
 import io.shiftleft.codepropertygraph.generated.NodeKeyNames.FULL_NAME
 import io.shiftleft.codepropertygraph.generated.NodeTypes.METHOD
@@ -36,26 +36,23 @@ import soot.toolkits.graph.BriefUnitGraph
 /**
  * The [IUnitGraphPass] that constructs the interprocedural call edges.
  *
+ * @param g The driver to build the call edges with.
  * @param driver The driver to build the call edges with.
  */
-class CGPass(private val driver: IDriver) : IUnitGraphPass {
+class CGPass(private val g: BriefUnitGraph, private val driver: IDriver) : IUnitGraphPass {
+
     private val logger = LogManager.getLogger(CGPass::javaClass)
-    private lateinit var g: BriefUnitGraph
+    private val builder = DeltaGraph.Builder()
 
-    override fun runPass(gs: List<BriefUnitGraph>) =
-        if (ExtractorOptions.callGraphAlg != ExtractorOptions.CallGraphAlg.NONE) gs.map(::runPassOnGraph)
-        else gs
-
-    private fun runPassOnGraph(g: BriefUnitGraph): BriefUnitGraph {
+    override fun runPass(): DeltaGraph {
         val mtd = g.body.method
-        logger.debug("Building call graph edges for ${mtd.declaration}")
-        this.g = g
+        logger.debug("Building call graph edges for ${mtd.declaringClass.name}:${mtd.name}")
         // If this was an updated method, connect call graphs
-        GlobalCache.getMethodCache(mtd).filterIsInstance<NewMethodBuilder>()
+        PlumeStorage.getMethodStore(mtd).filterIsInstance<NewMethodBuilder>()
             .firstOrNull()?.let { reconnectPriorCallGraphEdges(it) }
-        // Connect all units to their successors
+        // Connect all calls to their methods
         this.g.body.units.filterNot { it is IdentityStmt }.forEach(this::projectUnit)
-        return g
+        return builder.build()
     }
 
     private fun projectUnit(unit: Unit) {
@@ -64,17 +61,17 @@ class CGPass(private val driver: IDriver) : IUnitGraphPass {
         // If Soot points to the assignment as the call source then this is most likely from the rightOp.
         val srcUnit = if (unit is AssignStmt) unit.rightOp else unit
         when (srcUnit) {
-            is InvokeExpr -> GlobalCache.getCall(srcUnit)
-            is InvokeStmt -> GlobalCache.getCall(srcUnit.invokeExpr)
+            is InvokeExpr -> PlumeStorage.getCall(srcUnit)
+            is InvokeStmt -> PlumeStorage.getCall(srcUnit.invokeExpr)
             else -> null
         }?.let { callV ->
             var foundAndConnectedCallTgt = false
             edges.forEach { e: Edge ->
-                GlobalCache.getMethodCache(e.tgt.method())
+                PlumeStorage.getMethodStore(e.tgt.method())
                     .filterIsInstance<NewMethodBuilder>()
                     .firstOrNull()?.let { tgtPlumeVertex ->
-                        runCatching { driver.addEdge(callV, tgtPlumeVertex, CALL); foundAndConnectedCallTgt = true }
-                            .onFailure { e -> logger.warn(e.message) }
+                        builder.addEdge(callV, tgtPlumeVertex, CALL)
+                        foundAndConnectedCallTgt = true
                     }
             }
             // If call graph analysis fails because there is no main method, we will need to figure out call edges ourselves
@@ -83,23 +80,23 @@ class CGPass(private val driver: IDriver) : IUnitGraphPass {
             if (!foundAndConnectedCallTgt) {
                 val v = callV.build()
                 if (v.methodFullName().length > 1) {
-                    driver.getVerticesByProperty(FULL_NAME, v.methodFullName(), METHOD).firstOrNull()
-                        ?.let { mtdV -> driver.addEdge(callV, mtdV, CALL) }
+                    getMethodHead(v.methodFullName())?.let { mtdV -> builder.addEdge(callV, mtdV, CALL) }
                 }
             }
         }
     }
 
+    private fun getMethodHead(fullName: String): NewMethodBuilder? =
+        PlumeStorage.getMethod(fullName)
+            ?: (driver.getVerticesByProperty(FULL_NAME, fullName, METHOD).firstOrNull() as NewMethodBuilder?)
+                ?.apply { PlumeStorage.addMethod(this) }
+
     private fun reconnectPriorCallGraphEdges(mtdV: NewMethodBuilder) {
         val mtd = mtdV.build()
-        GlobalCache.getCallEdgeIn(mtd.fullName())?.let { incomingVs ->
+        PlumeStorage.getCallsIn(mtd.fullName()).let { incomingVs ->
             if (incomingVs.isNotEmpty()) {
                 logger.debug("Saved call graph edges found - reconnecting incoming call graph edges")
-                incomingVs.forEach { inV ->
-                    runCatching {
-                        driver.addEdge(inV, mtdV, CALL)
-                    }.onFailure { e -> logger.warn(e.message) }
-                }
+                incomingVs.forEach { inV -> builder.addEdge(inV, mtdV, CALL) }
             } else {
                 logger.debug("No previous call graph edges were found")
             }

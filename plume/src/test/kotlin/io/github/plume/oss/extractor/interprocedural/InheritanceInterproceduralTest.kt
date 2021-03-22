@@ -5,6 +5,7 @@ import io.github.plume.oss.drivers.DriverFactory
 import io.github.plume.oss.drivers.GraphDatabase
 import io.github.plume.oss.drivers.TinkerGraphDriver
 import io.github.plume.oss.options.ExtractorOptions
+import io.github.plume.oss.store.LocalCache
 import io.shiftleft.codepropertygraph.generated.EdgeTypes.CALL
 import io.shiftleft.codepropertygraph.generated.nodes.Call
 import io.shiftleft.codepropertygraph.generated.nodes.Method
@@ -35,6 +36,7 @@ class InheritanceInterproceduralTest {
 
     @AfterEach
     fun tearDown() {
+        LocalCache.clear()
         driver.close()
         g.close()
     }
@@ -45,7 +47,6 @@ class InheritanceInterproceduralTest {
         ExtractorOptions.callGraphAlg = ExtractorOptions.CallGraphAlg.NONE
         // Load test resource and project + export graph
         val f = File(CLS_PATH.absolutePath + File.separator + TEST_PATH)
-        println(f.absolutePath)
         extractor.load(f).project()
         g = driver.getWholeGraph()
         // Check calls

@@ -1,17 +1,15 @@
 package io.github.plume.oss.passes.type
 
-import io.github.plume.oss.GlobalCache
+import io.github.plume.oss.store.DriverCache
 import io.github.plume.oss.drivers.IDriver
 import io.github.plume.oss.passes.ITypePass
 import io.github.plume.oss.passes.structure.TypePass
+import io.github.plume.oss.store.LocalCache
 import io.github.plume.oss.util.ExtractorConst.GLOBAL
 import io.github.plume.oss.util.ExtractorConst.UNKNOWN
 import io.shiftleft.codepropertygraph.generated.EdgeTypes.*
-import io.shiftleft.codepropertygraph.generated.NodeKeyNames.*
+import io.shiftleft.codepropertygraph.generated.NodeKeyNames.NAME
 import io.shiftleft.codepropertygraph.generated.NodeTypes.*
-import io.shiftleft.codepropertygraph.generated.nodes.NewNodeBuilder
-import io.shiftleft.codepropertygraph.generated.nodes.NewTypeBuilder
-import io.shiftleft.codepropertygraph.generated.nodes.NewTypeDeclBuilder
 import org.apache.logging.log4j.LogManager
 import org.apache.logging.log4j.Logger
 import soot.RefType
@@ -23,7 +21,7 @@ import soot.Type
 class GlobalTypePass(private val driver: IDriver) : ITypePass {
 
     private val logger: Logger = LogManager.getLogger(TypePass::javaClass)
-    private val nodeCache = mutableSetOf<NewNodeBuilder>()
+    private val cache = DriverCache(driver)
 
     /**
      * Creates a global TYPE_DECL and connects it to the global namespace block. i.e
@@ -36,44 +34,20 @@ class GlobalTypePass(private val driver: IDriver) : ITypePass {
      *     TYPE_DECL -(AST)-> *MODIFIER ?
      */
     override fun runPass(ts: List<Type>): List<Type> {
-        val n = driver.getVerticesByProperty(NAME, GLOBAL, NAMESPACE_BLOCK).first()
-        val f = driver.getVerticesByProperty(NAME, UNKNOWN, FILE).first()
+        // These should not be null as this pass has already happened prior and should be in cache
+        val n = cache.tryGetNamespaceBlock(GLOBAL)!!
+        val f = cache.tryGetFile(UNKNOWN)!!
         // Fill up cache
-        nodeCache.addAll(driver.getVerticesByProperty(AST_PARENT_FULL_NAME, GLOBAL, TYPE_DECL))
         ts.filterNot { it is RefType }
-            .map{Pair(getGlobalTypeDecl(it), it)}
+            .map { Pair(cache.getOrMakeGlobalTypeDecl(it), it) }
             .forEach { (td, st) ->
                 logger.debug("Upserting and linking for global type ${st.toQuotedString()}")
                 driver.addEdge(n, td, AST)
                 driver.addEdge(td, f, SOURCE_FILE)
                 driver.addEdge(f, td, CONTAINS)
-                getGlobalType(st.toQuotedString()).apply {
-                    driver.addEdge(this, td, REF)
-                }
+                cache.getOrMakeGlobalType(st).apply { driver.addEdge(this, td, REF) }
             }
         return ts
     }
 
-    private fun getGlobalTypeDecl(t: Type): NewNodeBuilder {
-        return GlobalCache.getTypeDecl(t.toQuotedString())
-            ?: NewTypeDeclBuilder()
-                .name(t.toQuotedString())
-                .fullName(t.toQuotedString())
-                .isExternal(false)
-                .order(-1)
-                .filename(UNKNOWN)
-                .astParentType(NAMESPACE_BLOCK)
-                .astParentFullName(GLOBAL).apply { GlobalCache.addTypeDecl(this) }
-    }
-
-    private fun getGlobalType(tdFullName: String): NewNodeBuilder {
-        val shortName = if (tdFullName.contains('.')) tdFullName.substringAfterLast('.')
-        else tdFullName
-        return GlobalCache.getType(tdFullName)
-            ?: NewTypeBuilder()
-                .name(shortName)
-                .fullName(tdFullName)
-                .typeDeclFullName(tdFullName)
-                .apply { GlobalCache.addType(this) }
-    }
 }

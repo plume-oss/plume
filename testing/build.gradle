@@ -16,6 +16,7 @@ dependencies {
     implementation "io.shiftleft:semanticcpg_2.13:$shiftleftVersion"
 
     testImplementation project(":plume")
+    testImplementation "org.cache2k:cache2k-core:$cache2kVersion"
     testImplementation "org.scalatest:scalatest_2.13:3.1.1"
     testImplementation "io.shiftleft:semanticcpg-tests_2.13:$shiftleftVersion:tests"
     testRuntime 'com.vladsch.flexmark:flexmark-all:0.35.10'

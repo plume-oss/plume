@@ -5,6 +5,17 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](http://keepachangelog.com/)
 and this project adheres to [Semantic Versioning](http://semver.org/).
 
+## [0.3.8] - [Unreleased]
+
+### Added
+- Progress bar when logging level is `>= Level.INFO` for method related operations
+- Added cache2k to handle caching
+- `CacheMetrics` to track hits and misses
+
+### Changed
+- Improved the node caching and centralized `tryGet` and `getOrMake`-style operations to `DriverCache.kt`
+- Separated the cache and storage into `storage._Cache` classes and `storage.PlumeStorage`
+
 ## [0.3.7] - 2021-03-19
 
 ### Fixed

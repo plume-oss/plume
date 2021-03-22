@@ -1,6 +1,8 @@
 package io.github.plume.oss.graphio
 
 import io.github.plume.oss.domain.mappers.VertexMapper.prepareListsInMap
+import org.apache.logging.log4j.LogManager
+import org.apache.logging.log4j.Logger
 import overflowdb.Graph
 import overflowdb.Node
 import java.io.OutputStreamWriter
@@ -11,6 +13,7 @@ import java.io.OutputStreamWriter
  */
 object GraphSONWriter {
 
+    private val logger: Logger = LogManager.getLogger(GraphSONWriter::javaClass)
     private var propertyId: Long = 0
     private var edgeId: Long = 0
 
@@ -100,7 +103,7 @@ object GraphSONWriter {
                 is Int -> sb.append(",\"value\":{\"@type\":\"g:Int32\",\"@value\":$v}")
                 is Long -> sb.append(",\"value\":{\"@type\":\"g:Int64\",\"@value\":$v}")
                 is Boolean -> sb.append(",\"value\":$v")
-                else -> println("Unsupported type $v ${v.javaClass}")
+                else -> logger.warn("Unsupported type $v ${v.javaClass}")
             }
             sb.append("}]")
             if (++i < properties.size) sb.append(",")

@@ -1,15 +1,14 @@
 package io.github.plume.oss.passes.structure
 
-import io.github.plume.oss.GlobalCache
+import io.github.plume.oss.store.DriverCache
+import io.github.plume.oss.store.LocalCache
 import io.github.plume.oss.drivers.IDriver
 import io.github.plume.oss.passes.IProgramStructurePass
 import io.github.plume.oss.util.ExtractorConst.GLOBAL
 import io.github.plume.oss.util.ExtractorConst.UNKNOWN
-import io.github.plume.oss.util.SootToPlumeUtil
 import io.shiftleft.codepropertygraph.generated.EdgeTypes.*
-import io.shiftleft.codepropertygraph.generated.NodeKeyNames.FULL_NAME
 import io.shiftleft.codepropertygraph.generated.NodeKeyNames.NAME
-import io.shiftleft.codepropertygraph.generated.NodeTypes.*
+import io.shiftleft.codepropertygraph.generated.NodeTypes.NAMESPACE
 import io.shiftleft.codepropertygraph.generated.nodes.NewFileBuilder
 import io.shiftleft.codepropertygraph.generated.nodes.NewNamespaceBlockBuilder
 import io.shiftleft.codepropertygraph.generated.nodes.NewNamespaceBuilder
@@ -22,7 +21,8 @@ import soot.SootClass
  */
 class FileAndPackagePass(private val driver: IDriver) : IProgramStructurePass {
 
-    private val nodeCache = mutableSetOf<NewNodeBuilder>()
+    private val namespaceCache = mutableMapOf<String, NewNamespaceBuilder>()
+    private val cache = DriverCache(driver)
 
     /**
      * This pass will build and link file and namespace information, i.e.
@@ -33,19 +33,13 @@ class FileAndPackagePass(private val driver: IDriver) : IProgramStructurePass {
      */
     override fun runPass(cs: List<SootClass>): List<SootClass> {
         createDefaultVertices()
-        val ns = cs.distinctBy { it.packageName }
-            .map { c ->
-                driver.getVerticesByProperty(NAME, c.packageName, NAMESPACE).firstOrNull()
-                    ?: NewNamespaceBuilder().name(c.packageName).order(-1)
-            }
-            .map { nodeCache.add(it); it }
-            .toList()
+        val ns = cs.distinctBy { it.packageName }.map(::getNamespace).toList()
         return cs.map { c -> buildFileAndPackage(c, ns) }.toList()
     }
 
     private fun buildFileAndPackage(c: SootClass, ns: List<NewNodeBuilder>): SootClass {
-        val nb = getNamespaceBlock(c)
-        val f = getFile(c)
+        val nb = cache.getOrMakeNamespaceBlock(c)
+        val f = cache.getOrMakeFile(c)
         // (NAMESPACE_BLOCK) -REF-> (NAMESPACE)
         ns.find { it.build().properties().get(NAME).get() == c.packageName }
             ?.let { namespace -> driver.addEdge(nb, namespace, REF) }
@@ -53,65 +47,25 @@ class FileAndPackagePass(private val driver: IDriver) : IProgramStructurePass {
         driver.addEdge(f, nb, AST)
         // (NAMESPACE_BLOCK) -SOURCE_FILE-> (FILE)
         driver.addEdge(nb, f, SOURCE_FILE)
-        // Cache additions
-        nodeCache.addAll(listOf(nb, f))
         return c
     }
 
-    /**
-     * This will first see if there is a NAMESPACE_BLOCK in the cache, if not then will look in the graph,
-     * if not then will build a new vertex.
-     */
-    private fun getNamespaceBlock(c: SootClass): NewNodeBuilder {
-        val fileName = SootToPlumeUtil.sootClassToFileName(c)
-        nodeCache.filterIsInstance<NewNamespaceBlockBuilder>()
-            .find { it.build().properties().get(FULL_NAME).get() == "$fileName:${c.packageName}" }
-            ?.let { return it }
-        return driver.getVerticesByProperty(
-            propertyKey = FULL_NAME,
-            propertyValue = "$fileName:${c.packageName}",
-            label = NAMESPACE_BLOCK
-        ).firstOrNull() ?: buildNamespaceBlock(c)
-    }
-
-    private fun buildNamespaceBlock(c: SootClass): NewNamespaceBlockBuilder {
-        val fileName = SootToPlumeUtil.sootClassToFileName(c)
-        return NewNamespaceBlockBuilder()
-            .filename(fileName)
-            .order(1)
-            .name(c.packageName)
-            .fullName("$fileName:${c.packageName}")
-    }
-
-    /**
-     * This will first see if there is a FILE in the cache, if not then will look in the graph,
-     * if not then will build a new vertex.
-     */
-    private fun getFile(c: SootClass): NewNodeBuilder {
-        val fileName = SootToPlumeUtil.sootClassToFileName(c)
-        return GlobalCache.getFile(fileName) ?: buildFile(c).apply { GlobalCache.addFile(this) }
-    }
-
-    private fun buildFile(c: SootClass): NewFileBuilder {
-        val fileName = SootToPlumeUtil.sootClassToFileName(c)
-        val fileHash = GlobalCache.getFileHash(c)
-        return NewFileBuilder()
-            .name(fileName)
-            .order(1)
-            .hash(Option.apply(fileHash))
-    }
+    private fun getNamespace(c: SootClass): NewNamespaceBuilder = namespaceCache[c.packageName]
+        ?: (driver.getVerticesByProperty(NAME, c.packageName, NAMESPACE).firstOrNull() as NewNamespaceBuilder?
+            ?: NewNamespaceBuilder().name(c.packageName).order(-1)).apply { namespaceCache[c.packageName] = this }
 
     private fun createDefaultVertices() {
-        if (driver.getVerticesByProperty(NAME, UNKNOWN, FILE).isEmpty()) {
+        if (cache.tryGetFile(UNKNOWN) == null) {
             val unknownFile = NewFileBuilder().name(UNKNOWN).order(0).hash(Option.apply(UNKNOWN))
             driver.addVertex(unknownFile)
-            nodeCache.add(unknownFile)
+            LocalCache.addFile(unknownFile)
         }
-        if (driver.getVerticesByProperty(NAME, GLOBAL).isEmpty()) {
+        if (cache.tryGetNamespaceBlock(GLOBAL) == null) {
             val gNamespace = NewNamespaceBuilder().name(GLOBAL).order(0)
             val gNamespaceBlock = NewNamespaceBlockBuilder().name(GLOBAL).fullName(GLOBAL).order(0).filename("")
             driver.addEdge(gNamespaceBlock, gNamespace, REF)
-            nodeCache.addAll(listOf(gNamespace, gNamespaceBlock))
+            LocalCache.addNamespaceBlock(gNamespaceBlock)
+            namespaceCache[GLOBAL] = gNamespace
         }
     }
 }

@@ -4,6 +4,7 @@ import io.github.plume.oss.Extractor
 import io.github.plume.oss.drivers.DriverFactory
 import io.github.plume.oss.drivers.GraphDatabase
 import io.github.plume.oss.drivers.TinkerGraphDriver
+import io.github.plume.oss.store.LocalCache
 import io.shiftleft.codepropertygraph.generated.EdgeTypes.*
 import io.shiftleft.codepropertygraph.generated.nodes.*
 import org.junit.jupiter.api.AfterEach
@@ -20,7 +21,7 @@ class BasicInterproceduralTest {
         private var driver = DriverFactory(GraphDatabase.TINKER_GRAPH) as TinkerGraphDriver
         private lateinit var g: Graph
         private var PATH: File
-        private val TEST_PATH = "interprocedural/basic"
+        private const val TEST_PATH = "interprocedural/basic"
 
         init {
             val testFileUrl = BasicInterproceduralTest::class.java.classLoader.getResource(TEST_PATH)
@@ -44,6 +45,7 @@ class BasicInterproceduralTest {
 
     @AfterEach
     fun tearDown() {
+        LocalCache.clear()
         driver.close()
         g.close()
     }

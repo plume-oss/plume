@@ -25,10 +25,8 @@ import soot.toolkits.graph.BriefUnitGraph
 interface IUnitGraphPass {
     /**
      * Builds on method body information from the given [BriefUnitGraph]s.
-     *
-     * @param gs The [BriefUnitGraph] of a method bodies to build the graph off of.
      */
-    fun runPass(gs: List<BriefUnitGraph>): List<BriefUnitGraph>
+    fun runPass(): DeltaGraph
 }
 
 /**

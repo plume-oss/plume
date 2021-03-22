@@ -4,6 +4,7 @@ import io.github.plume.oss.Extractor
 import io.github.plume.oss.drivers.DriverFactory
 import io.github.plume.oss.drivers.GraphDatabase
 import io.github.plume.oss.drivers.TinkerGraphDriver
+import io.github.plume.oss.store.LocalCache
 import io.shiftleft.codepropertygraph.generated.nodes.*
 import org.junit.jupiter.api.AfterEach
 import org.junit.jupiter.api.Assertions.assertEquals
@@ -45,6 +46,7 @@ class TypeInterproceduralTest {
 
     @AfterEach
     fun tearDown() {
+        LocalCache.clear()
         driver.close()
         g.close()
     }
