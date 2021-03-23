@@ -288,64 +288,65 @@ class Extractor(val driver: IDriver) {
             .coerceAtLeast(1)
             .coerceAtMost(Runtime.getRuntime().availableProcessors())
         val channel = Channel<DeltaGraph>()
-        logger.info("Spawning $nThreads thread(s).")
-        // Create jobs in chunks and submit these jobs to a thread pool
-        val threadPool = Executors.newFixedThreadPool(nThreads)
         try {
-            logger.info("Building ${headsToBuild.size} method heads")
-            runBlocking {
-                // Producer: Build method bodies and channel them through as delta graphs
-                launch {
-                    headsToBuild.chunked(chunkSize)
-                        .map { chunk -> Runnable { buildMethodHeads(chunk, channel) } }
-                        .forEach(threadPool::submit)
-                }
-                // Consumer: Receive delta graphs and write changes to the driver in serial
-                launch {
+            logger.info("Spawning $nThreads thread(s).")
+            // Create jobs in chunks and submit these jobs to a thread pool
+            val threadPool = Executors.newFixedThreadPool(nThreads)
+            try {
+                logger.info("Building ${headsToBuild.size} method heads")
+                runBlocking {
+                    // Producer: Build method bodies and channel them through as delta graphs
+                    launch {
+                        headsToBuild.chunked(chunkSize)
+                            .map { chunk -> Runnable { buildMethodHeads(chunk, channel) } }
+                            .forEach(threadPool::submit)
+                    }
+                    // Consumer: Receive delta graphs and write changes to the driver in serial
                     runInsideProgressBar("Method Heads", headsToBuild.size.toLong()) { pb ->
-                        repeat(headsToBuild.size) { launch { channel.receive().apply(driver) }; pb?.step() }
+                        runBlocking {
+                            repeat(headsToBuild.size) { channel.receive().apply(driver); pb?.step() }
+                        }
                     }
-                    logger.debug("All ${headsToBuild.size} method heads have been applied to the driver")
-                }.join() // Suspend until the channel is fully consumed.
-            }
-            logger.info("Building ${bodiesToBuild.size} method bodies")
-            runBlocking {
-                // Producer: Build method bodies and channel them through as delta graphs
-                launch {
-                    bodiesToBuild.chunked(chunkSize)
-                        .map { chunk -> Runnable { buildBaseCPGs(chunk, channel) } }
-                        .forEach(threadPool::submit)
+                    logger.info("All ${headsToBuild.size} method heads have been applied to the driver")
+
                 }
-                // Consumer: Receive delta graphs and write changes to the driver in serial
-                launch {
-                    runInsideProgressBar("Method Bodies", bodiesToBuild.size.toLong()) { pb ->
-                        repeat(bodiesToBuild.size) { launch { channel.receive().apply(driver) }; pb?.step() }
+                logger.info("Building ${bodiesToBuild.size} method bodies")
+                runBlocking {
+                    // Producer: Build method bodies and channel them through as delta graphs
+                    launch {
+                        bodiesToBuild.chunked(chunkSize)
+                            .map { chunk -> Runnable { buildBaseCPGs(chunk, channel) } }
+                            .forEach(threadPool::submit)
                     }
-                    logger.debug("All ${bodiesToBuild.size} method bodies have been applied to the driver")
-                }.join() // Suspend until the channel is fully consumed.
+                    // Consumer: Receive delta graphs and write changes to the driver in serial
+                    runInsideProgressBar("Method Bodies", bodiesToBuild.size.toLong()) { pb ->
+                        runBlocking {
+                            repeat(bodiesToBuild.size) { channel.receive().apply(driver); pb?.step() }
+                        }
+                    }
+                    logger.info("All ${bodiesToBuild.size} method bodies have been applied to the driver")
+                }
+            } finally {
+                threadPool.shutdown()
+            }
+            // Connect call edges. This is not done in parallel but asynchronously
+            logger.info("Constructing call graph edges")
+            runBlocking {
+                if (ExtractorOptions.callGraphAlg != ExtractorOptions.CallGraphAlg.NONE) {
+                    // Producer: Build method calls and channel them through as delta graphs
+                    launch {
+                        bodiesToBuild.chunked(chunkSize).forEach { chunk -> buildCallGraph(chunk, channel) }
+                    }
+                    // Consumer: Receive delta graphs and write changes to the driver in serial
+                    runBlocking {
+                        repeat(bodiesToBuild.size) { channel.receive().apply(driver) }
+                    }
+                    logger.info("All ${bodiesToBuild.size} method calls have been applied to the driver")
+                }
             }
         } finally {
-            threadPool.shutdown()
+            channel.close()
         }
-        // Connect call edges. This is not done in parallel but asynchronously
-        logger.info("Constructing call graph edges")
-        runBlocking {
-            if (ExtractorOptions.callGraphAlg != ExtractorOptions.CallGraphAlg.NONE) {
-                // Producer: Build method calls and channel them through as delta graphs
-                launch {
-                    bodiesToBuild.chunked(chunkSize)
-                        .forEach { chunk -> buildCallGraph(chunk, channel) }
-                }
-                // Consumer: Receive delta graphs and write changes to the driver in serial
-                launch {
-                    runInsideProgressBar("Method Calls", bodiesToBuild.size.toLong()) { pb ->
-                        repeat(bodiesToBuild.size) { launch { channel.receive().apply(driver) }; pb?.step() }
-                    }
-                    logger.debug("All ${bodiesToBuild.size} method calls have been applied to the driver")
-                }.join() // Suspend until the channel is fully consumed.
-            }
-        }
-        channel.close()
     }
 
     private fun runInsideProgressBar(pbName: String, barMax: Long, f: (pb: ProgressBar?) -> Unit) {
