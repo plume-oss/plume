@@ -303,7 +303,7 @@ class Extractor(val driver: IDriver) {
                 // Consumer: Receive delta graphs and write changes to the driver in serial
                 launch {
                     runInsideProgressBar("Method Heads", headsToBuild.size.toLong()) { pb ->
-                        repeat(headsToBuild.size) { launch { channel.receive().apply(driver); pb?.step() } }
+                        repeat(headsToBuild.size) { launch { channel.receive().apply(driver) }; pb?.step() }
                     }
                     logger.debug("All ${headsToBuild.size} method heads have been applied to the driver")
                 }.join() // Suspend until the channel is fully consumed.
@@ -319,7 +319,7 @@ class Extractor(val driver: IDriver) {
                 // Consumer: Receive delta graphs and write changes to the driver in serial
                 launch {
                     runInsideProgressBar("Method Bodies", bodiesToBuild.size.toLong()) { pb ->
-                        repeat(bodiesToBuild.size) { launch { channel.receive().apply(driver); pb?.step() } }
+                        repeat(bodiesToBuild.size) { launch { channel.receive().apply(driver) }; pb?.step() }
                     }
                     logger.debug("All ${bodiesToBuild.size} method bodies have been applied to the driver")
                 }.join() // Suspend until the channel is fully consumed.
@@ -339,7 +339,7 @@ class Extractor(val driver: IDriver) {
                 // Consumer: Receive delta graphs and write changes to the driver in serial
                 launch {
                     runInsideProgressBar("Method Calls", bodiesToBuild.size.toLong()) { pb ->
-                        repeat(bodiesToBuild.size) { launch { channel.receive().apply(driver); pb?.step() } }
+                        repeat(bodiesToBuild.size) { launch { channel.receive().apply(driver) }; pb?.step() }
                     }
                     logger.debug("All ${bodiesToBuild.size} method calls have been applied to the driver")
                 }.join() // Suspend until the channel is fully consumed.
