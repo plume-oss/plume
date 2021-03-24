@@ -230,11 +230,17 @@ class TigerGraphDriver internal constructor() : IOverridenIdDriver, ISchemaSafeD
         val vDels = mutableListOf<DeltaGraph.VertexDelete>()
         val eDels = mutableListOf<DeltaGraph.EdgeDelete>()
         PlumeTimer.measure(ExtractorTimeKey.DATABASE_READ) {
-            dg.changes.filterIsInstance<DeltaGraph.VertexAdd>().filter { !exists(it.n) }.map { it.n }
+            dg.changes.filterIsInstance<DeltaGraph.VertexAdd>().filter { !exists(it.n) }
+                .map {
+                    if (it.n.id() < 0) it.n.id(PlumeKeyProvider.getNewId(this))
+                    it.n
+                }
                 .toCollection(vAdds)
-            dg.changes.filterIsInstance<DeltaGraph.EdgeAdd>().map { listOf(it.src, it.dst) }.flatten().forEach { n ->
-                if (!exists(n) && vAdds.none { n == it }) vAdds.add(n)
-            }
+            dg.changes.filterIsInstance<DeltaGraph.EdgeAdd>().map { listOf(it.src, it.dst) }.flatten()
+                .forEach { n ->
+                    if (n.id() < 0) n.id(PlumeKeyProvider.getNewId(this))
+                    if (!exists(n) && !vAdds.contains(n)) vAdds.add(n)
+                }
             dg.changes.filterIsInstance<DeltaGraph.EdgeAdd>().filter { !exists(it.src, it.dst, it.e) }
                 .toCollection(eAdds)
             dg.changes.filterIsInstance<DeltaGraph.VertexDelete>().filter { checkVertexExists(it.id, it.label) }
@@ -464,9 +470,11 @@ class TigerGraphDriver internal constructor() : IOverridenIdDriver, ISchemaSafeD
                 val vertices = o["allVert"] as JSONArray
                 vertices.map { vertexPayloadToNode(it as JSONObject) }.forEach {
                     val n = it.build()
-                    val node = graph.addNode(it.id(), n.label())
-                    n.properties().foreachEntry { key, value -> node.setProperty(key, value) }
-                    vs[it.id()] = node
+                    if (graph.node(it.id()) == null) {
+                        val node = graph.addNode(it.id(), n.label())
+                        n.properties().foreachEntry { key, value -> node.setProperty(key, value) }
+                        vs[it.id()] = node
+                    }
                 }
             }
             a[1]?.let { res ->

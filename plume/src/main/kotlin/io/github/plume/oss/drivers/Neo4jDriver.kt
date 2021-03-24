@@ -154,7 +154,7 @@ class Neo4jDriver internal constructor() : IDriver {
                     val result = tx.run(
                         """
                         ${createVertexPayload(v, idx)}
-                        RETURN (n$idx) as id$idx
+                        RETURN ID(n$idx) as id$idx
                     """.trimIndent()
                     )
                     v.id(result.next()["id$idx"].toString().toLong())
@@ -295,7 +295,8 @@ class Neo4jDriver internal constructor() : IDriver {
                             $match
                             $where
                             $create
-                        """.trimIndent())
+                        """.trimIndent()
+                        )
                     }
                 }
             }
