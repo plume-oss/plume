@@ -56,7 +56,7 @@ class MarkForRebuildPass(private val driver: IDriver) : IProgramStructurePass {
                 logger.info("Class hashes differ, marking ${c.name} for rebuild.")
                 Pair(c, FileChange.UPDATE)
             } else {
-                logger.info("Classes are identical - no update necessary.")
+                logger.debug("Classes are identical - no update necessary.")
                 Pair(c, FileChange.NOP)
             }
         }

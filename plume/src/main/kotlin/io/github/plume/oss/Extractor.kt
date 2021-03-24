@@ -111,26 +111,26 @@ class Extractor(val driver: IDriver) {
      */
     @Throws(PlumeCompileException::class, NullPointerException::class, IOException::class)
     fun load(f: File): Extractor {
-        PlumeTimer.startTimerOn(ExtractorTimeKey.COMPILING_AND_UNPACKING)
-        File(COMP_DIR).let { c -> if (!c.exists()) c.mkdirs() }
-        if (!f.exists()) {
-            throw NullPointerException("File '${f.name}' does not exist!")
-        } else if (f.isDirectory) {
-            Files.walk(Paths.get(f.absolutePath)).use { walk ->
-                walk.map { obj: Path -> obj.toString() }
-                    .map { FileFactory.invoke(it) }
-                    .filter { it !is UnsupportedFile }
-                    .collect(Collectors.toList())
-                    .let { loadedFiles.addAll(it) }
-            }
-        } else if (f.isFile) {
-            if (f.name.endsWith(".jar")) {
-                ResourceCompilationUtil.unzipArchive(ZipFile(f)).forEach { loadedFiles.add(FileFactory(it)) }
-            } else {
-                loadedFiles.add(FileFactory(f))
+        PlumeTimer.measure(ExtractorTimeKey.COMPILING_AND_UNPACKING) {
+            File(COMP_DIR).let { c -> if (!c.exists()) c.mkdirs() }
+            if (!f.exists()) {
+                throw NullPointerException("File '${f.name}' does not exist!")
+            } else if (f.isDirectory) {
+                Files.walk(Paths.get(f.absolutePath)).use { walk ->
+                    walk.map { obj: Path -> obj.toString() }
+                        .map { FileFactory.invoke(it) }
+                        .filter { it !is UnsupportedFile }
+                        .collect(Collectors.toList())
+                        .let { loadedFiles.addAll(it) }
+                }
+            } else if (f.isFile) {
+                if (f.name.endsWith(".jar")) {
+                    ResourceCompilationUtil.unzipArchive(ZipFile(f)).forEach { loadedFiles.add(FileFactory(it)) }
+                } else {
+                    loadedFiles.add(FileFactory(f))
+                }
             }
         }
-        PlumeTimer.stopTimerOn(ExtractorTimeKey.COMPILING_AND_UNPACKING)
         return this
     }
 
@@ -304,7 +304,7 @@ class Extractor(val driver: IDriver) {
                     // Consumer: Receive delta graphs and write changes to the driver in serial
                     runInsideProgressBar("Method Heads", headsToBuild.size.toLong()) { pb ->
                         runBlocking {
-                            repeat(headsToBuild.size) { channel.receive().apply(driver); pb?.step() }
+                            repeat(headsToBuild.size) { driver.bulkTransaction(channel.receive()); pb?.step() }
                         }
                     }
                     logger.info("All ${headsToBuild.size} method heads have been applied to the driver")
@@ -321,7 +321,7 @@ class Extractor(val driver: IDriver) {
                     // Consumer: Receive delta graphs and write changes to the driver in serial
                     runInsideProgressBar("Method Bodies", bodiesToBuild.size.toLong()) { pb ->
                         runBlocking {
-                            repeat(bodiesToBuild.size) { channel.receive().apply(driver); pb?.step() }
+                            repeat(bodiesToBuild.size) { driver.bulkTransaction(channel.receive()); pb?.step() }
                         }
                     }
                     logger.info("All ${bodiesToBuild.size} method bodies have been applied to the driver")
@@ -339,7 +339,7 @@ class Extractor(val driver: IDriver) {
                     }
                     // Consumer: Receive delta graphs and write changes to the driver in serial
                     runBlocking {
-                        repeat(bodiesToBuild.size) { channel.receive().apply(driver) }
+                        repeat(bodiesToBuild.size) { driver.bulkTransaction(channel.receive()) }
                     }
                     logger.info("All ${bodiesToBuild.size} method calls have been applied to the driver")
                 }

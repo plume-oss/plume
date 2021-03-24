@@ -45,6 +45,7 @@ class DeltaGraph private constructor(val changes: List<Delta>) {
      * @param existingG optionally one can write the deltas to the given OverflowDB graph.
      * @return An OverflowDB graph with the changes from this [DeltaGraph] applied to it.
      */
+    @Deprecated("Use IDriver.bulkTransaction instead. Will be removed in 0.4.0.")
     fun toOverflowDb(existingG: Graph? = null): Graph {
         fun d2g(g: Graph) {
             fun addNode(n: NewNodeBuilder): Node {

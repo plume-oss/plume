@@ -123,7 +123,8 @@ class OverflowDbDriver internal constructor() : IDriver {
         PlumeTimer.measure(ExtractorTimeKey.DATABASE_READ) {
             val srcNode = graph.node(src.id())
             val dstNode = graph.node(tgt.id())
-            res = srcNode?.out(edge)?.asSequence()?.toList()?.any { node -> node.id() == dstNode.id() } ?: false
+            if (srcNode != null && dstNode != null)
+                res = srcNode.out(edge).asSequence().toList().any { node -> node.id() == dstNode.id() }
         }
         return res
     }
@@ -152,10 +153,8 @@ class OverflowDbDriver internal constructor() : IDriver {
         val vDels = mutableListOf<DeltaGraph.VertexDelete>()
         val eDels = mutableListOf<DeltaGraph.EdgeDelete>()
         PlumeTimer.measure(ExtractorTimeKey.DATABASE_READ) {
-            dg.changes.filterIsInstance<DeltaGraph.VertexAdd>().filter { !exists(it.n) }.map { it.n }.toCollection(vAdds)
-            dg.changes.filterIsInstance<DeltaGraph.EdgeAdd>().map { listOf(it.src, it.dst) }.flatten().forEach { n ->
-                if (!exists(n) && vAdds.none { n == it }) vAdds.add(n)
-            }
+            dg.changes.filterIsInstance<DeltaGraph.VertexAdd>().filter { !exists(it.n) }.map { it.n }
+                .toCollection(vAdds)
             dg.changes.filterIsInstance<DeltaGraph.EdgeAdd>().filter { !exists(it.src, it.dst, it.e) }
                 .toCollection(eAdds)
             dg.changes.filterIsInstance<DeltaGraph.VertexDelete>().filter { (graph.node(it.id) != null) }
@@ -165,7 +164,7 @@ class OverflowDbDriver internal constructor() : IDriver {
         }
         PlumeTimer.measure(ExtractorTimeKey.DATABASE_WRITE) {
             vAdds.forEach(::createVertex)
-            eAdds.forEach { createEdge(it.src, it.dst, it.e) }
+            eAdds.forEach { addEdge(it.src, it.dst, it.e) }
             vDels.forEach { graph.node(it.id)?.let { rv -> graph.remove(rv) } }
             eDels.forEach { removeEdge(it.src, it.dst, it.e) }
         }
