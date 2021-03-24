@@ -14,7 +14,7 @@ import io.shiftleft.codepropertygraph.generated.nodes.Factories as NodeFactories
  * making use of [NewNodeBuilder] objects. These get assigned an ID when passed to [IDriver.addVertex] so no duplication
  * occurs.
  */
-class DeltaGraph private constructor(private val changes: List<Delta>) {
+class DeltaGraph private constructor(val changes: List<Delta>) {
 
     private val logger = LogManager.getLogger(DeltaGraph::javaClass)
 

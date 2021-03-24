@@ -4,6 +4,7 @@ import io.github.plume.oss.Traversals
 import io.github.plume.oss.domain.exceptions.PlumeSchemaViolationException
 import io.github.plume.oss.domain.mappers.VertexMapper
 import io.github.plume.oss.domain.mappers.VertexMapper.checkSchemaConstraints
+import io.github.plume.oss.domain.model.DeltaGraph
 import io.github.plume.oss.metrics.ExtractorTimeKey
 import io.github.plume.oss.metrics.PlumeTimer
 import io.github.plume.oss.util.ExtractorConst.TYPE_REFERENCED_EDGES
@@ -13,7 +14,6 @@ import io.shiftleft.codepropertygraph.generated.NodeTypes.METHOD
 import io.shiftleft.codepropertygraph.generated.nodes.*
 import org.apache.logging.log4j.LogManager
 import overflowdb.*
-import scala.Option
 import java.util.*
 import io.shiftleft.codepropertygraph.generated.edges.Factories as EdgeFactories
 import io.shiftleft.codepropertygraph.generated.nodes.Factories as NodeFactories
@@ -102,12 +102,14 @@ class OverflowDbDriver internal constructor() : IDriver {
 
     override fun addVertex(v: NewNodeBuilder) {
         if (exists(v)) return
-        PlumeTimer.measure(ExtractorTimeKey.DATABASE_WRITE) {
-            val newNode = v.build()
-            val node = graph.addNode(newNode.label())
-            newNode.properties().foreachEntry { key, value -> node.setProperty(key, value) }
-            v.id(node.id())
-        }
+        PlumeTimer.measure(ExtractorTimeKey.DATABASE_WRITE) { createVertex(v) }
+    }
+
+    private fun createVertex(v: NewNodeBuilder) {
+        val newNode = v.build()
+        val node = graph.addNode(newNode.label())
+        newNode.properties().foreachEntry { key, value -> node.setProperty(key, value) }
+        v.id(node.id())
     }
 
     override fun exists(v: NewNodeBuilder): Boolean {
@@ -130,16 +132,42 @@ class OverflowDbDriver internal constructor() : IDriver {
         if (!checkSchemaConstraints(src, tgt, edge)) throw PlumeSchemaViolationException(src, tgt, edge)
         if (!exists(src)) addVertex(src)
         if (!exists(tgt)) addVertex(tgt)
-        PlumeTimer.measure(ExtractorTimeKey.DATABASE_WRITE) {
-            val srcNode = graph.node(src.id())
-            val dstNode = graph.node(tgt.id())
+        PlumeTimer.measure(ExtractorTimeKey.DATABASE_WRITE) { createEdge(src, tgt, edge) }
+    }
 
-            try {
-                srcNode.addEdge(edge, dstNode)
-            } catch (exc: RuntimeException) {
-                logger.error(exc.message, exc)
-                throw PlumeSchemaViolationException(src, tgt, edge)
+    private fun createEdge(src: NewNodeBuilder, tgt: NewNodeBuilder, edge: String) {
+        val srcNode = graph.node(src.id())
+        val dstNode = graph.node(tgt.id())
+        try {
+            srcNode.addEdge(edge, dstNode)
+        } catch (exc: RuntimeException) {
+            logger.error(exc.message, exc)
+            throw PlumeSchemaViolationException(src, tgt, edge)
+        }
+    }
+
+    override fun bulkTransaction(dg: DeltaGraph) {
+        val vAdds = mutableListOf<NewNodeBuilder>()
+        val eAdds = mutableListOf<DeltaGraph.EdgeAdd>()
+        val vDels = mutableListOf<DeltaGraph.VertexDelete>()
+        val eDels = mutableListOf<DeltaGraph.EdgeDelete>()
+        PlumeTimer.measure(ExtractorTimeKey.DATABASE_READ) {
+            dg.changes.filterIsInstance<DeltaGraph.VertexAdd>().filter { !exists(it.n) }.map { it.n }.toCollection(vAdds)
+            dg.changes.filterIsInstance<DeltaGraph.EdgeAdd>().map { listOf(it.src, it.dst) }.flatten().forEach { n ->
+                if (!exists(n) && vAdds.none { n == it }) vAdds.add(n)
             }
+            dg.changes.filterIsInstance<DeltaGraph.EdgeAdd>().filter { !exists(it.src, it.dst, it.e) }
+                .toCollection(eAdds)
+            dg.changes.filterIsInstance<DeltaGraph.VertexDelete>().filter { (graph.node(it.id) != null) }
+                .toCollection(vDels)
+            dg.changes.filterIsInstance<DeltaGraph.EdgeDelete>().filter { exists(it.src, it.dst, it.e) }
+                .toCollection(eDels)
+        }
+        PlumeTimer.measure(ExtractorTimeKey.DATABASE_WRITE) {
+            vAdds.forEach(::createVertex)
+            eAdds.forEach { createEdge(it.src, it.dst, it.e) }
+            vDels.forEach { graph.node(it.id)?.let { rv -> graph.remove(rv) } }
+            eDels.forEach { removeEdge(it.src, it.dst, it.e) }
         }
     }
 
@@ -246,9 +274,13 @@ class OverflowDbDriver internal constructor() : IDriver {
     override fun deleteEdge(src: NewNodeBuilder, tgt: NewNodeBuilder, edge: String) {
         if (!exists(src, tgt, edge)) return
         PlumeTimer.measure(ExtractorTimeKey.DATABASE_WRITE) {
-            val e = graph.node(src.id())?.outE(edge)?.next()
-            if (e?.inNode()?.id() == tgt.id()) e.remove()
+            removeEdge(src, tgt, edge)
         }
+    }
+
+    private fun removeEdge(src: NewNodeBuilder, tgt: NewNodeBuilder, edge: String) {
+        val e = graph.node(src.id())?.outE(edge)?.next()
+        if (e?.inNode()?.id() == tgt.id()) e.remove()
     }
 
     override fun deleteMethod(fullName: String) {

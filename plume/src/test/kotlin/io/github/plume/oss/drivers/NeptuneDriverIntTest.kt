@@ -33,6 +33,7 @@ import io.github.plume.oss.TestDomainResources.Companion.typeRefVertex
 import io.github.plume.oss.TestDomainResources.Companion.unknownVertex
 import io.github.plume.oss.domain.exceptions.PlumeSchemaViolationException
 import io.github.plume.oss.domain.mappers.ListMapper
+import io.github.plume.oss.domain.model.DeltaGraph
 import io.github.plume.oss.util.SootToPlumeUtil
 import io.shiftleft.codepropertygraph.generated.EdgeTypes.*
 import io.shiftleft.codepropertygraph.generated.NodeKeyNames.*
@@ -717,5 +718,45 @@ class NeptuneDriverIntTest {
             assertEquals(2, r2.size)
             assertTrue(r2.all { it is NewNamespaceBlockBuilder })
         }
+    }
+
+    @Nested
+    @DisplayName("Test bulkTransaction operations")
+    inner class BulkDeltaGraphOperations {
+
+        val b = DeltaGraph.Builder()
+            .addVertex(fileVertex)
+            .addVertex(identifierVertex)
+            .addEdge(methodVertex, fileVertex, SOURCE_FILE)
+            .addEdge(methodVertex, localVertex, AST)
+
+
+        @Test
+        fun testApplyingBuilder() {
+            driver.bulkTransaction(b.build())
+            assertTrue(driver.exists(methodVertex, fileVertex, SOURCE_FILE))
+            assertTrue(driver.exists(methodVertex, localVertex, AST))
+            assertTrue(driver.exists(identifierVertex))
+        }
+
+        @Test
+        fun testAddingDuplicate() {
+            driver.bulkTransaction(b.addVertex(methodVertex).build())
+            assertTrue(driver.exists(methodVertex, fileVertex, SOURCE_FILE))
+            assertTrue(driver.exists(methodVertex, localVertex, AST))
+            assertTrue(driver.exists(identifierVertex))
+            driver.getWholeGraph().use { g -> assertEquals(1, g.nodeCount(METHOD)) }
+        }
+
+        @Test
+        fun testDeleteOps() {
+            driver.bulkTransaction(b.build())
+            driver.bulkTransaction(DeltaGraph.Builder().deleteVertex(methodVertex).build())
+            assertFalse(driver.exists(methodVertex, fileVertex, SOURCE_FILE))
+            assertFalse(driver.exists(methodVertex, localVertex, AST))
+            assertTrue(driver.exists(identifierVertex))
+            driver.getWholeGraph().use { g -> assertEquals(0, g.nodeCount(METHOD)) }
+        }
+
     }
 }

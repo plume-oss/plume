@@ -4,6 +4,7 @@ import io.github.plume.oss.domain.exceptions.PlumeSchemaViolationException
 import io.github.plume.oss.domain.exceptions.PlumeTransactionException
 import io.github.plume.oss.domain.mappers.VertexMapper
 import io.github.plume.oss.domain.mappers.VertexMapper.checkSchemaConstraints
+import io.github.plume.oss.domain.model.DeltaGraph
 import io.github.plume.oss.metrics.ExtractorTimeKey
 import io.github.plume.oss.metrics.PlumeTimer
 import io.github.plume.oss.util.CodeControl
@@ -207,8 +208,8 @@ class TigerGraphDriver internal constructor() : IOverridenIdDriver, ISchemaSafeD
         val toPayload = createVertexPayload(tgt)
         val vertexPayload = if (fromPayload.keys.first() == toPayload.keys.first()) mapOf(
             fromPayload.keys.first() to mapOf(
-                src.id().toString() to (fromPayload.values.first() as Map<*, *>)[src.id().toString()],
-                tgt.id().toString() to (toPayload.values.first() as Map<*, *>)[tgt.id().toString()]
+                src.id().toString() to (fromPayload.values.first())[src.id().toString()],
+                tgt.id().toString() to (toPayload.values.first())[tgt.id().toString()]
             )
         )
         else mapOf(
@@ -222,14 +223,77 @@ class TigerGraphDriver internal constructor() : IOverridenIdDriver, ISchemaSafeD
         post("graph/$GRAPH_NAME", payload)
     }
 
-    private fun createVertexPayload(v: NewNodeBuilder): Map<String, Any> {
+    @Suppress("UNCHECKED_CAST")
+    override fun bulkTransaction(dg: DeltaGraph) {
+        val vAdds = mutableListOf<NewNodeBuilder>()
+        val eAdds = mutableListOf<DeltaGraph.EdgeAdd>()
+        val vDels = mutableListOf<DeltaGraph.VertexDelete>()
+        val eDels = mutableListOf<DeltaGraph.EdgeDelete>()
+        PlumeTimer.measure(ExtractorTimeKey.DATABASE_READ) {
+            dg.changes.filterIsInstance<DeltaGraph.VertexAdd>().filter { !exists(it.n) }.map { it.n }
+                .toCollection(vAdds)
+            dg.changes.filterIsInstance<DeltaGraph.EdgeAdd>().map { listOf(it.src, it.dst) }.flatten().forEach { n ->
+                if (!exists(n) && vAdds.none { n == it }) vAdds.add(n)
+            }
+            dg.changes.filterIsInstance<DeltaGraph.EdgeAdd>().filter { !exists(it.src, it.dst, it.e) }
+                .toCollection(eAdds)
+            dg.changes.filterIsInstance<DeltaGraph.VertexDelete>().filter { checkVertexExists(it.id, it.label) }
+                .toCollection(vDels)
+            dg.changes.filterIsInstance<DeltaGraph.EdgeDelete>().filter { exists(it.src, it.dst, it.e) }
+                .toCollection(eDels)
+        }
+        PlumeTimer.measure(ExtractorTimeKey.DATABASE_WRITE) {
+            // Aggregate all requests going into the add
+            val vAddPayload = vAdds.map(::createVertexPayload)
+                .foldRight(mutableMapOf<Any, Any>()) { x, y -> deepMerge(x as MutableMap<Any, Any>, y) }
+            val eAddPayload = eAdds.map { createEdgePayload(it.src, it.dst, it.e) }
+                .foldRight(mutableMapOf<Any, Any>()) { x, y -> deepMerge(x as MutableMap<Any, Any>, y) }
+            if (vAdds.size > 1 || eAdds.size > 1) {
+                val payload = mapOf(
+                    "vertices" to vAddPayload,
+                    "edges" to eAddPayload
+                )
+                post("graph/$GRAPH_NAME", payload)
+            }
+            // Aggregate all requests going into the delete
+            vDels.forEach { deleteVertex(it.id, it.label) }
+            eDels.forEach { deleteEdge(it.src, it.dst, it.e) }
+        }
+    }
+
+    @Suppress("UNCHECKED_CAST")
+    private fun deepMerge(map1: MutableMap<Any, Any>, map2: MutableMap<Any, Any>): MutableMap<Any, Any> {
+        for (key in map2.keys) {
+            val value2 = map2[key]
+            if (map1.containsKey(key)) {
+                val value1 = map1[key]
+                if (value1 is MutableMap<*, *> && value2 is MutableMap<*, *>)
+                    deepMerge(value1 as MutableMap<Any, Any>, value2 as MutableMap<Any, Any>)
+                else if (value1 is MutableList<*> && value2 is MutableList<*>)
+                    map1[key] = merge(value1 as MutableList<Any>, value2 as MutableList<Any>)
+                else
+                    map1[key] = value2 as Any
+            } else {
+                map1[key] = value2 as Any
+            }
+        }
+        return map1
+    }
+
+    private fun merge(list1: MutableList<Any>, list2: MutableList<Any>): List<*> {
+        list2.removeAll(list1)
+        list1.addAll(list2)
+        return list1
+    }
+
+    private fun createVertexPayload(v: NewNodeBuilder): MutableMap<String, MutableMap<String, Any>> {
         val node = v.build()
         val propertyMap = CollectionConverters.MapHasAsJava(node.properties()).asJava().toMutableMap()
         propertyMap["label"] = node.label()
         val vertexType = if (v is NewMetaDataBuilder) "META_DATA_VERT" else "CPG_VERT"
         if (v.id() < 0L) v.id(PlumeKeyProvider.getNewId(this))
-        return mapOf(
-            vertexType to mapOf<String, Any>(
+        return mutableMapOf(
+            vertexType to mutableMapOf(
                 v.id().toString() to extractAttributesFromMap(propertyMap)
             )
         )
@@ -241,20 +305,23 @@ class TigerGraphDriver internal constructor() : IOverridenIdDriver, ISchemaSafeD
             .mapValues { mapOf("value" to it.value) }
             .toMutableMap()
 
-    private fun createEdgePayload(from: NewNodeBuilder, to: NewNodeBuilder, edge: String): Map<String, Any> {
+    private fun createEdgePayload(
+        from: NewNodeBuilder,
+        to: NewNodeBuilder,
+        edge: String
+    ): MutableMap<String, MutableMap<String, MutableMap<String, Any>>> {
         val fromPayload = createVertexPayload(from)
         val toPayload = createVertexPayload(to)
         val fromLabel = fromPayload.keys.first()
         val toLabel = toPayload.keys.first()
-        return mapOf(
-            fromLabel to mapOf(
-                from.id().toString() to mapOf<String, Any>(
-                    "_$edge" to mapOf<String, Any>(
-                        toLabel to mapOf<String, Any>(
-                            to.id().toString() to emptyMap<String, Any>()
+        return mutableMapOf(
+            fromLabel to mutableMapOf(
+                from.id().toString() to mutableMapOf(
+                    "_$edge" to mutableMapOf(
+                        toLabel to mutableMapOf<String, MutableMap<String, Any>>(
+                            to.id().toString() to mutableMapOf()
                         )
                     )
-
                 )
             )
         )

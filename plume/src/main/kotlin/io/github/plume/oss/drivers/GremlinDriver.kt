@@ -3,6 +3,7 @@ package io.github.plume.oss.drivers
 import io.github.plume.oss.domain.exceptions.PlumeSchemaViolationException
 import io.github.plume.oss.domain.mappers.VertexMapper
 import io.github.plume.oss.domain.mappers.VertexMapper.checkSchemaConstraints
+import io.github.plume.oss.domain.model.DeltaGraph
 import io.github.plume.oss.metrics.ExtractorTimeKey
 import io.github.plume.oss.metrics.PlumeTimer
 import io.github.plume.oss.util.ExtractorConst.TYPE_REFERENCED_EDGES
@@ -119,6 +120,35 @@ abstract class GremlinDriver : IDriver {
         createEdge(source, edge, target)
     }
 
+    override fun bulkTransaction(dg: DeltaGraph) {
+        val vAdds = mutableListOf<NewNodeBuilder>()
+        val eAdds = mutableListOf<DeltaGraph.EdgeAdd>()
+        val vDels = mutableListOf<DeltaGraph.VertexDelete>()
+        val eDels = mutableListOf<DeltaGraph.EdgeDelete>()
+        PlumeTimer.measure(ExtractorTimeKey.DATABASE_READ) {
+            dg.changes.filterIsInstance<DeltaGraph.VertexAdd>().filter { !exists(it.n) }.map { it.n }
+                .toCollection(vAdds)
+            dg.changes.filterIsInstance<DeltaGraph.EdgeAdd>().map { listOf(it.src, it.dst) }.flatten().forEach { n ->
+                if (!exists(n) && vAdds.none { n == it }) vAdds.add(n)
+            }
+            dg.changes.filterIsInstance<DeltaGraph.EdgeAdd>().filter { !exists(it.src, it.dst, it.e) }
+                .toCollection(eAdds)
+            dg.changes.filterIsInstance<DeltaGraph.VertexDelete>().filter { g.V(it.id).hasNext() }
+                .toCollection(vDels)
+            dg.changes.filterIsInstance<DeltaGraph.EdgeDelete>().filter { exists(it.src, it.dst, it.e) }
+                .toCollection(eDels)
+        }
+        PlumeTimer.measure(ExtractorTimeKey.DATABASE_WRITE) {
+            val tx = if (graph.features().graph().supportsTransactions()) g.tx() else null
+            tx?.open()
+            vAdds.forEach(::createVertex)
+            eAdds.forEach { createEdge(g.V(it.src.id()).next(), it.e, g.V(it.dst.id()).next()) }
+            vDels.forEach { deleteVertex(it.id, it.label) }
+            eDels.forEach { g.V(it.src.id()).outE(it.e).where(un.otherV().hasId(it.dst.id())).drop().iterate() }
+            tx?.commit()
+        }
+    }
+
     override fun clearGraph() = apply {
         PlumeTimer.measure(ExtractorTimeKey.DATABASE_WRITE) { g.V().drop().iterate() }
     }
@@ -152,8 +182,7 @@ abstract class GremlinDriver : IDriver {
 
 
     /**
-     * Wrapper method for creating an edge between two vertices. This wrapper method assigns a random UUID as the ID
-     * for the edge.
+     * Wrapper method for creating an edge between two vertices.
      *
      * @param v1   The from [Vertex].
      * @param edge The CPG edge label.
