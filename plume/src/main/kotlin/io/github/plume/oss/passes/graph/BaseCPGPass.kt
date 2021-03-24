@@ -20,6 +20,7 @@ import soot.Unit
 import soot.Value
 import soot.jimple.*
 import soot.jimple.internal.JimpleLocalBox
+import soot.tagkit.BytecodeOffsetTag
 import soot.toolkits.graph.BriefUnitGraph
 
 /**
@@ -302,6 +303,9 @@ class BaseCPGPass(private val g: BriefUnitGraph) {
     private fun projectUnitAsAst(unit: Unit, childIdx: Int): NewNodeBuilder? {
         currentLine = unit.javaSourceStartLineNumber
         currentCol = unit.javaSourceStartColumnNumber
+        unit.tags.filterIsInstance<BytecodeOffsetTag>().firstOrNull()?.let {
+            currentLine = it.bytecodeOffset
+        }
 
         val unitVertex: NewNodeBuilder? = when (unit) {
             is IfStmt -> projectIfStatement(unit, childIdx)
@@ -361,6 +365,7 @@ class BaseCPGPass(private val g: BriefUnitGraph) {
             SootToPlumeUtil.createIdentifierVertex(it.value, currentLine, currentCol, unit.useBoxes.indexOf(it)).apply {
                 addToCache(it.value, this)
                 builder.addEdge(callVertex, this, RECEIVER)
+                builder.addEdge(callVertex, this, ARGUMENT)
                 builder.addEdge(callVertex, this, AST)
             }
         }
@@ -558,7 +563,7 @@ class BaseCPGPass(private val g: BriefUnitGraph) {
             assignVariables.add(it)
             addToCache(leftOp, it)
         }
-        projectOp(rightOp, 1)?.let {
+        projectOp(rightOp, 2)?.let {
             builder.addEdge(assignBlock, it, AST)
             builder.addEdge(assignBlock, it, ARGUMENT)
             assignVariables.add(it)
@@ -717,7 +722,7 @@ class BaseCPGPass(private val g: BriefUnitGraph) {
         when (fieldRef) {
             is StaticFieldRef -> { // Handle Static as Type_ref?
                 Pair(
-                    SootToPlumeUtil.createTypeRefVertex(fieldRef.type, currentLine, currentCol, 1),
+                    SootToPlumeUtil.createTypeRefVertex(fieldRef.field.declaringClass.type, currentLine, currentCol, 1),
                     SootToPlumeUtil.createFieldIdentifierVertex(fieldRef, currentLine, currentCol, 2)
                 )
             }
@@ -742,10 +747,10 @@ class BaseCPGPass(private val g: BriefUnitGraph) {
     }
 
 
-    private fun createNewArrayExpr(expr: NewArrayExpr, childIdx: Int = 0) =
+    private fun createNewArrayExpr(expr: NewArrayExpr, childIdx: Int = 1) =
         NewIdentifierBuilder()
-            .order(childIdx + 1)
-            .argumentIndex(childIdx + 1)
+            .order(childIdx)
+            .argumentIndex(childIdx)
             .code(expr.toString())
             .lineNumber(Option.apply(currentLine))
             .columnNumber(Option.apply(currentCol))
