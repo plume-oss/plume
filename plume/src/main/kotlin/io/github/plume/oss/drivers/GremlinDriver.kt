@@ -126,10 +126,8 @@ abstract class GremlinDriver : IDriver {
         val vDels = mutableListOf<DeltaGraph.VertexDelete>()
         val eDels = mutableListOf<DeltaGraph.EdgeDelete>()
         PlumeTimer.measure(ExtractorTimeKey.DATABASE_READ) {
-            dg.changes.filterIsInstance<DeltaGraph.VertexAdd>().filter { !exists(it.n) }.map { it.n }
-                .toCollection(vAdds)
-            dg.changes.filterIsInstance<DeltaGraph.EdgeAdd>().filter { !exists(it.src, it.dst, it.e) }
-                .toCollection(eAdds)
+            dg.changes.filterIsInstance<DeltaGraph.VertexAdd>().map { it.n }.toCollection(vAdds)
+            dg.changes.filterIsInstance<DeltaGraph.EdgeAdd>().toCollection(eAdds)
             dg.changes.filterIsInstance<DeltaGraph.VertexDelete>().filter { g.V(it.id).hasNext() }
                 .toCollection(vDels)
             dg.changes.filterIsInstance<DeltaGraph.EdgeDelete>().filter { exists(it.src, it.dst, it.e) }
@@ -138,7 +136,7 @@ abstract class GremlinDriver : IDriver {
         PlumeTimer.measure(ExtractorTimeKey.DATABASE_WRITE) {
             val tx = if (graph.features().graph().supportsTransactions()) g.tx() else null
             tx?.open()
-            vAdds.forEach(::createVertex)
+            vAdds.forEach { if (!exists(it)) createVertex(it) }
             tx?.commit(); tx?.open()
             eAdds.forEach { addEdge(it.src, it.dst, it.e) }
             vDels.forEach { deleteVertex(it.id, it.label) }

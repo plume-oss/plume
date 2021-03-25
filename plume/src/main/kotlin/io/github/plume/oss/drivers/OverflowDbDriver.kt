@@ -153,18 +153,16 @@ class OverflowDbDriver internal constructor() : IDriver {
         val vDels = mutableListOf<DeltaGraph.VertexDelete>()
         val eDels = mutableListOf<DeltaGraph.EdgeDelete>()
         PlumeTimer.measure(ExtractorTimeKey.DATABASE_READ) {
-            dg.changes.filterIsInstance<DeltaGraph.VertexAdd>().filter { !exists(it.n) }.map { it.n }
-                .toCollection(vAdds)
-            dg.changes.filterIsInstance<DeltaGraph.EdgeAdd>().filter { !exists(it.src, it.dst, it.e) }
-                .toCollection(eAdds)
+            dg.changes.filterIsInstance<DeltaGraph.VertexAdd>().map { it.n }.toCollection(vAdds)
+            dg.changes.filterIsInstance<DeltaGraph.EdgeAdd>().toCollection(eAdds)
             dg.changes.filterIsInstance<DeltaGraph.VertexDelete>().filter { (graph.node(it.id) != null) }
                 .toCollection(vDels)
             dg.changes.filterIsInstance<DeltaGraph.EdgeDelete>().filter { exists(it.src, it.dst, it.e) }
                 .toCollection(eDels)
         }
         PlumeTimer.measure(ExtractorTimeKey.DATABASE_WRITE) {
-            vAdds.forEach(::createVertex)
-            eAdds.forEach { addEdge(it.src, it.dst, it.e) }
+            vAdds.forEach { if (!exists(it)) createVertex(it) }
+            eAdds.forEach { if (!exists(it.src, it.dst, it.e)) createEdge(it.src, it.dst, it.e) }
             vDels.forEach { graph.node(it.id)?.let { rv -> graph.remove(rv) } }
             eDels.forEach { removeEdge(it.src, it.dst, it.e) }
         }
@@ -188,12 +186,12 @@ class OverflowDbDriver internal constructor() : IDriver {
     override fun getMethodNames(): List<String> = getPropertyFromVertices(FULL_NAME, METHOD)
 
     private fun deepCopyGraph(edges: List<Edge>): Graph {
-        val graph = newOverflowGraph()
+        val newGraph = newOverflowGraph()
         PlumeTimer.measure(ExtractorTimeKey.DATABASE_READ) {
-            deepCopyVertices(graph, edges)
-            deepCopyEdges(graph, edges)
+            deepCopyVertices(newGraph, edges)
+            deepCopyEdges(newGraph, edges)
         }
-        return graph
+        return newGraph
     }
 
     private fun deepCopyVertices(graph: Graph, edges: List<Edge>): List<Node> {

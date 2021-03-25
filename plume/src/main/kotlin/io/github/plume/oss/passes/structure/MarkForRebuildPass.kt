@@ -35,7 +35,9 @@ class MarkForRebuildPass(private val driver: IDriver) : IProgramStructurePass {
      */
     override fun runPass(cs: List<SootClass>): List<SootClass> {
         val cStateList = cs.map(::checkIfClassNeedsAnUpdate).toList()
-        cStateList.filter { it.second == FileChange.UPDATE }.forEach { dropClassFromGraph(it.first) }
+        val csToUpdate = cStateList.filter { it.second == FileChange.UPDATE }.toList()
+        csToUpdate.forEach { dropClassFromGraph(it.first) }
+        if (csToUpdate.isNotEmpty()) logger.info("Number of classes to update is ${csToUpdate.size}")
         return cStateList.filterNot { it.second == FileChange.NOP }.map { it.first }.toList()
     }
 
@@ -51,9 +53,9 @@ class MarkForRebuildPass(private val driver: IDriver) : IProgramStructurePass {
         val newCName = SootToPlumeUtil.sootClassToFileName(c)
         cache.tryGetFile(newCName)?.let { oldCNode: NewNodeBuilder ->
             val currentCHash = PlumeStorage.getFileHash(c)
-            logger.info("Found an existing class with name ${c.name}...")
+            logger.debug("Found an existing class with name ${c.name}")
             return if (oldCNode.build().properties().get(HASH).get() != currentCHash) {
-                logger.info("Class hashes differ, marking ${c.name} for rebuild.")
+                logger.debug("Class hashes differ, marking ${c.name} for rebuild.")
                 Pair(c, FileChange.UPDATE)
             } else {
                 logger.debug("Classes are identical - no update necessary.")

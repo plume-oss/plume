@@ -154,7 +154,7 @@ class Extractor(val driver: IDriver) {
         /*
             Load and compile files then feed them into Soot
          */
-        if (loadedFiles.isEmpty()) return apply { logger.info("No files loaded, returning") }
+        if (loadedFiles.isEmpty()) return apply { logger.info("No files loaded."); earlyStopCleanUp() }
         val (nCs, nSs, nUs) = loadedFileGroupCount()
         logger.info("Preparing $nCs class and $nSs source file(s). Ignoring $nUs unsupported file(s).")
         val cs = mutableListOf<SootClass>()
@@ -163,7 +163,7 @@ class Extractor(val driver: IDriver) {
             ResourceCompilationUtil.compileLoadedFiles(loadedFiles).toCollection(compiledFiles)
             if (compiledFiles.isNotEmpty()) upsertMetaData()
         }
-        if (compiledFiles.isEmpty()) return this
+        if (compiledFiles.isEmpty()) return apply { logger.info("No supported files detected."); earlyStopCleanUp() }
         logger.info("Loading all classes into Soot")
         PlumeTimer.measure(ExtractorTimeKey.SOOT) {
             configureSoot()
@@ -176,12 +176,15 @@ class Extractor(val driver: IDriver) {
         logger.info("Building internal program structure and type information")
         val csToBuild = mutableListOf<SootClass>()
         PlumeTimer.measure(ExtractorTimeKey.PROGRAM_STRUCTURE_BUILDING) {
+            MarkForRebuildPass(driver).runPass(cs).toCollection(csToBuild)
+        }
+        if (csToBuild.isEmpty()) return apply { logger.info("No new or changed files detected."); earlyStopCleanUp() }
+        PlumeTimer.measure(ExtractorTimeKey.PROGRAM_STRUCTURE_BUILDING) {
             // First read the existing TYPE, TYPE_DECL, and FILEs from the driver and load it into the cache
             pipeline(
-                MarkForRebuildPass(driver)::runPass,
                 FileAndPackagePass(driver)::runPass,
                 TypePass(driver)::runPass,
-            ).invoke(cs).toCollection(csToBuild)
+            ).invoke(cs)
         }
         cs.clear() // Done using cs
         /*
@@ -264,6 +267,11 @@ class Extractor(val driver: IDriver) {
         PlumeTimer.measure(ExtractorTimeKey.DATA_FLOW_PASS) { DataFlowPass(driver).runPass() }
         PlumeStorage.methodCpgs.clear()
         return this
+    }
+
+    private fun earlyStopCleanUp() {
+        this.clear()
+        PlumeStorage.methodCpgs.clear()
     }
 
     private fun buildMethods(

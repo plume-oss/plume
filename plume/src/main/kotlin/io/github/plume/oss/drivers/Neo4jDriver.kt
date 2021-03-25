@@ -253,11 +253,8 @@ class Neo4jDriver internal constructor() : IDriver {
         val vDels = mutableListOf<DeltaGraph.VertexDelete>()
         val eDels = mutableListOf<DeltaGraph.EdgeDelete>()
         PlumeTimer.measure(ExtractorTimeKey.DATABASE_READ) {
-            dg.changes.filterIsInstance<DeltaGraph.VertexAdd>().filter { !exists(it.n) }.map { it.n }
-                .toCollection(vAdds)
-            dg.changes.filterIsInstance<DeltaGraph.EdgeAdd>().map { listOf(it.src, it.dst) }.flatten().forEach { n ->
-                if (!exists(n) && vAdds.none { n == it }) vAdds.add(n)
-            }
+            dg.changes.filterIsInstance<DeltaGraph.VertexAdd>().map { it.n }.filterNot(::exists)
+                .forEachIndexed { i, va -> if (vAdds.none { va === it }) vAdds.add(va.id(-(i + 1).toLong())) }
             dg.changes.filterIsInstance<DeltaGraph.EdgeAdd>().filter { !exists(it.src, it.dst, it.e) }
                 .toCollection(eAdds)
             dg.changes.filterIsInstance<DeltaGraph.VertexDelete>().filter { checkVertexExist(it.id, it.label) }
@@ -266,25 +263,37 @@ class Neo4jDriver internal constructor() : IDriver {
                 .toCollection(eDels)
         }
         PlumeTimer.measure(ExtractorTimeKey.DATABASE_WRITE) {
+            val idToAlias = mutableMapOf<NewNodeBuilder, String>()
+            val vPayloads = mutableMapOf<NewNodeBuilder, String>()
             if (vAdds.isNotEmpty()) {
-                val vAddStr = vAdds.mapIndexed { i, v -> createVertexPayload(v, i) }.joinToString("\n") +
-                        "\nRETURN " + vAdds.mapIndexed { i, _ -> "ID(n$i) as id$i" }.joinToString(", ")
+                val temp = vAdds.distinctBy { it.id() }.toMutableList()
+                vAdds.clear()
+                vAdds.addAll(temp)
+                vAdds.mapIndexed { i, v ->
+                    idToAlias[v] = "n$i"
+                    vPayloads[v] = createVertexPayload(v, i)
+                }
+                val create = vPayloads.values.joinToString("\n") { it }
+                val ret = "RETURN " + vAdds
+                    .joinToString(", ") { v -> "ID(${idToAlias[v]}) as id${idToAlias[v]}" }
                 driver.session().use { session ->
                     session.writeTransaction { tx ->
-                        val result = tx.run(vAddStr)
+                        val result = tx.run(
+                            """
+                            $create
+                            $ret
+                        """.trimIndent()
+                        )
                         val row = result.next()
-                        vAdds.forEachIndexed { i, v -> v.id(row["id$i"].toString().toLong()) }
+                        vAdds.forEach { v -> v.id(row["id${idToAlias[v]}"].toString().toLong()) }
                     }
                 }
             }
             if (eAdds.isNotEmpty()) {
-                val idToAlias = mutableMapOf<NewNodeBuilder, String>()
-                val eNodes =
-                    eAdds.map { mutableSetOf(it.src, it.dst) }.fold(emptySet<NewNodeBuilder>()) { x, y -> x + y }
-                val match = "MATCH " + eNodes
+                val match = "MATCH " + vAdds
                     .mapIndexed { i, v -> idToAlias[v] = "n$i"; "(n$i:${v.build().label()})" }
                     .joinToString(", ")
-                val where = "WHERE " + eNodes.joinToString(" AND ") { v -> "id(${idToAlias[v]})=${v.id()}" }
+                val where = "WHERE " + vAdds.joinToString(" AND ") { v -> "id(${idToAlias[v]})=${v.id()}" }
                 val create = "CREATE " + eAdds
                     .mapIndexed { i, eAdd -> "(${idToAlias[eAdd.src]})-[r$i:${eAdd.e}]->(${idToAlias[eAdd.dst]})" }
                     .joinToString(", ")

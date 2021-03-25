@@ -230,17 +230,13 @@ class TigerGraphDriver internal constructor() : IOverridenIdDriver, ISchemaSafeD
         val vDels = mutableListOf<DeltaGraph.VertexDelete>()
         val eDels = mutableListOf<DeltaGraph.EdgeDelete>()
         PlumeTimer.measure(ExtractorTimeKey.DATABASE_READ) {
-            dg.changes.filterIsInstance<DeltaGraph.VertexAdd>().filter { !exists(it.n) }
+            dg.changes.asSequence().filterIsInstance<DeltaGraph.VertexAdd>().map { it.n }
+                .filterNot(::exists)
                 .map {
-                    if (it.n.id() < 0) it.n.id(PlumeKeyProvider.getNewId(this))
-                    it.n
-                }
+                    if (it.id() < 0) it.id(PlumeKeyProvider.getNewId(this))
+                    it
+                }.distinctBy { it.id() }
                 .toCollection(vAdds)
-            dg.changes.filterIsInstance<DeltaGraph.EdgeAdd>().map { listOf(it.src, it.dst) }.flatten()
-                .forEach { n ->
-                    if (n.id() < 0) n.id(PlumeKeyProvider.getNewId(this))
-                    if (!exists(n) && !vAdds.contains(n)) vAdds.add(n)
-                }
             dg.changes.filterIsInstance<DeltaGraph.EdgeAdd>().filter { !exists(it.src, it.dst, it.e) }
                 .toCollection(eAdds)
             dg.changes.filterIsInstance<DeltaGraph.VertexDelete>().filter { checkVertexExists(it.id, it.label) }
