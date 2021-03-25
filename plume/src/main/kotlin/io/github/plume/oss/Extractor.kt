@@ -111,26 +111,26 @@ class Extractor(val driver: IDriver) {
      */
     @Throws(PlumeCompileException::class, NullPointerException::class, IOException::class)
     fun load(f: File): Extractor {
-        PlumeTimer.startTimerOn(ExtractorTimeKey.COMPILING_AND_UNPACKING)
-        File(COMP_DIR).let { c -> if (!c.exists()) c.mkdirs() }
-        if (!f.exists()) {
-            throw NullPointerException("File '${f.name}' does not exist!")
-        } else if (f.isDirectory) {
-            Files.walk(Paths.get(f.absolutePath)).use { walk ->
-                walk.map { obj: Path -> obj.toString() }
-                    .map { FileFactory.invoke(it) }
-                    .filter { it !is UnsupportedFile }
-                    .collect(Collectors.toList())
-                    .let { loadedFiles.addAll(it) }
-            }
-        } else if (f.isFile) {
-            if (f.name.endsWith(".jar")) {
-                ResourceCompilationUtil.unzipArchive(ZipFile(f)).forEach { loadedFiles.add(FileFactory(it)) }
-            } else {
-                loadedFiles.add(FileFactory(f))
+        PlumeTimer.measure(ExtractorTimeKey.COMPILING_AND_UNPACKING) {
+            File(COMP_DIR).let { c -> if (!c.exists()) c.mkdirs() }
+            if (!f.exists()) {
+                throw NullPointerException("File '${f.name}' does not exist!")
+            } else if (f.isDirectory) {
+                Files.walk(Paths.get(f.absolutePath)).use { walk ->
+                    walk.map { obj: Path -> obj.toString() }
+                        .map { FileFactory.invoke(it) }
+                        .filter { it !is UnsupportedFile }
+                        .collect(Collectors.toList())
+                        .let { loadedFiles.addAll(it) }
+                }
+            } else if (f.isFile) {
+                if (f.name.endsWith(".jar")) {
+                    ResourceCompilationUtil.unzipArchive(ZipFile(f)).forEach { loadedFiles.add(FileFactory(it)) }
+                } else {
+                    loadedFiles.add(FileFactory(f))
+                }
             }
         }
-        PlumeTimer.stopTimerOn(ExtractorTimeKey.COMPILING_AND_UNPACKING)
         return this
     }
 
@@ -154,7 +154,7 @@ class Extractor(val driver: IDriver) {
         /*
             Load and compile files then feed them into Soot
          */
-        if (loadedFiles.isEmpty()) return apply { logger.info("No files loaded, returning") }
+        if (loadedFiles.isEmpty()) return apply { logger.info("No files loaded."); earlyStopCleanUp() }
         val (nCs, nSs, nUs) = loadedFileGroupCount()
         logger.info("Preparing $nCs class and $nSs source file(s). Ignoring $nUs unsupported file(s).")
         val cs = mutableListOf<SootClass>()
@@ -163,7 +163,7 @@ class Extractor(val driver: IDriver) {
             ResourceCompilationUtil.compileLoadedFiles(loadedFiles).toCollection(compiledFiles)
             if (compiledFiles.isNotEmpty()) upsertMetaData()
         }
-        if (compiledFiles.isEmpty()) return this
+        if (compiledFiles.isEmpty()) return apply { logger.info("No supported files detected."); earlyStopCleanUp() }
         logger.info("Loading all classes into Soot")
         PlumeTimer.measure(ExtractorTimeKey.SOOT) {
             configureSoot()
@@ -176,12 +176,15 @@ class Extractor(val driver: IDriver) {
         logger.info("Building internal program structure and type information")
         val csToBuild = mutableListOf<SootClass>()
         PlumeTimer.measure(ExtractorTimeKey.PROGRAM_STRUCTURE_BUILDING) {
+            MarkForRebuildPass(driver).runPass(cs).toCollection(csToBuild)
+        }
+        if (csToBuild.isEmpty()) return apply { logger.info("No new or changed files detected."); earlyStopCleanUp() }
+        PlumeTimer.measure(ExtractorTimeKey.PROGRAM_STRUCTURE_BUILDING) {
             // First read the existing TYPE, TYPE_DECL, and FILEs from the driver and load it into the cache
             pipeline(
-                MarkForRebuildPass(driver)::runPass,
                 FileAndPackagePass(driver)::runPass,
                 TypePass(driver)::runPass,
-            ).invoke(cs).toCollection(csToBuild)
+            ).invoke(cs)
         }
         cs.clear() // Done using cs
         /*
@@ -266,6 +269,11 @@ class Extractor(val driver: IDriver) {
         return this
     }
 
+    private fun earlyStopCleanUp() {
+        this.clear()
+        PlumeStorage.methodCpgs.clear()
+    }
+
     private fun buildMethods(
         parentToChildCs: MutableList<Pair<SootClass, Set<SootClass>>>,
         sootUnitGraphs: MutableList<BriefUnitGraph>
@@ -304,7 +312,7 @@ class Extractor(val driver: IDriver) {
                     // Consumer: Receive delta graphs and write changes to the driver in serial
                     runInsideProgressBar("Method Heads", headsToBuild.size.toLong()) { pb ->
                         runBlocking {
-                            repeat(headsToBuild.size) { channel.receive().apply(driver); pb?.step() }
+                            repeat(headsToBuild.size) { driver.bulkTransaction(channel.receive()); pb?.step() }
                         }
                     }
                     logger.info("All ${headsToBuild.size} method heads have been applied to the driver")
@@ -321,7 +329,7 @@ class Extractor(val driver: IDriver) {
                     // Consumer: Receive delta graphs and write changes to the driver in serial
                     runInsideProgressBar("Method Bodies", bodiesToBuild.size.toLong()) { pb ->
                         runBlocking {
-                            repeat(bodiesToBuild.size) { channel.receive().apply(driver); pb?.step() }
+                            repeat(bodiesToBuild.size) { driver.bulkTransaction(channel.receive()); pb?.step() }
                         }
                     }
                     logger.info("All ${bodiesToBuild.size} method bodies have been applied to the driver")
@@ -339,7 +347,7 @@ class Extractor(val driver: IDriver) {
                     }
                     // Consumer: Receive delta graphs and write changes to the driver in serial
                     runBlocking {
-                        repeat(bodiesToBuild.size) { channel.receive().apply(driver) }
+                        repeat(bodiesToBuild.size) { driver.bulkTransaction(channel.receive()) }
                     }
                     logger.info("All ${bodiesToBuild.size} method calls have been applied to the driver")
                 }

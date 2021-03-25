@@ -11,11 +11,14 @@ import io.github.plume.oss.drivers.TinkerGraphDriver
 import io.shiftleft.codepropertygraph.generated.EdgeTypes.AST
 import io.shiftleft.codepropertygraph.generated.EdgeTypes.SOURCE_FILE
 import io.shiftleft.codepropertygraph.generated.NodeTypes.*
+import io.shiftleft.codepropertygraph.generated.nodes.Factories
 import org.apache.logging.log4j.LogManager
 import org.junit.jupiter.api.AfterAll
 import org.junit.jupiter.api.AfterEach
 import org.junit.jupiter.api.Assertions.*
 import org.junit.jupiter.api.Test
+import overflowdb.Config
+import overflowdb.Graph
 
 class DeltaGraphTest {
 
@@ -103,7 +106,12 @@ class DeltaGraphTest {
             assertEquals(localVertex.id(), e2.inNode().id())
             assertEquals(methodVertex.id(), e2.outNode().id())
         }
-        b.toOverflowDb().use { g ->
+        b.toOverflowDb(
+            Graph.open(
+            Config.withDefaults(),
+            Factories.allAsJava(),
+            io.shiftleft.codepropertygraph.generated.edges.Factories.allAsJava()
+        )).use { g ->
             assertEquals(1, g.nodeCount(FILE))
             assertEquals(1, g.nodeCount(METHOD))
             assertEquals(1, g.nodeCount(LOCAL))

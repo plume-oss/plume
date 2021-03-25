@@ -4,6 +4,7 @@ import io.github.plume.oss.domain.exceptions.PlumeSchemaViolationException
 import io.github.plume.oss.domain.mappers.VertexMapper
 import io.github.plume.oss.domain.mappers.VertexMapper.checkSchemaConstraints
 import io.github.plume.oss.domain.mappers.VertexMapper.mapToVertex
+import io.github.plume.oss.domain.model.DeltaGraph
 import io.github.plume.oss.metrics.ExtractorTimeKey
 import io.github.plume.oss.metrics.PlumeTimer
 import io.github.plume.oss.util.ExtractorConst.TYPE_REFERENCED_EDGES
@@ -145,32 +146,38 @@ class Neo4jDriver internal constructor() : IDriver {
             .replace("\\f", "\\\\f")
 
     override fun addVertex(v: NewNodeBuilder) {
+        if (exists(v)) return
         PlumeTimer.measure(ExtractorTimeKey.DATABASE_WRITE) {
-            val node = v.build()
-            val propertyMap = CollectionConverters.MapHasAsJava(node.properties()).asJava().toMutableMap()
-            propertyMap["label"] = node.label()
             driver.session().use { session ->
-                val payload = StringBuilder("{")
-                val attributeList = extractAttributesFromMap(propertyMap).toList()
-                attributeList.forEachIndexed { i: Int, e: Pair<String, Any> ->
-                    payload.append("${e.first}:")
-                    val p = e.second
-                    if (p is String) payload.append("\"${sanitizePayload(p)}\"")
-                    else payload.append(p)
-                    if (i < attributeList.size - 1) payload.append(",")
-                }
-                payload.append("}")
                 session.writeTransaction { tx ->
+                    val idx = 0
                     val result = tx.run(
                         """
-                    CREATE (n:${node.label()} $payload)
-                    RETURN ID(n) as id
+                        ${createVertexPayload(v, idx)}
+                        RETURN ID(n$idx) as id$idx
                     """.trimIndent()
                     )
-                    v.id(result.next()["id"].toString().toLong())
+                    v.id(result.next()["id$idx"].toString().toLong())
                 }
             }
         }
+    }
+
+    private fun createVertexPayload(v: NewNodeBuilder, idx: Int): String {
+        val node = v.build()
+        val propertyMap = CollectionConverters.MapHasAsJava(node.properties()).asJava().toMutableMap()
+        propertyMap["label"] = node.label()
+        val payload = StringBuilder("{")
+        val attributeList = extractAttributesFromMap(propertyMap).toList()
+        attributeList.forEachIndexed { i: Int, e: Pair<String, Any> ->
+            payload.append("${e.first}:")
+            val p = e.second
+            if (p is String) payload.append("\"${sanitizePayload(p)}\"")
+            else payload.append(p)
+            if (i < attributeList.size - 1) payload.append(",")
+        }
+        payload.append("}")
+        return "CREATE (n$idx:${node.label()} $payload)"
     }
 
     override fun exists(v: NewNodeBuilder): Boolean = checkVertexExist(v.id(), v.build().label())
@@ -237,6 +244,74 @@ class Neo4jDriver internal constructor() : IDriver {
                     result.list().isNotEmpty()
                 }
             }
+        }
+    }
+
+    override fun bulkTransaction(dg: DeltaGraph) {
+        val vAdds = mutableListOf<NewNodeBuilder>()
+        val eAdds = mutableListOf<DeltaGraph.EdgeAdd>()
+        val vDels = mutableListOf<DeltaGraph.VertexDelete>()
+        val eDels = mutableListOf<DeltaGraph.EdgeDelete>()
+        PlumeTimer.measure(ExtractorTimeKey.DATABASE_READ) {
+            dg.changes.filterIsInstance<DeltaGraph.VertexAdd>().map { it.n }.filterNot(::exists)
+                .forEachIndexed { i, va -> if (vAdds.none { va === it }) vAdds.add(va.id(-(i + 1).toLong())) }
+            dg.changes.filterIsInstance<DeltaGraph.EdgeAdd>().filter { !exists(it.src, it.dst, it.e) }
+                .toCollection(eAdds)
+            dg.changes.filterIsInstance<DeltaGraph.VertexDelete>().filter { checkVertexExist(it.id, it.label) }
+                .toCollection(vDels)
+            dg.changes.filterIsInstance<DeltaGraph.EdgeDelete>().filter { exists(it.src, it.dst, it.e) }
+                .toCollection(eDels)
+        }
+        PlumeTimer.measure(ExtractorTimeKey.DATABASE_WRITE) {
+            val idToAlias = mutableMapOf<NewNodeBuilder, String>()
+            val vPayloads = mutableMapOf<NewNodeBuilder, String>()
+            if (vAdds.isNotEmpty()) {
+                val temp = vAdds.distinctBy { it.id() }.toMutableList()
+                vAdds.clear()
+                vAdds.addAll(temp)
+                vAdds.mapIndexed { i, v ->
+                    idToAlias[v] = "n$i"
+                    vPayloads[v] = createVertexPayload(v, i)
+                }
+                val create = vPayloads.values.joinToString("\n") { it }
+                val ret = "RETURN " + vAdds
+                    .joinToString(", ") { v -> "ID(${idToAlias[v]}) as id${idToAlias[v]}" }
+                driver.session().use { session ->
+                    session.writeTransaction { tx ->
+                        val result = tx.run(
+                            """
+                            $create
+                            $ret
+                        """.trimIndent()
+                        )
+                        val row = result.next()
+                        vAdds.forEach { v -> v.id(row["id${idToAlias[v]}"].toString().toLong()) }
+                    }
+                }
+            }
+            if (eAdds.isNotEmpty()) {
+                val match = "MATCH " + vAdds
+                    .mapIndexed { i, v -> idToAlias[v] = "n$i"; "(n$i:${v.build().label()})" }
+                    .joinToString(", ")
+                val where = "WHERE " + vAdds.joinToString(" AND ") { v -> "id(${idToAlias[v]})=${v.id()}" }
+                val create = "CREATE " + eAdds
+                    .mapIndexed { i, eAdd -> "(${idToAlias[eAdd.src]})-[r$i:${eAdd.e}]->(${idToAlias[eAdd.dst]})" }
+                    .joinToString(", ")
+                driver.session().use { session ->
+                    session.writeTransaction { tx ->
+                        tx.run(
+                            """
+                            $match
+                            $where
+                            $create
+                        """.trimIndent()
+                        )
+                    }
+                }
+            }
+            // TODO: This can be bulk but deletes are currently very uncommon
+            vDels.forEach { deleteVertex(it.id, it.label) }
+            eDels.forEach { deleteEdge(it.src, it.dst, it.e) }
         }
     }
 

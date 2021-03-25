@@ -3,18 +3,15 @@ package io.github.plume.oss.domain.model
 import io.github.plume.oss.drivers.IDriver
 import io.shiftleft.codepropertygraph.generated.nodes.NewNodeBuilder
 import org.apache.logging.log4j.LogManager
-import overflowdb.Config
 import overflowdb.Graph
 import overflowdb.Node
-import io.shiftleft.codepropertygraph.generated.edges.Factories as EdgeFactories
-import io.shiftleft.codepropertygraph.generated.nodes.Factories as NodeFactories
 
 /**
  * This is based off of [io.shiftleft.passes.DiffGraph]. Where DiffGraphs do not propagate ID changes, this one does by
  * making use of [NewNodeBuilder] objects. These get assigned an ID when passed to [IDriver.addVertex] so no duplication
  * occurs.
  */
-class DeltaGraph private constructor(private val changes: List<Delta>) {
+class DeltaGraph private constructor(val changes: List<Delta>) {
 
     private val logger = LogManager.getLogger(DeltaGraph::javaClass)
 
@@ -25,6 +22,7 @@ class DeltaGraph private constructor(private val changes: List<Delta>) {
      *
      * @param driver The driver to write changes to.
      */
+    @Deprecated("Use IDriver.bulkTransaction instead. Will be removed in 0.5.0.")
     fun apply(driver: IDriver) {
         changes.forEach { d ->
             runCatching {
@@ -45,44 +43,30 @@ class DeltaGraph private constructor(private val changes: List<Delta>) {
      * @param existingG optionally one can write the deltas to the given OverflowDB graph.
      * @return An OverflowDB graph with the changes from this [DeltaGraph] applied to it.
      */
-    fun toOverflowDb(existingG: Graph? = null): Graph {
+    fun toOverflowDb(existingG: Graph): Graph {
         fun d2g(g: Graph) {
             fun addNode(n: NewNodeBuilder): Node {
                 val b = n.build()
-                val v = if (n.id() > 0) g.addNode(n.id(), b.label()) else g.addNode(b.label())
+                val v = g.addNode(n.id(), b.label())
                 b.properties().foreachEntry { key, value -> v.setProperty(key, value) }
                 n.id(v.id())
                 return v
             }
-            changes.forEach { d ->
-                when (d) {
-                    is VertexAdd -> addNode(d.n)
-                    is VertexDelete -> g.node(d.id)?.remove()
-                    is EdgeAdd -> {
-                        val src = if (g.node(d.src.id()) != null) g.node(d.src.id()) else addNode(d.src)
-                        val dst = if (g.node(d.dst.id()) != null) g.node(d.dst.id()) else addNode(d.dst)
-                        src.addEdge(d.e, dst)
-                    }
-                    is EdgeDelete -> {
-                        val src = g.node(d.src.id())
-                        g.node(d.dst.id())?.let { dst ->
-                            src.outE(d.e).asSequence().firstOrNull { it.inNode() == dst }?.remove()
-                        }
-                    }
+            changes.filterIsInstance<VertexAdd>().forEach { d -> g.node(d.n.id()) ?: addNode(d.n) }
+            changes.filterIsInstance<EdgeAdd>().forEach { d ->
+                val src = if (g.node(d.src.id()) != null) g.node(d.src.id()) else addNode(d.src)
+                val dst = if (g.node(d.dst.id()) != null) g.node(d.dst.id()) else addNode(d.dst)
+                src.addEdge(d.e, dst)
+            }
+            changes.filterIsInstance<VertexDelete>().forEach { d -> g.node(d.id)?.remove() }
+            changes.filterIsInstance<EdgeDelete>().forEach { d ->
+                val src = g.node(d.src.id())
+                g.node(d.dst.id())?.let { dst ->
+                    src.outE(d.e).asSequence().firstOrNull { it.inNode() == dst }?.remove()
                 }
             }
         }
-        if (existingG != null) {
-            return existingG.apply { d2g(this) }
-        } else {
-            Graph.open(
-                Config.withDefaults(),
-                NodeFactories.allAsJava(),
-                EdgeFactories.allAsJava()
-            ).let { g ->
-                return g.apply { d2g(this) }
-            }
-        }
+        return existingG.apply { d2g(this) }
     }
 
 
@@ -96,23 +80,7 @@ class DeltaGraph private constructor(private val changes: List<Delta>) {
         /**
          * Returns a list of the accumulated changes.
          */
-        fun getChanges() = optimizeChanges()
-
-        /**
-         * Will remove [VertexAdd] deltas if there is already an [EdgeAdd] associated with one of the vertices. This
-         * will cut down on unnecessary database operations.
-         */
-        private fun optimizeChanges(): List<Delta> {
-            val optimizedChanges = mutableListOf<Delta>()
-            val vertexAdds = changes.filterIsInstance<VertexAdd>().toMutableList()
-            changes.filterIsInstance<EdgeAdd>().forEach { ea ->
-                vertexAdds.firstOrNull { it.n == ea.src }?.let { va -> vertexAdds.remove(va) }
-                vertexAdds.firstOrNull { it.n == ea.dst }?.let { va -> vertexAdds.remove(va) }
-            }
-            changes.filterNot { it is VertexAdd }.toCollection(optimizedChanges)
-            vertexAdds.toCollection(optimizedChanges)
-            return optimizedChanges.toList()
-        }
+        fun getChanges() = changes.toList()
 
         fun addVertex(n: NewNodeBuilder) = apply { changes.add(VertexAdd(n)) }
 
@@ -120,7 +88,11 @@ class DeltaGraph private constructor(private val changes: List<Delta>) {
 
         fun deleteVertex(id: Long, label: String) = apply { changes.add(VertexDelete(id, label)) }
 
-        fun addEdge(src: NewNodeBuilder, tgt: NewNodeBuilder, e: String) = apply { changes.add(EdgeAdd(src, tgt, e)) }
+        fun addEdge(src: NewNodeBuilder, tgt: NewNodeBuilder, e: String) = apply {
+            changes.add(VertexAdd(src))
+            changes.add(VertexAdd(tgt))
+            changes.add(EdgeAdd(src, tgt, e))
+        }
 
         fun deleteEdge(src: NewNodeBuilder, tgt: NewNodeBuilder, e: String) =
             apply { changes.add(EdgeDelete(src, tgt, e)) }

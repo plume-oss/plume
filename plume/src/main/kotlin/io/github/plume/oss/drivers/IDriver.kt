@@ -1,6 +1,7 @@
 package io.github.plume.oss.drivers
 
 import io.github.plume.oss.domain.exceptions.PlumeSchemaViolationException
+import io.github.plume.oss.domain.model.DeltaGraph
 import io.shiftleft.codepropertygraph.generated.nodes.NewMetaDataBuilder
 import io.shiftleft.codepropertygraph.generated.nodes.NewNodeBuilder
 import overflowdb.Graph
@@ -48,6 +49,17 @@ interface IDriver : AutoCloseable {
      * @throws PlumeSchemaViolationException if the edge is illegal according to the CPG schema
      */
     fun addEdge(src: NewNodeBuilder, tgt: NewNodeBuilder, edge: String)
+
+    /**
+     * Adds all the operations contained within the delta graph in one or multiple bulk transactions. This will make
+     * the biggest impact on remote graph databases where network overhead impacts transaction speeds.
+     *
+     * Note that if a delete and add delta affect one another, there is no guarantee of what the outcome will be
+     * depending on the driver used. Ideally the deltas would not overwrite one another.
+     *
+     * @param dg The [DeltaGraph] comprising of multiple graph operations.
+     */
+    fun bulkTransaction(dg: DeltaGraph)
 
     /**
      * Clears the graph of all vertices and edges.

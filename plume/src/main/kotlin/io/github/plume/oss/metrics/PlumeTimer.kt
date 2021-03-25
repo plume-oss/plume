@@ -5,69 +5,23 @@ package io.github.plume.oss.metrics
  */
 object PlumeTimer {
 
-    private val totalTimes = mutableMapOf(
-        ExtractorTimeKey.COMPILING_AND_UNPACKING to 0L,
-        ExtractorTimeKey.SOOT to 0L,
-        ExtractorTimeKey.BASE_CPG_BUILDING to 0L,
-        ExtractorTimeKey.PROGRAM_STRUCTURE_BUILDING to 0L,
-        ExtractorTimeKey.DATABASE_WRITE to 0L,
-        ExtractorTimeKey.DATABASE_READ to 0L,
-        ExtractorTimeKey.DATA_FLOW_PASS to 0L
-    )
+    private val totalTimes = mutableMapOf<ExtractorTimeKey, Long>()
 
-    private val stopwatch = mutableMapOf(
-        ExtractorTimeKey.COMPILING_AND_UNPACKING to System.nanoTime(),
-        ExtractorTimeKey.SOOT to System.nanoTime(),
-        ExtractorTimeKey.BASE_CPG_BUILDING to System.nanoTime(),
-        ExtractorTimeKey.PROGRAM_STRUCTURE_BUILDING to System.nanoTime(),
-        ExtractorTimeKey.DATABASE_WRITE to System.nanoTime(),
-        ExtractorTimeKey.DATABASE_READ to System.nanoTime(),
-        ExtractorTimeKey.DATA_FLOW_PASS to System.nanoTime()
-    )
-
-    /**
-     * Starts a timer for the given operation as per [ExtractorTimeKey].
-     *
-     * @param key The key(s) on which to start the timer on.
-     */
-    fun startTimerOn(vararg key: ExtractorTimeKey) = apply {
-        key.forEach { stopwatch[it] = System.nanoTime() }
+    init {
+        ExtractorTimeKey.values().forEach { totalTimes[it] = 0L }
     }
 
     /**
-     * Stops a timer for the given operation as per [ExtractorTimeKey].
-     *
-     * @param key The key(s) on which to stop the timer on.
-     */
-    fun stopTimerOn(vararg key: ExtractorTimeKey) = apply {
-        key.forEach {
-            totalTimes.computeIfPresent(it) { u, t ->
-                val stopTime = stopwatch.getOrDefault(u, 0L)
-                if (stopTime != 0L) t + (System.nanoTime() - stopTime)
-                else t
-            }
-            stopwatch[it] = 0L
-        }
-    }
-
-    /**
-     * Measures the time the given function takes to complete. This wraps the function with [startTimerOn] and
-     * [stopTimerOn] with all the given [ExtractorTimeKey]s.
+     * Measures the time the given function takes to complete.
      *
      * @param key The key(s) on which to measure.
      * @param f The function to measure.
      */
-    fun measure(vararg key: ExtractorTimeKey, f: () -> Unit) {
-        startTimerOn(*key)
+    fun measure(key: ExtractorTimeKey, f: () -> Unit) {
+        val start = System.nanoTime()
         f()
-        stopTimerOn(*key)
-    }
-
-    /**
-     * Stops all timers.
-     */
-    fun stopAll() = apply {
-        this.stopTimerOn(*ExtractorTimeKey.values())
+        val totalTime = System.nanoTime() - start
+        totalTimes[key] = totalTimes.getOrDefault(key, 0L) + totalTime
     }
 
     /**

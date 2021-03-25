@@ -1,40 +1,37 @@
 package io.github.plume.oss.util
 
 import io.github.plume.oss.drivers.IOverridenIdDriver
-import java.util.concurrent.ConcurrentHashMap
 
 object PlumeKeyProvider {
 
     /**
-     * The size of IDs to acquire per thread. Once this is finished, the thread will acquire another pool of IDs of this
-     * size. This value can never be set to < 0 and if the value overflows it will default to 1000.
+     * The size of how many IDs to assign and hold in a pool at a given time. Default is 100 000.
      */
-    var keyPoolSize = 100000
-        set(value) { if (value > 0) field = value  }
+    var keyPoolSize = 100_000
+        set(value) {
+            if (value > 0) field = value
+        }
 
     /**
-     * This holds the key pools assigned to each thread. Writes will happen only on initialization or once a pool is
-     * depleted. Reads happen whenever an ID is required. For this reason concurrent hash maps provide fast reads with
-     * a negligible slow write.
+     * This holds the keys. Writes will happen only on initialization or once a pool is
+     * depleted. Reads happen whenever an ID is required.
      */
-    private val keyPoolMap = ConcurrentHashMap<Thread, MutableList<Long>>()
+    private val keySet = mutableListOf<Long>()
 
     /**
-     * Returns a new ID for the current thread to assign a vertex to.
+     * Returns a new ID to assign a vertex to.
      *
      * @param d The driver to check for available IDs with.
      * @return a new ID.
      */
     fun getNewId(d: IOverridenIdDriver): Long {
-        val t = Thread.currentThread()
-        keyPoolMap.computeIfAbsent(t) { generateNewIdPool(d) }
-        if (keyPoolMap[t]!!.isEmpty()) keyPoolMap[t] = generateNewIdPool(d)
-        return keyPoolMap[t]?.removeFirstOrNull() ?: 1L
+        if (keySet.isEmpty()) keySet.addAll(generateNewIdPool(d))
+        return keySet.removeFirst()
     }
 
     private fun generateNewIdPool(d: IOverridenIdDriver): MutableList<Long> {
         // Find the max ID among the pools
-        var currentMax = keyPoolMap.values.flatten().maxOrNull() ?: -1L
+        var currentMax = keySet.maxOrNull() ?: -1L
         val freeIds = mutableSetOf<Long>()
         var oldSize: Int
         while (freeIds.size < keyPoolSize) {
@@ -55,6 +52,6 @@ object PlumeKeyProvider {
     /**
      * In the case key pools need to be regenerated they can be cleared here.
      */
-    fun clearKeyPools() = keyPoolMap.clear()
+    fun clearKeyPools() = keySet.clear()
 
 }
