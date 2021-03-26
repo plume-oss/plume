@@ -10,6 +10,12 @@ and this project adheres to [Semantic Versioning](http://semver.org/).
 ### Added
 
 - `IDriver.bulkTransaction` to replace `DeltaGraph.apply` and make database specific bulk changes.
+- `IdentityStmt` is now handled as part of the `LOCAL` and `IDENTIFIER` cycle
+- `IdentityRef` is now handled under `projectOp`
+
+### Fixed
+
+- External method <-`AST`- External type is now fixed.
 
 ### Changed
 

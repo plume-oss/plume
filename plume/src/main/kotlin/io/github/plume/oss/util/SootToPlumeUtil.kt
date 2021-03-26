@@ -16,11 +16,8 @@
 package io.github.plume.oss.util
 
 import io.github.plume.oss.domain.mappers.ListMapper
-import io.github.plume.oss.domain.mappers.VertexMapper.mapToVertex
-import io.github.plume.oss.drivers.IDriver
 import io.github.plume.oss.util.SootParserUtil.determineEvaluationStrategy
 import io.shiftleft.codepropertygraph.generated.EvaluationStrategies.BY_SHARING
-import io.shiftleft.codepropertygraph.generated.NodeTypes.METHOD
 import io.shiftleft.codepropertygraph.generated.Operators
 import io.shiftleft.codepropertygraph.generated.nodes.*
 import org.apache.logging.log4j.LogManager
