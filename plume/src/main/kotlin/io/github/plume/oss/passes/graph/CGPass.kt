@@ -58,7 +58,7 @@ class CGPass(private val g: BriefUnitGraph, private val driver: IDriver) : IUnit
     private fun projectUnit(unit: Unit) {
         val cg = Scene.v().callGraph
         val edges = cg.edgesOutOf(unit) as Iterator<Edge>
-        // If Soot points to the assignment as the call source then this is most likely from the rightOp.
+        // If Soot points to the assignment as the call source then this is most likely from one of the children
         val srcUnit = if (unit is AssignStmt) unit.rightOp else unit
         when (srcUnit) {
             is InvokeExpr -> PlumeStorage.getCall(srcUnit)

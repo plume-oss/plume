@@ -5,6 +5,21 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](http://keepachangelog.com/)
 and this project adheres to [Semantic Versioning](http://semver.org/).
 
+## [0.4.0] - [Unreleased]
+
+### Added
+
+- `IDriver.bulkTransaction` to replace `DeltaGraph.apply` and make database specific bulk changes.
+
+### Changed
+
+- `PlumeTimer` is simplified and now only uses `measure` function.
+- Disabled cache2k from collecting its own statistics.
+- Early stopping enabled when no classes needed to update is detected.
+- Feedback regarding files to updated now moved from `INFO` to `DEBUG` logging.
+- Marked `DeltaGraph.apply` as deprecated.
+- `DeltaGraph::toOverflowDb` now only writes to an existing OverflowDB instance.
+
 ## [0.3.9] - 2021-03-23
 
 ### Fixed

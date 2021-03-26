@@ -20,24 +20,28 @@ object LocalCache {
             .name("typeCache")
             .expireAfterWrite(CacheOptions.cacheExpiry.first, CacheOptions.cacheExpiry.second)
             .entryCapacity(CacheOptions.cacheSize)
+            .disableStatistics(true)
             .build()
     private val typeDeclCache: Cache<String, NewTypeDeclBuilder> =
         object : Cache2kBuilder<String, NewTypeDeclBuilder>() {}
             .name("typeDeclCache")
             .expireAfterWrite(CacheOptions.cacheExpiry.first, CacheOptions.cacheExpiry.second)
             .entryCapacity(CacheOptions.cacheSize)
+            .disableStatistics(true)
             .build()
     private val fileCache: Cache<String, NewFileBuilder> =
         object : Cache2kBuilder<String, NewFileBuilder>() {}
             .name("fileCache")
             .expireAfterWrite(CacheOptions.cacheExpiry.first, CacheOptions.cacheExpiry.second)
             .entryCapacity(CacheOptions.cacheSize)
+            .disableStatistics(true)
             .build()
     private val namespaceBlockCache: Cache<String, NewNamespaceBlockBuilder> =
         object : Cache2kBuilder<String, NewNamespaceBlockBuilder>() {}
             .name("namespaceBlockCache")
             .expireAfterWrite(CacheOptions.cacheExpiry.first, CacheOptions.cacheExpiry.second)
             .entryCapacity(CacheOptions.cacheSize)
+            .disableStatistics(true)
             .build()
 
     fun removeType(fullName: String) = typeCache.remove(fullName)
