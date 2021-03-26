@@ -18,6 +18,7 @@ and this project adheres to [Semantic Versioning](http://semver.org/).
 - External method <-`AST`- External type is now fixed.
 - `EVAL_TYPE` links for `MethodReturn` and `BlockVertex` on the method stubs.
 - `CacheOptions.cacheSize` is mutable via setters now.
+- `DataFlowPass` now gets method head along with method body
 - `parseBinopExpr` had some incorrect mappings which are now fixed.
 
 ### Changed
