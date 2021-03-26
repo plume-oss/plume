@@ -16,6 +16,8 @@ and this project adheres to [Semantic Versioning](http://semver.org/).
 ### Fixed
 
 - External method <-`AST`- External type is now fixed.
+- `EVAL_TYPE` links for `MethodReturn` and `BlockVertex` on the method stubs.
+- `CacheOptions.cacheSize` is mutable via setters now
 
 ### Changed
 
@@ -25,6 +27,8 @@ and this project adheres to [Semantic Versioning](http://semver.org/).
 - Feedback regarding files to updated now moved from `INFO` to `DEBUG` logging.
 - Marked `DeltaGraph.apply` as deprecated.
 - `DeltaGraph::toOverflowDb` now only writes to an existing OverflowDB instance.
+- Increased `CacheOptions.cacheSize` and the cache is now partitioned among the 4 caches
+  based on average allocation from the benchmarks. Cache expiry is now removed as an option.
 
 ## [0.3.9] - 2021-03-23
 
