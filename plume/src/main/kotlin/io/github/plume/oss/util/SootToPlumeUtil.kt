@@ -223,24 +223,25 @@ object SootToPlumeUtil {
     fun parseBinopExpr(sym: String): String {
         return when {
             sym.contains("cmp") -> Operators.compare
-            sym == "+" -> Operators.plus
-            sym == "-" -> Operators.minus
+            sym == "+" -> Operators.addition
+            sym == "-" -> Operators.subtraction
             sym == "/" -> Operators.division
             sym == "*" -> Operators.multiplication
             sym == "%" -> Operators.modulo
-            sym == "&" -> Operators.logicalAnd
-            sym == "&&" -> Operators.and
-            sym == "|" -> Operators.logicalOr
-            sym == "||" -> Operators.or
+            sym == "&" -> Operators.and
+            sym == "&&" -> Operators.logicalAnd
+            sym == "|" -> Operators.or
+            sym == "||" -> Operators.logicalOr
             sym == "^" -> Operators.xor
             sym == "<<" -> Operators.shiftLeft
-            sym == ">>" -> Operators.logicalShiftRight
-            sym == ">>>" -> Operators.arithmeticShiftRight
+            sym == ">>" -> Operators.arithmeticShiftRight
+            sym == ">>>" -> Operators.logicalShiftRight
             sym == "==" -> Operators.equals
             sym == "<" -> Operators.lessThan
             sym == ">" -> Operators.greaterThan
             sym == "!=" -> Operators.notEquals
-            sym == "~" -> Operators.logicalNot
+            sym == "~" -> Operators.not
+            sym == "!" -> Operators.logicalNot
             sym == "<=" -> Operators.lessEqualsThan
             sym == ">=" -> Operators.greaterEqualsThan
             else -> {

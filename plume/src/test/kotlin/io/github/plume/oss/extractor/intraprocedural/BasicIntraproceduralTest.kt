@@ -25,7 +25,7 @@ class BasicIntraproceduralTest {
         private val driver = DriverFactory(GraphDatabase.TINKER_GRAPH) as TinkerGraphDriver
         private lateinit var g: Graph
         private var PATH: File
-        private val TEST_PATH = "intraprocedural/basic"
+        private const val TEST_PATH = "intraprocedural/basic"
         private val sep = File.separator
 
         init {
@@ -71,7 +71,7 @@ class BasicIntraproceduralTest {
             .let { assertNotNull(it); assertEquals("byte", it!!.typeFullName()) }
         ns.filterIsInstance<Local>().find { it.name() == "c" }
             .let { assertNotNull(it); assertEquals("int", it!!.typeFullName()) }
-        ns.filterIsInstance<Call>().find { it.name() == Operators.plus }.let { assertNotNull(it) }
+        ns.filterIsInstance<Call>().find { it.name() == Operators.addition }.let { assertNotNull(it) }
     }
 
     @Test
@@ -88,7 +88,7 @@ class BasicIntraproceduralTest {
             .let { assertNotNull(it); assertEquals("double", it!!.typeFullName()) }
         ns.filterIsInstance<Local>().find { it.name() == "c" }
             .let { assertNotNull(it); assertEquals("double", it!!.typeFullName()) }
-        ns.filterIsInstance<Call>().find { it.name() == Operators.plus }.let { assertNotNull(it) }
+        ns.filterIsInstance<Call>().find { it.name() == Operators.addition }.let { assertNotNull(it) }
     }
 
     @Test
@@ -105,7 +105,7 @@ class BasicIntraproceduralTest {
             .let { assertNotNull(it); assertEquals("short", it!!.typeFullName()) }
         ns.filterIsInstance<Local>().find { it.name() == "c" }
             .let { assertNotNull(it); assertEquals("long", it!!.typeFullName()) }
-        ns.filterIsInstance<Call>().find { it.name() == Operators.plus }.let { assertNotNull(it) }
+        ns.filterIsInstance<Call>().find { it.name() == Operators.addition }.let { assertNotNull(it) }
     }
 
     @Test
@@ -142,7 +142,7 @@ class BasicIntraproceduralTest {
             assertNotNull(nbv.find { it.name() == "intraprocedural.basic.basic5" })
             assertEquals(5, nbv.toList().size)
         }
-        ns.filterIsInstance<TypeDecl>().filter { !it.isExternal() }.let { mrv ->
+        ns.filterIsInstance<TypeDecl>().filter { !it.isExternal }.let { mrv ->
             assertNotNull(mrv.find { it.fullName() == "intraprocedural.basic.Basic5" })
             assertNotNull(mrv.find { it.fullName() == "intraprocedural.basic.basic5.Basic5" })
             assertNotNull(mrv.find { it.fullName() == "int" })
@@ -150,7 +150,7 @@ class BasicIntraproceduralTest {
             assertNotNull(mrv.find { it.fullName() == "java.lang.String[]" })
             assertEquals(6, mrv.toList().size)
         }
-        ns.filterIsInstance<Method>().filter { !it.isExternal() }.let { mv ->
+        ns.filterIsInstance<Method>().filter { !it.isExternal }.let { mv ->
             assertNotNull(mv.find { it.fullName() == "intraprocedural.basic.Basic5.main:void(java.lang.String[])" })
             assertNotNull(mv.find { it.fullName() == "intraprocedural.basic.basic5.Basic5.main:void(java.lang.String[])" })
             assertNotNull(mv.find { it.fullName() == "intraprocedural.basic.Basic5.<init>:void()" })

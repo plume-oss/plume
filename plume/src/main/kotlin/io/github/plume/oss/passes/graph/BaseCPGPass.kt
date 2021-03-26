@@ -154,8 +154,8 @@ class BaseCPGPass(private val g: BriefUnitGraph) {
             is LookupSwitchStmt -> projectLookupSwitch(unit, childIdx).apply { addToCache(unit, this, index = 0) }
             is TableSwitchStmt -> projectTableSwitch(unit, childIdx).apply { addToCache(unit, this, index = 0) }
             is InvokeStmt -> projectCallVertex(unit.invokeExpr, childIdx).apply { addToCache(unit, this, index = 0) }
-            is ReturnStmt -> projectReturnVertex(unit, childIdx).apply { addToCache(unit, this, index = 0) }
-            is ReturnVoidStmt -> projectReturnVertex(unit, childIdx).apply { addToCache(unit, this, index = 0) }
+            is ReturnStmt -> projectReturnVertex(unit, childIdx)
+            is ReturnVoidStmt -> projectReturnVertex(unit, childIdx)
             else -> {
                 logger.debug("Unhandled class in projectUnit ${unit.javaClass} $unit"); null
             }
@@ -277,7 +277,7 @@ class BaseCPGPass(private val g: BriefUnitGraph) {
     }
 
     private fun projectReturnEdge(unit: Stmt) {
-        getFromStore(unit).firstOrNull()?.let { src ->
+        getFromStore(unit).filterIsInstance<NewReturnBuilder>().firstOrNull()?.let { src ->
             PlumeStorage.getMethodStore(g.body.method)
                 .filterIsInstance<NewMethodReturnBuilder>()
                 .firstOrNull()?.let { tgt -> builder.addEdge(src, tgt, CFG) }
@@ -687,8 +687,7 @@ class BaseCPGPass(private val g: BriefUnitGraph) {
         return binOpBlock
     }
 
-    private fun projectCastExpr(expr: CastExpr, childIdx: Int): NewCallBuilder {
-        val castVertices = mutableListOf<NewNodeBuilder>()
+    private fun projectCastExpr(expr: CastExpr, childIdx: Int): Pair<NewCallBuilder, NewNodeBuilder> {
         val castBlock = NewCallBuilder()
             .name(Operators.cast)
             .code(expr.toString())
@@ -701,15 +700,14 @@ class BaseCPGPass(private val g: BriefUnitGraph) {
             .typeFullName(expr.type.toQuotedString())
             .lineNumber(Option.apply(currentLine))
             .columnNumber(Option.apply(currentCol))
-            .apply { castVertices.add(this) }
-        projectOp(expr.op, 1).let {
-            builder.addEdge(castBlock, it.first, AST)
-            builder.addEdge(castBlock, it.first, ARGUMENT)
-            castVertices.add(it.first)
+        val op1 = projectOp(expr.op, 1).apply {
+            builder.addEdge(castBlock, this.first, AST)
+            builder.addEdge(castBlock, this.first, ARGUMENT)
         }
         // Save PDG arguments
-        addToCache(expr, *castVertices.toTypedArray())
-        return castBlock
+        builder.addEdge(op1.first, castBlock, CFG)
+        addToCache(expr, op1.first, castBlock)
+        return Pair(castBlock, op1.first)
     }
 
     /**
@@ -721,8 +719,6 @@ class BaseCPGPass(private val g: BriefUnitGraph) {
             is Local -> SootToPlumeUtil.createIdentifierVertex(expr, currentLine, currentCol, childIdx)
             is IdentityRef -> projectIdentityRef(expr, currentLine, currentCol, childIdx)
             is Constant -> SootToPlumeUtil.createLiteralVertex(expr, currentLine, currentCol, childIdx)
-            is CastExpr -> projectCastExpr(expr, childIdx)
-
             is InvokeExpr -> projectCallVertex(expr, childIdx)
             is StaticFieldRef -> projectFieldAccess(expr, childIdx)
             is NewExpr -> SootToPlumeUtil.createNewExpr(expr, currentLine, currentCol, childIdx)
@@ -757,6 +753,7 @@ class BaseCPGPass(private val g: BriefUnitGraph) {
         // Handles constructed vertex vs cfg start node
         val pair = when (expr) {
             is BinopExpr -> projectBinopExpr(expr, childIdx)
+            is CastExpr -> projectCastExpr(expr, childIdx)
             else -> null
         }
         return pair ?: Pair(singleNode, singleNode)
@@ -845,13 +842,15 @@ class BaseCPGPass(private val g: BriefUnitGraph) {
             .lineNumber(Option.apply(ret.javaSourceStartLineNumber))
             .columnNumber(Option.apply(ret.javaSourceStartColumnNumber))
             .order(childIdx)
-        projectOp(ret.op, childIdx + 1).let {
-            builder.addEdge(retV, it.first, AST)
-            builder.addEdge(retV, it.first, ARGUMENT)
+        val op1 = projectOp(ret.op, childIdx + 1).apply {
+            builder.addEdge(retV, this.first, AST)
+            builder.addEdge(retV, this.first, ARGUMENT)
         }
         PlumeStorage.getMethodStore(g.body.method)
             .firstOrNull { it is NewBlockBuilder }
             ?.let { block -> builder.addEdge(block, retV, AST) }
+        builder.addEdge(op1.first, retV, CFG)
+        addToCache(ret, op1.first, retV)
         return retV
     }
 
@@ -865,6 +864,7 @@ class BaseCPGPass(private val g: BriefUnitGraph) {
         PlumeStorage.getMethodStore(g.body.method)
             .firstOrNull { it is NewBlockBuilder }
             ?.let { block -> builder.addEdge(block, retV, AST) }
+        addToCache(ret, retV)
         return retV
     }
 }
