@@ -100,7 +100,7 @@ class SwitchIntraproceduralTest {
         ns.filterIsInstance<JumpTarget>().filter { it.name() == "DEFAULT" }
             .let { assertEquals(2, it.size) }
         assertEquals(14, ns.filterIsInstance<JumpTarget>().toList().size)
-        ns.filterIsInstance<ControlStructure>().filter { it.controlStructureType() == SWITCH && it.order() == 17}
+        ns.filterIsInstance<ControlStructure>().filter { it.controlStructureType() == SWITCH && it.order() == 18 }
             .let { csv ->
                 val switchVert = csv.firstOrNull(); assertNotNull(switchVert); switchVert!!
                 assertTrue(g.V(switchVert.id()).next().outE(CONDITION).hasNext())
@@ -113,7 +113,7 @@ class SwitchIntraproceduralTest {
                     g.V(switchVert.id()).next().out(CFG).asSequence().filterIsInstance<JumpTarget>().toList().toList().size
                 )
             }
-        ns.filterIsInstance<ControlStructure>().filter { it.controlStructureType() == SWITCH && it.order() == 5 }
+        ns.filterIsInstance<ControlStructure>().filter { it.controlStructureType() == SWITCH && it.order() == 6 }
             .let { csv ->
                 val switchVert = csv.firstOrNull(); assertNotNull(switchVert); switchVert!!
                 assertTrue(g.V(switchVert.id()).next().outE(CONDITION).hasNext())

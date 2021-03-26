@@ -7,10 +7,10 @@ import io.github.plume.oss.drivers.TinkerGraphDriver
 import io.github.plume.oss.store.LocalCache
 import io.shiftleft.codepropertygraph.generated.EdgeTypes.AST
 import io.shiftleft.codepropertygraph.generated.EdgeTypes.CFG
-import io.shiftleft.codepropertygraph.generated.nodes.Block
 import io.shiftleft.codepropertygraph.generated.nodes.Call
 import io.shiftleft.codepropertygraph.generated.nodes.Literal
 import io.shiftleft.codepropertygraph.generated.nodes.Local
+import io.shiftleft.codepropertygraph.generated.nodes.Method
 import org.junit.jupiter.api.AfterEach
 import org.junit.jupiter.api.Assertions.assertEquals
 import org.junit.jupiter.api.Assertions.assertNotNull
@@ -19,6 +19,7 @@ import org.junit.jupiter.api.Test
 import org.junit.jupiter.api.TestInfo
 import overflowdb.Graph
 import java.io.File
+import java.io.FileWriter
 import java.io.IOException
 
 class ExceptionInterproceduralTest {
@@ -60,9 +61,9 @@ class ExceptionInterproceduralTest {
 
     @Test
     fun exception1Test() {
-        val ns =  g.nodes().asSequence().toList()
+        val ns = g.nodes().asSequence().toList()
         val localV = ns.filterIsInstance<Local>()
-        val mtdV = ns.filterIsInstance<Block>().firstOrNull()?.apply { assertNotNull(this) }
+        val mtdV = ns.filterIsInstance<Method>().firstOrNull()?.apply { assertNotNull(this) }
         assertNotNull(localV.firstOrNull { it.name() == "e" && it.typeFullName() == "java.lang.Exception" })
         assertNotNull(localV.firstOrNull { it.name() == "a" && it.typeFullName() == "int" })
         assertNotNull(localV.firstOrNull { it.name() == "\$stack4" && it.typeFullName() == "java.lang.Exception" })
@@ -78,10 +79,10 @@ class ExceptionInterproceduralTest {
 
     @Test
     fun exception2Test() {
-        val ns =  g.nodes().asSequence().toList()
+        val ns = g.nodes().asSequence().toList()
         val localV = ns.filterIsInstance<Local>()
 
-        val mtdV = ns.filterIsInstance<Block>().firstOrNull()?.apply { assertNotNull(this) }
+        val mtdV = ns.filterIsInstance<Method>().firstOrNull()?.apply { assertNotNull(this) }
         assertNotNull(localV.firstOrNull {
             it.name() == "e" && it.typeFullName() == "java.lang.Exception"
         })
