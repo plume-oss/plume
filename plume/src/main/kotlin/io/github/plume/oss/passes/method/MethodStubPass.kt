@@ -72,10 +72,18 @@ class MethodStubPass(private val m: SootMethod) : IMethodPass {
             .argumentIndex(0)
             .lineNumber(Option.apply(currentLine))
             .columnNumber(Option.apply(currentCol))
-            .apply { builder.addEdge(mtdVertex, this, AST); PlumeStorage.storeMethodNode(m, this) }
+            .apply {
+                builder.addEdge(mtdVertex, this, AST)
+                PlumeStorage.storeMethodNode(m, this)
+                LocalCache.getType("void")?.let { void -> builder.addEdge(this, void, EVAL_TYPE) }
+            }
         // Store return type
         val mtdRet = projectMethodReturnVertex(m.returnType, currentLine, currentCol, childIdx++)
-            .apply { builder.addEdge(mtdVertex, this, AST); PlumeStorage.storeMethodNode(m, this) }
+            .apply {
+                builder.addEdge(mtdVertex, this, AST)
+                PlumeStorage.storeMethodNode(m, this)
+                LocalCache.getType(this.build().typeFullName())?.let { void -> builder.addEdge(this, void, EVAL_TYPE) }
+            }
         // Extrapolate certain information manually for external classes
         if (!m.declaringClass.isApplicationClass) {
             // Create a call-to-return for external classes
