@@ -97,8 +97,9 @@ class BaseCPGPass(private val g: BriefUnitGraph) {
         currentLine = mtd.javaSourceStartLineNumber
         currentCol = mtd.javaSourceStartColumnNumber
         // Connect all units to their successors
-        this.g.body.units.first.let { head ->
-            getFromStore(head).firstOrNull()?.let { headNode -> builder.addEdge(methodVertex, headNode, CFG) }
+        val startUnits = g.body.units.filter { bu -> g.heads.map { it.toString() }.contains(bu.toString()) }
+        startUnits.forEach { start ->
+            getFromStore(start).firstOrNull()?.let { headNode -> builder.addEdge(methodVertex, headNode, CFG) }
         }
         this.g.body.units.forEach { unit -> projectUnitAsCfg(unit) }
     }
@@ -276,18 +277,18 @@ class BaseCPGPass(private val g: BriefUnitGraph) {
      * LOCAL -EVAL_TYPE-> TYPE
      */
     private fun buildLocals(graph: BriefUnitGraph): List<NewLocalBuilder> {
-        val paramLocals =
-            g.heads.asSequence().map { it.useBoxes }.flatten().map { it.value }.filterIsInstance<IdentityRef>()
-                .mapIndexed { i, head: IdentityRef ->
-                    projectIdentityStatement(head, currentLine, currentCol, i)
-                        .apply {
-                            LocalCache.getType(this.build().typeFullName())?.let { t ->
-                                builder.addEdge(this, t, EVAL_TYPE)
-                            }
-                            methodLocals[head] = this
-                            addToCache(head, this)
+        val paramLocals = g.heads.asSequence().map { it.useBoxes }.flatten().map { it.value }
+            .filterIsInstance<IdentityRef>()
+            .mapIndexed { i, head: IdentityRef ->
+                projectIdentityStatement(head, currentLine, currentCol, i)
+                    .apply {
+                        LocalCache.getType(this.build().typeFullName())?.let { t ->
+                            builder.addEdge(this, t, EVAL_TYPE)
                         }
-                }.toList()
+                        methodLocals[head] = this
+                        addToCache(head, this)
+                    }
+            }.toList()
         val locals = graph.body.locals.mapIndexed { i, local: Local ->
             SootToPlumeUtil.projectLocalVariable(local, currentLine, currentCol, i)
                 .apply {
