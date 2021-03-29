@@ -12,12 +12,14 @@ and this project adheres to [Semantic Versioning](http://semver.org/).
 - `IDriver.bulkTransaction` to replace `DeltaGraph.apply` and make database specific bulk changes.
 - `IdentityStmt` is now handled as part of the `LOCAL` and `IDENTIFIER` cycle
 - `IdentityRef` is now handled under `projectOp`
+- `ThrowStmt` is now handled as a special kind of `Return`
 
 ### Fixed
 
 - External method <-`AST`- External type is now fixed.
 - `EVAL_TYPE` links for `MethodReturn` and `BlockVertex` on the method stubs.
 - `CacheOptions.cacheSize` is mutable via setters now.
+- `DataFlowPass` now gets method head along with method body so the passes no longer throw exceptions.
 - `parseBinopExpr` had some incorrect mappings which are now fixed.
 
 ### Changed
@@ -32,6 +34,8 @@ and this project adheres to [Semantic Versioning](http://semver.org/).
   based on average allocation from the benchmarks. Cache expiry is now removed as an option.
 - `GotoStmt` is now added as a `CONTROL_STRUCTURE_VERTEX` with `JUMP_TARGET`s removed.
 - CFG now connects nodes within each expression and follows the stack pointer like Joern/Ocular
+
+Note: `StaticFieldRef` has moved from using `TypeRef` to `Identifier` otherwise data flow passes through errors.
 
 ## [0.3.9] - 2021-03-23
 

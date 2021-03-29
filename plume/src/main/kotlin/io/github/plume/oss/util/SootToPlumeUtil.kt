@@ -147,25 +147,6 @@ object SootToPlumeUtil {
             .columnNumber(Option.apply(currentCol))
 
     /**
-     * Creates a [NewTypeRef] from a [Value].
-     */
-    fun createTypeRefVertex(
-        type: Type,
-        currentLine: Int,
-        currentCol: Int,
-        childIdx: Int = 1
-    ): NewTypeRefBuilder =
-        NewTypeRefBuilder()
-            .code(type.toString())
-            .order(childIdx)
-            .argumentIndex(childIdx)
-            .dynamicTypeHintFullName(ListMapper.stringToScalaList(type.toQuotedString()))
-            .typeFullName(type.toQuotedString())
-            .lineNumber(Option.apply(currentLine))
-            .columnNumber(Option.apply(currentCol))
-
-
-    /**
      * Creates a [NewIdentifier] from a [Value].
      */
     fun createIdentifierVertex(

@@ -47,6 +47,7 @@ import io.shiftleft.codepropertygraph.generated.NodeKeyNames.*
 import io.shiftleft.codepropertygraph.generated.NodeTypes.META_DATA
 import io.shiftleft.codepropertygraph.generated.NodeTypes.METHOD
 import io.shiftleft.codepropertygraph.generated.nodes.NewMetaDataBuilder
+import io.shiftleft.codepropertygraph.generated.nodes.NewMethodBuilder
 import kotlinx.coroutines.channels.Channel
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.runBlocking
@@ -312,7 +313,17 @@ class Extractor(val driver: IDriver) {
                     // Consumer: Receive delta graphs and write changes to the driver in serial
                     runInsideProgressBar("Method Heads", headsToBuild.size.toLong()) { pb ->
                         runBlocking {
-                            repeat(headsToBuild.size) { driver.bulkTransaction(channel.receive()); pb?.step() }
+                            repeat(headsToBuild.size) {
+                                val dg = channel.receive()
+                                val methodVertex = dg.changes.filterIsInstance<DeltaGraph.VertexAdd>()
+                                    .map { it.n }.filterIsInstance<NewMethodBuilder>().first()
+                                // Store internal method head for dataflow pass
+                                if (!methodVertex.build().isExternal) {
+                                    PlumeStorage.methodCpgs[methodVertex.build().fullName()] = dg
+                                }
+                                driver.bulkTransaction(dg)
+                                pb?.step()
+                            }
                         }
                     }
                     logger.info("All ${headsToBuild.size} method heads have been applied to the driver")
@@ -410,7 +421,11 @@ class Extractor(val driver: IDriver) {
                 val dg = BaseCPGPass(g).runPass()
                 channel.send(dg)
                 val (fullName, _, _) = SootToPlumeUtil.methodToStrings(g.body.method)
-                PlumeStorage.methodCpgs[fullName] = dg
+                // Combine existing method head delta with method body delta
+                PlumeStorage.methodCpgs[fullName] = DeltaGraph.Builder()
+                    .addAll(PlumeStorage.methodCpgs[fullName]!!.changes)
+                    .addAll(dg.changes)
+                    .build()
             }
         }
     }

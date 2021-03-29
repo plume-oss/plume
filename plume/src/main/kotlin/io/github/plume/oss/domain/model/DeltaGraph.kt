@@ -97,6 +97,8 @@ class DeltaGraph private constructor(val changes: List<Delta>) {
         fun deleteEdge(src: NewNodeBuilder, tgt: NewNodeBuilder, e: String) =
             apply { changes.add(EdgeDelete(src, tgt, e)) }
 
+        fun addAll(otherChanges: List<Delta>) = apply { changes.addAll(otherChanges) }
+
         fun build() = DeltaGraph(this)
     }
 
