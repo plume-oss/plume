@@ -94,42 +94,20 @@ class SwitchIntraproceduralTest {
         val ns = g.nodes().asSequence().toList()
         assertNotNull(ns.find { it is Local && it.name() == "animal" })
         assertNotNull(ns.find { it is Local && it.name() == "result" })
-        ns.filterIsInstance<JumpTarget>().filter { it.name() == "CASE 0" }
+        ns.filterIsInstance<JumpTarget>().filter { it.name() == "case 0" }
             .let { assertEquals(1, it.size) }
-        ns.filterIsInstance<JumpTarget>().filter { it.name() == "CASE 1" }
+        ns.filterIsInstance<JumpTarget>().filter { it.name() == "case 1" }
             .let { assertEquals(1, it.size) }
-        ns.filterIsInstance<JumpTarget>().filter { it.name() == "CASE 2" }
+        ns.filterIsInstance<JumpTarget>().filter { it.name() == "case 2" }
             .let { assertEquals(1, it.size) }
-        ns.filterIsInstance<JumpTarget>().filter { it.name() == "DEFAULT" }
+        ns.filterIsInstance<JumpTarget>().filter { it.name() == "default" }
             .let { assertEquals(2, it.size) }
-        assertEquals(14, ns.filterIsInstance<JumpTarget>().toList().size)
-        ns.filterIsInstance<ControlStructure>().filter { it.controlStructureType() == SWITCH && it.order() == 18 }
-            .let { csv ->
-                val switchVert = csv.firstOrNull(); assertNotNull(switchVert); switchVert!!
+        assertEquals(8, ns.filterIsInstance<JumpTarget>().toList().size)
+        ns.filterIsInstance<ControlStructure>().filter { it.controlStructureType() == SWITCH }
+            .forEach { switchVert ->
                 assertTrue(g.V(switchVert.id()).next().outE(CONDITION).hasNext())
-                g.V(switchVert.id()).next().out(CONDITION).asSequence().filterIsInstance<Identifier>().toList().let {
-                    assertEquals(1, it.size)
-                    assertNotNull(it.find { jtv -> jtv.name() == "l4" })
-                }
-                assertEquals(
-                    4,
-                    g.V(switchVert.id()).next().out(CFG).asSequence().filterIsInstance<JumpTarget>().toList()
-                        .toList().size
-                )
-            }
-        ns.filterIsInstance<ControlStructure>().filter { it.controlStructureType() == SWITCH && it.order() == 6 }
-            .let { csv ->
-                val switchVert = csv.firstOrNull(); assertNotNull(switchVert); switchVert!!
-                assertTrue(g.V(switchVert.id()).next().outE(CONDITION).hasNext())
-                g.V(switchVert.id()).next().out(CONDITION).asSequence().filterIsInstance<Identifier>().toList().let {
-                    assertEquals(1, it.size)
-                    assertNotNull(it.find { jtv -> jtv.name() == "\$stack5" })
-                }
-                assertEquals(
-                    4,
-                    g.V(switchVert.id()).next().out(CFG).asSequence().filterIsInstance<JumpTarget>().toList()
-                        .toList().size
-                )
+                val conditional = g.V(switchVert.id()).next().out(CONDITION).next()
+                assertEquals(4, conditional.out(CFG).asSequence().filterIsInstance<JumpTarget>().toList().size)
             }
     }
 
@@ -137,28 +115,20 @@ class SwitchIntraproceduralTest {
     fun switch3Test() {
         val ns = g.nodes().asSequence().toList()
         assertNotNull(ns.find { it is Local && it.name() == "i" })
-        ns.filterIsInstance<JumpTarget>().filter { it.name() == "CASE 0" }
+        ns.filterIsInstance<JumpTarget>().filter { it.name() == "case 0" }
             .let { assertEquals(1, it.size) }
-        ns.filterIsInstance<JumpTarget>().filter { it.name() == "CASE 2" }
+        ns.filterIsInstance<JumpTarget>().filter { it.name() == "case 2" }
             .let { assertEquals(1, it.size) }
-        ns.filterIsInstance<JumpTarget>().filter { it.name() == "CASE 3" }
+        ns.filterIsInstance<JumpTarget>().filter { it.name() == "case 3" }
             .let { assertEquals(1, it.size) }
-        ns.filterIsInstance<JumpTarget>().filter { it.name() == "DEFAULT" }
+        ns.filterIsInstance<JumpTarget>().filter { it.name() == "default" }
             .let { assertEquals(1, it.size) }
         assertEquals(4, ns.filterIsInstance<JumpTarget>().toList().size)
         ns.filterIsInstance<ControlStructure>().filter { it.controlStructureType() == SWITCH }
-            .let { csv ->
-                val switchVert = csv.firstOrNull(); assertNotNull(switchVert); switchVert!!
+            .forEach { switchVert ->
                 assertTrue(g.V(switchVert.id()).next().outE(CONDITION).hasNext())
-                g.V(switchVert.id()).next().out(CONDITION).asSequence().filterIsInstance<Identifier>().toList().let {
-                    assertEquals(1, it.size)
-                    assertNotNull(it.find { jtv -> jtv.name() == "i" })
-                }
-                assertEquals(
-                    4,
-                    g.V(switchVert.id()).next().out(CFG).asSequence().filterIsInstance<JumpTarget>().toList()
-                        .toList().size
-                )
+                val conditional = g.V(switchVert.id()).next().out(CONDITION).next()
+                assertEquals(4, conditional.out(CFG).asSequence().filterIsInstance<JumpTarget>().toList().size)
             }
     }
 
@@ -166,30 +136,22 @@ class SwitchIntraproceduralTest {
     fun switch4Test() {
         val ns = g.nodes().asSequence().toList()
         assertNotNull(ns.find { it is Local && it.name() == "i" })
-        ns.filterIsInstance<JumpTarget>().filter { it.name() == "CASE 101" }
+        ns.filterIsInstance<JumpTarget>().filter { it.name() == "case 101" }
             .let { assertEquals(1, it.size) }
-        ns.filterIsInstance<JumpTarget>().filter { it.name() == "CASE 105" }
+        ns.filterIsInstance<JumpTarget>().filter { it.name() == "case 105" }
             .let { assertEquals(1, it.size) }
-        ns.filterIsInstance<JumpTarget>().filter { it.name() == "CASE 111" }
+        ns.filterIsInstance<JumpTarget>().filter { it.name() == "case 111" }
             .let { assertEquals(1, it.size) }
-        ns.filterIsInstance<JumpTarget>().filter { it.name() == "CASE 117" }
+        ns.filterIsInstance<JumpTarget>().filter { it.name() == "case 117" }
             .let { assertEquals(1, it.size) }
-        ns.filterIsInstance<JumpTarget>().filter { it.name() == "DEFAULT" }
+        ns.filterIsInstance<JumpTarget>().filter { it.name() == "default" }
             .let { assertEquals(1, it.size) }
         assertEquals(6, ns.filterIsInstance<JumpTarget>().toList().size)
         ns.filterIsInstance<ControlStructure>().filter { it.controlStructureType() == SWITCH }
-            .let { csv ->
-                val switchVert = csv.firstOrNull(); assertNotNull(switchVert); switchVert!!
+            .forEach { switchVert ->
                 assertTrue(g.V(switchVert.id()).next().outE(CONDITION).hasNext())
-                g.V(switchVert.id()).next().out(CONDITION).asSequence().filterIsInstance<Identifier>().toList().let {
-                    assertEquals(1, it.size)
-                    assertNotNull(it.find { jtv -> jtv.name() == "i" })
-                }
-                assertEquals(
-                    6,
-                    g.V(switchVert.id()).next().out(CFG).asSequence().filterIsInstance<JumpTarget>().toList()
-                        .toList().size
-                )
+                val conditional = g.V(switchVert.id()).next().out(CONDITION).next()
+                assertEquals(6, conditional.out(CFG).asSequence().filterIsInstance<JumpTarget>().toList().size)
             }
     }
 
@@ -197,28 +159,20 @@ class SwitchIntraproceduralTest {
     fun switch5Test() {
         val ns = g.nodes().asSequence().toList()
         assertNotNull(ns.find { it is Local && it.name() == "i" })
-        ns.filterIsInstance<JumpTarget>().filter { it.name() == "CASE 0" }
+        ns.filterIsInstance<JumpTarget>().filter { it.name() == "case 0" }
             .let { assertEquals(1, it.size) }
-        ns.filterIsInstance<JumpTarget>().filter { it.name() == "CASE 1" }
+        ns.filterIsInstance<JumpTarget>().filter { it.name() == "case 1" }
             .let { assertEquals(1, it.size) }
-        ns.filterIsInstance<JumpTarget>().filter { it.name() == "CASE 2" }
+        ns.filterIsInstance<JumpTarget>().filter { it.name() == "case 2" }
             .let { assertEquals(1, it.size) }
-        ns.filterIsInstance<JumpTarget>().filter { it.name() == "DEFAULT" }
+        ns.filterIsInstance<JumpTarget>().filter { it.name() == "default" }
             .let { assertEquals(1, it.size) }
         assertEquals(4, ns.filterIsInstance<JumpTarget>().toList().size)
         ns.filterIsInstance<ControlStructure>().filter { it.controlStructureType() == SWITCH }
-            .let { csv ->
-                val switchVert = csv.firstOrNull(); assertNotNull(switchVert); switchVert!!
+            .forEach { switchVert ->
                 assertTrue(g.V(switchVert.id()).next().outE(CONDITION).hasNext())
-                g.V(switchVert.id()).next().out(CONDITION).asSequence().filterIsInstance<Identifier>().toList().let {
-                    assertEquals(1, it.size)
-                    assertNotNull(it.find { jtv -> jtv.name() == "\$stack5" })
-                }
-                assertEquals(
-                    4,
-                    g.V(switchVert.id()).next().out(CFG).asSequence().filterIsInstance<JumpTarget>().toList()
-                        .toList().size
-                )
+                val conditional = g.V(switchVert.id()).next().out(CONDITION).next()
+                assertEquals(4, conditional.out(CFG).asSequence().filterIsInstance<JumpTarget>().toList().size)
             }
     }
 
