@@ -5,7 +5,7 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](http://keepachangelog.com/)
 and this project adheres to [Semantic Versioning](http://semver.org/).
 
-## [0.4.0] - [Unreleased]
+## [0.3.10] - 2021-03-29
 
 ### Added
 
@@ -34,8 +34,7 @@ and this project adheres to [Semantic Versioning](http://semver.org/).
   based on average allocation from the benchmarks. Cache expiry is now removed as an option.
 - `GotoStmt` is now added as a `CONTROL_STRUCTURE_VERTEX` with `JUMP_TARGET`s removed.
 - CFG now connects nodes within each expression and follows the stack pointer like Joern/Ocular
-
-Note: `StaticFieldRef` has moved from using `TypeRef` to `Identifier` otherwise data flow passes through errors.
+- `StaticFieldRef` has moved from using `TypeRef` to `Identifier` otherwise data flow passes through errors.
 
 ## [0.3.9] - 2021-03-23
 
