@@ -244,6 +244,17 @@ object SootToPlumeUtil {
             sym == "!" -> Operators.logicalNot
             sym == "<=" -> Operators.lessEqualsThan
             sym == ">=" -> Operators.greaterEqualsThan
+            sym == "-=" -> Operators.assignmentMinus
+            sym == "+=" -> Operators.assignmentPlus
+            sym == "/=" -> Operators.assignmentDivision
+            sym == "*=" -> Operators.assignmentMultiplication
+            sym == "%=" -> Operators.assignmentModulo
+            sym == "<<=" -> Operators.assignmentShiftLeft
+            sym == ">>=" -> Operators.assignmentArithmeticShiftRight
+            sym == ">>>=" -> Operators.logicalShiftRight
+            sym == "|=" -> Operators.assignmentOr
+            sym == "&=" -> Operators.assignmentAnd
+            sym == "^=" -> Operators.assignmentXor
             else -> {
                 logger.warn("Unknown binary operator $sym")
                 sym
