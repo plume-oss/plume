@@ -12,6 +12,7 @@ and this project adheres to [Semantic Versioning](http://semver.org/).
 - `IDriver.bulkTransaction` to replace `DeltaGraph.apply` and make database specific bulk changes.
 - `IdentityStmt` is now handled as part of the `LOCAL` and `IDENTIFIER` cycle
 - `IdentityRef` is now handled under `projectOp`
+- `ThrowStmt` is now handled as a special kind of `Return`
 
 ### Fixed
 

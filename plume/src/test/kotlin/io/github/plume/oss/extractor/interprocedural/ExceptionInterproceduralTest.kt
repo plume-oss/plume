@@ -19,7 +19,6 @@ import org.junit.jupiter.api.Test
 import org.junit.jupiter.api.TestInfo
 import overflowdb.Graph
 import java.io.File
-import java.io.FileWriter
 import java.io.IOException
 
 class ExceptionInterproceduralTest {
@@ -27,7 +26,7 @@ class ExceptionInterproceduralTest {
         private val driver = DriverFactory(GraphDatabase.TINKER_GRAPH) as TinkerGraphDriver
         private lateinit var g: Graph
         private var PATH: File
-        private val TEST_PATH = "interprocedural/exception"
+        private const val TEST_PATH = "interprocedural/exception"
 
         init {
             val testFileUrl = ExceptionInterproceduralTest::class.java.classLoader.getResource(TEST_PATH)
@@ -80,19 +79,18 @@ class ExceptionInterproceduralTest {
     @Test
     fun exception2Test() {
         val ns = g.nodes().asSequence().toList()
-        val localV = ns.filterIsInstance<Local>()
-
+        val locals = ns.filterIsInstance<Local>()
         val mtdV = ns.filterIsInstance<Method>().firstOrNull()?.apply { assertNotNull(this) }
-        assertNotNull(localV.firstOrNull {
-            it.name() == "e" && it.typeFullName() == "java.lang.Exception"
+        assertNotNull(locals.firstOrNull {
+            it.name() == "e1#3" && it.typeFullName() == "java.lang.Exception"
         })
-        assertNotNull(localV.firstOrNull { it.name() == "a" && it.typeFullName() == "int" })
-        assertNotNull(localV.firstOrNull {
+        assertNotNull(locals.firstOrNull { it.name() == "a" && it.typeFullName() == "int" })
+        assertNotNull(locals.firstOrNull {
             it.name() == "\$stack5" && it.typeFullName() == "java.lang.Exception"
         })
-        assertNotNull(localV.firstOrNull { it.name() == "e#3" && it.typeFullName() == "int" })
-        assertNotNull(localV.firstOrNull { it.name() == "b" && it.typeFullName() == "byte" })
-        assertEquals(2, g.V(mtdV!!.id()).next().out(CFG).asSequence().toList().size)
+        assertNotNull(locals.firstOrNull { it.name() == "e1#5" && it.typeFullName() == "int" })
+        assertNotNull(locals.firstOrNull { it.name() == "b" && it.typeFullName() == "byte" })
+        assertEquals(3, g.V(mtdV!!.id()).next().out(CFG).asSequence().toList().size)
 
         val parseIntCall = ns.filterIsInstance<Call>().filter { it.name() == "parseInt" }
             .apply { assertEquals(1, this.toList().size) }.firstOrNull().apply { assertNotNull(this) }

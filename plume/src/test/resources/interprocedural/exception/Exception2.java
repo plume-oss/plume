@@ -7,8 +7,11 @@ public class Exception2 {
         int b = 2;
         try {
             a = Integer.parseInt("2");
-        } catch (Exception e) {
+        } catch (NumberFormatException e1) {
+            a = 3;
+        } catch (Exception e2) {
             a = 0;
+            throw e2;
         }
         int c = a + b;
     }
