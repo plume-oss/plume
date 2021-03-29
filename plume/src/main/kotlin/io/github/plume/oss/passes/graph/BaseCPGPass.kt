@@ -744,13 +744,13 @@ class BaseCPGPass(private val g: BriefUnitGraph) {
             .columnNumber(Option.apply(currentCol))
             .apply { fieldAccessVars.add(this) }
         when (fieldRef) {
-            is StaticFieldRef -> { // Handle Static as Type_ref?
-                Pair(
-                    SootToPlumeUtil.createTypeRefVertex(fieldRef.field.declaringClass.type, currentLine, currentCol, 1),
+            is StaticFieldRef -> {
+                Pair( // TODO: Making this use an Identifier is a temporary fix for data flow passes to work
+                    SootToPlumeUtil.createIdentifierVertex(fieldRef, currentLine, currentCol, 1),
                     SootToPlumeUtil.createFieldIdentifierVertex(fieldRef, currentLine, currentCol, 2)
                 )
             }
-            is InstanceFieldRef -> { // Handle Local? and Identifier?
+            is InstanceFieldRef -> {
                 Pair(
                     SootToPlumeUtil.createIdentifierVertex(fieldRef.base, currentLine, currentCol, 1),
                     SootToPlumeUtil.createFieldIdentifierVertex(fieldRef, currentLine, currentCol, 2)
