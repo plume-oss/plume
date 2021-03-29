@@ -30,6 +30,7 @@ and this project adheres to [Semantic Versioning](http://semver.org/).
 - `DeltaGraph::toOverflowDb` now only writes to an existing OverflowDB instance.
 - Increased `CacheOptions.cacheSize` and the cache is now partitioned among the 4 caches
   based on average allocation from the benchmarks. Cache expiry is now removed as an option.
+- `GotoStmt` is now added as a `CONTROL_STRUCTURE_VERTEX` with `JUMP_TARGET`s removed.
 
 ## [0.3.9] - 2021-03-23
 
