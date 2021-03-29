@@ -11,7 +11,6 @@ import io.shiftleft.codepropertygraph.generated.EdgeTypes.CFG
 import io.shiftleft.codepropertygraph.generated.Operators
 import io.shiftleft.codepropertygraph.generated.nodes.Call
 import io.shiftleft.codepropertygraph.generated.nodes.ControlStructure
-import io.shiftleft.codepropertygraph.generated.nodes.JumpTarget
 import io.shiftleft.codepropertygraph.generated.nodes.Local
 import org.junit.jupiter.api.AfterEach
 import org.junit.jupiter.api.Assertions.*
