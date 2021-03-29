@@ -18,6 +18,7 @@ import soot.Unit
 import soot.Value
 import soot.jimple.*
 import soot.jimple.internal.JimpleLocalBox
+import soot.tagkit.BytecodeOffsetTag
 import soot.toolkits.graph.BriefUnitGraph
 
 /**
@@ -369,9 +370,10 @@ class BaseCPGPass(private val g: BriefUnitGraph) {
         addToCache(unit, *argVertices.toTypedArray())
         // Create the receiver for the call
         unit.useBoxes.filterIsInstance<JimpleLocalBox>().firstOrNull()?.let {
-            SootToPlumeUtil.createIdentifierVertex(it.value, currentLine, currentCol, unit.useBoxes.indexOf(it)).apply {
+            SootToPlumeUtil.createIdentifierVertex(it.value, currentLine, currentCol, 0).apply {
                 addToCache(it.value, this)
                 builder.addEdge(callVertex, this, RECEIVER)
+                builder.addEdge(callVertex, this, ARGUMENT)
                 builder.addEdge(callVertex, this, AST)
             }
         }
@@ -573,11 +575,12 @@ class BaseCPGPass(private val g: BriefUnitGraph) {
             builder.addEdge(assignCall, this, ARGUMENT)
             addToCache(leftOp, this)
         }
-        val (rightVert, rightVertCfgStart) = projectOp(rightOp, 1).apply {
+        val (rightVert, rightVertCfgStart) = projectOp(rightOp, 2).apply {
             builder.addEdge(assignCall, this.first, AST)
             builder.addEdge(assignCall, this.first, ARGUMENT)
             addToCache(rightOp, this.first)
         }
+
         // This handles the CFG if the rightOp is a call or similar
         if (rightVert === rightVertCfgStart) {
             builder.addEdge(leftVert, rightVert, CFG)
@@ -743,7 +746,7 @@ class BaseCPGPass(private val g: BriefUnitGraph) {
         when (fieldRef) {
             is StaticFieldRef -> { // Handle Static as Type_ref?
                 Pair(
-                    SootToPlumeUtil.createTypeRefVertex(fieldRef.type, currentLine, currentCol, 1),
+                    SootToPlumeUtil.createTypeRefVertex(fieldRef.field.declaringClass.type, currentLine, currentCol, 1),
                     SootToPlumeUtil.createFieldIdentifierVertex(fieldRef, currentLine, currentCol, 2)
                 )
             }
@@ -768,10 +771,10 @@ class BaseCPGPass(private val g: BriefUnitGraph) {
     }
 
 
-    private fun createNewArrayExpr(expr: NewArrayExpr, childIdx: Int = 0) =
+    private fun createNewArrayExpr(expr: NewArrayExpr, childIdx: Int = 1) =
         NewIdentifierBuilder()
-            .order(childIdx + 1)
-            .argumentIndex(childIdx + 1)
+            .order(childIdx)
+            .argumentIndex(childIdx)
             .code(expr.toString())
             .lineNumber(Option.apply(currentLine))
             .columnNumber(Option.apply(currentCol))

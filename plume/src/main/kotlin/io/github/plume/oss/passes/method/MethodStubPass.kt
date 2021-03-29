@@ -69,7 +69,7 @@ class MethodStubPass(private val m: SootMethod) : IMethodPass {
             .typeFullName(m.returnType.toQuotedString())
             .code(ExtractorConst.ENTRYPOINT)
             .order(childIdx++)
-            .argumentIndex(0)
+            .argumentIndex(1)
             .lineNumber(Option.apply(currentLine))
             .columnNumber(Option.apply(currentCol))
             .apply {
