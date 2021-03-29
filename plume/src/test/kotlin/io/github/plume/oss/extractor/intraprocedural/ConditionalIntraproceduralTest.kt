@@ -6,6 +6,7 @@ import io.github.plume.oss.drivers.GraphDatabase
 import io.github.plume.oss.drivers.TinkerGraphDriver
 import io.github.plume.oss.store.LocalCache
 import io.shiftleft.codepropertygraph.generated.ControlStructureTypes.IF
+import io.shiftleft.codepropertygraph.generated.EdgeTypes.AST
 import io.shiftleft.codepropertygraph.generated.EdgeTypes.CFG
 import io.shiftleft.codepropertygraph.generated.Operators
 import io.shiftleft.codepropertygraph.generated.nodes.Call
@@ -28,7 +29,7 @@ class ConditionalIntraproceduralTest {
         private val driver = DriverFactory(GraphDatabase.TINKER_GRAPH) as TinkerGraphDriver
         private lateinit var g: Graph
         private var PATH: File
-        private val TEST_PATH = "intraprocedural/conditional"
+        private const val TEST_PATH = "intraprocedural/conditional"
 
         init {
             val testFileUrl = ConditionalIntraproceduralTest::class.java.classLoader.getResource(TEST_PATH)
@@ -65,20 +66,17 @@ class ConditionalIntraproceduralTest {
         val ns = g.nodes().asSequence().toList()
         assertNotNull(ns.find { it is Local && it.name() == "a" })
         assertNotNull(ns.find { it is Local && it.name() == "b" })
-        ns.filterIsInstance<Call>().filter { it.name() == Operators.plus }
+        ns.filterIsInstance<Call>().filter { it.name() == Operators.addition }
             .let { assertEquals(1, it.toList().size) }
-        ns.filterIsInstance<Call>().filter { it.name() == Operators.minus }
+        ns.filterIsInstance<Call>().filter { it.name() == Operators.subtraction }
             .let { assertEquals(2, it.toList().size) }
-        assertEquals(2, ns.filterIsInstance<JumpTarget>().toList().size)
-        ns.filterIsInstance<Call>().filter { it.name() == Operators.greaterThan }.let { assertNotNull(it) }
-        ns.filterIsInstance<ControlStructure>().filter { it.controlStructureType() == IF }.let { csv ->
-            val ifVert = csv.firstOrNull(); assertNotNull(ifVert); ifVert!!
-            assertTrue(g.V(ifVert.id()).next().outE(CFG).hasNext())
-            g.V(ifVert.id()).next().out(CFG).asSequence().filterIsInstance<JumpTarget>().toList().let {
-                assertEquals(2, it.toList().size)
-                assertNotNull(it.find { jtv -> jtv.name() == "TRUE" })
-                assertNotNull(it.find { jtv -> jtv.name() == "FALSE" })
-            }
+        ns.filterIsInstance<Call>().firstOrNull { it.name() == Operators.lessEqualsThan }.let { leq ->
+            assertNotNull(leq); leq!!
+            assertTrue(g.V(leq.id()).hasNext())
+            assertTrue(g.V(leq.id()).next().outE(CFG).hasNext())
+            g.V(leq.id()).next().out(CFG).asSequence().toList().size.let { assertEquals(2, it) }
+            assertNotNull(g.V(leq.id()).next().`in`(AST).asSequence().filterIsInstance<ControlStructure>()
+                .firstOrNull { it.controlStructureType() == IF })
         }
     }
 
@@ -87,20 +85,17 @@ class ConditionalIntraproceduralTest {
         val ns = g.nodes().asSequence().toList()
         assertNotNull(ns.find { it is Local && it.name() == "a" })
         assertNotNull(ns.find { it is Local && it.name() == "b" })
-        ns.filterIsInstance<Call>().filter { it.name() == Operators.plus }
+        ns.filterIsInstance<Call>().filter { it.name() == Operators.addition }
             .let { assertEquals(1, it.toList().size) }
-        ns.filterIsInstance<Call>().filter { it.name() == Operators.minus }
+        ns.filterIsInstance<Call>().filter { it.name() == Operators.subtraction }
             .let { assertEquals(2, it.toList().size) }
-        assertEquals(2, ns.filterIsInstance<JumpTarget>().toList().size)
-        ns.filterIsInstance<Call>().filter { it.name() == Operators.greaterThan }.let { assertNotNull(it) }
-        ns.filterIsInstance<ControlStructure>().filter { it.controlStructureType() == IF }.let { csv ->
-            val ifVert = csv.firstOrNull(); assertNotNull(ifVert); ifVert!!
-            assertTrue(g.V(ifVert.id()).next().outE(CFG).hasNext())
-            g.V(ifVert.id()).next().out(CFG).asSequence().filterIsInstance<JumpTarget>().toList().let {
-                assertEquals(2, it.toList().size)
-                assertNotNull(it.find { jtv -> jtv.name() == "TRUE" })
-                assertNotNull(it.find { jtv -> jtv.name() == "FALSE" })
-            }
+        ns.filterIsInstance<Call>().firstOrNull { it.name() == Operators.lessEqualsThan }.let { leq ->
+            assertNotNull(leq); leq!!
+            assertTrue(g.V(leq.id()).hasNext())
+            assertTrue(g.V(leq.id()).next().outE(CFG).hasNext())
+            g.V(leq.id()).next().out(CFG).asSequence().toList().size.let { assertEquals(2, it) }
+            assertNotNull(g.V(leq.id()).next().`in`(AST).asSequence().filterIsInstance<ControlStructure>()
+                .firstOrNull { it.controlStructureType() == IF })
         }
     }
 
@@ -109,22 +104,27 @@ class ConditionalIntraproceduralTest {
         val ns = g.nodes().asSequence().toList()
         assertNotNull(ns.find { it is Local && it.name() == "a" })
         assertNotNull(ns.find { it is Local && it.name() == "b" })
-        ns.filterIsInstance<Call>().filter { it.name() == Operators.plus }
+        ns.filterIsInstance<Call>().filter { it.name() == Operators.addition }
             .let { assertEquals(1, it.toList().size) }
-        ns.filterIsInstance<Call>().filter { it.name() == Operators.minus }
-            .let { assertEquals(2, it.toList().size) }
+        ns.filterIsInstance<Call>().filter { it.name() == Operators.subtraction }
+            .let { assertEquals(1, it.toList().size) }
         ns.filterIsInstance<Call>().filter { it.name() == Operators.multiplication }
             .let { assertEquals(1, it.toList().size) }
-        assertEquals(2, ns.filterIsInstance<JumpTarget>().toList().size)
-        ns.filterIsInstance<Call>().filter { it.name() == Operators.greaterThan }.let { assertNotNull(it) }
-        ns.filterIsInstance<ControlStructure>().filter { it.controlStructureType() == IF }.let { csv ->
-            val ifVert = csv.firstOrNull(); assertNotNull(ifVert); ifVert!!
-            assertTrue(g.V(ifVert.id()).next().outE(CFG).hasNext())
-            g.V(ifVert.id()).next().out(CFG).asSequence().filterIsInstance<JumpTarget>().toList().let {
-                assertEquals(2, it.toList().size)
-                assertNotNull(it.find { jtv -> jtv.name() == "TRUE" })
-                assertNotNull(it.find { jtv -> jtv.name() == "FALSE" })
-            }
+        ns.filterIsInstance<Call>().firstOrNull { it.name() == Operators.notEquals }.let { neq ->
+            assertNotNull(neq); neq!!
+            assertTrue(g.V(neq.id()).hasNext())
+            assertTrue(g.V(neq.id()).next().outE(CFG).hasNext())
+            g.V(neq.id()).next().out(CFG).asSequence().toList().size.let { assertEquals(2, it) }
+            assertNotNull(g.V(neq.id()).next().`in`(AST).asSequence().filterIsInstance<ControlStructure>()
+                .firstOrNull { it.controlStructureType() == IF })
+        }
+        ns.filterIsInstance<Call>().firstOrNull { it.name() == Operators.lessEqualsThan }.let { leq ->
+            assertNotNull(leq); leq!!
+            assertTrue(g.V(leq.id()).hasNext())
+            assertTrue(g.V(leq.id()).next().outE(CFG).hasNext())
+            g.V(leq.id()).next().out(CFG).asSequence().toList().size.let { assertEquals(2, it) }
+            assertNotNull(g.V(leq.id()).next().`in`(AST).asSequence().filterIsInstance<ControlStructure>()
+                .firstOrNull { it.controlStructureType() == IF })
         }
     }
 
@@ -133,17 +133,27 @@ class ConditionalIntraproceduralTest {
         val ns = g.nodes().asSequence().toList()
         assertNotNull(ns.find { it is Local && it.name() == "a" })
         assertNotNull(ns.find { it is Local && it.name() == "b" })
-        ns.filterIsInstance<Call>().filter { it.name() == Operators.plus }
+        ns.filterIsInstance<Call>().filter { it.name() == Operators.addition }
             .let { assertEquals(1, it.toList().size) }
-        ns.filterIsInstance<Call>().filter { it.name() == Operators.minus }
+        ns.filterIsInstance<Call>().filter { it.name() == Operators.subtraction }
             .let { assertEquals(2, it.toList().size) }
         ns.filterIsInstance<Call>().filter { it.name() == Operators.multiplication }
             .let { assertEquals(1, it.toList().size) }
-        assertEquals(4, ns.filterIsInstance<JumpTarget>().toList().size)
-        ns.filterIsInstance<Call>().filter { it.name() == Operators.greaterThan }.let { assertNotNull(it) }
-        ns.filterIsInstance<Call>().filter { it.name() == Operators.equals }.let { assertNotNull(it) }
-        ns.filterIsInstance<ControlStructure>().filter { it.controlStructureType() == IF }.let { csv ->
-            assertEquals(2, csv.toList().size)
+        ns.filterIsInstance<Call>().firstOrNull { it.name() == Operators.notEquals }.let { neq ->
+            assertNotNull(neq); neq!!
+            assertTrue(g.V(neq.id()).hasNext())
+            assertTrue(g.V(neq.id()).next().outE(CFG).hasNext())
+            g.V(neq.id()).next().out(CFG).asSequence().toList().size.let { assertEquals(2, it) }
+            assertNotNull(g.V(neq.id()).next().`in`(AST).asSequence().filterIsInstance<ControlStructure>()
+                .firstOrNull { it.controlStructureType() == IF })
+        }
+        ns.filterIsInstance<Call>().firstOrNull { it.name() == Operators.lessEqualsThan }.let { leq ->
+            assertNotNull(leq); leq!!
+            assertTrue(g.V(leq.id()).hasNext())
+            assertTrue(g.V(leq.id()).next().outE(CFG).hasNext())
+            g.V(leq.id()).next().out(CFG).asSequence().toList().size.let { assertEquals(2, it) }
+            assertNotNull(g.V(leq.id()).next().`in`(AST).asSequence().filterIsInstance<ControlStructure>()
+                .firstOrNull { it.controlStructureType() == IF })
         }
     }
 
@@ -152,18 +162,35 @@ class ConditionalIntraproceduralTest {
         val ns = g.nodes().asSequence().toList()
         assertNotNull(ns.find { it is Local && it.name() == "a" })
         assertNotNull(ns.find { it is Local && it.name() == "b" })
-        ns.filterIsInstance<Call>().filter { it.name() == Operators.minus }
+        ns.filterIsInstance<Call>().filter { it.name() == Operators.subtraction }
             .let { assertEquals(1, it.toList().size) }
         ns.filterIsInstance<Call>().filter { it.name() == Operators.multiplication }
             .let { assertEquals(1, it.toList().size) }
         ns.filterIsInstance<Call>().filter { it.name() == Operators.division }
             .let { assertEquals(1, it.toList().size) }
-        assertEquals(6, ns.filterIsInstance<JumpTarget>().toList().size)
-        ns.filterIsInstance<Call>().filter { it.name() == Operators.greaterThan }.let { assertNotNull(it) }
-        ns.filterIsInstance<Call>().filter { it.name() == Operators.equals }.let { assertNotNull(it) }
-        ns.filterIsInstance<Call>().filter { it.name() == Operators.lessThan }.let { assertNotNull(it) }
-        ns.filterIsInstance<ControlStructure>().filter { it.controlStructureType() == IF }.let { csv ->
-            assertEquals(3, csv.toList().size)
+        ns.filterIsInstance<Call>().firstOrNull { it.name() == Operators.notEquals }.let { neq ->
+            assertNotNull(neq); neq!!
+            assertTrue(g.V(neq.id()).hasNext())
+            assertTrue(g.V(neq.id()).next().outE(CFG).hasNext())
+            g.V(neq.id()).next().out(CFG).asSequence().toList().size.let { assertEquals(2, it) }
+            assertNotNull(g.V(neq.id()).next().`in`(AST).asSequence().filterIsInstance<ControlStructure>()
+                .firstOrNull { it.controlStructureType() == IF })
+        }
+        ns.filterIsInstance<Call>().firstOrNull { it.name() == Operators.greaterEqualsThan }.let { geq ->
+            assertNotNull(geq); geq!!
+            assertTrue(g.V(geq.id()).hasNext())
+            assertTrue(g.V(geq.id()).next().outE(CFG).hasNext())
+            g.V(geq.id()).next().out(CFG).asSequence().toList().size.let { assertEquals(2, it) }
+            assertNotNull(g.V(geq.id()).next().`in`(AST).asSequence().filterIsInstance<ControlStructure>()
+                .firstOrNull { it.controlStructureType() == IF })
+        }
+        ns.filterIsInstance<Call>().firstOrNull { it.name() == Operators.lessThan }.let { le ->
+            assertNotNull(le); le!!
+            assertTrue(g.V(le.id()).hasNext())
+            assertTrue(g.V(le.id()).next().outE(CFG).hasNext())
+            g.V(le.id()).next().out(CFG).asSequence().toList().size.let { assertEquals(2, it) }
+            assertNotNull(g.V(le.id()).next().`in`(AST).asSequence().filterIsInstance<ControlStructure>()
+                .firstOrNull { it.controlStructureType() == IF })
         }
     }
 
@@ -174,12 +201,14 @@ class ConditionalIntraproceduralTest {
         assertNotNull(ns.find { it is Local && it.name() == "b" })
         ns.filterIsInstance<Call>().filter { it.name() == Operators.multiplication }
             .let { assertEquals(1, it.toList().size) }
-        assertEquals(2, ns.filterIsInstance<JumpTarget>().toList().size)
-        ns.filterIsInstance<Call>().filter { it.name() == Operators.greaterThan }.let { assertNotNull(it) }
-        ns.filterIsInstance<Call>().filter { it.name() == Operators.equals }.let { assertNotNull(it) }
-        ns.filterIsInstance<Call>().filter { it.name() == Operators.lessThan }.let { assertNotNull(it) }
-        ns.filterIsInstance<ControlStructure>().filter { it.controlStructureType() == IF }
-            .let { csv -> assertEquals(1, csv.toList().size) }
+        ns.filterIsInstance<Call>().firstOrNull { it.name() == Operators.notEquals }.let { neq ->
+            assertNotNull(neq); neq!!
+            assertTrue(g.V(neq.id()).hasNext())
+            assertTrue(g.V(neq.id()).next().outE(CFG).hasNext())
+            g.V(neq.id()).next().out(CFG).asSequence().toList().size.let { assertEquals(2, it) }
+            assertNotNull(g.V(neq.id()).next().`in`(AST).asSequence().filterIsInstance<ControlStructure>()
+                .firstOrNull { it.controlStructureType() == IF })
+        }
     }
 
     @Test
@@ -187,83 +216,63 @@ class ConditionalIntraproceduralTest {
         val ns = g.nodes().asSequence().toList()
         assertNotNull(ns.find { it is Local && it.name() == "a" })
         assertNotNull(ns.find { it is Local && it.name() == "b" })
-        ns.filterIsInstance<Call>().filter { it.name() == Operators.plus }
-            .let { assertEquals(1, it.toList().size) }
-        ns.filterIsInstance<Call>().filter { it.name() == Operators.minus }
-            .let { assertEquals(2, it.toList().size) }
-        ns.filterIsInstance<Call>().filter { it.name() == Operators.multiplication }
-            .let { assertEquals(1, it.toList().size) }
-        ns.filterIsInstance<Call>().filter { it.name() == Operators.division }
-            .let { assertEquals(1, it.toList().size) }
-        assertEquals(6, ns.filterIsInstance<JumpTarget>().toList().size)
-        ns.filterIsInstance<Call>().filter { it.name() == Operators.greaterThan }.let { assertNotNull(it) }
-        ns.filterIsInstance<Call>().filter { it.name() == Operators.equals }.let { assertNotNull(it) }
-        ns.filterIsInstance<Call>().filter { it.name() == Operators.lessThan }.let { assertNotNull(it) }
-        ns.filterIsInstance<ControlStructure>().filter { it.controlStructureType() == IF }.let { csv ->
-            assertEquals(3, csv.toList().size)
+        assertNotNull(ns.find { it is Local && it.name() == "c" })
+        ns.filterIsInstance<Call>().firstOrNull { it.name() == Operators.lessEqualsThan }.let { leq ->
+            assertNotNull(leq); leq!!
+            assertTrue(g.V(leq.id()).hasNext())
+            assertTrue(g.V(leq.id()).next().outE(CFG).hasNext())
+            g.V(leq.id()).next().out(CFG).asSequence().toList().size.let { assertEquals(2, it) }
+            assertNotNull(g.V(leq.id()).next().`in`(AST).asSequence().filterIsInstance<ControlStructure>()
+                .firstOrNull { it.controlStructureType() == IF })
         }
     }
 
     @Test
     fun conditional8Test() {
-        val ns = g.nodes().asSequence().toList()
+        val ns = g.nodes().asSequence().toList().distinct()
         assertNotNull(ns.find { it is Local && it.name() == "a" })
         assertNotNull(ns.find { it is Local && it.name() == "b" })
-        ns.filterIsInstance<Call>().filter { it.name() == Operators.plus }
-            .let { assertEquals(1, it.toList().size) }
-        ns.filterIsInstance<Call>().filter { it.name() == Operators.minus }
-            .let { assertEquals(2, it.toList().size) }
-        ns.filterIsInstance<Call>().filter { it.name() == Operators.multiplication }
-            .let { assertEquals(1, it.toList().size) }
-        ns.filterIsInstance<Call>().filter { it.name() == Operators.division }
-            .let { assertEquals(1, it.toList().size) }
-        assertEquals(6, ns.filterIsInstance<JumpTarget>().toList().size)
-        ns.filterIsInstance<Call>().filter { it.name() == Operators.greaterThan }.let { assertNotNull(it) }
-        ns.filterIsInstance<Call>().filter { it.name() == Operators.equals }.let { assertNotNull(it) }
-        ns.filterIsInstance<Call>().filter { it.name() == Operators.lessThan }.let { assertNotNull(it) }
-        ns.filterIsInstance<ControlStructure>().filter { it.controlStructureType() == IF }.let { csv ->
-            assertEquals(3, csv.toList().size)
+        assertNotNull(ns.find { it is Local && it.name() == "c" })
+        ns.filterIsInstance<Call>().firstOrNull { it.name() == Operators.lessEqualsThan }.let { leq ->
+            assertNotNull(leq); leq!!
+            assertTrue(g.V(leq.id()).hasNext())
+            assertTrue(g.V(leq.id()).next().outE(CFG).hasNext())
+            g.V(leq.id()).next().out(CFG).asSequence().toList().size.let { assertEquals(2, it) }
+            assertNotNull(g.V(leq.id()).next().`in`(AST).asSequence().filterIsInstance<ControlStructure>()
+                .firstOrNull { it.controlStructureType() == IF })
+        }
+        ns.filterIsInstance<Call>().firstOrNull { it.name() == Operators.greaterEqualsThan }.let { geq ->
+            assertNotNull(geq); geq!!
+            assertTrue(g.V(geq.id()).hasNext())
+            assertTrue(g.V(geq.id()).next().outE(CFG).hasNext())
+            g.V(geq.id()).next().out(CFG).asSequence().toList().size.let { assertEquals(2, it) }
+            assertNotNull(g.V(geq.id()).next().`in`(AST).asSequence().filterIsInstance<ControlStructure>()
+                .firstOrNull { it.controlStructureType() == IF })
         }
     }
 
     @Test
     fun conditional9Test() {
+        driver.exportGraph("/tmp/plume/c11.xml")
         val ns = g.nodes().asSequence().toList()
         assertNotNull(ns.find { it is Local && it.name() == "a" })
         assertNotNull(ns.find { it is Local && it.name() == "b" })
         assertNotNull(ns.find { it is Local && it.name() == "c" })
-        assertEquals(2, ns.filterIsInstance<JumpTarget>().toList().size)
-        ns.filterIsInstance<Call>().filter { it.name() == Operators.greaterThan }.let { assertNotNull(it) }
-        ns.filterIsInstance<ControlStructure>().filter { it.controlStructureType() == IF }.let { csv ->
-            assertEquals(1, csv.toList().size)
+        ns.filterIsInstance<Call>().firstOrNull { it.name() == Operators.lessEqualsThan }.let { leq ->
+            assertNotNull(leq); leq!!
+            assertTrue(g.V(leq.id()).hasNext())
+            assertTrue(g.V(leq.id()).next().outE(CFG).hasNext())
+            g.V(leq.id()).next().out(CFG).asSequence().toList().size.let { assertEquals(2, it) }
+            assertNotNull(g.V(leq.id()).next().`in`(AST).asSequence().filterIsInstance<ControlStructure>()
+                .firstOrNull { it.controlStructureType() == IF })
         }
-    }
-
-    @Test
-    fun conditional10Test() {
-        val ns = g.nodes().asSequence().toList().distinct()
-        assertNotNull(ns.find { it is Local && it.name() == "a" })
-        assertNotNull(ns.find { it is Local && it.name() == "b" })
-        assertNotNull(ns.find { it is Local && it.name() == "c" })
-        assertEquals(4, ns.filterIsInstance<JumpTarget>().toList().size)
-        ns.filterIsInstance<Call>().filter { it.name() == Operators.greaterThan }.let { assertNotNull(it) }
-        ns.filterIsInstance<Call>().filter { it.name() == Operators.lessThan }.let { assertNotNull(it) }
-        ns.filterIsInstance<ControlStructure>().filter { it.controlStructureType() == IF }.let { csv ->
-            assertEquals(2, csv.toList().size)
-        }
-    }
-
-    @Test
-    fun conditional11Test() {
-        val ns = g.nodes().asSequence().toList()
-        assertNotNull(ns.find { it is Local && it.name() == "a" })
-        assertNotNull(ns.find { it is Local && it.name() == "b" })
-        assertNotNull(ns.find { it is Local && it.name() == "c" })
-        assertEquals(4, ns.filterIsInstance<JumpTarget>().toList().size)
-        ns.filterIsInstance<Call>().filter { it.name() == Operators.greaterThan }.let { assertNotNull(it) }
-        ns.filterIsInstance<Call>().filter { it.name() == Operators.lessThan }.let { assertNotNull(it) }
-        ns.filterIsInstance<ControlStructure>().filter { it.controlStructureType() == IF }.let { csv ->
-            assertEquals(2, csv.toList().size)
+        ns.filterIsInstance<Call>().firstOrNull { it.name() == Operators.greaterEqualsThan }.let { geq ->
+            assertNotNull(geq); geq!!
+            assertTrue(g.V(geq.id()).hasNext())
+            assertTrue(g.V(geq.id()).next().outE(CFG).hasNext())
+            g.V(geq.id()).next().out(CFG).asSequence().toList().size.let { assertEquals(2, it) }
+            assertNotNull(g.V(geq.id()).next().`in`(AST).asSequence().filterIsInstance<ControlStructure>()
+                .firstOrNull { it.controlStructureType() == IF })
         }
     }
 }

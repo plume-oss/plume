@@ -511,7 +511,6 @@ class BaseCPGPass(private val g: BriefUnitGraph) {
         val cfgSource = ifVertices.filterIsInstance<NewCallBuilder>().first()
         g.getSuccsOf(unit).forEach { succ ->
             getFromStore(succ).let { tgtVertices ->
-
                 tgtVertices.let { vList ->
                     builder.addEdge(cfgSource, vList.first(), CFG)
                 }
