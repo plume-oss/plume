@@ -129,6 +129,7 @@ class DriverCache(private val driver: IDriver) {
             .astParentType(NAMESPACE_BLOCK)
             .order(1)
             .isExternal(false)
+            .apply { LocalCache.addTypeDecl(this) }
     }
 
     /**

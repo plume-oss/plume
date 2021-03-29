@@ -10,6 +10,15 @@ and this project adheres to [Semantic Versioning](http://semver.org/).
 ### Added
 
 - `IDriver.bulkTransaction` to replace `DeltaGraph.apply` and make database specific bulk changes.
+- `IdentityStmt` is now handled as part of the `LOCAL` and `IDENTIFIER` cycle
+- `IdentityRef` is now handled under `projectOp`
+
+### Fixed
+
+- External method <-`AST`- External type is now fixed.
+- `EVAL_TYPE` links for `MethodReturn` and `BlockVertex` on the method stubs.
+- `CacheOptions.cacheSize` is mutable via setters now.
+- `parseBinopExpr` had some incorrect mappings which are now fixed.
 
 ### Changed
 
@@ -19,6 +28,10 @@ and this project adheres to [Semantic Versioning](http://semver.org/).
 - Feedback regarding files to updated now moved from `INFO` to `DEBUG` logging.
 - Marked `DeltaGraph.apply` as deprecated.
 - `DeltaGraph::toOverflowDb` now only writes to an existing OverflowDB instance.
+- Increased `CacheOptions.cacheSize` and the cache is now partitioned among the 4 caches
+  based on average allocation from the benchmarks. Cache expiry is now removed as an option.
+- `GotoStmt` is now added as a `CONTROL_STRUCTURE_VERTEX` with `JUMP_TARGET`s removed.
+- CFG now connects nodes within each expression and follows the stack pointer like Joern/Ocular
 
 ## [0.3.9] - 2021-03-23
 

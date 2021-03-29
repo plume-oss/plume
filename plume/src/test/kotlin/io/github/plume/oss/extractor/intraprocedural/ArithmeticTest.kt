@@ -22,7 +22,7 @@ class ArithmeticTest {
         private val driver = DriverFactory(GraphDatabase.TINKER_GRAPH) as TinkerGraphDriver
         private lateinit var g: Graph
         private var PATH: File
-        private val TEST_PATH = "intraprocedural/arithmetic"
+        private const val TEST_PATH = "intraprocedural/arithmetic"
 
         init {
             val testFileUrl = ArithmeticTest::class.java.classLoader.getResource(TEST_PATH)
@@ -63,9 +63,9 @@ class ArithmeticTest {
         assertNotNull(ns.find { it is Local && it.name() == "d" })
         assertNotNull(ns.find { it is Local && it.name() == "e" })
         assertNotNull(ns.find { it is Local && it.name() == "f" })
-        val add = calls.find { it.name() == Operators.plus }.apply { assertNotNull(this) }
+        val add = calls.find { it.name() == Operators.addition }.apply { assertNotNull(this) }
         val mul = calls.find { it.name() == Operators.multiplication }.apply { assertNotNull(this) }
-        val sub = calls.find { it.name() == Operators.minus }.apply { assertNotNull(this) }
+        val sub = calls.find { it.name() == Operators.subtraction }.apply { assertNotNull(this) }
         val div = calls.find { it.name() == Operators.division }.apply { assertNotNull(this) }
         add!!; mul!!; sub!!; div!!
         assertTrue(add.id() < sub.id())
@@ -80,7 +80,7 @@ class ArithmeticTest {
         assertNotNull(ns.find { it is Local && it.name() == "a" })
         assertNotNull(ns.find { it is Local && it.name() == "b" })
         assertNotNull(ns.find { it is Local && it.name() == "c" })
-        val add = calls.find { it.name() == Operators.plus }.apply { assertNotNull(this) }
+        val add = calls.find { it.name() == Operators.addition }.apply { assertNotNull(this) }
         val mul = calls.find { it.name() == Operators.multiplication }.apply { assertNotNull(this) }
         add!!; mul!!
         assertTrue(mul.id() < add.id())
@@ -93,9 +93,9 @@ class ArithmeticTest {
         assertNotNull(ns.find { it is Local && it.name() == "a" })
         assertNotNull(ns.find { it is Local && it.name() == "b" })
         assertNotNull(ns.find { it is Local && it.name() == "c" })
-        val add = calls.find { it.name() == Operators.plus }.apply { assertNotNull(this) }
+        val add = calls.find { it.name() == Operators.addition }.apply { assertNotNull(this) }
         val mul = calls.find { it.name() == Operators.multiplication }.apply { assertNotNull(this) }
-        val sub = calls.find { it.name() == Operators.minus }.apply { assertNotNull(this) }
+        val sub = calls.find { it.name() == Operators.subtraction }.apply { assertNotNull(this) }
         add!!; mul!!; sub!!
         assertTrue(mul.id() < add.id())
         assertTrue(add.id() < sub.id())
@@ -109,7 +109,7 @@ class ArithmeticTest {
         assertNotNull(ns.find { it is Local && it.name() == "b" })
         assertNotNull(ns.find { it is Local && it.name() == "c" })
         assertNotNull(ns.find { it is Local && it.name() == "d" })
-        val addList = calls.filter { it.name() == Operators.plus }
+        val addList = calls.filter { it.name() == Operators.addition }
             .apply { assertFalse(this.toList().isNullOrEmpty()) }
         assertEquals(2, addList.toList().size)
     }
@@ -125,10 +125,10 @@ class ArithmeticTest {
         assertNotNull(ns.find { it is Local && it.name() == "e" })
         assertNotNull(ns.find { it is Local && it.name() == "f" })
         assertNotNull(ns.find { it is Local && it.name() == "g" })
-        val and = calls.find { it.name() == Operators.logicalAnd }.apply { assertNotNull(this) }
-        val or = calls.find { it.name() == Operators.logicalOr }.apply { assertNotNull(this) }
+        val and = calls.find { it.name() == Operators.and }.apply { assertNotNull(this) }
+        val or = calls.find { it.name() == Operators.or }.apply { assertNotNull(this) }
         val shl = calls.find { it.name() == Operators.shiftLeft }.apply { assertNotNull(this) }
-        val shr = calls.find { it.name() == Operators.logicalShiftRight }.apply { assertNotNull(this) }
+        val shr = calls.find { it.name() == Operators.arithmeticShiftRight }.apply { assertNotNull(this) }
         val rem = calls.find { it.name() == Operators.modulo }.apply { assertNotNull(this) }
         and!!; or!!; shl!!; shr!!; rem!!
         assertTrue(and.id() < or.id())
@@ -146,7 +146,7 @@ class ArithmeticTest {
         assertNotNull(ns.find { it is Local && it.name() == "c" })
         assertNotNull(ns.find { it is Local && it.name() == "d" })
         val xor = calls.find { it.name() == Operators.xor }.apply { assertNotNull(this) }
-        val ushr = calls.find { it.name() == Operators.arithmeticShiftRight }.apply { assertNotNull(this) }
+        val ushr = calls.find { it.name() == Operators.logicalShiftRight }.apply { assertNotNull(this) }
         xor!!; ushr!!
         assertTrue(xor.id() < ushr.id())
     }
@@ -157,7 +157,7 @@ class ArithmeticTest {
         val calls = ns.filterIsInstance<Call>().toList()
         assertNotNull(ns.find { it is Local && it.name() == "a" })
         assertNotNull(ns.find { it is Local && it.name() == "b" })
-        val addList = calls.filter { it.name() == Operators.plus }.apply {
+        val addList = calls.filter { it.name() == Operators.addition }.apply {
             assertFalse(this.toList().isNullOrEmpty())
         }
         assertEquals(4, addList.toList().size)

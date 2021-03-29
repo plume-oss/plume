@@ -6,6 +6,7 @@ import io.shiftleft.codepropertygraph.generated.nodes.NewFileBuilder
 import io.shiftleft.codepropertygraph.generated.nodes.NewNamespaceBlockBuilder
 import io.shiftleft.codepropertygraph.generated.nodes.NewTypeBuilder
 import io.shiftleft.codepropertygraph.generated.nodes.NewTypeDeclBuilder
+import org.apache.logging.log4j.LogManager
 import org.cache2k.Cache
 import org.cache2k.Cache2kBuilder
 
@@ -15,34 +16,33 @@ import org.cache2k.Cache2kBuilder
  */
 object LocalCache {
 
-    private val typeCache: Cache<String, NewTypeBuilder> =
-        object : Cache2kBuilder<String, NewTypeBuilder>() {}
-            .name("typeCache")
-            .expireAfterWrite(CacheOptions.cacheExpiry.first, CacheOptions.cacheExpiry.second)
-            .entryCapacity(CacheOptions.cacheSize)
-            .disableStatistics(true)
-            .build()
-    private val typeDeclCache: Cache<String, NewTypeDeclBuilder> =
-        object : Cache2kBuilder<String, NewTypeDeclBuilder>() {}
-            .name("typeDeclCache")
-            .expireAfterWrite(CacheOptions.cacheExpiry.first, CacheOptions.cacheExpiry.second)
-            .entryCapacity(CacheOptions.cacheSize)
-            .disableStatistics(true)
-            .build()
-    private val fileCache: Cache<String, NewFileBuilder> =
-        object : Cache2kBuilder<String, NewFileBuilder>() {}
-            .name("fileCache")
-            .expireAfterWrite(CacheOptions.cacheExpiry.first, CacheOptions.cacheExpiry.second)
-            .entryCapacity(CacheOptions.cacheSize)
-            .disableStatistics(true)
-            .build()
-    private val namespaceBlockCache: Cache<String, NewNamespaceBlockBuilder> =
-        object : Cache2kBuilder<String, NewNamespaceBlockBuilder>() {}
-            .name("namespaceBlockCache")
-            .expireAfterWrite(CacheOptions.cacheExpiry.first, CacheOptions.cacheExpiry.second)
-            .entryCapacity(CacheOptions.cacheSize)
-            .disableStatistics(true)
-            .build()
+    private val logger = LogManager.getLogger(LocalCache::javaClass)
+
+    private val typeCache: Cache<String, NewTypeBuilder>
+    private val typeDeclCache: Cache<String, NewTypeDeclBuilder>
+    private val fileCache: Cache<String, NewFileBuilder>
+    private val namespaceBlockCache: Cache<String, NewNamespaceBlockBuilder>
+
+    init {
+        val typeDeclSize = (CacheOptions.cacheSize * 0.26).toLong()
+        val typeSize = (CacheOptions.cacheSize * 0.26).toLong()
+        val fileSize = (CacheOptions.cacheSize * 0.24).toLong()
+        val namespaceBlockSize = (CacheOptions.cacheSize * 0.24).toLong()
+        typeCache = object : Cache2kBuilder<String, NewTypeBuilder>() {}
+            .name("typeCache").entryCapacity(typeSize).build()
+        typeDeclCache = object : Cache2kBuilder<String, NewTypeDeclBuilder>() {}
+            .name("typeDeclCache").entryCapacity(typeDeclSize).build()
+        fileCache = object : Cache2kBuilder<String, NewFileBuilder>() {}
+            .name("fileCache").entryCapacity(fileSize).build()
+        namespaceBlockCache = object : Cache2kBuilder<String, NewNamespaceBlockBuilder>() {}
+            .name("namespaceBlockCache").entryCapacity(namespaceBlockSize).build()
+        logger.info("Configured cache size is ${CacheOptions.cacheSize}.")
+        logger.debug("Assigning cache as follows => " +
+                "(TYPE, $typeSize), " +
+                "(TYPE_DECL, $typeDeclSize), " +
+                "(FILE, $fileSize), " +
+                "(NAMESPACE_BLOCK, $namespaceBlockSize)")
+    }
 
     fun removeType(fullName: String) = typeCache.remove(fullName)
 

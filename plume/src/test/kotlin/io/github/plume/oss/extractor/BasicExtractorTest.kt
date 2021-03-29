@@ -76,7 +76,7 @@ class BasicExtractorTest {
             .let { assertNotNull(it); assertEquals("byte", it!!.typeFullName()) }
         ns.filterIsInstance<Local>().find { it.name() == "c" }
             .let { assertNotNull(it); assertEquals("int", it!!.typeFullName()) }
-        ns.filterIsInstance<Call>().find { it.name() == Operators.plus }.let { assertNotNull(it) }
+        ns.filterIsInstance<Call>().find { it.name() == Operators.addition }.let { assertNotNull(it) }
     }
 
     @Test
@@ -96,7 +96,7 @@ class BasicExtractorTest {
             .let { assertNotNull(it); assertEquals("byte", it!!.typeFullName()) }
         ns.filterIsInstance<Local>().find { it.name() == "l3" }
             .let { assertNotNull(it); assertEquals("int", it!!.typeFullName()) }
-        ns.filterIsInstance<Call>().find { it.name() == Operators.plus }.let { assertNotNull(it) }
+        ns.filterIsInstance<Call>().find { it.name() == Operators.addition }.let { assertNotNull(it) }
     }
 
     @Test
