@@ -25,17 +25,24 @@ class CallTests extends PlumeCodeToCpgSuite {
     val List(x) = cpg.call("add").l
     x.code shouldBe "add(argc, 3)"
     x.name shouldBe "add"
-    x.order shouldBe 1
+    x.order shouldBe 2
     x.methodInstFullName shouldBe None // Deprecated
     x.methodFullName shouldBe "Foo.add:int(int,int)"
     x.signature shouldBe "int(int,int)"
-    x.argumentIndex shouldBe 1
+    x.argumentIndex shouldBe 2
     // x.typeFullName : deprecated
     x.lineNumber shouldBe Some(8)
   }
 
   "should allow traversing from call to arguments" in {
-    cpg.call("add").argument.size shouldBe 2
+    cpg.call("add").argument.size shouldBe 3
+    val List(arg0) = cpg.call("add").argument(0).l
+    arg0.isInstanceOf[nodes.Identifier] shouldBe true
+    arg0.asInstanceOf[nodes.Identifier].name shouldBe "this"
+    arg0.code shouldBe "this"
+    arg0.order shouldBe 0
+    arg0.argumentIndex shouldBe 0
+
     val List(arg1) = cpg.call("add").argument(1).l
     arg1.isInstanceOf[nodes.Identifier] shouldBe true
     arg1.asInstanceOf[nodes.Identifier].name shouldBe "argc"
@@ -44,8 +51,8 @@ class CallTests extends PlumeCodeToCpgSuite {
     arg1.argumentIndex shouldBe 1
 
     val List(arg2) = cpg.call("add").argument(2).l
-    arg2.isInstanceOf[nodes.Literal] shouldBe true
     arg2.asInstanceOf[nodes.Literal].code shouldBe "3"
+    arg2.isInstanceOf[nodes.Literal] shouldBe true
     arg2.code shouldBe "3"
     arg2.order shouldBe 2
     arg2.argumentIndex shouldBe 2

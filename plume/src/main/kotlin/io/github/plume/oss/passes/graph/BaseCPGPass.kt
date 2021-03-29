@@ -362,7 +362,7 @@ class BaseCPGPass(private val g: BriefUnitGraph) {
         addToCache(unit, *callVertices.toTypedArray())
         // Create the receiver for the call
         unit.useBoxes.filterIsInstance<JimpleLocalBox>().firstOrNull()?.let {
-            SootToPlumeUtil.createIdentifierVertex(it.value, currentLine, currentCol, unit.useBoxes.indexOf(it)).apply {
+            SootToPlumeUtil.createIdentifierVertex(it.value, currentLine, currentCol, 0).apply {
                 addToCache(it.value, this)
                 builder.addEdge(callVertex, this, RECEIVER)
                 builder.addEdge(callVertex, this, ARGUMENT)
