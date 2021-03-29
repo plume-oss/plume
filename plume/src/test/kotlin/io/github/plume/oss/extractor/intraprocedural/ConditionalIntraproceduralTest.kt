@@ -253,7 +253,6 @@ class ConditionalIntraproceduralTest {
 
     @Test
     fun conditional9Test() {
-        driver.exportGraph("/tmp/plume/c11.xml")
         val ns = g.nodes().asSequence().toList()
         assertNotNull(ns.find { it is Local && it.name() == "a" })
         assertNotNull(ns.find { it is Local && it.name() == "b" })
