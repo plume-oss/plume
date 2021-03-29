@@ -26,7 +26,7 @@ class SwitchIntraproceduralTest {
         private val driver = DriverFactory(GraphDatabase.TINKER_GRAPH) as TinkerGraphDriver
         private lateinit var g: Graph
         private var PATH: File
-        private val TEST_PATH = "intraprocedural/switches"
+        private const val TEST_PATH = "intraprocedural/switches"
 
         init {
             val testFileUrl = SwitchIntraproceduralTest::class.java.classLoader.getResource(TEST_PATH)
@@ -62,27 +62,30 @@ class SwitchIntraproceduralTest {
     fun switch1Test() {
         val ns = g.nodes().asSequence().toList()
         assertNotNull(ns.find { it is Local && it.name() == "i" })
-        ns.filterIsInstance<JumpTarget>().filter { it.name() == "CASE 0" }
+        ns.filterIsInstance<JumpTarget>().filter { it.name() == "case 0" }
             .let { assertEquals(1, it.size) }
-        ns.filterIsInstance<JumpTarget>().filter { it.name() == "CASE 2" }
+        ns.filterIsInstance<JumpTarget>().filter { it.name() == "case 2" }
             .let { assertEquals(1, it.size) }
-        ns.filterIsInstance<JumpTarget>().filter { it.name() == "CASE 3" }
+        ns.filterIsInstance<JumpTarget>().filter { it.name() == "case 3" }
             .let { assertEquals(1, it.size) }
-        ns.filterIsInstance<JumpTarget>().filter { it.name() == "DEFAULT" }
+        ns.filterIsInstance<JumpTarget>().filter { it.name() == "default" }
             .let { assertEquals(1, it.size) }
         assertEquals(4, ns.filterIsInstance<JumpTarget>().toList().size)
         ns.filterIsInstance<ControlStructure>().filter { it.controlStructureType() == SWITCH }
             .let { csv ->
                 val switchVert = csv.firstOrNull(); assertNotNull(switchVert); switchVert!!
                 assertTrue(g.V(switchVert.id()).next().outE(CONDITION).hasNext())
-                g.V(switchVert.id()).next().out(CONDITION).asSequence().filterIsInstance<Identifier>().toList().let {
-                    assertEquals(1, it.size)
-                    assertNotNull(it.find { jtv -> jtv.name() == "i" })
-                }
-                assertEquals(
-                    4,
-                    g.V(switchVert.id()).next().out(CFG).asSequence().filterIsInstance<JumpTarget>().toList().toList().size
-                )
+                g.V(switchVert.id()).next().out(CONDITION).asSequence()
+                    .filterIsInstance<Identifier>()
+                    .firstOrNull().let { i ->
+                        assertNotNull(i); i!!
+                        assertEquals("i", i.name())
+                        assertEquals(
+                            4,
+                            g.V(i.id()).next().out(CFG).asSequence().filterIsInstance<JumpTarget>().toList()
+                                .toList().size
+                        )
+                    }
             }
     }
 
@@ -110,7 +113,8 @@ class SwitchIntraproceduralTest {
                 }
                 assertEquals(
                     4,
-                    g.V(switchVert.id()).next().out(CFG).asSequence().filterIsInstance<JumpTarget>().toList().toList().size
+                    g.V(switchVert.id()).next().out(CFG).asSequence().filterIsInstance<JumpTarget>().toList()
+                        .toList().size
                 )
             }
         ns.filterIsInstance<ControlStructure>().filter { it.controlStructureType() == SWITCH && it.order() == 6 }
@@ -123,7 +127,8 @@ class SwitchIntraproceduralTest {
                 }
                 assertEquals(
                     4,
-                    g.V(switchVert.id()).next().out(CFG).asSequence().filterIsInstance<JumpTarget>().toList().toList().size
+                    g.V(switchVert.id()).next().out(CFG).asSequence().filterIsInstance<JumpTarget>().toList()
+                        .toList().size
                 )
             }
     }
@@ -151,7 +156,8 @@ class SwitchIntraproceduralTest {
                 }
                 assertEquals(
                     4,
-                    g.V(switchVert.id()).next().out(CFG).asSequence().filterIsInstance<JumpTarget>().toList().toList().size
+                    g.V(switchVert.id()).next().out(CFG).asSequence().filterIsInstance<JumpTarget>().toList()
+                        .toList().size
                 )
             }
     }
@@ -181,7 +187,8 @@ class SwitchIntraproceduralTest {
                 }
                 assertEquals(
                     6,
-                    g.V(switchVert.id()).next().out(CFG).asSequence().filterIsInstance<JumpTarget>().toList().toList().size
+                    g.V(switchVert.id()).next().out(CFG).asSequence().filterIsInstance<JumpTarget>().toList()
+                        .toList().size
                 )
             }
     }
@@ -209,7 +216,8 @@ class SwitchIntraproceduralTest {
                 }
                 assertEquals(
                     4,
-                    g.V(switchVert.id()).next().out(CFG).asSequence().filterIsInstance<JumpTarget>().toList().toList().size
+                    g.V(switchVert.id()).next().out(CFG).asSequence().filterIsInstance<JumpTarget>().toList()
+                        .toList().size
                 )
             }
     }

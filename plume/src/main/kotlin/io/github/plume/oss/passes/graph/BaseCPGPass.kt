@@ -150,8 +150,8 @@ class BaseCPGPass(private val g: BriefUnitGraph) {
             is GotoStmt -> projectGotoStatement(unit, childIdx)
             is IdentityStmt -> projectVariableAssignment(unit, childIdx)
             is AssignStmt -> projectVariableAssignment(unit, childIdx)
-            is LookupSwitchStmt -> projectLookupSwitch(unit, childIdx).apply { addToCache(unit, this, index = 0) }
-            is TableSwitchStmt -> projectTableSwitch(unit, childIdx).apply { addToCache(unit, this, index = 0) }
+            is LookupSwitchStmt -> projectLookupSwitch(unit, childIdx)
+            is TableSwitchStmt -> projectTableSwitch(unit, childIdx)
             is InvokeStmt -> projectCallVertex(unit.invokeExpr, childIdx).apply { addToCache(unit, this, index = 0) }
             is ReturnStmt -> projectReturnVertex(unit, childIdx)
             is ReturnVoidStmt -> projectReturnVertex(unit, childIdx)
@@ -197,20 +197,20 @@ class BaseCPGPass(private val g: BriefUnitGraph) {
 
     private fun projectTableSwitch(unit: TableSwitchStmt) {
         val switchVertices = getFromStore(unit)
-        val switchVertex = switchVertices.first { it is NewControlStructureBuilder } as NewControlStructureBuilder
+        val switchCondition = switchVertices.first()
         // Handle default target jump
-        projectSwitchDefault(unit, switchVertices, switchVertex)
+        projectDefaultAndCondition(unit, switchVertices, switchCondition)
         // Handle case jumps
         unit.targets.forEachIndexed { i, tgt ->
-            if (unit.defaultTarget != tgt) projectSwitchTarget(switchVertices, i, switchVertex, tgt)
+            if (unit.defaultTarget != tgt) projectSwitchTarget(switchVertices, i, switchCondition, tgt)
         }
     }
 
     private fun projectLookupSwitch(unit: LookupSwitchStmt) {
         val lookupVertices = getFromStore(unit)
-        val lookupVertex = lookupVertices.first { it is NewControlStructureBuilder } as NewControlStructureBuilder
+        val lookupVertex = lookupVertices.first()
         // Handle default target jump
-        projectSwitchDefault(unit, lookupVertices, lookupVertex)
+        projectDefaultAndCondition(unit, lookupVertices, lookupVertex)
         // Handle case jumps
         for (i in 0 until unit.targetCount) {
             val tgt = unit.getTarget(i)
@@ -222,26 +222,26 @@ class BaseCPGPass(private val g: BriefUnitGraph) {
     private fun projectSwitchTarget(
         lookupVertices: List<NewNodeBuilder>,
         lookupValue: Int,
-        lookupVertex: NewControlStructureBuilder,
+        conditionVertex: NewNodeBuilder,
         tgt: Unit
     ) {
         val tgtV = lookupVertices.first { it is NewJumpTargetBuilder && it.build().argumentIndex() == lookupValue }
-        projectTargetPath(lookupVertex, tgtV, tgt)
+        projectTargetPath(conditionVertex, tgtV, tgt)
     }
 
-    private fun projectSwitchDefault(
+    private fun projectDefaultAndCondition(
         unit: SwitchStmt,
         switchVertices: List<NewNodeBuilder>,
-        switchVertex: NewControlStructureBuilder
+        conditionalVertex: NewNodeBuilder
     ) {
         unit.defaultTarget.let { defaultUnit ->
-            val tgtV = switchVertices.first { it is NewJumpTargetBuilder && it.build().name() == "DEFAULT" }
-            projectTargetPath(switchVertex, tgtV, defaultUnit)
+            val tgtV = switchVertices.first { it is NewJumpTargetBuilder && it.build().name() == "default" }
+            projectTargetPath(conditionalVertex, tgtV, defaultUnit)
         }
     }
 
     private fun projectTargetPath(
-        lookupVertex: NewControlStructureBuilder,
+        lookupVertex: NewNodeBuilder,
         tgtV: NewNodeBuilder,
         tgt: Unit
     ) {
@@ -387,21 +387,22 @@ class BaseCPGPass(private val g: BriefUnitGraph) {
     private fun projectTableSwitch(unit: TableSwitchStmt, childIdx: Int): NewControlStructureBuilder {
         val switchVertex = NewControlStructureBuilder()
             .controlStructureType(ControlStructureTypes.SWITCH)
-            .code(unit.toString())
+            .code(unit.toString().replaceAfter("{", "").replace("{", ""))
             .lineNumber(Option.apply(currentLine))
             .columnNumber(Option.apply(currentCol))
             .order(childIdx)
             .argumentIndex(childIdx)
-        projectSwitchDefault(unit, switchVertex)
+        addToCache(unit, switchVertex)
+        projectDefaultAndCondition(unit, switchVertex)
         // Handle case jumps
         unit.targets.forEachIndexed { i, tgt ->
             if (unit.defaultTarget != tgt) {
                 val tgtV = NewJumpTargetBuilder()
-                    .name("CASE $i")
+                    .name("case $i")
+                    .code("case $i:")
                     .argumentIndex(i)
                     .lineNumber(Option.apply(tgt.javaSourceStartLineNumber))
                     .columnNumber(Option.apply(tgt.javaSourceStartColumnNumber))
-                    .code(tgt.toString())
                     .order(childIdx)
                 builder.addEdge(switchVertex, tgtV, AST)
                 addToCache(unit, tgtV)
@@ -419,23 +420,24 @@ class BaseCPGPass(private val g: BriefUnitGraph) {
     private fun projectLookupSwitch(unit: LookupSwitchStmt, childIdx: Int): NewControlStructureBuilder {
         val switchVertex = NewControlStructureBuilder()
             .controlStructureType(ControlStructureTypes.SWITCH)
-            .code(unit.toString())
+            .code(unit.toString().replaceAfter("{", "").replace("{", ""))
             .lineNumber(Option.apply(unit.javaSourceStartLineNumber))
             .columnNumber(Option.apply(unit.javaSourceStartColumnNumber))
             .order(childIdx)
             .argumentIndex(childIdx)
-        projectSwitchDefault(unit, switchVertex)
+        addToCache(unit, switchVertex)
+        projectDefaultAndCondition(unit, switchVertex)
         // Handle case jumps
         for (i in 0 until unit.targetCount) {
             val tgt = unit.getTarget(i)
             if (unit.defaultTarget != tgt) {
                 val lookupValue = unit.getLookupValue(i)
                 val tgtV = NewJumpTargetBuilder()
-                    .name("CASE $lookupValue")
+                    .name("case $lookupValue")
+                    .code("case $lookupValue:")
                     .argumentIndex(lookupValue)
                     .lineNumber(Option.apply(tgt.javaSourceStartLineNumber))
                     .columnNumber(Option.apply(tgt.javaSourceStartColumnNumber))
-                    .code(tgt.toString())
                     .order(childIdx)
                 builder.addEdge(switchVertex, tgtV, AST)
                 addToCache(unit, tgtV)
@@ -450,21 +452,24 @@ class BaseCPGPass(private val g: BriefUnitGraph) {
      * @param unit The [LookupSwitchStmt] from which a [NewControlStructureBuilder] will be constructed.
      * @param switchVertex The [NewControlStructureBuilder] representing the switch statement to link.
      */
-    private fun projectSwitchDefault(unit: SwitchStmt, switchVertex: NewControlStructureBuilder) {
+    private fun projectDefaultAndCondition(unit: SwitchStmt, switchVertex: NewControlStructureBuilder) {
         val totalTgts = unit.targets.size
-        projectOp(unit.key, totalTgts + 1).let { builder.addEdge(switchVertex, it.first, CONDITION) }
+        val (condition, _) = projectOp(unit.key, totalTgts + 1)
+        builder.addEdge(switchVertex, condition, AST)
+        builder.addEdge(switchVertex, condition, CONDITION)
         // Handle default target jump
         unit.defaultTarget.let {
             val tgtV = NewJumpTargetBuilder()
-                .name("DEFAULT")
+                .name("default")
+                .code("default:")
                 .argumentIndex(totalTgts + 2)
                 .lineNumber(Option.apply(it.javaSourceStartLineNumber))
                 .columnNumber(Option.apply(it.javaSourceStartColumnNumber))
-                .code(it.toString())
                 .order(totalTgts + 2)
             builder.addEdge(switchVertex, tgtV, AST)
             addToCache(unit, tgtV)
         }
+        addToCache(unit, condition, index = 0)
     }
 
 
