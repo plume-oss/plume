@@ -4,8 +4,6 @@ import io.github.plume.oss.domain.mappers.ListMapper
 import io.github.plume.oss.domain.model.DeltaGraph
 import io.github.plume.oss.store.LocalCache
 import io.github.plume.oss.store.PlumeStorage
-import io.github.plume.oss.util.ExtractorConst
-import io.github.plume.oss.util.SootParserUtil
 import io.github.plume.oss.util.SootToPlumeUtil
 import io.shiftleft.codepropertygraph.generated.ControlStructureTypes
 import io.shiftleft.codepropertygraph.generated.DispatchTypes
@@ -138,22 +136,43 @@ class BaseCPGPass(private val g: BriefUnitGraph) {
         }
     }
 
+    /**
+     * Given a unit, will construct AST information in the graph.
+     *
+     * @param unit The [Unit] from which AST vertices and edges will be constructed.
+     */
+    private fun projectUnitAsAst(unit: Unit, childIdx: Int): NewNodeBuilder? {
+        currentLine = unit.javaSourceStartLineNumber
+        currentCol = unit.javaSourceStartColumnNumber
+
+        return when (unit) {
+            is IfStmt -> projectIfStatement(unit, childIdx)
+            is GotoStmt -> projectGotoStatement(unit, childIdx)
+            is IdentityStmt -> projectVariableAssignment(unit, childIdx)
+            is AssignStmt -> projectVariableAssignment(unit, childIdx)
+            is LookupSwitchStmt -> projectLookupSwitch(unit, childIdx)
+            is TableSwitchStmt -> projectTableSwitch(unit, childIdx)
+            is InvokeStmt -> projectCallVertex(unit.invokeExpr, childIdx).apply { addToCache(unit, this, index = 0) }
+            is ReturnStmt -> projectReturnVertex(unit, childIdx)
+            is ReturnVoidStmt -> projectReturnVertex(unit, childIdx)
+            else -> {
+                logger.debug("Unhandled class in projectUnit ${unit.javaClass} $unit"); null
+            }
+        }
+    }
+
     private fun projectUnitAsCfg(unit: Unit) {
         when (unit) {
-            is GotoStmt -> projectUnitAsCfg(unit.target)
-            is IfStmt -> projectIfStatement(unit)
+            is IfStmt -> projectIfStatementAsCfg(unit)
             is LookupSwitchStmt -> projectLookupSwitch(unit)
             is TableSwitchStmt -> projectTableSwitch(unit)
             is ReturnStmt -> projectReturnEdge(unit)
             is ReturnVoidStmt -> projectReturnEdge(unit)
-            is ThisRef -> Unit
-            is IdentityRef -> Unit
+            is IdentityStmt -> connectAssignmentCfg(unit)
+            is AssignStmt -> connectAssignmentCfg(unit)
             else -> {
-                val sourceUnit = if (unit is GotoStmt) unit.target else unit
-                val sourceVertex = getFromStore(sourceUnit).firstOrNull()
-                g.getSuccsOf(sourceUnit).forEach {
-                    val targetUnit = if (it is GotoStmt) it.target else it
-                    if (sourceVertex != null) {
+                getFromStore(unit).firstOrNull()?.let { sourceVertex ->
+                    g.getSuccsOf(unit).forEach { targetUnit ->
                         getFromStore(targetUnit).let { vList ->
                             builder.addEdge(sourceVertex, vList.first(), CFG)
                         }
@@ -163,22 +182,35 @@ class BaseCPGPass(private val g: BriefUnitGraph) {
         }
     }
 
+    private fun connectAssignmentCfg(unit: DefinitionStmt) {
+        val sourceVertex = getFromStore(unit).filterIsInstance<NewCallBuilder>()
+            .firstOrNull { it.build().name().contains("assignment") }
+        g.getSuccsOf(unit).forEach { succ ->
+            if (sourceVertex != null) {
+                getFromStore(succ).let { vList ->
+                    val tgtVert = vList.first()
+                    builder.addEdge(sourceVertex, tgtVert, CFG)
+                }
+            }
+        }
+    }
+
     private fun projectTableSwitch(unit: TableSwitchStmt) {
         val switchVertices = getFromStore(unit)
-        val switchVertex = switchVertices.first { it is NewControlStructureBuilder } as NewControlStructureBuilder
+        val switchCondition = switchVertices.first()
         // Handle default target jump
-        projectSwitchDefault(unit, switchVertices, switchVertex)
+        projectDefaultAndCondition(unit, switchVertices, switchCondition)
         // Handle case jumps
         unit.targets.forEachIndexed { i, tgt ->
-            if (unit.defaultTarget != tgt) projectSwitchTarget(switchVertices, i, switchVertex, tgt)
+            if (unit.defaultTarget != tgt) projectSwitchTarget(switchVertices, i, switchCondition, tgt)
         }
     }
 
     private fun projectLookupSwitch(unit: LookupSwitchStmt) {
         val lookupVertices = getFromStore(unit)
-        val lookupVertex = lookupVertices.first { it is NewControlStructureBuilder } as NewControlStructureBuilder
+        val lookupVertex = lookupVertices.first()
         // Handle default target jump
-        projectSwitchDefault(unit, lookupVertices, lookupVertex)
+        projectDefaultAndCondition(unit, lookupVertices, lookupVertex)
         // Handle case jumps
         for (i in 0 until unit.targetCount) {
             val tgt = unit.getTarget(i)
@@ -190,26 +222,26 @@ class BaseCPGPass(private val g: BriefUnitGraph) {
     private fun projectSwitchTarget(
         lookupVertices: List<NewNodeBuilder>,
         lookupValue: Int,
-        lookupVertex: NewControlStructureBuilder,
+        conditionVertex: NewNodeBuilder,
         tgt: Unit
     ) {
         val tgtV = lookupVertices.first { it is NewJumpTargetBuilder && it.build().argumentIndex() == lookupValue }
-        projectTargetPath(lookupVertex, tgtV, tgt)
+        projectTargetPath(conditionVertex, tgtV, tgt)
     }
 
-    private fun projectSwitchDefault(
+    private fun projectDefaultAndCondition(
         unit: SwitchStmt,
         switchVertices: List<NewNodeBuilder>,
-        switchVertex: NewControlStructureBuilder
+        conditionalVertex: NewNodeBuilder
     ) {
         unit.defaultTarget.let { defaultUnit ->
-            val tgtV = switchVertices.first { it is NewJumpTargetBuilder && it.build().name() == "DEFAULT" }
-            projectTargetPath(switchVertex, tgtV, defaultUnit)
+            val tgtV = switchVertices.first { it is NewJumpTargetBuilder && it.build().name() == "default" }
+            projectTargetPath(conditionalVertex, tgtV, defaultUnit)
         }
     }
 
     private fun projectTargetPath(
-        lookupVertex: NewControlStructureBuilder,
+        lookupVertex: NewNodeBuilder,
         tgtV: NewNodeBuilder,
         tgt: Unit
     ) {
@@ -217,29 +249,8 @@ class BaseCPGPass(private val g: BriefUnitGraph) {
         getFromStore(tgt).let { vList -> builder.addEdge(tgtV, vList.first(), CFG) }
     }
 
-    private fun projectIfStatement(unit: IfStmt) {
-        val ifVertices = getFromStore(unit)
-        g.getSuccsOf(unit).forEach { succ ->
-            val srcVertex = if (succ == unit.target) {
-                ifVertices.first { vert ->
-                    vert is NewJumpTargetBuilder && vert.build().name() == ExtractorConst.FALSE_TARGET
-                }
-            } else {
-                ifVertices.first { vert ->
-                    vert is NewJumpTargetBuilder && vert.build().name() == ExtractorConst.TRUE_TARGET
-                }
-            }
-            val tgtVertices = if (succ is GotoStmt) getFromStore(succ.target)
-            else getFromStore(succ)
-            tgtVertices.let { vList ->
-                builder.addEdge(ifVertices.first(), srcVertex, CFG)
-                builder.addEdge(srcVertex, vList.first(), CFG)
-            }
-        }
-    }
-
     private fun projectReturnEdge(unit: Stmt) {
-        getFromStore(unit).firstOrNull()?.let { src ->
+        getFromStore(unit).filterIsInstance<NewReturnBuilder>().firstOrNull()?.let { src ->
             PlumeStorage.getMethodStore(g.body.method)
                 .filterIsInstance<NewMethodReturnBuilder>()
                 .firstOrNull()?.let { tgt -> builder.addEdge(src, tgt, CFG) }
@@ -319,31 +330,6 @@ class BaseCPGPass(private val g: BriefUnitGraph) {
     }
 
     /**
-     * Given a unit, will construct AST information in the graph.
-     *
-     * @param unit The [Unit] from which AST vertices and edges will be constructed.
-     */
-    private fun projectUnitAsAst(unit: Unit, childIdx: Int): NewNodeBuilder? {
-        currentLine = unit.javaSourceStartLineNumber
-        currentCol = unit.javaSourceStartColumnNumber
-
-        val unitVertex: NewNodeBuilder? = when (unit) {
-            is IfStmt -> projectIfStatement(unit, childIdx)
-            is IdentityStmt -> projectVariableAssignment(unit, childIdx)
-            is AssignStmt -> projectVariableAssignment(unit, childIdx)
-            is LookupSwitchStmt -> projectLookupSwitch(unit, childIdx)
-            is TableSwitchStmt -> projectTableSwitch(unit, childIdx)
-            is InvokeStmt -> projectCallVertex(unit.invokeExpr, childIdx)
-            is ReturnStmt -> projectReturnVertex(unit, childIdx)
-            is ReturnVoidStmt -> projectReturnVertex(unit, childIdx)
-            else -> {
-                logger.debug("Unhandled class in projectUnit ${unit.javaClass} $unit"); null
-            }
-        }
-        return unitVertex?.apply { if (this !is InvokeStmt) addToCache(unit, this, index = 0) }
-    }
-
-    /**
      * Given an [InvokeExpr], will construct Call information in the graph.
      *
      * @param unit The [InvokeExpr] from which a [NewCall] will be constructed.
@@ -364,7 +350,7 @@ class BaseCPGPass(private val g: BriefUnitGraph) {
             .argumentIndex(childIdx)
             .dispatchType(if (unit.methodRef.isStatic) DispatchTypes.STATIC_DISPATCH else DispatchTypes.DYNAMIC_DISPATCH)
             .typeFullName(unit.type.toString())
-        val callVertices = mutableListOf<NewNodeBuilder>(callVertex)
+        val argVertices = mutableListOf<NewNodeBuilder>(callVertex)
         PlumeStorage.addCall(unit, callVertex)
         // Create vertices for arguments
         unit.args.forEachIndexed { i, arg ->
@@ -375,12 +361,12 @@ class BaseCPGPass(private val g: BriefUnitGraph) {
             }?.let { expressionVertex ->
                 builder.addEdge(callVertex, expressionVertex, AST)
                 builder.addEdge(callVertex, expressionVertex, ARGUMENT)
-                callVertices.add(expressionVertex)
+                argVertices.add(expressionVertex)
                 addToCache(arg, expressionVertex)
             }
         }
         // Save PDG arguments
-        addToCache(unit, *callVertices.toTypedArray())
+        addToCache(unit, *argVertices.toTypedArray())
         // Create the receiver for the call
         unit.useBoxes.filterIsInstance<JimpleLocalBox>().firstOrNull()?.let {
             SootToPlumeUtil.createIdentifierVertex(it.value, currentLine, currentCol, unit.useBoxes.indexOf(it)).apply {
@@ -401,21 +387,22 @@ class BaseCPGPass(private val g: BriefUnitGraph) {
     private fun projectTableSwitch(unit: TableSwitchStmt, childIdx: Int): NewControlStructureBuilder {
         val switchVertex = NewControlStructureBuilder()
             .controlStructureType(ControlStructureTypes.SWITCH)
-            .code(unit.toString())
+            .code(unit.toString().replaceAfter("{", "").replace("{", ""))
             .lineNumber(Option.apply(currentLine))
             .columnNumber(Option.apply(currentCol))
             .order(childIdx)
             .argumentIndex(childIdx)
-        projectSwitchDefault(unit, switchVertex)
+        addToCache(unit, switchVertex)
+        projectDefaultAndCondition(unit, switchVertex)
         // Handle case jumps
         unit.targets.forEachIndexed { i, tgt ->
             if (unit.defaultTarget != tgt) {
                 val tgtV = NewJumpTargetBuilder()
-                    .name("CASE $i")
+                    .name("case $i")
+                    .code("case $i:")
                     .argumentIndex(i)
                     .lineNumber(Option.apply(tgt.javaSourceStartLineNumber))
                     .columnNumber(Option.apply(tgt.javaSourceStartColumnNumber))
-                    .code(tgt.toString())
                     .order(childIdx)
                 builder.addEdge(switchVertex, tgtV, AST)
                 addToCache(unit, tgtV)
@@ -433,23 +420,24 @@ class BaseCPGPass(private val g: BriefUnitGraph) {
     private fun projectLookupSwitch(unit: LookupSwitchStmt, childIdx: Int): NewControlStructureBuilder {
         val switchVertex = NewControlStructureBuilder()
             .controlStructureType(ControlStructureTypes.SWITCH)
-            .code(unit.toString())
+            .code(unit.toString().replaceAfter("{", "").replace("{", ""))
             .lineNumber(Option.apply(unit.javaSourceStartLineNumber))
             .columnNumber(Option.apply(unit.javaSourceStartColumnNumber))
             .order(childIdx)
             .argumentIndex(childIdx)
-        projectSwitchDefault(unit, switchVertex)
+        addToCache(unit, switchVertex)
+        projectDefaultAndCondition(unit, switchVertex)
         // Handle case jumps
         for (i in 0 until unit.targetCount) {
             val tgt = unit.getTarget(i)
             if (unit.defaultTarget != tgt) {
                 val lookupValue = unit.getLookupValue(i)
                 val tgtV = NewJumpTargetBuilder()
-                    .name("CASE $lookupValue")
+                    .name("case $lookupValue")
+                    .code("case $lookupValue:")
                     .argumentIndex(lookupValue)
                     .lineNumber(Option.apply(tgt.javaSourceStartLineNumber))
                     .columnNumber(Option.apply(tgt.javaSourceStartColumnNumber))
-                    .code(tgt.toString())
                     .order(childIdx)
                 builder.addEdge(switchVertex, tgtV, AST)
                 addToCache(unit, tgtV)
@@ -464,21 +452,24 @@ class BaseCPGPass(private val g: BriefUnitGraph) {
      * @param unit The [LookupSwitchStmt] from which a [NewControlStructureBuilder] will be constructed.
      * @param switchVertex The [NewControlStructureBuilder] representing the switch statement to link.
      */
-    private fun projectSwitchDefault(unit: SwitchStmt, switchVertex: NewControlStructureBuilder) {
+    private fun projectDefaultAndCondition(unit: SwitchStmt, switchVertex: NewControlStructureBuilder) {
         val totalTgts = unit.targets.size
-        projectOp(unit.key, totalTgts + 1)?.let { builder.addEdge(switchVertex, it, CONDITION) }
+        val (condition, _) = projectOp(unit.key, totalTgts + 1)
+        builder.addEdge(switchVertex, condition, AST)
+        builder.addEdge(switchVertex, condition, CONDITION)
         // Handle default target jump
         unit.defaultTarget.let {
             val tgtV = NewJumpTargetBuilder()
-                .name("DEFAULT")
+                .name("default")
+                .code("default:")
                 .argumentIndex(totalTgts + 2)
                 .lineNumber(Option.apply(it.javaSourceStartLineNumber))
                 .columnNumber(Option.apply(it.javaSourceStartColumnNumber))
-                .code(it.toString())
                 .order(totalTgts + 2)
             builder.addEdge(switchVertex, tgtV, AST)
             addToCache(unit, tgtV)
         }
+        addToCache(unit, condition, index = 0)
     }
 
 
@@ -489,51 +480,47 @@ class BaseCPGPass(private val g: BriefUnitGraph) {
      * @return the [NewControlStructureBuilder] constructed.
      */
     private fun projectIfStatement(unit: IfStmt, childIdx: Int): NewControlStructureBuilder {
-        val ifRootVertex = projectIfRootAndCondition(unit, childIdx)
-        g.getSuccsOf(unit).forEach {
-            val condBody: NewJumpTargetBuilder = if (it == unit.target) {
-                NewJumpTargetBuilder()
-                    .name(ExtractorConst.FALSE_TARGET)
-                    .argumentIndex(1)
-                    .lineNumber(Option.apply(it.javaSourceStartLineNumber))
-                    .columnNumber(Option.apply(it.javaSourceStartColumnNumber))
-                    .code("ELSE_BODY")
-                    .order(childIdx)
-            } else {
-                NewJumpTargetBuilder()
-                    .name(ExtractorConst.TRUE_TARGET)
-                    .argumentIndex(2)
-                    .lineNumber(Option.apply(it.javaSourceStartLineNumber))
-                    .columnNumber(Option.apply(it.javaSourceStartColumnNumber))
-                    .code("IF_BODY")
-                    .order(childIdx)
-            }
-            builder.addEdge(ifRootVertex, condBody, AST)
-            addToCache(unit, condBody)
-        }
-        return ifRootVertex
+        val ifVertex = NewControlStructureBuilder()
+            .controlStructureType(ControlStructureTypes.IF)
+            .code(unit.toString().replaceAfter(" goto", "").replace(" goto", ""))
+            .lineNumber(Option.apply(unit.javaSourceStartLineNumber))
+            .columnNumber(Option.apply(unit.javaSourceStartColumnNumber))
+            .order(childIdx)
+            .argumentIndex(childIdx)
+        /*
+            CONTROL_STRUCTURE -AST|CONDITION-> CALL
+         */
+        val condition = unit.condition as ConditionExpr
+        val (conditionExpr, conditionalCfgStart) = projectBinopExpr(condition, 0)
+        builder.addEdge(ifVertex, conditionExpr, CONDITION)
+        builder.addEdge(ifVertex, conditionExpr, AST)
+        addToCache(unit, conditionalCfgStart, conditionExpr, ifVertex)
+        return ifVertex
     }
 
-    /**
-     * Given an [IfStmt], will construct condition edge and vertex information.
-     *
-     * @param unit The [IfStmt] from which a [NewControlStructureBuilder] and condition [NewBlock] will be constructed.
-     * @return the [NewControlStructureBuilder] constructed.
-     */
-    private fun projectIfRootAndCondition(unit: IfStmt, childIdx: Int): NewControlStructureBuilder {
-        val ifRootVertex = NewControlStructureBuilder()
-            .controlStructureType(ControlStructureTypes.IF)
+    private fun projectGotoStatement(unit: GotoStmt, childIdx: Int): NewControlStructureBuilder {
+        val gotoVertex = NewControlStructureBuilder()
+            .controlStructureType(ControlStructureTypes.GOTO)
             .code(unit.toString())
             .lineNumber(Option.apply(unit.javaSourceStartLineNumber))
             .columnNumber(Option.apply(unit.javaSourceStartColumnNumber))
             .order(childIdx)
             .argumentIndex(childIdx)
-        builder.addVertex(ifRootVertex)
-        val condition = unit.condition as ConditionExpr
-        val conditionExpr = projectFlippedConditionalExpr(condition)
-        builder.addEdge(ifRootVertex, conditionExpr, CONDITION)
-        addToCache(unit, conditionExpr)
-        return ifRootVertex
+        addToCache(unit, gotoVertex)
+        return gotoVertex
+    }
+
+    private fun projectIfStatementAsCfg(unit: IfStmt) {
+        // [CFG_START_NODE, CONDITION, IF]
+        val ifVertices = getFromStore(unit)
+        val cfgSource = ifVertices.filterIsInstance<NewCallBuilder>().first()
+        g.getSuccsOf(unit).forEach { succ ->
+            getFromStore(succ).let { tgtVertices ->
+                tgtVertices.let { vList ->
+                    builder.addEdge(cfgSource, vList.first(), CFG)
+                }
+            }
+        }
     }
 
     /**
@@ -543,10 +530,9 @@ class BaseCPGPass(private val g: BriefUnitGraph) {
      * @return the [NewCallBuilder] constructed.
      */
     private fun projectVariableAssignment(unit: DefinitionStmt, childIdx: Int): NewCallBuilder {
-        val assignVariables = mutableListOf<NewNodeBuilder>()
         val leftOp = unit.leftOp
         val rightOp = unit.rightOp
-        val assignBlock = NewCallBuilder()
+        val assignCall = NewCallBuilder()
             .name(Operators.assignment)
             .code(unit.toString())
             .signature("${leftOp.type} = ${rightOp.type}")
@@ -558,7 +544,7 @@ class BaseCPGPass(private val g: BriefUnitGraph) {
             .typeFullName(leftOp.type.toQuotedString())
             .lineNumber(Option.apply(unit.javaSourceStartLineNumber))
             .columnNumber(Option.apply(unit.javaSourceStartColumnNumber))
-        when (leftOp) {
+        val leftVert = when (leftOp) {
             is Local -> SootToPlumeUtil.createIdentifierVertex(leftOp, currentLine, currentCol, 1).apply {
                 addToCache(leftOp, this)
             }
@@ -572,26 +558,37 @@ class BaseCPGPass(private val g: BriefUnitGraph) {
                 }
             else -> {
                 logger.debug(
-                    "Unhandled class for leftOp under projectVariableAssignment: ${leftOp.javaClass} " +
+                    "UnknownVertex created for leftOp under projectVariableAssignment: ${leftOp.javaClass} " +
                             "containing value $leftOp"
                 )
-                null
+                NewUnknownBuilder()
+                    .lineNumber(Option.apply(currentLine))
+                    .columnNumber(Option.apply(currentCol))
+                    .code(leftOp.toString())
+                    .typeFullName(leftOp.type.toQuotedString())
+                    .order(1)
             }
-        }?.let {
-            builder.addEdge(assignBlock, it, AST)
-            builder.addEdge(assignBlock, it, ARGUMENT)
-            assignVariables.add(it)
-            addToCache(leftOp, it)
+        }.apply {
+            builder.addEdge(assignCall, this, AST)
+            builder.addEdge(assignCall, this, ARGUMENT)
+            addToCache(leftOp, this)
         }
-        projectOp(rightOp, 1)?.let {
-            builder.addEdge(assignBlock, it, AST)
-            builder.addEdge(assignBlock, it, ARGUMENT)
-            assignVariables.add(it)
-            addToCache(rightOp, it)
+        val (rightVert, rightVertCfgStart) = projectOp(rightOp, 1).apply {
+            builder.addEdge(assignCall, this.first, AST)
+            builder.addEdge(assignCall, this.first, ARGUMENT)
+            addToCache(rightOp, this.first)
+        }
+        // This handles the CFG if the rightOp is a call or similar
+        if (rightVert === rightVertCfgStart) {
+            builder.addEdge(leftVert, rightVert, CFG)
+            builder.addEdge(rightVertCfgStart, assignCall, CFG)
+        } else {
+            builder.addEdge(leftVert, rightVertCfgStart, CFG)
+            builder.addEdge(rightVert, assignCall, CFG)
         }
         // Save PDG arguments
-        addToCache(unit, *assignVariables.toTypedArray())
-        return assignBlock
+        addToCache(unit, leftVert, rightVert, assignCall)
+        return assignCall
     }
 
     /**
@@ -599,12 +596,11 @@ class BaseCPGPass(private val g: BriefUnitGraph) {
      * binary operation.
      *
      * @param expr The [BinopExpr] from which a [NewCallBuilder] and its children vertices will be constructed.
-     * @return the [NewCallBuilder] constructed.
+     * @return the [NewCallBuilder] constructed as the first and the CFG start node as the second.
      */
-    private fun projectBinopExpr(expr: BinopExpr, childIdx: Int): NewCallBuilder {
-        val binopVertices = mutableListOf<NewNodeBuilder>()
+    private fun projectBinopExpr(expr: BinopExpr, childIdx: Int): Pair<NewCallBuilder, NewNodeBuilder> {
         val binOpExpr = SootToPlumeUtil.parseBinopExpr(expr)
-        val binOpBlock = NewCallBuilder()
+        val binOpCall = NewCallBuilder()
             .name(binOpExpr)
             .code(expr.toString())
             .signature("${expr.op1.type.toQuotedString()}${expr.symbol}${expr.op2.type.toQuotedString()}")
@@ -616,58 +612,24 @@ class BaseCPGPass(private val g: BriefUnitGraph) {
             .typeFullName(expr.type.toQuotedString())
             .lineNumber(Option.apply(currentLine))
             .columnNumber(Option.apply(currentCol))
-            .apply { binopVertices.add(this) }
-        projectOp(expr.op1, 1)?.let {
-            builder.addEdge(binOpBlock, it, AST)
-            builder.addEdge(binOpBlock, it, ARGUMENT)
-            binopVertices.add(it)
-            addToCache(expr.op1, it)
-        }
-        projectOp(expr.op2, 2)?.let {
-            builder.addEdge(binOpBlock, it, AST)
-            builder.addEdge(binOpBlock, it, ARGUMENT)
-            binopVertices.add(it)
-            addToCache(expr.op2, it)
-        }
+        val (op1Vert, _) = projectOp(expr.op1, 1)
+        builder.addEdge(binOpCall, op1Vert, AST)
+        builder.addEdge(binOpCall, op1Vert, ARGUMENT)
+        addToCache(expr.op1, op1Vert)
+
+        val (op2Vert, _) = projectOp(expr.op2, 2)
+        builder.addEdge(binOpCall, op2Vert, AST)
+        builder.addEdge(binOpCall, op2Vert, ARGUMENT)
+        addToCache(expr.op2, op2Vert)
+
         // Save PDG arguments
-        addToCache(expr, *binopVertices.toTypedArray())
-        return binOpBlock
+        builder.addEdge(op1Vert, op2Vert, CFG)
+        builder.addEdge(op2Vert, binOpCall, CFG)
+        addToCache(expr, op1Vert, op2Vert, binOpCall)
+        return Pair(binOpCall, op1Vert)
     }
 
-    private fun projectFlippedConditionalExpr(expr: ConditionExpr): NewCallBuilder {
-        val conditionVertices = mutableListOf<NewNodeBuilder>()
-        val operator = SootParserUtil.parseAndFlipEquality(expr.symbol.trim())
-        val binOpBlock = NewCallBuilder()
-            .name(operator)
-            .code(expr.toString())
-            .signature("${expr.op1.type} $operator ${expr.op2.type}")
-            .methodFullName(operator)
-            .dispatchType(DispatchTypes.STATIC_DISPATCH)
-            .order(3)
-            .argumentIndex(3) // under an if-condition, the condition child will be after the two paths
-            .typeFullName(expr.type.toQuotedString())
-            .lineNumber(Option.apply(currentLine))
-            .columnNumber(Option.apply(currentCol))
-            .dynamicTypeHintFullName(ListMapper.stringToScalaList(expr.op2.type.toQuotedString()))
-            .apply { conditionVertices.add(this) }
-        projectOp(expr.op1, 1)?.let {
-            builder.addEdge(binOpBlock, it, AST)
-            builder.addEdge(binOpBlock, it, ARGUMENT)
-            conditionVertices.add(it)
-            addToCache(expr.op1, it)
-        }
-        projectOp(expr.op2, 2)?.let {
-            builder.addEdge(binOpBlock, it, AST)
-            builder.addEdge(binOpBlock, it, ARGUMENT)
-            conditionVertices.add(it)
-            addToCache(expr.op2, it)
-        }
-        addToCache(expr, *conditionVertices.toTypedArray())
-        return binOpBlock
-    }
-
-    private fun projectCastExpr(expr: CastExpr, childIdx: Int): NewCallBuilder {
-        val castVertices = mutableListOf<NewNodeBuilder>()
+    private fun projectCastExpr(expr: CastExpr, childIdx: Int): Pair<NewCallBuilder, NewNodeBuilder> {
         val castBlock = NewCallBuilder()
             .name(Operators.cast)
             .code(expr.toString())
@@ -680,24 +642,25 @@ class BaseCPGPass(private val g: BriefUnitGraph) {
             .typeFullName(expr.type.toQuotedString())
             .lineNumber(Option.apply(currentLine))
             .columnNumber(Option.apply(currentCol))
-            .apply { castVertices.add(this) }
-        projectOp(expr.op, 1)?.let {
-            builder.addEdge(castBlock, it, AST)
-            builder.addEdge(castBlock, it, ARGUMENT)
-            castVertices.add(it)
-        }
+        val (op1, _) = projectOp(expr.op, 1)
+        builder.addEdge(castBlock, op1, AST)
+        builder.addEdge(castBlock, op1, ARGUMENT)
+
         // Save PDG arguments
-        addToCache(expr, *castVertices.toTypedArray())
-        return castBlock
+        builder.addEdge(op1, castBlock, CFG)
+        addToCache(expr, op1, castBlock)
+        return Pair(castBlock, op1)
     }
 
-    private fun projectOp(expr: Value, childIdx: Int): NewNodeBuilder? {
-        return when (expr) {
+    /**
+     * Projects an operand. Sometimes these operands are nested and so the return is a pair. The pair is:
+     * (Main Vertex, CFG Start Vertex)
+     */
+    private fun projectOp(expr: Value, childIdx: Int): Pair<NewNodeBuilder, NewNodeBuilder> {
+        val singleNode = when (expr) {
             is Local -> SootToPlumeUtil.createIdentifierVertex(expr, currentLine, currentCol, childIdx)
             is IdentityRef -> projectIdentityRef(expr, currentLine, currentCol, childIdx)
             is Constant -> SootToPlumeUtil.createLiteralVertex(expr, currentLine, currentCol, childIdx)
-            is CastExpr -> projectCastExpr(expr, childIdx)
-            is BinopExpr -> projectBinopExpr(expr, childIdx)
             is InvokeExpr -> projectCallVertex(expr, childIdx)
             is StaticFieldRef -> projectFieldAccess(expr, childIdx)
             is NewExpr -> SootToPlumeUtil.createNewExpr(expr, currentLine, currentCol, childIdx)
@@ -711,12 +674,32 @@ class BaseCPGPass(private val g: BriefUnitGraph) {
             )
             is InstanceFieldRef -> projectFieldAccess(expr, childIdx)
             is InstanceOfExpr -> {
-                logger.debug("projectOp unhandled class ${expr.javaClass}"); null
+                logger.debug("projectOp unhandled class ${expr.javaClass}. Unknown vertex created.")
+                NewUnknownBuilder()
+                    .lineNumber(Option.apply(currentLine))
+                    .columnNumber(Option.apply(currentCol))
+                    .code(expr.toString())
+                    .typeFullName(expr.type.toQuotedString())
+                    .order(1)
             } //TODO: <operator>.instanceOf
             else -> {
-                logger.debug("projectOp unhandled class ${expr.javaClass}"); null
+                if (expr !is BinopExpr && expr !is CastExpr)
+                    logger.debug("projectOp unhandled class ${expr.javaClass}. Unknown vertex created.")
+                NewUnknownBuilder()
+                    .lineNumber(Option.apply(currentLine))
+                    .columnNumber(Option.apply(currentCol))
+                    .code(expr.toString())
+                    .typeFullName(expr.type.toQuotedString())
+                    .order(1)
             }
         }
+        // Handles constructed vertex vs cfg start node
+        val pair = when (expr) {
+            is BinopExpr -> projectBinopExpr(expr, childIdx)
+            is CastExpr -> projectCastExpr(expr, childIdx)
+            else -> null
+        }
+        return pair ?: Pair(singleNode, singleNode)
     }
 
     /**
@@ -802,13 +785,14 @@ class BaseCPGPass(private val g: BriefUnitGraph) {
             .lineNumber(Option.apply(ret.javaSourceStartLineNumber))
             .columnNumber(Option.apply(ret.javaSourceStartColumnNumber))
             .order(childIdx)
-        projectOp(ret.op, childIdx + 1)?.let {
-            builder.addEdge(retV, it, AST)
-            builder.addEdge(retV, it, ARGUMENT)
-        }
+        val (op1, _) = projectOp(ret.op, childIdx + 1)
+        builder.addEdge(retV, op1, AST)
+        builder.addEdge(retV, op1, ARGUMENT)
         PlumeStorage.getMethodStore(g.body.method)
             .firstOrNull { it is NewBlockBuilder }
             ?.let { block -> builder.addEdge(block, retV, AST) }
+        builder.addEdge(op1, retV, CFG)
+        addToCache(ret, op1, retV)
         return retV
     }
 
@@ -822,6 +806,7 @@ class BaseCPGPass(private val g: BriefUnitGraph) {
         PlumeStorage.getMethodStore(g.body.method)
             .firstOrNull { it is NewBlockBuilder }
             ?.let { block -> builder.addEdge(block, retV, AST) }
+        addToCache(ret, retV)
         return retV
     }
 }

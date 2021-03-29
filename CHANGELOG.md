@@ -17,7 +17,8 @@ and this project adheres to [Semantic Versioning](http://semver.org/).
 
 - External method <-`AST`- External type is now fixed.
 - `EVAL_TYPE` links for `MethodReturn` and `BlockVertex` on the method stubs.
-- `CacheOptions.cacheSize` is mutable via setters now
+- `CacheOptions.cacheSize` is mutable via setters now.
+- `parseBinopExpr` had some incorrect mappings which are now fixed.
 
 ### Changed
 
@@ -29,6 +30,8 @@ and this project adheres to [Semantic Versioning](http://semver.org/).
 - `DeltaGraph::toOverflowDb` now only writes to an existing OverflowDB instance.
 - Increased `CacheOptions.cacheSize` and the cache is now partitioned among the 4 caches
   based on average allocation from the benchmarks. Cache expiry is now removed as an option.
+- `GotoStmt` is now added as a `CONTROL_STRUCTURE_VERTEX` with `JUMP_TARGET`s removed.
+- CFG now connects nodes within each expression and follows the stack pointer like Joern/Ocular
 
 ## [0.3.9] - 2021-03-23
 

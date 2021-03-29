@@ -223,26 +223,38 @@ object SootToPlumeUtil {
     fun parseBinopExpr(sym: String): String {
         return when {
             sym.contains("cmp") -> Operators.compare
-            sym == "+" -> Operators.plus
-            sym == "-" -> Operators.minus
+            sym == "+" -> Operators.addition
+            sym == "-" -> Operators.subtraction
             sym == "/" -> Operators.division
             sym == "*" -> Operators.multiplication
             sym == "%" -> Operators.modulo
-            sym == "&" -> Operators.logicalAnd
-            sym == "&&" -> Operators.and
-            sym == "|" -> Operators.logicalOr
-            sym == "||" -> Operators.or
+            sym == "&" -> Operators.and
+            sym == "&&" -> Operators.logicalAnd
+            sym == "|" -> Operators.or
+            sym == "||" -> Operators.logicalOr
             sym == "^" -> Operators.xor
             sym == "<<" -> Operators.shiftLeft
-            sym == ">>" -> Operators.logicalShiftRight
-            sym == ">>>" -> Operators.arithmeticShiftRight
+            sym == ">>" -> Operators.arithmeticShiftRight
+            sym == ">>>" -> Operators.logicalShiftRight
             sym == "==" -> Operators.equals
             sym == "<" -> Operators.lessThan
             sym == ">" -> Operators.greaterThan
             sym == "!=" -> Operators.notEquals
-            sym == "~" -> Operators.logicalNot
+            sym == "~" -> Operators.not
+            sym == "!" -> Operators.logicalNot
             sym == "<=" -> Operators.lessEqualsThan
             sym == ">=" -> Operators.greaterEqualsThan
+            sym == "-=" -> Operators.assignmentMinus
+            sym == "+=" -> Operators.assignmentPlus
+            sym == "/=" -> Operators.assignmentDivision
+            sym == "*=" -> Operators.assignmentMultiplication
+            sym == "%=" -> Operators.assignmentModulo
+            sym == "<<=" -> Operators.assignmentShiftLeft
+            sym == ">>=" -> Operators.assignmentArithmeticShiftRight
+            sym == ">>>=" -> Operators.logicalShiftRight
+            sym == "|=" -> Operators.assignmentOr
+            sym == "&=" -> Operators.assignmentAnd
+            sym == "^=" -> Operators.assignmentXor
             else -> {
                 logger.warn("Unknown binary operator $sym")
                 sym
