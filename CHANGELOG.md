@@ -31,6 +31,7 @@ and this project adheres to [Semantic Versioning](http://semver.org/).
 - Increased `CacheOptions.cacheSize` and the cache is now partitioned among the 4 caches
   based on average allocation from the benchmarks. Cache expiry is now removed as an option.
 - `GotoStmt` is now added as a `CONTROL_STRUCTURE_VERTEX` with `JUMP_TARGET`s removed.
+- CFG now connects nodes within each expression and follows the stack pointer like Joern/Ocular
 
 ## [0.3.9] - 2021-03-23
 
