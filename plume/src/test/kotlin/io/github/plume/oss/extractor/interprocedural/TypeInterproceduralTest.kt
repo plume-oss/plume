@@ -5,10 +5,11 @@ import io.github.plume.oss.drivers.DriverFactory
 import io.github.plume.oss.drivers.GraphDatabase
 import io.github.plume.oss.drivers.TinkerGraphDriver
 import io.github.plume.oss.store.LocalCache
+import io.shiftleft.codepropertygraph.generated.EdgeTypes.CFG
+import io.shiftleft.codepropertygraph.generated.Operators
 import io.shiftleft.codepropertygraph.generated.nodes.*
 import org.junit.jupiter.api.AfterEach
-import org.junit.jupiter.api.Assertions.assertEquals
-import org.junit.jupiter.api.Assertions.assertNotNull
+import org.junit.jupiter.api.Assertions.*
 import org.junit.jupiter.api.BeforeEach
 import org.junit.jupiter.api.Test
 import org.junit.jupiter.api.TestInfo
@@ -73,11 +74,13 @@ class TypeInterproceduralTest {
         val ns = g.nodes().asSequence().toList()
         assertNotNull(
             ns.filterIsInstance<Local>().firstOrNull { it.name() == "intArray" && it.typeFullName() == "int[]" })
-        ns.filterIsInstance<Identifier>().filter { it.name().contains("intArray") }
-            .let { callList ->
-                assertNotNull(callList.firstOrNull { it.argumentIndex() == 0 })
-                assertNotNull(callList.firstOrNull { it.argumentIndex() == 4 })
-            }
+        val indexAccesses = ns.filterIsInstance<Call>().filter { it.name() == Operators.indexAccess }
+        assertEquals(2, indexAccesses.size)
+        indexAccesses.forEach { acc ->
+            val inCFG = acc.`in`(CFG).asSequence().toList()
+            assertTrue(inCFG.filterIsInstance<Literal>().isNotEmpty())
+        }
+        assertEquals(3, ns.filterIsInstance<Identifier>().filter { it.name().contains("intArray") }.size)
     }
 
     @Test

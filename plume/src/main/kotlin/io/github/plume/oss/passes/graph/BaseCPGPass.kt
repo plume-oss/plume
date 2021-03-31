@@ -18,7 +18,6 @@ import soot.Unit
 import soot.Value
 import soot.jimple.*
 import soot.jimple.internal.JimpleLocalBox
-import soot.tagkit.BytecodeOffsetTag
 import soot.toolkits.graph.BriefUnitGraph
 
 /**
@@ -186,13 +185,14 @@ class BaseCPGPass(private val g: BriefUnitGraph) {
     }
 
     private fun connectAssignmentCfg(unit: DefinitionStmt) {
-        val sourceVertex = getFromStore(unit).filterIsInstance<NewCallBuilder>()
+        val srcVert = getFromStore(unit).filterIsInstance<NewCallBuilder>()
             .firstOrNull { it.build().name().contains("assignment") }
-        g.getSuccsOf(unit).forEach { succ ->
-            if (sourceVertex != null) {
-                getFromStore(succ).let { vList ->
-                    val tgtVert = vList.first()
-                    builder.addEdge(sourceVertex, tgtVert, CFG)
+        g.getSuccsOf(unit).forEach {
+            // Array refs need to be connected from the start of the index access call
+            val succ = if (it is DefinitionStmt && it.leftOp is ArrayRef) it.leftOp else it
+            if (srcVert != null) {
+                getFromStore(succ).firstOrNull()?.let { tgtVert ->
+                    builder.addEdge(srcVert, tgtVert, CFG)
                 }
             }
         }
@@ -574,10 +574,7 @@ class BaseCPGPass(private val g: BriefUnitGraph) {
                 .apply {
                     addToStore(leftOp.field, this)
                 }
-            is ArrayRef -> SootToPlumeUtil.createArrayRefIdentifier(leftOp, currentLine, currentCol, 1)
-                .apply {
-                    addToStore(leftOp.base, this)
-                }
+            is ArrayRef -> createArrayRef(leftOp, currentLine, currentCol)
             else -> {
                 logger.debug(
                     "UnknownVertex created for leftOp under projectVariableAssignment: ${leftOp.javaClass} " +
@@ -614,6 +611,27 @@ class BaseCPGPass(private val g: BriefUnitGraph) {
         return assignCall
     }
 
+    private fun createArrayRef(
+        arrRef: ArrayRef,
+        currentLine: Int,
+        currentCol: Int
+    ): NewNodeBuilder {
+        val indexAccess = NewCallBuilder()
+            .name(Operators.indexAccess)
+            .code(arrRef.toString())
+            .order(1)
+            .argumentIndex(1)
+            .lineNumber(Option.apply(currentLine))
+            .columnNumber(Option.apply(currentCol))
+            .typeFullName(arrRef.type.toQuotedString())
+            .methodFullName(Operators.indexAccess)
+            .dynamicTypeHintFullName(ListMapper.stringToScalaList(arrRef.type.toQuotedString()))
+        // Handle children
+        val (op1Vert, op2Vert) = handleAssignmentOps(arrRef.base, arrRef.index, indexAccess)
+        addToStore(arrRef, op1Vert, op2Vert)
+        return indexAccess
+    }
+
     /**
      * Given an [BinopExpr], will construct the root operand as a [NewCallBuilder] and left and right operations of the
      * binary operation.
@@ -635,21 +653,32 @@ class BaseCPGPass(private val g: BriefUnitGraph) {
             .typeFullName(expr.type.toQuotedString())
             .lineNumber(Option.apply(currentLine))
             .columnNumber(Option.apply(currentCol))
-        val (op1Vert, _) = projectOp(expr.op1, 1)
-        builder.addEdge(binOpCall, op1Vert, AST)
-        builder.addEdge(binOpCall, op1Vert, ARGUMENT)
-        addToStore(expr.op1, op1Vert)
+        // Handle children
+        val (op1Vert, op2Vert) = handleAssignmentOps(expr.op1, expr.op2, binOpCall)
+        addToStore(expr, op1Vert, op2Vert, binOpCall)
+        return Pair(binOpCall, op1Vert)
+    }
 
-        val (op2Vert, _) = projectOp(expr.op2, 2)
-        builder.addEdge(binOpCall, op2Vert, AST)
-        builder.addEdge(binOpCall, op2Vert, ARGUMENT)
-        addToStore(expr.op2, op2Vert)
+    private fun handleAssignmentOps(
+        left: Value,
+        right: Value,
+        rootVertex: NewNodeBuilder
+    ): Pair<NewNodeBuilder, NewNodeBuilder> {
+        val (op1Vert, _) = projectOp(left, 1)
+        builder.addEdge(rootVertex, op1Vert, AST)
+        builder.addEdge(rootVertex, op1Vert, ARGUMENT)
+        addToStore(left, op1Vert)
+
+        val (op2Vert, _) = projectOp(right, 2)
+        builder.addEdge(rootVertex, op2Vert, AST)
+        builder.addEdge(rootVertex, op2Vert, ARGUMENT)
+        addToStore(right, op2Vert)
 
         // Save PDG arguments
         builder.addEdge(op1Vert, op2Vert, CFG)
-        builder.addEdge(op2Vert, binOpCall, CFG)
-        addToStore(expr, op1Vert, op2Vert, binOpCall)
-        return Pair(binOpCall, op1Vert)
+        builder.addEdge(op2Vert, rootVertex, CFG)
+
+        return Pair(op1Vert, op2Vert)
     }
 
     private fun projectCastExpr(expr: CastExpr, childIdx: Int): Pair<NewCallBuilder, NewNodeBuilder> {
@@ -792,13 +821,17 @@ class BaseCPGPass(private val g: BriefUnitGraph) {
 
 
     private fun createNewArrayExpr(expr: NewArrayExpr, childIdx: Int = 1) =
-        NewIdentifierBuilder()
+        NewUnknownBuilder()
             .order(childIdx)
             .argumentIndex(childIdx)
             .code(expr.toString())
             .lineNumber(Option.apply(currentLine))
             .columnNumber(Option.apply(currentCol))
-            .apply { addToStore(expr, this) }
+            .typeFullName(expr.type.toQuotedString())
+            .apply {
+                addToStore(expr, this)
+                LocalCache.getType(expr.type.toQuotedString())?.let { t -> builder.addEdge(this, t, EVAL_TYPE) }
+            }
 
 
     private fun projectReturnVertex(ret: ReturnStmt, childIdx: Int): NewReturnBuilder {
