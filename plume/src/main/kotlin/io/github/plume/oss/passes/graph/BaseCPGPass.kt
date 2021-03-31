@@ -172,6 +172,7 @@ class BaseCPGPass(private val g: BriefUnitGraph) {
             is ReturnVoidStmt -> projectReturnEdge(unit)
             is IdentityStmt -> connectAssignmentCfg(unit)
             is AssignStmt -> connectAssignmentCfg(unit)
+            is ThrowStmt -> Unit // Control ends at throw statements
             else -> {
                 getFromStore(unit).firstOrNull()?.let { sourceVertex ->
                     g.getSuccsOf(unit).forEach { targetUnit ->
@@ -199,20 +200,19 @@ class BaseCPGPass(private val g: BriefUnitGraph) {
 
     private fun projectThrowStmt(unit: ThrowStmt, childIdx: Int): NewNodeBuilder {
         val (op, _) = projectOp(unit.op, 1)
-        val throwVertex = NewReturnBuilder()
+        val throwVertex = NewUnknownBuilder()
             .order(childIdx)
             .code(unit.toString())
             .lineNumber(Option.apply(unit.javaSourceStartLineNumber))
             .columnNumber(Option.apply(unit.javaSourceStartColumnNumber))
+            .typeFullName("void")
         builder.addEdge(op, throwVertex, CFG)
         builder.addEdge(throwVertex, op, AST)
         addToStore(unit, op, throwVertex)
+        LocalCache.getType("void")?.let { t -> builder.addEdge(throwVertex, t, EVAL_TYPE) }
         PlumeStorage.getMethodStore(g.body.method)
             .firstOrNull { it is NewBlockBuilder }
             ?.let { block -> builder.addEdge(block, throwVertex, AST) }
-        PlumeStorage.getMethodStore(g.body.method)
-            .firstOrNull { it is NewMethodReturnBuilder }
-            ?.let { mtdRet -> builder.addEdge(throwVertex, mtdRet, CFG) }
         return throwVertex
     }
 

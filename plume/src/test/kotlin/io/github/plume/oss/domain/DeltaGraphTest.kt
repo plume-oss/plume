@@ -20,6 +20,7 @@ import org.junit.jupiter.api.Test
 import overflowdb.Config
 import overflowdb.Graph
 
+@Suppress("DEPRECATION")
 class DeltaGraphTest {
 
     companion object {

@@ -5,6 +5,12 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](http://keepachangelog.com/)
 and this project adheres to [Semantic Versioning](http://semver.org/).
 
+## [Unreleased]
+
+### Changed
+
+- `ThrowStmt` is now an `Unknown` vertex where control flow ends at.
+
 ## [0.3.10] - 2021-03-29
 
 ### Added
