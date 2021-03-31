@@ -165,24 +165,6 @@ object SootToPlumeUtil {
             .columnNumber(Option.apply(currentCol))
 
     /**
-     * Creates a [NewIdentifier] from an [ArrayRef].
-     */
-    fun createArrayRefIdentifier(
-        arrRef: ArrayRef,
-        currentLine: Int,
-        currentCol: Int,
-        childIdx: Int = 1
-    ): NewIdentifierBuilder =
-        NewIdentifierBuilder()
-            .code(arrRef.toString())
-            .name(arrRef.toString())
-            .order(childIdx)
-            .argumentIndex(arrRef.index.toString().toIntOrNull() ?: childIdx)
-            .typeFullName(arrRef.type.toQuotedString())
-            .lineNumber(Option.apply(currentLine))
-            .columnNumber(Option.apply(currentCol))
-
-    /**
      * Creates a [NewFieldIdentifier] from a [FieldRef].
      */
     fun createFieldIdentifierVertex(

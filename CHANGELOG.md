@@ -7,9 +7,14 @@ and this project adheres to [Semantic Versioning](http://semver.org/).
 
 ## [Unreleased]
 
+### Added
+
+- `ArrayRef` now gets projects as an `Operators.indexAccess` call with index and base identifier as the arguments.
+
 ### Changed
 
 - `ThrowStmt` is now an `Unknown` vertex where control flow ends at.
+- `NewArrayExpr` is now an `Unknown` vertex.
 
 ## [0.3.10] - 2021-03-29
 
