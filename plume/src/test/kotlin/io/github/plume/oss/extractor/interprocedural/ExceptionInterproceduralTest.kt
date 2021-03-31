@@ -7,10 +7,7 @@ import io.github.plume.oss.drivers.TinkerGraphDriver
 import io.github.plume.oss.store.LocalCache
 import io.shiftleft.codepropertygraph.generated.EdgeTypes.AST
 import io.shiftleft.codepropertygraph.generated.EdgeTypes.CFG
-import io.shiftleft.codepropertygraph.generated.nodes.Call
-import io.shiftleft.codepropertygraph.generated.nodes.Literal
-import io.shiftleft.codepropertygraph.generated.nodes.Local
-import io.shiftleft.codepropertygraph.generated.nodes.Method
+import io.shiftleft.codepropertygraph.generated.nodes.*
 import org.junit.jupiter.api.AfterEach
 import org.junit.jupiter.api.Assertions.assertEquals
 import org.junit.jupiter.api.Assertions.assertNotNull
@@ -97,6 +94,9 @@ class ExceptionInterproceduralTest {
         parseIntCall!!
         g.V(parseIntCall.id()).next().out(AST).asSequence().filterIsInstance<Literal>().firstOrNull()
             ?.let { assertEquals("\"2\"", it.code()) }
+
+        val throwsStmt = ns.filterIsInstance<Unknown>().firstOrNull { it.code() == "throw e1#3" }
+        assertNotNull(throwsStmt)
     }
 
 }
