@@ -574,7 +574,7 @@ class BaseCPGPass(private val g: BriefUnitGraph) {
                 .apply {
                     addToStore(leftOp.field, this)
                 }
-            is ArrayRef -> createArrayRef(leftOp, currentLine, currentCol)
+            is ArrayRef -> createArrayRef(leftOp, currentLine, currentCol).first
             else -> {
                 logger.debug(
                     "UnknownVertex created for leftOp under projectVariableAssignment: ${leftOp.javaClass} " +
@@ -611,16 +611,20 @@ class BaseCPGPass(private val g: BriefUnitGraph) {
         return assignCall
     }
 
+    /**
+     * Projects an [ArrayRef] as an index access call. The return is (CALL, NODE) -> (INDEX_ACCESS, CFG_START).
+     */
     private fun createArrayRef(
         arrRef: ArrayRef,
         currentLine: Int,
-        currentCol: Int
-    ): NewNodeBuilder {
+        currentCol: Int,
+        childIdx: Int = 1,
+    ): Pair<NewNodeBuilder, NewNodeBuilder> {
         val indexAccess = NewCallBuilder()
             .name(Operators.indexAccess)
             .code(arrRef.toString())
-            .order(1)
-            .argumentIndex(1)
+            .order(childIdx)
+            .argumentIndex(childIdx)
             .lineNumber(Option.apply(currentLine))
             .columnNumber(Option.apply(currentCol))
             .typeFullName(arrRef.type.toQuotedString())
@@ -629,7 +633,7 @@ class BaseCPGPass(private val g: BriefUnitGraph) {
         // Handle children
         val (op1Vert, op2Vert) = handleAssignmentOps(arrRef.base, arrRef.index, indexAccess)
         addToStore(arrRef, op1Vert, op2Vert)
-        return indexAccess
+        return Pair(indexAccess, op1Vert)
     }
 
     /**
@@ -749,6 +753,7 @@ class BaseCPGPass(private val g: BriefUnitGraph) {
         val pair = when (expr) {
             is BinopExpr -> projectBinopExpr(expr, childIdx)
             is CastExpr -> projectCastExpr(expr, childIdx)
+            is ArrayRef -> createArrayRef(expr, currentLine, currentCol, childIdx)
             else -> null
         }
         return pair ?: Pair(singleNode, singleNode)
