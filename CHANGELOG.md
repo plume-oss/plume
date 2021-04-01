@@ -13,6 +13,7 @@ and this project adheres to [Semantic Versioning](http://semver.org/).
 - `InstanceOfExpr` now gets projected as an `Operators.instanceOf` call.
 - `LengthExpr` now gets projected as an `Operators.lengthOf` call. This is a custom operator
 - `MonitorStmt` now gets projected as an `Unknown` vertex.
+- `NegExpr` now gets projected as an `Operators.minus` call.
 
 ### Fixed
 
