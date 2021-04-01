@@ -161,7 +161,8 @@ class BaseCPGPass(private val g: BriefUnitGraph) {
             is InvokeStmt -> projectCallVertex(unit.invokeExpr, childIdx).apply { addToStore(unit, this, index = 0) }
             is ReturnStmt -> projectReturnVertex(unit, childIdx)
             is ReturnVoidStmt -> projectReturnVertex(unit, childIdx)
-            is ThrowStmt -> projectThrowStmt(unit, childIdx)
+            is ThrowStmt -> projectUnknownUnit(unit, unit.op, childIdx)
+            is MonitorStmt -> projectUnknownUnit(unit, unit.op, childIdx)
             else -> {
                 logger.warn("Unhandled class in projectUnitAsAst ${unit.javaClass} $unit"); null
             }
@@ -204,17 +205,17 @@ class BaseCPGPass(private val g: BriefUnitGraph) {
         }
     }
 
-    private fun projectThrowStmt(unit: ThrowStmt, childIdx: Int): NewNodeBuilder {
-        val (op, _) = projectOp(unit.op, 1)
+    private fun projectUnknownUnit(unit: Stmt, op: Value, childIdx: Int): NewNodeBuilder {
+        val (opVertex, _) = projectOp(op, 1)
         val throwVertex = NewUnknownBuilder()
             .order(childIdx)
             .code(unit.toString())
             .lineNumber(Option.apply(unit.javaSourceStartLineNumber))
             .columnNumber(Option.apply(unit.javaSourceStartColumnNumber))
             .typeFullName("void")
-        builder.addEdge(op, throwVertex, CFG)
-        builder.addEdge(throwVertex, op, AST)
-        addToStore(unit, op, throwVertex)
+        builder.addEdge(opVertex, throwVertex, CFG)
+        builder.addEdge(throwVertex, opVertex, AST)
+        addToStore(unit, opVertex, throwVertex)
         LocalCache.getType("void")?.let { t -> builder.addEdge(throwVertex, t, EVAL_TYPE) }
         PlumeStorage.getMethodStore(g.body.method)
             .firstOrNull { it is NewBlockBuilder }
