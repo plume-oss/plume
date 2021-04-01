@@ -604,7 +604,7 @@ class BaseCPGPass(private val g: BriefUnitGraph) {
                 .apply {
                     addToStore(leftOp.field, this)
                 }
-            is ArrayRef -> createArrayRef(leftOp, currentLine, currentCol).first
+            is ArrayRef -> projectArrayRef(leftOp, currentLine, currentCol).first
             else -> {
                 logger.warn(
                     "UnknownVertex created for leftOp under projectVariableAssignment: ${leftOp.javaClass} " +
@@ -644,7 +644,7 @@ class BaseCPGPass(private val g: BriefUnitGraph) {
     /**
      * Projects an [ArrayRef] as an index access call. The return is (CALL, NODE) -> (INDEX_ACCESS, CFG_START).
      */
-    private fun createArrayRef(
+    private fun projectArrayRef(
         arrRef: ArrayRef,
         currentLine: Int,
         currentCol: Int,
@@ -736,9 +736,10 @@ class BaseCPGPass(private val g: BriefUnitGraph) {
         return when (expr) {
             is BinopExpr -> projectBinopExpr(expr, childIdx)
             is CastExpr -> projectCastExpr(expr, childIdx)
-            is ArrayRef -> createArrayRef(expr, currentLine, currentCol, childIdx)
-            is InstanceOfExpr -> createInstanceOfExpr(expr, childIdx)
-            is LengthExpr -> createLengthExpr(expr, childIdx)
+            is ArrayRef -> projectArrayRef(expr, currentLine, currentCol, childIdx)
+            is InstanceOfExpr -> projectInstanceOfExpr(expr, childIdx)
+            is LengthExpr -> projectLengthExpr(expr, childIdx)
+            is NegExpr -> projectNegExpr(expr, childIdx)
             else -> {
                 if (singleNode != null) Pair(singleNode, singleNode)
                 else {
@@ -871,18 +872,25 @@ class BaseCPGPass(private val g: BriefUnitGraph) {
                 LocalCache.getType(local.type.toQuotedString())?.let { t -> builder.addEdge(this, t, EVAL_TYPE) }
             }
 
-    private fun createInstanceOfExpr(expr: InstanceOfExpr, childIdx: Int): Pair<NewNodeBuilder, NewNodeBuilder> {
+    private fun projectInstanceOfExpr(expr: InstanceOfExpr, childIdx: Int): Pair<NewNodeBuilder, NewNodeBuilder> {
         val (instanceOf, op1) = projectUnaryCall(expr, expr.op, childIdx)
         instanceOf.name(Operators.instanceOf)
             .methodFullName(Operators.instanceOf)
         return Pair(instanceOf, op1)
     }
 
-    private fun createLengthExpr(expr: LengthExpr, childIdx: Int): Pair<NewNodeBuilder, NewNodeBuilder> {
+    private fun projectLengthExpr(expr: LengthExpr, childIdx: Int): Pair<NewNodeBuilder, NewNodeBuilder> {
         val (lengthOf, op1) = projectUnaryCall(expr, expr.op, childIdx)
         lengthOf.name("<operator>.lengthOf")
             .methodFullName("<operator>.lengthOf")
         return Pair(lengthOf, op1)
+    }
+
+    private fun projectNegExpr(expr: NegExpr, childIdx: Int): Pair<NewNodeBuilder, NewNodeBuilder> {
+        val (negExpr, op1) = projectUnaryCall(expr, expr.op, childIdx)
+        negExpr.name(Operators.minus)
+            .methodFullName(Operators.minus)
+        return Pair(negExpr, op1)
     }
 
     private fun projectCastExpr(expr: CastExpr, childIdx: Int): Pair<NewCallBuilder, NewNodeBuilder> {
