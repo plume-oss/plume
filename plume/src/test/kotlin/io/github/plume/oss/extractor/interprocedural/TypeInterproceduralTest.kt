@@ -95,4 +95,16 @@ class TypeInterproceduralTest {
                     it.code() == "class \"Lintraprocedural/type/Type3;\"" && it.typeFullName() == "java.lang.Class"
                 })
     }
+
+    @Test
+    fun type4Test() {
+        val ns = g.nodes().asSequence().toList()
+        val io = ns.filterIsInstance<Call>().firstOrNull { it.name() == Operators.instanceOf }
+        assertNotNull(io); io!!
+        val x = io.`in`().asSequence().toList().filterIsInstance<Identifier>().firstOrNull { it.code() == "x" }
+        assertNotNull(x); x!!
+        val type = x._evalTypeOut().asSequence().firstOrNull()
+        assertNotNull(type); type!!
+        assertEquals("java.util.LinkedList", (type as Type).fullName())
+    }
 }

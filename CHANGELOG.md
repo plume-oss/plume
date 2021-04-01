@@ -9,7 +9,8 @@ and this project adheres to [Semantic Versioning](http://semver.org/).
 
 ### Added
 
-- `ArrayRef` now gets projects as an `Operators.indexAccess` call with index and base identifier as the arguments.
+- `ArrayRef` now gets projected as an `Operators.indexAccess` call with index and base identifier as the arguments.
+- `InstanceOfExpr` now gets projected as an `Operators.instanceOf` call.
 
 ### Fixed
 

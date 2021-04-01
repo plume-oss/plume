@@ -4,10 +4,12 @@ import io.github.plume.oss.domain.mappers.ListMapper
 import io.github.plume.oss.domain.model.DeltaGraph
 import io.github.plume.oss.store.LocalCache
 import io.github.plume.oss.store.PlumeStorage
+import io.github.plume.oss.util.SootParserUtil
 import io.github.plume.oss.util.SootToPlumeUtil
 import io.shiftleft.codepropertygraph.generated.ControlStructureTypes
 import io.shiftleft.codepropertygraph.generated.DispatchTypes
 import io.shiftleft.codepropertygraph.generated.EdgeTypes.*
+import io.shiftleft.codepropertygraph.generated.EvaluationStrategies
 import io.shiftleft.codepropertygraph.generated.EvaluationStrategies.BY_REFERENCE
 import io.shiftleft.codepropertygraph.generated.Operators
 import io.shiftleft.codepropertygraph.generated.nodes.*
@@ -161,7 +163,7 @@ class BaseCPGPass(private val g: BriefUnitGraph) {
             is ReturnVoidStmt -> projectReturnVertex(unit, childIdx)
             is ThrowStmt -> projectThrowStmt(unit, childIdx)
             else -> {
-                logger.debug("Unhandled class in projectUnitAsAst ${unit.javaClass} $unit"); null
+                logger.warn("Unhandled class in projectUnitAsAst ${unit.javaClass} $unit"); null
             }
         }
     }
@@ -291,13 +293,13 @@ class BaseCPGPass(private val g: BriefUnitGraph) {
         val params = mutableListOf<NewNodeBuilder>()
         graph.body.parameterLocals
             .forEachIndexed { i, local ->
-                SootToPlumeUtil.projectMethodParameterIn(local, currentLine, currentCol, i + 1)
+                projectMethodParameterIn(local, currentLine, currentCol, i + 1)
                     .let { mpi ->
                         params.add(mpi)
                         val t = LocalCache.getType(mpi.build().typeFullName())
                         if (t != null) builder.addEdge(mpi, t, EVAL_TYPE)
                         if (mpi.build().evaluationStrategy() == BY_REFERENCE) {
-                            SootToPlumeUtil.projectMethodParameterOut(local, currentLine, currentCol, i + 1)
+                            projectMethodParameterOut(local, currentLine, currentCol, i + 1)
                                 .let { mpo ->
                                     params.add(mpo)
                                     if (t != null) builder.addEdge(mpo, t, EVAL_TYPE)
@@ -308,6 +310,30 @@ class BaseCPGPass(private val g: BriefUnitGraph) {
             }
         return params
     }
+
+    /**
+     * Given an [soot.Local], will construct method parameter in information in the graph.
+     *
+     * @param local The [soot.Local] from which a [NewMethodParameterInBuilder] will be constructed.
+     * @return the constructed vertex.
+     */
+    private fun projectMethodParameterIn(local: Local, currentLine: Int, currentCol: Int, childIdx: Int) =
+        NewMethodParameterInBuilder()
+            .name(local.name)
+            .code("${local.type.toQuotedString()} ${local.name}")
+            .evaluationStrategy(
+                SootParserUtil.determineEvaluationStrategy(
+                    local.type.toString(),
+                    isMethodReturn = false
+                )
+            )
+            .typeFullName(local.type.toString())
+            .lineNumber(Option.apply(currentLine))
+            .columnNumber(Option.apply(currentCol))
+            .order(childIdx)
+            .apply {
+                LocalCache.getType(local.type.toQuotedString())?.let { t -> builder.addEdge(this, t, EVAL_TYPE) }
+            }
 
     /**
      * LOCAL -EVAL_TYPE-> TYPE
@@ -326,7 +352,7 @@ class BaseCPGPass(private val g: BriefUnitGraph) {
                     }
             }.toList()
         val locals = graph.body.locals.mapIndexed { i, local: Local ->
-            SootToPlumeUtil.projectLocalVariable(local, currentLine, currentCol, i)
+            projectLocalVariable(local, currentLine, currentCol, i)
                 .apply {
                     LocalCache.getType(this.build().typeFullName())?.let { t ->
                         builder.addEdge(this, t, EVAL_TYPE)
@@ -380,8 +406,8 @@ class BaseCPGPass(private val g: BriefUnitGraph) {
         // Create vertices for arguments
         unit.args.forEachIndexed { i, arg ->
             when (arg) {
-                is Local -> SootToPlumeUtil.createIdentifierVertex(arg, currentLine, currentCol, i + 1)
-                is Constant -> SootToPlumeUtil.createLiteralVertex(arg, currentLine, currentCol, i + 1)
+                is Local -> createIdentifierVertex(arg, currentLine, currentCol, i + 1)
+                is Constant -> createLiteralVertex(arg, currentLine, currentCol, i + 1)
                 else -> null
             }?.let { expressionVertex ->
                 builder.addEdge(callVertex, expressionVertex, AST)
@@ -394,7 +420,7 @@ class BaseCPGPass(private val g: BriefUnitGraph) {
         addToStore(unit, *argVertices.toTypedArray())
         // Create the receiver for the call
         unit.useBoxes.filterIsInstance<JimpleLocalBox>().firstOrNull()?.let {
-            SootToPlumeUtil.createIdentifierVertex(it.value, currentLine, currentCol, 0).apply {
+            createIdentifierVertex(it.value, currentLine, currentCol, 0).apply {
                 addToStore(it.value, this)
                 builder.addEdge(callVertex, this, RECEIVER)
                 builder.addEdge(callVertex, this, ARGUMENT)
@@ -498,7 +524,6 @@ class BaseCPGPass(private val g: BriefUnitGraph) {
         addToStore(unit, condition, index = 0)
     }
 
-
     /**
      * Given an [IfStmt], will construct if statement information in the graph.
      *
@@ -571,7 +596,7 @@ class BaseCPGPass(private val g: BriefUnitGraph) {
             .lineNumber(Option.apply(unit.javaSourceStartLineNumber))
             .columnNumber(Option.apply(unit.javaSourceStartColumnNumber))
         val leftVert = when (leftOp) {
-            is Local -> SootToPlumeUtil.createIdentifierVertex(leftOp, currentLine, currentCol, 1).apply {
+            is Local -> createIdentifierVertex(leftOp, currentLine, currentCol, 1).apply {
                 addToStore(leftOp, this)
             }
             is FieldRef -> projectFieldAccess(leftOp, 1)
@@ -580,7 +605,7 @@ class BaseCPGPass(private val g: BriefUnitGraph) {
                 }
             is ArrayRef -> createArrayRef(leftOp, currentLine, currentCol).first
             else -> {
-                logger.debug(
+                logger.warn(
                     "UnknownVertex created for leftOp under projectVariableAssignment: ${leftOp.javaClass} " +
                             "containing value $leftOp"
                 )
@@ -718,39 +743,31 @@ class BaseCPGPass(private val g: BriefUnitGraph) {
      */
     private fun projectOp(expr: Value, childIdx: Int): Pair<NewNodeBuilder, NewNodeBuilder> {
         val singleNode = when (expr) {
-            is Local -> SootToPlumeUtil.createIdentifierVertex(expr, currentLine, currentCol, childIdx)
+            is Local -> createIdentifierVertex(expr, currentLine, currentCol, childIdx)
             is IdentityRef -> projectIdentityRef(expr, currentLine, currentCol, childIdx)
-            is Constant -> SootToPlumeUtil.createLiteralVertex(expr, currentLine, currentCol, childIdx)
+            is Constant -> createLiteralVertex(expr, currentLine, currentCol, childIdx)
             is InvokeExpr -> projectCallVertex(expr, childIdx)
             is StaticFieldRef -> projectFieldAccess(expr, childIdx)
-            is NewExpr -> SootToPlumeUtil.createNewExpr(expr, currentLine, currentCol, childIdx)
+            is NewExpr -> createNewExpr(expr, currentLine, currentCol, childIdx)
                 .apply { addToStore(expr, this) }
             is NewArrayExpr -> createNewArrayExpr(expr, childIdx)
-            is CaughtExceptionRef -> SootToPlumeUtil.createIdentifierVertex(
+            is CaughtExceptionRef -> createIdentifierVertex(
                 expr,
                 currentLine,
                 currentCol,
                 childIdx
             )
             is InstanceFieldRef -> projectFieldAccess(expr, childIdx)
-            is InstanceOfExpr -> {
-                logger.debug("projectOp unhandled class ${expr.javaClass}. Unknown vertex created.")
-                NewUnknownBuilder()
-                    .lineNumber(Option.apply(currentLine))
-                    .columnNumber(Option.apply(currentCol))
-                    .code(expr.toString())
-                    .typeFullName(expr.type.toQuotedString())
-                    .order(1)
-            } //TODO: <operator>.instanceOf
             else -> {
-                if (expr !is BinopExpr && expr !is CastExpr)
-                    logger.debug("projectOp unhandled class ${expr.javaClass}. Unknown vertex created.")
+                if (expr !is BinopExpr && expr !is CastExpr && expr !is InstanceOfExpr)
+                    logger.warn("projectOp unhandled class ${expr.javaClass}. Unknown vertex created.")
                 NewUnknownBuilder()
                     .lineNumber(Option.apply(currentLine))
                     .columnNumber(Option.apply(currentCol))
                     .code(expr.toString())
                     .typeFullName(expr.type.toQuotedString())
                     .order(1)
+                    .apply { addToStore(expr, this) }
             }
         }
         // Handles constructed vertex vs cfg start node
@@ -758,27 +775,11 @@ class BaseCPGPass(private val g: BriefUnitGraph) {
             is BinopExpr -> projectBinopExpr(expr, childIdx)
             is CastExpr -> projectCastExpr(expr, childIdx)
             is ArrayRef -> createArrayRef(expr, currentLine, currentCol, childIdx)
+            is InstanceOfExpr -> createInstanceOfExpr(expr, childIdx)
             else -> null
         }
         return pair ?: Pair(singleNode, singleNode)
     }
-
-    /**
-     * This handles the identifier for @this and @parameter references.
-     */
-    private fun projectIdentityRef(
-        param: IdentityRef,
-        currentLine: Int,
-        currentCol: Int,
-        childIdx: Int
-    ): NewIdentifierBuilder = NewIdentifierBuilder()
-        .code(param.toString())
-        .name(param.toString())
-        .order(childIdx)
-        .argumentIndex(childIdx)
-        .typeFullName(param.type.toQuotedString())
-        .lineNumber(Option.apply(currentLine))
-        .columnNumber(Option.apply(currentCol))
 
     private fun projectFieldAccess(fieldRef: FieldRef, childIdx: Int): NewCallBuilder {
         val fieldAccessVars = mutableListOf<NewNodeBuilder>()
@@ -804,14 +805,14 @@ class BaseCPGPass(private val g: BriefUnitGraph) {
         when (fieldRef) {
             is StaticFieldRef -> {
                 Pair( // TODO: Making this use an Identifier is a temporary fix for data flow passes to work
-                    SootToPlumeUtil.createIdentifierVertex(fieldRef, currentLine, currentCol, 1),
-                    SootToPlumeUtil.createFieldIdentifierVertex(fieldRef, currentLine, currentCol, 2)
+                    createIdentifierVertex(fieldRef, currentLine, currentCol, 1),
+                    createFieldIdentifierVertex(fieldRef, currentLine, currentCol, 2)
                 )
             }
             is InstanceFieldRef -> {
                 Pair(
-                    SootToPlumeUtil.createIdentifierVertex(fieldRef.base, currentLine, currentCol, 1),
-                    SootToPlumeUtil.createFieldIdentifierVertex(fieldRef, currentLine, currentCol, 2)
+                    createIdentifierVertex(fieldRef.base, currentLine, currentCol, 1),
+                    createFieldIdentifierVertex(fieldRef, currentLine, currentCol, 2)
                 )
             }
             else -> null
@@ -822,7 +823,7 @@ class BaseCPGPass(private val g: BriefUnitGraph) {
                 fieldAccessVars.add(n)
             }
         }
-        // Call for <op>.fieldAccess, cast doesn't need <RECEIVER>?
+        // TODO: Call for <op>.fieldAccess, cast doesn't need <RECEIVER>?
         // Save PDG arguments
         addToStore(fieldRef, *fieldAccessVars.toTypedArray())
         return fieldAccessBlock
@@ -874,4 +875,127 @@ class BaseCPGPass(private val g: BriefUnitGraph) {
         addToStore(ret, retV)
         return retV
     }
+
+    /**
+     * Creates a [NewIdentifier] from a [Value].
+     */
+    private fun createIdentifierVertex(
+        local: Value,
+        currentLine: Int,
+        currentCol: Int,
+        childIdx: Int = 1
+    ): NewIdentifierBuilder =
+        NewIdentifierBuilder()
+            .code(local.toString())
+            .name(local.toString())
+            .order(childIdx)
+            .argumentIndex(childIdx)
+            .typeFullName(local.type.toQuotedString())
+            .lineNumber(Option.apply(currentLine))
+            .columnNumber(Option.apply(currentCol))
+            .apply {
+                LocalCache.getType(local.type.toQuotedString())?.let { t -> builder.addEdge(this, t, EVAL_TYPE) }
+            }
+
+    private fun createInstanceOfExpr(expr: InstanceOfExpr, childIdx: Int): Pair<NewNodeBuilder, NewNodeBuilder> {
+        val instanceOf = NewCallBuilder()
+            .name(Operators.instanceOf)
+            .code(expr.toString())
+            .order(childIdx)
+            .argumentIndex(childIdx)
+            .lineNumber(Option.apply(currentLine))
+            .columnNumber(Option.apply(currentCol))
+            .typeFullName(expr.type.toQuotedString())
+            .methodFullName(Operators.indexAccess)
+            .dynamicTypeHintFullName(ListMapper.stringToScalaList(expr.type.toQuotedString()))
+
+        LocalCache.getType(expr.type.toQuotedString())?.let { t -> builder.addEdge(instanceOf, t, EVAL_TYPE) }
+
+        val (op1, _) = projectOp(expr.op, 2)
+        builder.addEdge(instanceOf, op1, AST)
+        builder.addEdge(instanceOf, op1, ARGUMENT)
+
+        // Save PDG arguments
+        builder.addEdge(op1, instanceOf, CFG)
+        addToStore(expr, op1, instanceOf)
+        return Pair(instanceOf, op1)
+    }
+
+    /**
+     * This handles the identifier for @this and @parameter references.
+     */
+    private fun projectIdentityRef(param: IdentityRef, currentLine: Int, currentCol: Int, childIdx: Int) =
+        NewIdentifierBuilder()
+            .code(param.toString())
+            .name(param.toString())
+            .order(childIdx)
+            .argumentIndex(childIdx)
+            .typeFullName(param.type.toQuotedString())
+            .lineNumber(Option.apply(currentLine))
+            .columnNumber(Option.apply(currentCol))
+            .apply {
+                LocalCache.getType(param.type.toQuotedString())?.let { t -> builder.addEdge(this, t, EVAL_TYPE) }
+            }
+
+    /**
+     * Creates a [NewLiteral] from a [Constant].
+     */
+    private fun createLiteralVertex(constant: Constant, currentLine: Int, currentCol: Int, childIdx: Int = 1) =
+        NewLiteralBuilder()
+            .code(constant.toString())
+            .order(childIdx)
+            .argumentIndex(childIdx)
+            .typeFullName(constant.type.toQuotedString())
+            .lineNumber(Option.apply(currentLine))
+            .columnNumber(Option.apply(currentCol))
+            .apply {
+                LocalCache.getType(constant.type.toQuotedString())?.let { t -> builder.addEdge(this, t, EVAL_TYPE) }
+            }
+
+    private fun projectLocalVariable(local: Local, currentLine: Int, currentCol: Int, childIdx: Int) =
+        NewLocalBuilder()
+            .name(local.name)
+            .code("${local.type} ${local.name}")
+            .typeFullName(local.type.toString())
+            .lineNumber(Option.apply(currentLine))
+            .columnNumber(Option.apply(currentCol))
+            .order(childIdx)
+            .apply {
+                LocalCache.getType(local.type.toQuotedString())?.let { t -> builder.addEdge(this, t, EVAL_TYPE) }
+            }
+
+    private fun createFieldIdentifierVertex(field: FieldRef, currentLine: Int, currentCol: Int, childIdx: Int = 1) =
+        NewFieldIdentifierBuilder()
+            .canonicalName(field.field.signature)
+            .code(field.field.name)
+            .argumentIndex(childIdx)
+            .lineNumber(Option.apply(currentLine))
+            .columnNumber(Option.apply(currentCol))
+            .order(childIdx)
+
+    private fun projectMethodParameterOut(local: Local, currentLine: Int, currentCol: Int, childIdx: Int) =
+        NewMethodParameterOutBuilder()
+            .name(local.name)
+            .code("${local.type.toQuotedString()} ${local.name}")
+            .evaluationStrategy(EvaluationStrategies.BY_SHARING)
+            .typeFullName(local.type.toString())
+            .lineNumber(Option.apply(currentLine))
+            .columnNumber(Option.apply(currentCol))
+            .order(childIdx)
+            .apply {
+                LocalCache.getType(local.type.toQuotedString())?.let { t -> builder.addEdge(this, t, EVAL_TYPE) }
+            }
+
+    private fun createNewExpr(expr: NewExpr, currentLine: Int, currentCol: Int, childIdx: Int) =
+        NewUnknownBuilder()
+            .typeFullName(expr.baseType.toQuotedString())
+            .code(expr.toString())
+            .argumentIndex(childIdx)
+            .order(childIdx)
+            .lineNumber(Option.apply(currentLine))
+            .columnNumber(Option.apply(currentCol))
+            .apply {
+                LocalCache.getType(expr.type.toQuotedString())?.let { t -> builder.addEdge(this, t, EVAL_TYPE) }
+            }
+
 }
