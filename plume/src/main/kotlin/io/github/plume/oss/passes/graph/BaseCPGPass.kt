@@ -878,8 +878,6 @@ class BaseCPGPass(private val g: BriefUnitGraph) {
     }
 
     private fun createLengthExpr(expr: LengthExpr, childIdx: Int): Pair<NewNodeBuilder, NewNodeBuilder> {
-        val (fullname, _, _) = SootToPlumeUtil.methodToStrings(g.body.method)
-        println(fullname)
         val (lengthOf, op1) = projectUnaryCall(expr, expr.op, childIdx)
         lengthOf.name("<operator>.lengthOf")
             .methodFullName("<operator>.lengthOf")
