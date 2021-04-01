@@ -755,24 +755,26 @@ class BaseCPGPass(private val g: BriefUnitGraph) {
             else -> null
         }
         // Handles constructed vertex vs cfg start node
-        val pair = when (expr) {
+        return when (expr) {
             is BinopExpr -> projectBinopExpr(expr, childIdx)
             is CastExpr -> projectCastExpr(expr, childIdx)
             is ArrayRef -> createArrayRef(expr, currentLine, currentCol, childIdx)
             is InstanceOfExpr -> createInstanceOfExpr(expr, childIdx)
             else -> {
-                logger.warn("projectOp unhandled class ${expr.javaClass}. Unknown vertex created.")
-                val u = NewUnknownBuilder()
-                    .lineNumber(Option.apply(currentLine))
-                    .columnNumber(Option.apply(currentCol))
-                    .code(expr.toString())
-                    .typeFullName(expr.type.toQuotedString())
-                    .order(1)
-                    .apply { addToStore(expr, this) }
-                Pair(u, u)
+                if (singleNode != null) Pair(singleNode, singleNode)
+                else {
+                    logger.warn("projectOp unhandled class ${expr.javaClass}. Unknown vertex created.")
+                    val u = NewUnknownBuilder()
+                        .lineNumber(Option.apply(currentLine))
+                        .columnNumber(Option.apply(currentCol))
+                        .code(expr.toString())
+                        .typeFullName(expr.type.toQuotedString())
+                        .order(1)
+                        .apply { addToStore(expr, this) }
+                    Pair(u, u)
+                }
             }
         }
-        return if (singleNode != null) Pair(singleNode, singleNode) else pair
     }
 
     private fun projectFieldAccess(fieldRef: FieldRef, childIdx: Int): NewCallBuilder {
