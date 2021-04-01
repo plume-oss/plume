@@ -714,29 +714,6 @@ class BaseCPGPass(private val g: BriefUnitGraph) {
         return Pair(op1Vert, op2Vert)
     }
 
-    private fun projectCastExpr(expr: CastExpr, childIdx: Int): Pair<NewCallBuilder, NewNodeBuilder> {
-        val castBlock = NewCallBuilder()
-            .name(Operators.cast)
-            .code(expr.toString())
-            .signature("(${expr.castType.toQuotedString()}) ${expr.op.type.toQuotedString()}")
-            .methodFullName(Operators.cast)
-            .dispatchType(DispatchTypes.STATIC_DISPATCH)
-            .dynamicTypeHintFullName(ListMapper.stringToScalaList(expr.op.type.toQuotedString()))
-            .order(childIdx)
-            .argumentIndex(childIdx)
-            .typeFullName(expr.type.toQuotedString())
-            .lineNumber(Option.apply(currentLine))
-            .columnNumber(Option.apply(currentCol))
-        val (op1, _) = projectOp(expr.op, 1)
-        builder.addEdge(castBlock, op1, AST)
-        builder.addEdge(castBlock, op1, ARGUMENT)
-
-        // Save PDG arguments
-        builder.addEdge(op1, castBlock, CFG)
-        addToStore(expr, op1, castBlock)
-        return Pair(castBlock, op1)
-    }
-
     /**
      * Projects an operand. Sometimes these operands are nested and so the return is a pair. The pair is:
      * (Main Vertex, CFG Start Vertex)
@@ -749,36 +726,33 @@ class BaseCPGPass(private val g: BriefUnitGraph) {
             is InvokeExpr -> projectCallVertex(expr, childIdx)
             is StaticFieldRef -> projectFieldAccess(expr, childIdx)
             is NewExpr -> createNewExpr(expr, currentLine, currentCol, childIdx)
-                .apply { addToStore(expr, this) }
             is NewArrayExpr -> createNewArrayExpr(expr, childIdx)
-            is CaughtExceptionRef -> createIdentifierVertex(
-                expr,
-                currentLine,
-                currentCol,
-                childIdx
-            )
+            is CaughtExceptionRef -> createIdentifierVertex(expr, currentLine, currentCol, childIdx)
             is InstanceFieldRef -> projectFieldAccess(expr, childIdx)
-            else -> {
-                if (expr !is BinopExpr && expr !is CastExpr && expr !is InstanceOfExpr)
-                    logger.warn("projectOp unhandled class ${expr.javaClass}. Unknown vertex created.")
-                NewUnknownBuilder()
-                    .lineNumber(Option.apply(currentLine))
-                    .columnNumber(Option.apply(currentCol))
-                    .code(expr.toString())
-                    .typeFullName(expr.type.toQuotedString())
-                    .order(1)
-                    .apply { addToStore(expr, this) }
-            }
+            else -> null
         }
         // Handles constructed vertex vs cfg start node
-        val pair = when (expr) {
+        return when (expr) {
             is BinopExpr -> projectBinopExpr(expr, childIdx)
             is CastExpr -> projectCastExpr(expr, childIdx)
             is ArrayRef -> createArrayRef(expr, currentLine, currentCol, childIdx)
             is InstanceOfExpr -> createInstanceOfExpr(expr, childIdx)
-            else -> null
+            is LengthExpr -> createLengthExpr(expr, childIdx)
+            else -> {
+                if (singleNode != null) Pair(singleNode, singleNode)
+                else {
+                    logger.warn("projectOp unhandled class ${expr.javaClass}. Unknown vertex created.")
+                    val u = NewUnknownBuilder()
+                        .lineNumber(Option.apply(currentLine))
+                        .columnNumber(Option.apply(currentCol))
+                        .code(expr.toString())
+                        .typeFullName(expr.type.toQuotedString())
+                        .order(1)
+                        .apply { addToStore(expr, this) }
+                    Pair(u, u)
+                }
+            }
         }
-        return pair ?: Pair(singleNode, singleNode)
     }
 
     private fun projectFieldAccess(fieldRef: FieldRef, childIdx: Int): NewCallBuilder {
@@ -828,7 +802,6 @@ class BaseCPGPass(private val g: BriefUnitGraph) {
         addToStore(fieldRef, *fieldAccessVars.toTypedArray())
         return fieldAccessBlock
     }
-
 
     private fun createNewArrayExpr(expr: NewArrayExpr, childIdx: Int = 1) =
         NewUnknownBuilder()
@@ -898,27 +871,50 @@ class BaseCPGPass(private val g: BriefUnitGraph) {
             }
 
     private fun createInstanceOfExpr(expr: InstanceOfExpr, childIdx: Int): Pair<NewNodeBuilder, NewNodeBuilder> {
-        val instanceOf = NewCallBuilder()
-            .name(Operators.instanceOf)
+        val (instanceOf, op1) = projectUnaryCall(expr, expr.op, childIdx)
+        instanceOf.name(Operators.instanceOf)
+            .methodFullName(Operators.instanceOf)
+        return Pair(instanceOf, op1)
+    }
+
+    private fun createLengthExpr(expr: LengthExpr, childIdx: Int): Pair<NewNodeBuilder, NewNodeBuilder> {
+        val (lengthOf, op1) = projectUnaryCall(expr, expr.op, childIdx)
+        lengthOf.name("<operator>.lengthOf")
+            .methodFullName("<operator>.lengthOf")
+        return Pair(lengthOf, op1)
+    }
+
+    private fun projectCastExpr(expr: CastExpr, childIdx: Int): Pair<NewCallBuilder, NewNodeBuilder> {
+        val (castBlock, op1) = projectUnaryCall(expr, expr.op, childIdx)
+        castBlock.name(Operators.cast)
+            .methodFullName(Operators.cast)
+            .signature("(${expr.castType.toQuotedString()}) ${expr.op.type.toQuotedString()}")
+        return Pair(castBlock, op1)
+    }
+
+    /**
+     * Lays out the basic generation of unary calls. The actual call requires NAME and METHOD_FULL_NAME to
+     * be specified before it is ready.
+     */
+    private fun projectUnaryCall(expr: Expr, op: Value, childIdx: Int): Pair<NewCallBuilder, NewNodeBuilder> {
+        val callBlock = NewCallBuilder()
             .code(expr.toString())
+            .dispatchType(DispatchTypes.STATIC_DISPATCH)
+            .dynamicTypeHintFullName(ListMapper.stringToScalaList(expr.type.toQuotedString()))
             .order(childIdx)
             .argumentIndex(childIdx)
+            .signature("")
+            .typeFullName(expr.type.toQuotedString())
             .lineNumber(Option.apply(currentLine))
             .columnNumber(Option.apply(currentCol))
-            .typeFullName(expr.type.toQuotedString())
-            .methodFullName(Operators.indexAccess)
-            .dynamicTypeHintFullName(ListMapper.stringToScalaList(expr.type.toQuotedString()))
-
-        LocalCache.getType(expr.type.toQuotedString())?.let { t -> builder.addEdge(instanceOf, t, EVAL_TYPE) }
-
-        val (op1, _) = projectOp(expr.op, 2)
-        builder.addEdge(instanceOf, op1, AST)
-        builder.addEdge(instanceOf, op1, ARGUMENT)
-
+        LocalCache.getType(expr.type.toQuotedString())?.let { t -> builder.addEdge(callBlock, t, EVAL_TYPE) }
+        val (op1, _) = projectOp(op, 1)
+        builder.addEdge(callBlock, op1, AST)
+        builder.addEdge(callBlock, op1, ARGUMENT)
         // Save PDG arguments
-        builder.addEdge(op1, instanceOf, CFG)
-        addToStore(expr, op1, instanceOf)
-        return Pair(instanceOf, op1)
+        builder.addEdge(op1, callBlock, CFG)
+        addToStore(expr, op1, callBlock)
+        return Pair(callBlock, op1)
     }
 
     /**
@@ -996,6 +992,7 @@ class BaseCPGPass(private val g: BriefUnitGraph) {
             .columnNumber(Option.apply(currentCol))
             .apply {
                 LocalCache.getType(expr.type.toQuotedString())?.let { t -> builder.addEdge(this, t, EVAL_TYPE) }
+                addToStore(expr, this)
             }
 
 }

@@ -11,6 +11,7 @@ and this project adheres to [Semantic Versioning](http://semver.org/).
 
 - `ArrayRef` now gets projected as an `Operators.indexAccess` call with index and base identifier as the arguments.
 - `InstanceOfExpr` now gets projected as an `Operators.instanceOf` call.
+- `LengthExpr` now gets projected as an `Operators.lengthOf` call. This is a custom operator
 
 ### Fixed
 
