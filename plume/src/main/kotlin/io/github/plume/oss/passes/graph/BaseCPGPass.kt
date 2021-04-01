@@ -163,7 +163,7 @@ class BaseCPGPass(private val g: BriefUnitGraph) {
             is ReturnVoidStmt -> projectReturnVertex(unit, childIdx)
             is ThrowStmt -> projectThrowStmt(unit, childIdx)
             else -> {
-                logger.debug("Unhandled class in projectUnitAsAst ${unit.javaClass} $unit"); null
+                logger.warn("Unhandled class in projectUnitAsAst ${unit.javaClass} $unit"); null
             }
         }
     }
