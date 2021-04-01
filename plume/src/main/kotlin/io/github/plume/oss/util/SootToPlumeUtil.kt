@@ -15,18 +15,12 @@
  */
 package io.github.plume.oss.util
 
-import io.github.plume.oss.domain.mappers.ListMapper
-import io.github.plume.oss.util.SootParserUtil.determineEvaluationStrategy
-import io.shiftleft.codepropertygraph.generated.EvaluationStrategies.BY_SHARING
 import io.shiftleft.codepropertygraph.generated.Operators
-import io.shiftleft.codepropertygraph.generated.nodes.*
+import io.shiftleft.codepropertygraph.generated.nodes.NewNodeBuilder
 import org.apache.logging.log4j.LogManager
-import scala.Option
 import soot.SootClass
 import soot.SootMethod
-import soot.Type
-import soot.Value
-import soot.jimple.*
+import soot.jimple.BinopExpr
 import java.io.File
 
 /**
@@ -36,63 +30,6 @@ object SootToPlumeUtil {
 
     private val logger = LogManager.getLogger(SootToPlumeUtil::class.java)
 
-    /**
-     * Given an [soot.Local], will construct method parameter in information in the graph.
-     *
-     * @param local The [soot.Local] from which a [NewMethodParameterInBuilder] will be constructed.
-     * @return the constructed vertex.
-     */
-    fun projectMethodParameterIn(
-        local: soot.Local,
-        currentLine: Int,
-        currentCol: Int,
-        childIdx: Int
-    ): NewMethodParameterInBuilder =
-        NewMethodParameterInBuilder()
-            .name(local.name)
-            .code("${local.type.toQuotedString()} ${local.name}")
-            .evaluationStrategy(determineEvaluationStrategy(local.type.toString(), isMethodReturn = false))
-            .typeFullName(local.type.toString())
-            .lineNumber(Option.apply(currentLine))
-            .columnNumber(Option.apply(currentCol))
-            .order(childIdx)
-
-    /**
-     * Given an [soot.Local], will construct method parameter out information in the graph.
-     *
-     * @param local The [soot.Local] from which a [NewMethodParameterOutBuilder] will be constructed.
-     * @return the constructed vertex.
-     */
-    fun projectMethodParameterOut(
-        local: soot.Local,
-        currentLine: Int,
-        currentCol: Int,
-        childIdx: Int
-    ): NewMethodParameterOutBuilder =
-        NewMethodParameterOutBuilder()
-            .name(local.name)
-            .code("${local.type.toQuotedString()} ${local.name}")
-            .evaluationStrategy(BY_SHARING)
-            .typeFullName(local.type.toString())
-            .lineNumber(Option.apply(currentLine))
-            .columnNumber(Option.apply(currentCol))
-            .order(childIdx)
-
-    /**
-     * Given an [soot.Local], will construct local variable information in the graph.
-     *
-     * @param local The [soot.Local] from which a [NewLocal] will be constructed.
-     * @return the constructed vertex.
-     */
-    fun projectLocalVariable(local: soot.Local, currentLine: Int, currentCol: Int, childIdx: Int): NewLocalBuilder =
-        NewLocalBuilder()
-            .name(local.name)
-            .code("${local.type} ${local.name}")
-            .typeFullName(local.type.toString())
-            .lineNumber(Option.apply(currentLine))
-            .columnNumber(Option.apply(currentCol))
-            .order(childIdx)
-
     fun methodToStrings(mtd: SootMethod): Triple<String, String, String> {
         val signature = "${mtd.returnType}(${mtd.parameterTypes.joinToString(separator = ",")})"
         val code = "${mtd.returnType} ${mtd.name}(${
@@ -100,19 +37,6 @@ object SootToPlumeUtil {
         })"
         val fullName = "${mtd.declaringClass}.${mtd.name}:$signature"
         return Triple(fullName, signature, code)
-    }
-
-    /**
-     * New expressions are specific to OOP languages and are thus Unknown nodes.
-     */
-    fun createNewExpr(expr: NewExpr, currentLine: Int, currentCol: Int, childIdx: Int): NewUnknownBuilder {
-        return NewUnknownBuilder()
-            .typeFullName(expr.baseType.toQuotedString())
-            .code(expr.toString())
-            .argumentIndex(childIdx)
-            .order(childIdx)
-            .lineNumber(Option.apply(currentLine))
-            .columnNumber(Option.apply(currentCol))
     }
 
     /**
@@ -128,58 +52,6 @@ object SootToPlumeUtil {
             io.shiftleft.semanticcpg.language.types.structure.File.UNKNOWN()
         }
     }
-
-    /**
-     * Creates a [NewLiteral] from a [Constant].
-     */
-    fun createLiteralVertex(
-        constant: Constant,
-        currentLine: Int,
-        currentCol: Int,
-        childIdx: Int = 1
-    ): NewLiteralBuilder =
-        NewLiteralBuilder()
-            .code(constant.toString())
-            .order(childIdx)
-            .argumentIndex(childIdx)
-            .typeFullName(constant.type.toQuotedString())
-            .lineNumber(Option.apply(currentLine))
-            .columnNumber(Option.apply(currentCol))
-
-    /**
-     * Creates a [NewIdentifier] from a [Value].
-     */
-    fun createIdentifierVertex(
-        local: Value,
-        currentLine: Int,
-        currentCol: Int,
-        childIdx: Int = 1
-    ): NewIdentifierBuilder =
-        NewIdentifierBuilder()
-            .code(local.toString())
-            .name(local.toString())
-            .order(childIdx)
-            .argumentIndex(childIdx)
-            .typeFullName(local.type.toQuotedString())
-            .lineNumber(Option.apply(currentLine))
-            .columnNumber(Option.apply(currentCol))
-
-    /**
-     * Creates a [NewFieldIdentifier] from a [FieldRef].
-     */
-    fun createFieldIdentifierVertex(
-        field: FieldRef,
-        currentLine: Int,
-        currentCol: Int,
-        childIdx: Int = 1
-    ): NewFieldIdentifierBuilder =
-        NewFieldIdentifierBuilder()
-            .canonicalName(field.field.signature)
-            .code(field.field.name)
-            .argumentIndex(childIdx)
-            .lineNumber(Option.apply(currentLine))
-            .columnNumber(Option.apply(currentCol))
-            .order(childIdx)
 
     fun parseBinopExpr(op: BinopExpr): String = parseBinopExpr(op.symbol.trim())
 
