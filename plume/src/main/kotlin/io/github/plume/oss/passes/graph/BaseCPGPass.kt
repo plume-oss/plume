@@ -972,9 +972,6 @@ class BaseCPGPass(private val g: BriefUnitGraph) {
             .lineNumber(Option.apply(currentLine))
             .columnNumber(Option.apply(currentCol))
             .order(childIdx)
-            .apply {
-                LocalCache.getType(field.type.toQuotedString())?.let { t -> builder.addEdge(this, t, EVAL_TYPE) }
-            }
 
     private fun projectMethodParameterOut(local: Local, currentLine: Int, currentCol: Int, childIdx: Int) =
         NewMethodParameterOutBuilder()
