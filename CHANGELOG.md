@@ -11,6 +11,10 @@ and this project adheres to [Semantic Versioning](http://semver.org/).
 
 - `ArrayRef` now gets projects as an `Operators.indexAccess` call with index and base identifier as the arguments.
 
+### Fixed
+
+- Crashing passes from making the program hang. Exceptions are caught, logged, and the build is saved as far as it got.
+
 ### Changed
 
 - `ThrowStmt` is now an `Unknown` vertex where control flow ends at.

@@ -49,22 +49,26 @@ class BaseCPGPass(private val g: BriefUnitGraph) {
      * [DeltaGraph] object.
      */
     fun runPass(): DeltaGraph {
-        val (fullName, _, _) = SootToPlumeUtil.methodToStrings(g.body.method)
-        methodVertex = PlumeStorage.getMethod(fullName)!!
-        runAstPass()
-        runCfgPass()
-        runPdgPass()
-        // METHOD -CONTAINS-> NODE (excluding head nodes)
-        PlumeStorage.getMethodStore(g.body.method).let { mvs ->
-            mvs.firstOrNull { it is NewMethodBuilder }?.let { m ->
-                methodStore.let { cache ->
-                    cache.values.flatten()
-                        .minus(mvs)
-                        .minus(methodLocals.values)
-                        .forEach { n -> builder.addEdge(m, n, CONTAINS) }
+        try {
+            val (fullName, _, _) = SootToPlumeUtil.methodToStrings(g.body.method)
+            methodVertex = PlumeStorage.getMethod(fullName)!!
+            runAstPass()
+            runCfgPass()
+            runPdgPass()
+            // METHOD -CONTAINS-> NODE (excluding head nodes)
+            PlumeStorage.getMethodStore(g.body.method).let { mvs ->
+                mvs.firstOrNull { it is NewMethodBuilder }?.let { m ->
+                    methodStore.let { cache ->
+                        cache.values.flatten()
+                            .minus(mvs)
+                            .minus(methodLocals.values)
+                            .forEach { n -> builder.addEdge(m, n, CONTAINS) }
+                    }
+                    methodStore.clear()
                 }
-                methodStore.clear()
             }
+        } catch (e: Exception) {
+            logger.warn("Unable to complete BaseCPGPass on ${g.body.method.name}. Partial changes will be saved.", e)
         }
         return builder.build()
     }

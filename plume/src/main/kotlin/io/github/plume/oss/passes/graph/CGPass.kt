@@ -45,13 +45,17 @@ class CGPass(private val g: BriefUnitGraph, private val driver: IDriver) : IUnit
     private val builder = DeltaGraph.Builder()
 
     override fun runPass(): DeltaGraph {
-        val mtd = g.body.method
-        logger.debug("Building call graph edges for ${mtd.declaringClass.name}:${mtd.name}")
-        // If this was an updated method, connect call graphs
-        PlumeStorage.getMethodStore(mtd).filterIsInstance<NewMethodBuilder>()
-            .firstOrNull()?.let { reconnectPriorCallGraphEdges(it) }
-        // Connect all calls to their methods
-        this.g.body.units.filterNot { it is IdentityStmt }.forEach(this::projectUnit)
+        try {
+            val mtd = g.body.method
+            logger.debug("Building call graph edges for ${mtd.declaringClass.name}:${mtd.name}")
+            // If this was an updated method, connect call graphs
+            PlumeStorage.getMethodStore(mtd).filterIsInstance<NewMethodBuilder>()
+                .firstOrNull()?.let { reconnectPriorCallGraphEdges(it) }
+            // Connect all calls to their methods
+            this.g.body.units.filterNot { it is IdentityStmt }.forEach(this::projectUnit)
+        } catch (e: Exception) {
+            logger.warn("Unable to complete CGPass on ${g.body.method.name}. Partial changes will be saved.", e)
+        }
         return builder.build()
     }
 

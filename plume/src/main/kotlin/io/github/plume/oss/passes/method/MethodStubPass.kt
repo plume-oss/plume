@@ -13,6 +13,7 @@ import io.shiftleft.codepropertygraph.generated.EvaluationStrategies.BY_REFERENC
 import io.shiftleft.codepropertygraph.generated.EvaluationStrategies.BY_SHARING
 import io.shiftleft.codepropertygraph.generated.NodeTypes.TYPE_DECL
 import io.shiftleft.codepropertygraph.generated.nodes.*
+import org.apache.logging.log4j.LogManager
 import scala.Option
 import soot.SootMethod
 
@@ -23,6 +24,7 @@ import soot.SootMethod
  */
 class MethodStubPass(private val m: SootMethod) : IMethodPass {
 
+    private val logger = LogManager.getLogger(MethodStubPass::javaClass)
     private val builder = DeltaGraph.Builder()
 
     /**
@@ -33,14 +35,18 @@ class MethodStubPass(private val m: SootMethod) : IMethodPass {
      *     METHOD -SOURCE_FILE-> FILE
      */
     override fun runPass(): DeltaGraph {
-        val mNode = buildMethodStub(m)
-        val typeFullName = m.declaringClass.type.toQuotedString()
-        val filename = SootToPlumeUtil.sootClassToFileName(m.declaringClass)
-        LocalCache.getTypeDecl(typeFullName)?.let { t ->
-            builder.addEdge(t, mNode, AST)
-            builder.addEdge(t, mNode, CONTAINS)
+        try {
+            val mNode = buildMethodStub(m)
+            val typeFullName = m.declaringClass.type.toQuotedString()
+            val filename = SootToPlumeUtil.sootClassToFileName(m.declaringClass)
+            LocalCache.getTypeDecl(typeFullName)?.let { t ->
+                builder.addEdge(t, mNode, AST)
+                builder.addEdge(t, mNode, CONTAINS)
+            }
+            LocalCache.getFile(filename)?.let { f -> builder.addEdge(mNode, f, SOURCE_FILE) }
+        } catch (e: Exception) {
+            logger.warn("Unable to complete MethodStubPass on ${m.name}. Partial changes will be saved.", e)
         }
-        LocalCache.getFile(filename)?.let { f -> builder.addEdge(mNode, f, SOURCE_FILE) }
         return builder.build()
     }
 
