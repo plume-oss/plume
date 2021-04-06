@@ -67,7 +67,7 @@ class MethodStubPass(private val m: SootMethod) : IMethodPass {
             .isExternal(!m.declaringClass.isApplicationClass)
             .lineNumber(Option.apply(currentLine))
             .columnNumber(Option.apply(currentCol))
-            .order(childIdx++)
+            .order(m.declaringClass.methodIterator().asSequence().toList().indexOf(m))
             .astParentFullName("${m.declaringClass}")
             .astParentType(TYPE_DECL)
         // Set method hash
