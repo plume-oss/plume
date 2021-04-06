@@ -388,8 +388,9 @@ class BaseCPGPass(private val g: BriefUnitGraph) {
      * @return the [NewCall] constructed.
      */
     private fun projectCallVertex(unit: InvokeExpr, childIdx: Int): NewNodeBuilder {
+        val args = unit.args + if(unit is DynamicInvokeExpr) unit.bootstrapArgs else listOf()
         val signature = "${unit.type}(${unit.methodRef.parameterTypes.joinToString(separator = ",")})"
-        val code = "${unit.methodRef.name}(${unit.args.joinToString(separator = ", ")})"
+        val code = "${unit.methodRef.name}(${args.joinToString(separator = ", ")})"
         val callVertex = NewCallBuilder()
             .name(unit.methodRef.name)
             .methodFullName("${unit.methodRef.declaringClass}.${unit.methodRef.name}:$signature")
@@ -405,7 +406,7 @@ class BaseCPGPass(private val g: BriefUnitGraph) {
         val argVertices = mutableListOf<NewNodeBuilder>(callVertex)
         PlumeStorage.addCall(unit, callVertex)
         // Create vertices for arguments
-        unit.args.forEachIndexed { i, arg ->
+        args.forEachIndexed { i, arg ->
             when (arg) {
                 is Local -> createIdentifierVertex(arg, currentLine, currentCol, i + 1)
                 is Constant -> createLiteralVertex(arg, currentLine, currentCol, i + 1)
