@@ -5,13 +5,13 @@ import io.github.plume.oss.drivers.DriverFactory
 import io.github.plume.oss.drivers.GraphDatabase
 import io.github.plume.oss.drivers.TinkerGraphDriver
 import io.github.plume.oss.store.LocalCache
-import io.shiftleft.codepropertygraph.generated.NodeKeyNames.FULL_NAME
-import io.shiftleft.codepropertygraph.generated.NodeTypes.TYPE
 import io.shiftleft.codepropertygraph.generated.nodes.Literal
 import org.junit.jupiter.api.AfterEach
 import org.junit.jupiter.api.Assertions.*
 import org.junit.jupiter.api.BeforeAll
+import org.junit.jupiter.api.BeforeEach
 import org.junit.jupiter.api.Test
+import overflowdb.Graph
 import java.io.File
 import java.io.FileInputStream
 import java.io.FileOutputStream
@@ -19,11 +19,19 @@ import java.io.FileOutputStream
 class UpdateGraphTest {
     companion object {
         private val driver = DriverFactory(GraphDatabase.TINKER_GRAPH) as TinkerGraphDriver
-        private val TEST_PATH = "extractor_tests/update_test/"
+        private const val TEST_PATH = "extractor_tests/update_test/"
         private lateinit var extractor: Extractor
         private lateinit var testFile1: File
         private lateinit var testFile2: File
-        private lateinit var testFile2Update: File
+        private lateinit var testFile1Original: File
+        private lateinit var testFile2Original: File
+        private lateinit var testFile1MethodAdd: File
+        private lateinit var testFile1MethodRemove: File
+        private lateinit var testFile2MethodUpdate: File
+        private lateinit var testFile1FieldAdd: File
+        private lateinit var testFile1FieldRemove: File
+        private lateinit var testFile1FieldUpdate: File
+        private lateinit var g1: Graph
 
         private fun getTestResource(dir: String): File {
             val resourceURL = UpdateGraphTest::class.java.classLoader.getResource(dir)
@@ -36,9 +44,27 @@ class UpdateGraphTest {
         fun setUpAll() {
             testFile1 = getTestResource("${TEST_PATH}UpdateTest1.java")
             testFile2 = getTestResource("${TEST_PATH}UpdateTest2.java")
-            testFile2Update = getTestResource("${TEST_PATH}UpdateTest2.txt")
+            testFile1Original = getTestResource("${TEST_PATH}UpdateTest1_Original.txt")
+            testFile2Original = getTestResource("${TEST_PATH}UpdateTest2_Original.txt")
+            testFile1MethodAdd = getTestResource("${TEST_PATH}UpdateTest1_MethodAdd.txt")
+            testFile1MethodRemove = getTestResource("${TEST_PATH}UpdateTest1_MethodRemove.txt")
+            testFile2MethodUpdate = getTestResource("${TEST_PATH}UpdateTest2_MethodUpdate.txt")
+            testFile1FieldAdd = getTestResource("${TEST_PATH}UpdateTest1_FieldAdd.txt")
+            testFile1FieldRemove = getTestResource("${TEST_PATH}UpdateTest1_FieldRemove.txt")
+            testFile1FieldUpdate = getTestResource("${TEST_PATH}UpdateTest1_FieldUpdate.txt")
             extractor = Extractor(driver)
         }
+    }
+
+    @BeforeEach
+    fun setUp() {
+        // Make sure original files are intact
+        rewriteFileContents(testFile1, testFile1Original)
+        rewriteFileContents(testFile2, testFile2Original)
+        // Initial projection
+        listOf(testFile1, testFile2).forEach { extractor.load(it) }
+        extractor.project()
+        g1 = driver.getWholeGraph()
     }
 
     @AfterEach
@@ -48,14 +74,25 @@ class UpdateGraphTest {
     }
 
     @Test
-    fun testGraphUpdate() {
-        // Initial projection
-        listOf(testFile1, testFile2).forEach { extractor.load(it) }
+    fun testMethodAdd() {
+        val file1Update = rewriteFileContents(testFile1, testFile1MethodAdd)
+        listOf(file1Update, testFile2).forEach { extractor.load(it) }
         extractor.project()
-        val g1 = driver.getWholeGraph()
-        // Update file and do an update projection
-        testFile2 = rewriteFileContents(testFile2, testFile2Update)
-        listOf(testFile1, testFile2).forEach { extractor.load(it) }
+        TODO("Write test")
+    }
+
+    @Test
+    fun testMethodRemove() {
+        val file1Update = rewriteFileContents(testFile1, testFile1MethodRemove)
+        listOf(file1Update, testFile2).forEach { extractor.load(it) }
+        extractor.project()
+        TODO("Write test")
+    }
+
+    @Test
+    fun testMethodUpdate() {
+        val file2Update = rewriteFileContents(testFile2, testFile2MethodUpdate)
+        listOf(testFile1, file2Update).forEach { extractor.load(it) }
         extractor.project()
         val g2 = driver.getWholeGraph()
         val literalsG1 = g1.nodes().asSequence().filterIsInstance<Literal>().toList()
@@ -69,6 +106,30 @@ class UpdateGraphTest {
         assertEquals(g1.edgeCount(), g2.edgeCount())
         g1.close()
         g2.close()
+    }
+
+    @Test
+    fun testFieldAdd() {
+        val file1Update = rewriteFileContents(testFile1, testFile1FieldAdd)
+        listOf(file1Update, testFile2).forEach { extractor.load(it) }
+        extractor.project()
+        TODO("Write test")
+    }
+
+    @Test
+    fun testFieldRemove() {
+        val file1Update = rewriteFileContents(testFile1, testFile1FieldRemove)
+        listOf(file1Update, testFile2).forEach { extractor.load(it) }
+        extractor.project()
+        TODO("Write test")
+    }
+
+    @Test
+    fun testFieldUpdate() {
+        val file1Update = rewriteFileContents(testFile1, testFile1FieldUpdate)
+        listOf(file1Update, testFile2).forEach { extractor.load(it) }
+        extractor.project()
+        TODO("Write test")
     }
 
     private fun rewriteFileContents(tgt: File, incoming: File): File {

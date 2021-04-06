@@ -11,8 +11,4 @@ public class UpdateTest1 {
         int d = UpdateTest2.f();
     }
 
-    public static int foo(int x) {
-        return x + 1;
-    }
-
 }
