@@ -5,6 +5,8 @@ import io.github.plume.oss.domain.model.DeltaGraph
 import io.github.plume.oss.passes.IMethodPass
 import io.github.plume.oss.store.PlumeStorage
 import io.github.plume.oss.util.ExtractorConst
+import io.github.plume.oss.util.ExtractorConst.UNKNOWN
+import io.github.plume.oss.util.HashUtil
 import io.github.plume.oss.util.SootParserUtil
 import io.github.plume.oss.util.SootParserUtil.determineEvaluationStrategy
 import io.github.plume.oss.util.SootToPlumeUtil
@@ -68,6 +70,12 @@ class MethodStubPass(private val m: SootMethod) : IMethodPass {
             .order(childIdx++)
             .astParentFullName("${m.declaringClass}")
             .astParentType(TYPE_DECL)
+        // Set method hash
+        if (m.hasActiveBody()) {
+            mtdVertex.hash(Option.apply(HashUtil.getMethodHash(m.activeBody).toString()))
+        } else {
+            mtdVertex.hash(Option.apply(UNKNOWN))
+        }
         PlumeStorage.storeMethodNode(m, mtdVertex)
         PlumeStorage.addMethod(mtdVertex)
         // Store method vertex
