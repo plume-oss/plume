@@ -4,6 +4,7 @@ import io.github.plume.oss.Extractor
 import io.github.plume.oss.drivers.DriverFactory
 import io.github.plume.oss.drivers.GraphDatabase
 import io.github.plume.oss.drivers.TinkerGraphDriver
+import io.github.plume.oss.graphio.GraphMLWriter
 import io.github.plume.oss.store.LocalCache
 import io.shiftleft.codepropertygraph.generated.nodes.Literal
 import org.junit.jupiter.api.AfterEach
@@ -15,6 +16,7 @@ import overflowdb.Graph
 import java.io.File
 import java.io.FileInputStream
 import java.io.FileOutputStream
+import java.io.FileWriter
 
 class UpdateGraphTest {
     companion object {
@@ -102,6 +104,11 @@ class UpdateGraphTest {
         assertTrue(literalsG2.none { it.code() == "5" })
         assertTrue(literalsG1.none { it.code() == "9" })
         assertFalse(g1 == g2)
+        val g1s = g1.nodes().asSequence().groupBy { it.label() }.mapValues { it.value.size }
+        val g2s = g2.nodes().asSequence().groupBy { it.label() }.mapValues { it.value.size }
+        println(g1s)
+        println(g2s)
+        GraphMLWriter.write(g2, FileWriter("/tmp/plume/g2.xml"))
         assertEquals(g1.nodeCount(), g2.nodeCount())
         assertEquals(g1.edgeCount(), g2.edgeCount())
         g1.close()
