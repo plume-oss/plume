@@ -35,7 +35,7 @@ class MarkClassForRebuild(private val driver: IDriver) {
      *
      * @return a list of classes which need to be built or updated.
      */
-    fun runPass(cs: List<SootClass>): List<Pair<SootClass, FileChange>> {
+    fun runPass(cs: Set<SootClass>): List<Pair<SootClass, FileChange>> {
         val cStateList = cs.map(::checkIfClassNeedsAnUpdate).toList()
         val csToUpdate = cStateList.filter { it.second == FileChange.UPDATE }.toList()
         csToUpdate.map { it.first }.forEach(::updateModifiers)
@@ -86,32 +86,6 @@ class MarkClassForRebuild(private val driver: IDriver) {
         SootParserUtil.determineModifiers(c.modifiers)
             .mapIndexed { i, m -> NewModifierBuilder().modifierType(m).order(i + 1) }
             .forEach { m -> driver.addEdge(t, m, AST) }
-    }
-
-    private fun dropMethod(m: Method) {
-        saveCallEdges(m)
-        driver.deleteMethod(m.fullName())
-    }
-
-    private fun saveCallEdges(m: Method) {
-        driver.getMethod(m.fullName(), false).use { g ->
-            g.nodes { it == Method.Label() }.asSequence().firstOrNull()?.let { m1: Node ->
-                val m2 = VertexMapper.mapToVertex(m1) as NewMethodBuilder
-                val m2Build = m2.build()
-                driver.getNeighbours(m2).use { ns ->
-                    if (ns.V(m1.id()).hasNext()) {
-                        ns.V(m1.id()).next().`in`(NodeTypes.CALL).asSequence()
-                            .filterIsInstance<Call>()
-                            .forEach {
-                                PlumeStorage.storeCallEdge(
-                                    m2Build.fullName(),
-                                    VertexMapper.mapToVertex(it) as NewCallBuilder
-                                )
-                            }
-                    }
-                }
-            }
-        }
     }
 
 }

@@ -161,7 +161,8 @@ class Extractor(val driver: IDriver) {
         if (loadedFiles.isEmpty()) return apply { logger.info("No files loaded."); earlyStopCleanUp() }
         val (nCs, nSs, nUs) = loadedFileGroupCount()
         logger.info("Preparing $nCs class and $nSs source file(s). Ignoring $nUs unsupported file(s).")
-        val cs = mutableListOf<SootClass>()
+        val cs = mutableSetOf<SootClass>()
+        val ms = mutableSetOf<SootMethod>()
         val compiledFiles = mutableSetOf<JavaClassFile>()
         PlumeTimer.measure(ExtractorTimeKey.COMPILING_AND_UNPACKING) {
             ResourceCompilationUtil.compileLoadedFiles(loadedFiles).toCollection(compiledFiles)
@@ -172,6 +173,8 @@ class Extractor(val driver: IDriver) {
         PlumeTimer.measure(ExtractorTimeKey.SOOT) {
             configureSoot()
             loadClassesIntoSoot(compiledFiles).toCollection(cs)
+            getAllMethods(cs).toCollection(ms)
+            ms.map { it.declaringClass }.distinct().forEach(cs::add) // Make sure to build types of called types
         }
         compiledFiles.clear() // Done using compiledFiles
         /*
@@ -197,21 +200,7 @@ class Extractor(val driver: IDriver) {
         logger.info("Building UnitGraphs")
         val methodsToBuild = mutableListOf<SootMethod>()
         PlumeTimer.measure(ExtractorTimeKey.BASE_CPG_BUILDING) {
-            MarkMethodForRebuild(driver).runPass(csToBuild
-                .asSequence()
-                .map { it.first.methods }
-                .flatten()
-                .map { m ->
-                    val ms = mutableListOf(m)
-                    if (ExtractorOptions.callGraphAlg != ExtractorOptions.CallGraphAlg.NONE) {
-                        ms.addAll(Scene.v().callGraph.edgesOutOf(m).asSequence().map { it.tgt() })
-                    }
-                    ms
-                }
-                .flatten()
-                .distinct()
-                .toList())
-                .toCollection(methodsToBuild)
+            MarkMethodForRebuild(driver).runPass(ms).toCollection(methodsToBuild)
         }
         val sootUnitGraphs = mutableListOf<BriefUnitGraph>()
         PlumeTimer.measure(ExtractorTimeKey.SOOT) { constructUnitGraphs(methodsToBuild).toCollection(sootUnitGraphs) }
@@ -303,6 +292,18 @@ class Extractor(val driver: IDriver) {
     private fun earlyStopCleanUp() {
         this.clear()
         PlumeStorage.methodCpgs.clear()
+    }
+
+    private fun getAllMethods(cs: Set<SootClass>): Set<SootMethod> {
+        return cs.flatMap { it.methods }.map { m ->
+            if (ExtractorOptions.callGraphAlg != ExtractorOptions.CallGraphAlg.NONE) {
+                Scene.v().callGraph.edgesOutOf(m).asSequence()
+                    .flatMap { listOf(it.src.method(), it.tgt.method()) }
+                    .toSet()
+            } else {
+                setOf(m)
+            }
+        }.flatten().toSet()
     }
 
     private fun buildMethods(

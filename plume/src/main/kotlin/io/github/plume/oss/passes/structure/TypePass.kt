@@ -39,6 +39,7 @@ open class TypePass(private val driver: IDriver) : IProgramStructurePass {
             .forEach { c ->
                 logger.debug("Building type declaration, modifiers and fields for ${c.type}")
                 buildTypeDeclaration(c.type)?.let { t ->
+                    linkModifiers(c, t)
                     linkSourceFile(c, t)
                     linkNamespaceBlock(c, t)
                 }
@@ -86,6 +87,15 @@ open class TypePass(private val driver: IDriver) : IProgramStructurePass {
         val fileName = SootToPlumeUtil.sootClassToFileName(c)
         val fullName = "$fileName:${c.packageName}"
         cache.tryGetNamespaceBlock(fullName)?.let { n -> driver.addEdge(n, t, AST) }
+    }
+
+    /*
+     * TYPE_DECL -(AST)-> MODIFIER
+     */
+    private fun linkModifiers(c: SootClass, t: NewTypeDeclBuilder) {
+        SootParserUtil.determineModifiers(c.modifiers)
+            .mapIndexed { i, m -> NewModifierBuilder().modifierType(m).order(i + 1) }
+            .forEach { m -> driver.addEdge(t, m, AST) }
     }
 
 }

@@ -19,6 +19,7 @@ import io.github.plume.oss.domain.model.DeltaGraph
 import io.github.plume.oss.drivers.IDriver
 import io.github.plume.oss.passes.IUnitGraphPass
 import io.github.plume.oss.store.PlumeStorage
+import io.github.plume.oss.util.SootToPlumeUtil
 import io.shiftleft.codepropertygraph.generated.EdgeTypes.CALL
 import io.shiftleft.codepropertygraph.generated.NodeKeyNames.FULL_NAME
 import io.shiftleft.codepropertygraph.generated.NodeTypes.METHOD
@@ -47,10 +48,10 @@ class CGPass(private val g: BriefUnitGraph, private val driver: IDriver) : IUnit
     override fun runPass(): DeltaGraph {
         try {
             val mtd = g.body.method
-            logger.debug("Building call graph edges for ${mtd.declaringClass.name}:${mtd.name}")
+            logger.trace("Building call graph edges for ${mtd.declaringClass.name}:${mtd.name}")
             // If this was an updated method, connect call graphs
-            PlumeStorage.getMethodStore(mtd).filterIsInstance<NewMethodBuilder>()
-                .firstOrNull()?.let { reconnectPriorCallGraphEdges(it) }
+            val (fullName, _, _) = SootToPlumeUtil.methodToStrings(mtd)
+            getMethodHead(fullName)?.let { reconnectPriorCallGraphEdges(it) }
             // Connect all calls to their methods
             this.g.body.units.filterNot { it is IdentityStmt }.forEach(this::projectUnit)
         } catch (e: Exception) {
@@ -71,12 +72,11 @@ class CGPass(private val g: BriefUnitGraph, private val driver: IDriver) : IUnit
         }?.let { callV ->
             var foundAndConnectedCallTgt = false
             edges.forEach { e: Edge ->
-                PlumeStorage.getMethodStore(e.tgt.method())
-                    .filterIsInstance<NewMethodBuilder>()
-                    .firstOrNull()?.let { tgtPlumeVertex ->
-                        builder.addEdge(callV, tgtPlumeVertex, CALL)
-                        foundAndConnectedCallTgt = true
-                    }
+                val (fullName, _, _) = SootToPlumeUtil.methodToStrings(e.tgt.method())
+                getMethodHead(fullName)?.let { tgtPlumeVertex ->
+                    builder.addEdge(callV, tgtPlumeVertex, CALL)
+                    foundAndConnectedCallTgt = true
+                }
             }
             // If call graph analysis fails because there is no main method, we will need to figure out call edges ourselves
             // We can do this by looking if our call unit does not have any outgoing CALL edges.
@@ -102,7 +102,7 @@ class CGPass(private val g: BriefUnitGraph, private val driver: IDriver) : IUnit
                 logger.debug("Saved call graph edges found - reconnecting incoming call graph edges")
                 incomingVs.forEach { inV -> builder.addEdge(inV, mtdV, CALL) }
             } else {
-                logger.debug("No previous call graph edges were found")
+                logger.trace("No previous call graph edges were found")
             }
         }
     }

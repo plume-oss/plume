@@ -67,7 +67,7 @@ class MarkFieldForRebuild(private val driver: IDriver) {
                         else {
                             // Check if modifications need updates
                             driver.getNeighbours(f).use { memberG ->
-                                val existingModifiers = memberG.nodes(NodeTypes.MODIFIER).asSequence()
+                                val existingModifiers = memberG.nodes(MODIFIER).asSequence()
                                     .filterIsInstance<NewModifierBuilder>()
                                     .map { it.build().modifierType() }
                                     .toSortedSet()
