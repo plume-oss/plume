@@ -200,7 +200,7 @@ class Extractor(val driver: IDriver) {
         logger.info("Building UnitGraphs")
         val methodsToBuild = mutableListOf<SootMethod>()
         PlumeTimer.measure(ExtractorTimeKey.BASE_CPG_BUILDING) {
-            MarkMethodForRebuild(driver).runPass(ms).toCollection(methodsToBuild)
+            MarkMethodForRebuild(driver).runPass(csToBuild.map { it.first }.toSet()).toCollection(methodsToBuild)
         }
         val sootUnitGraphs = mutableListOf<BriefUnitGraph>()
         PlumeTimer.measure(ExtractorTimeKey.SOOT) { constructUnitGraphs(methodsToBuild).toCollection(sootUnitGraphs) }
@@ -231,7 +231,8 @@ class Extractor(val driver: IDriver) {
             Build fields for TYPE_DECL
          */
         PlumeTimer.measure(ExtractorTimeKey.PROGRAM_STRUCTURE_BUILDING) {
-            val fieldsToBuild = MarkFieldForRebuild(driver).runPass(csToBuild.map { it.first })
+            val fieldsToBuild = MarkFieldForRebuild(driver)
+                .runPass(csToBuild.filter { it.second == FileChange.UPDATE }.map { it.first })
             MemberPass(driver).runPass(fieldsToBuild)
         }
         /*
@@ -277,7 +278,8 @@ class Extractor(val driver: IDriver) {
         /*
             Construct the CPGs for methods
          */
-        PlumeTimer.measure(ExtractorTimeKey.BASE_CPG_BUILDING) { buildMethods(methodsToBuild, sootUnitGraphs) }
+        if (methodsToBuild.size > 0)
+            PlumeTimer.measure(ExtractorTimeKey.BASE_CPG_BUILDING) { buildMethods(methodsToBuild, sootUnitGraphs) }
         // Clear all Soot resources and storage
         this.clear()
         /*
@@ -297,7 +299,7 @@ class Extractor(val driver: IDriver) {
     private fun getAllMethods(cs: Set<SootClass>): Set<SootMethod> {
         return cs.flatMap { it.methods }.map { m ->
             if (ExtractorOptions.callGraphAlg != ExtractorOptions.CallGraphAlg.NONE) {
-                Scene.v().callGraph.edgesOutOf(m).asSequence()
+                setOf(m) + Scene.v().callGraph.edgesOutOf(m).asSequence()
                     .flatMap { listOf(it.src.method(), it.tgt.method()) }
                     .toSet()
             } else {

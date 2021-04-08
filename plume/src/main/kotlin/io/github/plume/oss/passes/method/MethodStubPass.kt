@@ -72,7 +72,9 @@ class MethodStubPass(private val m: SootMethod) : IMethodPass {
             .astParentType(TYPE_DECL)
         // Set method hash
         if (m.hasActiveBody()) {
-            mtdVertex.hash(Option.apply(HashUtil.getMethodHash(m.activeBody).toString()))
+            val methodHash = HashUtil.getMethodHash(m.activeBody).toString()
+            mtdVertex.hash(Option.apply(methodHash))
+            logger.trace("Method $fullName has hash: $methodHash")
         } else {
             mtdVertex.hash(Option.apply(UNKNOWN))
         }

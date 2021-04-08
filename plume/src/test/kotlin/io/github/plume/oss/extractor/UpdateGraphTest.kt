@@ -7,6 +7,7 @@ import io.github.plume.oss.drivers.TinkerGraphDriver
 import io.github.plume.oss.graphio.GraphMLWriter
 import io.github.plume.oss.store.LocalCache
 import io.shiftleft.codepropertygraph.generated.nodes.Literal
+import io.shiftleft.codepropertygraph.generated.nodes.Method
 import org.junit.jupiter.api.AfterEach
 import org.junit.jupiter.api.Assertions.*
 import org.junit.jupiter.api.BeforeAll
@@ -73,6 +74,7 @@ class UpdateGraphTest {
     fun tearDown() {
         LocalCache.clear()
         driver.close()
+        g1.close()
     }
 
     @Test
@@ -80,6 +82,13 @@ class UpdateGraphTest {
         val file1Update = rewriteFileContents(testFile1, testFile1MethodAdd)
         listOf(file1Update, testFile2).forEach { extractor.load(it) }
         extractor.project()
+        val g2 = driver.getWholeGraph()
+        val g1s = g1.edges().asSequence().groupBy { it.label() }.mapValues { it.value.size }
+        val g2s = g2.edges().asSequence().groupBy { it.label() }.mapValues { it.value.size }
+        println(g1s)
+        println(g2s)
+        GraphMLWriter.write(g1, FileWriter("/tmp/plume/g1.xml"))
+        GraphMLWriter.write(g2, FileWriter("/tmp/plume/g2.xml"))
         TODO("Write test")
     }
 
@@ -88,7 +97,14 @@ class UpdateGraphTest {
         val file1Update = rewriteFileContents(testFile1, testFile1MethodRemove)
         listOf(file1Update, testFile2).forEach { extractor.load(it) }
         extractor.project()
-        TODO("Write test")
+        driver.getWholeGraph().use { g2 ->
+            val methodsG1 = g1.nodes().asSequence().filterIsInstance<Method>().toList()
+            val methodsG2 = g2.nodes().asSequence().filterIsInstance<Method>().toList()
+            assertTrue(methodsG1.any { it.fullName() == "extractor_tests.update_test.UpdateTest1.foo:int(int)" })
+            assertFalse(methodsG2.any { it.fullName() == "extractor_tests.update_test.UpdateTest1.foo:int(int)" })
+            assertTrue(g1.nodeCount() > g2.nodeCount())
+            assertTrue(g1.edgeCount() > g2.edgeCount())
+        }
     }
 
     @Test
@@ -96,24 +112,17 @@ class UpdateGraphTest {
         val file2Update = rewriteFileContents(testFile2, testFile2MethodUpdate)
         listOf(testFile1, file2Update).forEach { extractor.load(it) }
         extractor.project()
-        val g2 = driver.getWholeGraph()
-        val literalsG1 = g1.nodes().asSequence().filterIsInstance<Literal>().toList()
-        val literalsG2 = g2.nodes().asSequence().filterIsInstance<Literal>().toList()
-        assertTrue(literalsG1.any { it.code() == "5" })
-        assertTrue(literalsG2.any { it.code() == "9" })
-        assertTrue(literalsG2.none { it.code() == "5" })
-        assertTrue(literalsG1.none { it.code() == "9" })
-        assertFalse(g1 == g2)
-        val g1s = g1.edges().asSequence().groupBy { it.label() }.mapValues { it.value.size }
-        val g2s = g2.edges().asSequence().groupBy { it.label() }.mapValues { it.value.size }
-        println(g1s)
-        println(g2s)
-        GraphMLWriter.write(g1, FileWriter("/tmp/plume/g1.xml"))
-        GraphMLWriter.write(g2, FileWriter("/tmp/plume/g2.xml"))
-        assertEquals(g1.nodeCount(), g2.nodeCount())
-        assertEquals(g1.edgeCount(), g2.edgeCount())
-        g1.close()
-        g2.close()
+        driver.getWholeGraph().use { g2 ->
+            val literalsG1 = g1.nodes().asSequence().filterIsInstance<Literal>().toList()
+            val literalsG2 = g2.nodes().asSequence().filterIsInstance<Literal>().toList()
+            assertTrue(literalsG1.any { it.code() == "5" })
+            assertTrue(literalsG2.any { it.code() == "9" })
+            assertTrue(literalsG2.none { it.code() == "5" })
+            assertTrue(literalsG1.none { it.code() == "9" })
+            assertFalse(g1 == g2)
+            assertEquals(g1.nodeCount(), g2.nodeCount())
+            assertEquals(g1.edgeCount(), g2.edgeCount())
+        }
     }
 
     @Test

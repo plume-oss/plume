@@ -7,6 +7,7 @@ import io.github.plume.oss.store.PlumeStorage
 import io.github.plume.oss.util.HashUtil
 import io.github.plume.oss.util.SootToPlumeUtil
 import io.shiftleft.codepropertygraph.generated.NodeTypes
+import io.shiftleft.codepropertygraph.generated.NodeTypes.METHOD
 import io.shiftleft.codepropertygraph.generated.nodes.Call
 import io.shiftleft.codepropertygraph.generated.nodes.Method
 import io.shiftleft.codepropertygraph.generated.nodes.NewCallBuilder
@@ -14,6 +15,7 @@ import io.shiftleft.codepropertygraph.generated.nodes.NewMethodBuilder
 import org.apache.logging.log4j.LogManager
 import org.apache.logging.log4j.Logger
 import overflowdb.Node
+import soot.SootClass
 import soot.SootMethod
 
 class MarkMethodForRebuild(private val driver: IDriver) {
@@ -22,12 +24,29 @@ class MarkMethodForRebuild(private val driver: IDriver) {
     private val cache = DriverCache(driver)
     private var methodsToDelete = 0
 
-    fun runPass(ms: Set<SootMethod>): Set<SootMethod> {
-        val mPairs = ms.map(::checkIfMethodNeedsAnUpdate).toList()
+    fun runPass(ms: Set<SootClass>): Set<SootMethod> {
+        val mPairs = ms.filter { it.isApplicationClass }.flatMap(::checkIfClassMethodsNeedUpdate).toList()
         val msToUpdate = mPairs.filter { it.second }
         if (msToUpdate.isNotEmpty())
             logger.info("Methods to create/update is ${msToUpdate.size}. Methods to remove is $methodsToDelete.")
         return msToUpdate.map { it.first }.toSet()
+    }
+
+    private fun checkIfClassMethodsNeedUpdate(c: SootClass): List<Pair<SootMethod, Boolean>> {
+        val cms = c.methods
+        // Check for deleted methods
+        val cmsNames = cms.map { SootToPlumeUtil.methodToStrings(it).first }.toSet()
+        cache.tryGetTypeDecl(c.type.toQuotedString())?.let { appType ->
+            driver.getNeighbours(appType).use { g ->
+                // Remove methods not in the new class
+                g.nodes(METHOD).asSequence()
+                    .filterIsInstance<Method>()
+                    .filterNot { cmsNames.contains(it.fullName()) }
+                    .forEach { driver.deleteMethod(it.fullName()); methodsToDelete++ }
+            }
+        }
+        // Check for methods which need to be added or updated
+        return cms.map(::checkIfMethodNeedsAnUpdate)
     }
 
     private fun checkIfMethodNeedsAnUpdate(m: SootMethod): Pair<SootMethod, Boolean> {
