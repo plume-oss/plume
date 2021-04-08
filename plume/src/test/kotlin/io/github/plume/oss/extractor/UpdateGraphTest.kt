@@ -82,14 +82,14 @@ class UpdateGraphTest {
         val file1Update = rewriteFileContents(testFile1, testFile1MethodAdd)
         listOf(file1Update, testFile2).forEach { extractor.load(it) }
         extractor.project()
-        val g2 = driver.getWholeGraph()
-        val g1s = g1.edges().asSequence().groupBy { it.label() }.mapValues { it.value.size }
-        val g2s = g2.edges().asSequence().groupBy { it.label() }.mapValues { it.value.size }
-        println(g1s)
-        println(g2s)
-        GraphMLWriter.write(g1, FileWriter("/tmp/plume/g1.xml"))
-        GraphMLWriter.write(g2, FileWriter("/tmp/plume/g2.xml"))
-        TODO("Write test")
+        driver.getWholeGraph().use { g2 ->
+            val methodsG1 = g1.nodes().asSequence().filterIsInstance<Method>().toList()
+            val methodsG2 = g2.nodes().asSequence().filterIsInstance<Method>().toList()
+            assertFalse(methodsG1.any { it.fullName() == "extractor_tests.update_test.UpdateTest1.bar:int(int)" })
+            assertTrue(methodsG2.any { it.fullName() == "extractor_tests.update_test.UpdateTest1.bar:int(int)" })
+            assertTrue(g1.nodeCount() < g2.nodeCount())
+            assertTrue(g1.edgeCount() < g2.edgeCount())
+        }
     }
 
     @Test
@@ -130,6 +130,14 @@ class UpdateGraphTest {
         val file1Update = rewriteFileContents(testFile1, testFile1FieldAdd)
         listOf(file1Update, testFile2).forEach { extractor.load(it) }
         extractor.project()
+        driver.getWholeGraph().use { g2 ->
+            val g1s = g1.edges().asSequence().groupBy { it.label() }.mapValues { it.value.size }
+            val g2s = g2.edges().asSequence().groupBy { it.label() }.mapValues { it.value.size }
+            println(g1s)
+            println(g2s)
+            GraphMLWriter.write(g1, FileWriter("/tmp/plume/g1.xml"))
+            GraphMLWriter.write(g2, FileWriter("/tmp/plume/g2.xml"))
+        }
         TODO("Write test")
     }
 
@@ -138,6 +146,14 @@ class UpdateGraphTest {
         val file1Update = rewriteFileContents(testFile1, testFile1FieldRemove)
         listOf(file1Update, testFile2).forEach { extractor.load(it) }
         extractor.project()
+        driver.getWholeGraph().use { g2 ->
+            val g1s = g1.edges().asSequence().groupBy { it.label() }.mapValues { it.value.size }
+            val g2s = g2.edges().asSequence().groupBy { it.label() }.mapValues { it.value.size }
+            println(g1s)
+            println(g2s)
+            GraphMLWriter.write(g1, FileWriter("/tmp/plume/g1.xml"))
+            GraphMLWriter.write(g2, FileWriter("/tmp/plume/g2.xml"))
+        }
         TODO("Write test")
     }
 
@@ -146,6 +162,14 @@ class UpdateGraphTest {
         val file1Update = rewriteFileContents(testFile1, testFile1FieldUpdate)
         listOf(file1Update, testFile2).forEach { extractor.load(it) }
         extractor.project()
+        driver.getWholeGraph().use { g2 ->
+            val g1s = g1.edges().asSequence().groupBy { it.label() }.mapValues { it.value.size }
+            val g2s = g2.edges().asSequence().groupBy { it.label() }.mapValues { it.value.size }
+            println(g1s)
+            println(g2s)
+            GraphMLWriter.write(g1, FileWriter("/tmp/plume/g1.xml"))
+            GraphMLWriter.write(g2, FileWriter("/tmp/plume/g2.xml"))
+        }
         TODO("Write test")
     }
 

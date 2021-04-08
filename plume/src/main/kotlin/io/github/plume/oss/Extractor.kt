@@ -200,7 +200,10 @@ class Extractor(val driver: IDriver) {
         logger.info("Building UnitGraphs")
         val methodsToBuild = mutableListOf<SootMethod>()
         PlumeTimer.measure(ExtractorTimeKey.BASE_CPG_BUILDING) {
-            MarkMethodForRebuild(driver).runPass(csToBuild.map { it.first }.toSet()).toCollection(methodsToBuild)
+            MarkMethodForRebuild(driver)
+                .runPass(csToBuild.filter { it.second == FileChange.UPDATE }.map { it.first }.toSet())
+                .toCollection(methodsToBuild)
+            csToBuild.filter { it.second == FileChange.NEW }.flatMap { it.first.methods }.toCollection(methodsToBuild)
         }
         val sootUnitGraphs = mutableListOf<BriefUnitGraph>()
         PlumeTimer.measure(ExtractorTimeKey.SOOT) { constructUnitGraphs(methodsToBuild).toCollection(sootUnitGraphs) }
