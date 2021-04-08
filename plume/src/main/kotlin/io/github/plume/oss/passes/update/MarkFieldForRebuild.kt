@@ -52,7 +52,6 @@ class MarkFieldForRebuild(private val driver: IDriver) {
                 val existingMembers = g.nodes(NodeTypes.MEMBER).asSequence().filterIsInstance<Member>().toList()
                 val newMembers = c.fields.toList().map { field ->
                     var modificationRequired = false
-                    println("${field.name} vs $existingMembers")
                     val foundMember = existingMembers
                         .firstOrNull { field.name == it.name() }
                     if (foundMember == null) {
