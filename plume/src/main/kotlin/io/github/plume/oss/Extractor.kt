@@ -206,7 +206,10 @@ class Extractor(val driver: IDriver) {
             csToBuild.filter { it.second == FileChange.NEW }.flatMap { it.first.methods }.toCollection(methodsToBuild)
         }
         val sootUnitGraphs = mutableListOf<BriefUnitGraph>()
-        PlumeTimer.measure(ExtractorTimeKey.SOOT) { constructUnitGraphs(methodsToBuild).toCollection(sootUnitGraphs) }
+        PlumeTimer.measure(ExtractorTimeKey.SOOT) {
+            constructUnitGraphs(methodsToBuild.filter { it.declaringClass.isApplicationClass })
+                .toCollection(sootUnitGraphs)
+        }
         /*
             Obtain all referenced types from fields, returns, and locals
          */
@@ -451,11 +454,15 @@ class Extractor(val driver: IDriver) {
                 val dg = BaseCPGPass(g).runPass()
                 channel.send(dg)
                 val (fullName, _, _) = SootToPlumeUtil.methodToStrings(g.body.method)
-                // Combine existing method head delta with method body delta
-                PlumeStorage.methodCpgs[fullName] = DeltaGraph.Builder()
-                    .addAll(PlumeStorage.methodCpgs[fullName]!!.changes)
-                    .addAll(dg.changes)
-                    .build()
+                try {
+                    // Combine existing method head delta with method body delta
+                    PlumeStorage.methodCpgs[fullName] = DeltaGraph.Builder()
+                        .addAll(PlumeStorage.methodCpgs[fullName]!!.changes)
+                        .addAll(dg.changes)
+                        .build()
+                } catch (e: Exception) {
+                    logger.warn("Exception occurred while adding method body to storage: $fullName", e)
+                }
             }
         }
     }

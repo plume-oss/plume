@@ -59,7 +59,8 @@ class TestDomainResources {
             NewMethodReturnBuilder().typeFullName(STRING_1).evaluationStrategy(EVAL_1).code(STRING_1)
                 .order(INT_1).lineNumber(Option.apply(INT_1)).columnNumber(Option.apply(INT_1)),
             NewMethodBuilder().name(STRING_1).fullName(STRING_1).signature(STRING_1).code(STRING_1).order(INT_1)
-                .lineNumber(Option.apply(INT_1)).columnNumber(Option.apply(INT_1)).isExternal(BOOL_1),
+                .lineNumber(Option.apply(INT_1)).columnNumber(Option.apply(INT_1)).isExternal(BOOL_1)
+                .hash(Option.apply("123")),
             NewModifierBuilder().modifierType(MOD_1).order(INT_1),
             NewNamespaceBlockBuilder().name(STRING_1).fullName(STRING_1).order(INT_1).filename(STRING_1),
             NewReturnBuilder().order(INT_1).argumentIndex(INT_1).code(STRING_1).lineNumber(Option.apply(INT_1))
@@ -79,7 +80,7 @@ class TestDomainResources {
         val methodVertex: NewMethodBuilder =
             NewMethodBuilder().code(STRING_1).name(STRING_1).fullName(STRING_1).order(INT_1)
                 .lineNumber(Option.apply(INT_1)).columnNumber(Option.apply(INT_1)).signature(STRING_2)
-                .filename(STRING_1)
+                .filename(STRING_1).hash(Option.apply("456"))
                 .astParentFullName(STRING_1).astParentType(STRING_2).isExternal(BOOL_1)
         val mtdParamInVertex: NewMethodParameterInBuilder =
             NewMethodParameterInBuilder().code(STRING_1).evaluationStrategy(EVAL_1).typeFullName(STRING_1)
