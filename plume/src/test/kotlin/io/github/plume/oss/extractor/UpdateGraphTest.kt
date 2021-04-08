@@ -9,11 +9,8 @@ import io.github.plume.oss.store.LocalCache
 import io.shiftleft.codepropertygraph.generated.nodes.Literal
 import io.shiftleft.codepropertygraph.generated.nodes.Member
 import io.shiftleft.codepropertygraph.generated.nodes.Method
-import org.junit.jupiter.api.AfterEach
+import org.junit.jupiter.api.*
 import org.junit.jupiter.api.Assertions.*
-import org.junit.jupiter.api.BeforeAll
-import org.junit.jupiter.api.BeforeEach
-import org.junit.jupiter.api.Test
 import overflowdb.Graph
 import java.io.File
 import java.io.FileInputStream
@@ -21,6 +18,7 @@ import java.io.FileOutputStream
 import java.io.FileWriter
 
 class UpdateGraphTest {
+
     companion object {
         private val driver = DriverFactory(GraphDatabase.TINKER_GRAPH) as TinkerGraphDriver
         private const val TEST_PATH = "extractor_tests/update_test/"
@@ -58,6 +56,12 @@ class UpdateGraphTest {
             testFile1FieldUpdate = getTestResource("${TEST_PATH}UpdateTest1_FieldUpdate.txt")
             extractor = Extractor(driver)
         }
+
+        @AfterAll
+        @JvmStatic
+        fun tearDownAll() {
+            driver.close()
+        }
     }
 
     @BeforeEach
@@ -74,7 +78,7 @@ class UpdateGraphTest {
     @AfterEach
     fun tearDown() {
         LocalCache.clear()
-        driver.close()
+        driver.clearGraph()
         g1.close()
     }
 
@@ -164,14 +168,13 @@ class UpdateGraphTest {
         listOf(file1Update, testFile2).forEach { extractor.load(it) }
         extractor.project()
         driver.getWholeGraph().use { g2 ->
-            val g1s = g1.edges().asSequence().groupBy { it.label() }.mapValues { it.value.size }
-            val g2s = g2.edges().asSequence().groupBy { it.label() }.mapValues { it.value.size }
-            println(g1s)
-            println(g2s)
-            GraphMLWriter.write(g1, FileWriter("/tmp/plume/g1.xml"))
-            GraphMLWriter.write(g2, FileWriter("/tmp/plume/g2.xml"))
+            val membersG1 = g1.nodes().asSequence().filterIsInstance<Member>().toList()
+            val membersG2 = g2.nodes().asSequence().filterIsInstance<Member>().toList()
+            assertTrue(membersG1.any { it.name() == "i" && it.typeFullName() == "int" })
+            assertTrue(membersG2.any { it.name() == "i" && it.typeFullName() == "int" })
+            assertTrue(g1.nodeCount() == g2.nodeCount())
+            assertTrue(g1.edgeCount() == g2.edgeCount())
         }
-        TODO("Write test")
     }
 
     private fun rewriteFileContents(tgt: File, incoming: File): File {
