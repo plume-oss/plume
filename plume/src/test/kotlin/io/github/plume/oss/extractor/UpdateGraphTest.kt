@@ -1,18 +1,13 @@
 package io.github.plume.oss.extractor
 
 import io.github.plume.oss.Extractor
-import io.github.plume.oss.domain.mappers.VertexMapper
 import io.github.plume.oss.drivers.DriverFactory
 import io.github.plume.oss.drivers.GraphDatabase
 import io.github.plume.oss.drivers.TinkerGraphDriver
 import io.github.plume.oss.store.LocalCache
 import io.shiftleft.codepropertygraph.generated.EdgeTypes.AST
 import io.shiftleft.codepropertygraph.generated.ModifierTypes.*
-import io.shiftleft.codepropertygraph.generated.NodeTypes.MODIFIER
-import io.shiftleft.codepropertygraph.generated.nodes.Literal
-import io.shiftleft.codepropertygraph.generated.nodes.Member
-import io.shiftleft.codepropertygraph.generated.nodes.Method
-import io.shiftleft.codepropertygraph.generated.nodes.Modifier
+import io.shiftleft.codepropertygraph.generated.nodes.*
 import org.junit.jupiter.api.*
 import org.junit.jupiter.api.Assertions.*
 import overflowdb.Graph
@@ -38,6 +33,7 @@ class UpdateGraphTest {
         private lateinit var testFile1FieldUpdateValue: File
         private lateinit var testFile1FieldUpdateModifier: File
         private lateinit var testFile1FieldUpdateType: File
+        private lateinit var testFile2ClassUpdateModifier: File
         private lateinit var g1: Graph
 
         private fun getTestResource(dir: String): File {
@@ -61,6 +57,7 @@ class UpdateGraphTest {
             testFile1FieldUpdateValue = getTestResource("${TEST_PATH}UpdateTest1_FieldUpdateValue.txt")
             testFile1FieldUpdateModifier = getTestResource("${TEST_PATH}UpdateTest1_FieldUpdateModifier.txt")
             testFile1FieldUpdateType = getTestResource("${TEST_PATH}UpdateTest1_FieldUpdateType.txt")
+            testFile2ClassUpdateModifier  = getTestResource("${TEST_PATH}UpdateTest2_ClassUpdateModifier.txt")
             extractor = Extractor(driver)
         }
 
@@ -220,6 +217,30 @@ class UpdateGraphTest {
             assertTrue(membersG2.any { it.name() == "i" && it.typeFullName() == "double" })
             assertEquals(g1.nodeCount(), g2.nodeCount() - 2)
             assertEquals(g1.edgeCount(), g2.edgeCount() - 4)
+        }
+    }
+
+    @Test
+    fun testClassUpdateModifier() {
+        val file2Update = rewriteFileContents(testFile2, testFile2ClassUpdateModifier)
+        listOf(testFile1, file2Update).forEach { extractor.load(it) }
+        extractor.project()
+        driver.getWholeGraph().use { g2 ->
+            val typeDeclG1 = g1.nodes().asSequence().filterIsInstance<TypeDecl>().toList()
+            val typeDeclG2 = g2.nodes().asSequence().filterIsInstance<TypeDecl>().toList()
+            val modifiersG1 = mutableListOf<Modifier>()
+            val modifiersG2 = mutableListOf<Modifier>()
+            typeDeclG1.firstOrNull { it.name() == "UpdateTest2" }?.let { td1 ->
+                g1.node(td1.id()).out(AST).asSequence().filterIsInstance<Modifier>().toCollection(modifiersG1)
+            }
+            typeDeclG2.firstOrNull { it.name() == "UpdateTest2" }?.let { td2 ->
+                g2.node(td2.id()).out(AST).asSequence().filterIsInstance<Modifier>().toCollection(modifiersG2)
+            }
+            assertTrue(modifiersG1.map { it.modifierType() }.contains(PUBLIC)
+                    && modifiersG1.map { it.modifierType() }.contains(VIRTUAL))
+            assertTrue(modifiersG2.map { it.modifierType() }.contains(VIRTUAL))
+            assertEquals(g1.nodeCount(), g2.nodeCount() + 1)
+            assertEquals(g1.edgeCount(), g2.edgeCount() + 1)
         }
     }
 
