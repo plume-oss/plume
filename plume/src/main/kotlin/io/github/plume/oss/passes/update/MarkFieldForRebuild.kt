@@ -1,14 +1,14 @@
 package io.github.plume.oss.passes.update
 
+import io.github.plume.oss.domain.mappers.VertexMapper
 import io.github.plume.oss.drivers.IDriver
 import io.github.plume.oss.store.DriverCache
 import io.github.plume.oss.util.SootParserUtil
-import io.github.plume.oss.util.SootToPlumeUtil
 import io.shiftleft.codepropertygraph.generated.NodeTypes
 import io.shiftleft.codepropertygraph.generated.NodeTypes.MODIFIER
-import io.shiftleft.codepropertygraph.generated.nodes.NewFileBuilder
-import io.shiftleft.codepropertygraph.generated.nodes.NewMemberBuilder
+import io.shiftleft.codepropertygraph.generated.nodes.Member
 import io.shiftleft.codepropertygraph.generated.nodes.NewModifierBuilder
+import io.shiftleft.codepropertygraph.generated.nodes.NewTypeDeclBuilder
 import org.apache.logging.log4j.LogManager
 import org.apache.logging.log4j.Logger
 import soot.SootClass
@@ -46,34 +46,33 @@ class MarkFieldForRebuild(private val driver: IDriver) {
      * false if otherwise.
      */
     private fun checkIfFieldNeedsAnUpdate(c: SootClass): List<Pair<SootField, Boolean>> {
-        val cName = SootToPlumeUtil.sootClassToFileName(c)
         val output = mutableListOf<Pair<SootField, Boolean>>()
-        cache.tryGetFile(cName)?.let { f: NewFileBuilder ->
-            driver.getNeighbours(f).use { g ->
-                val existingMembers = g.nodes(NodeTypes.MEMBER).asSequence().filterIsInstance<NewMemberBuilder>().toList()
+        cache.tryGetTypeDecl(c.type.toQuotedString())?.let { td: NewTypeDeclBuilder ->
+            driver.getNeighbours(td).use { g ->
+                val existingMembers = g.nodes(NodeTypes.MEMBER).asSequence().filterIsInstance<Member>().toList()
                 val newMembers = c.fields.toList().map { field ->
                     var modificationRequired = false
+                    println("${field.name} vs $existingMembers")
                     val foundMember = existingMembers
-                        .firstOrNull { field.name == it.build().name() }
+                        .firstOrNull { field.name == it.name() }
                     if (foundMember == null) {
                         // If null, then there is a new field to add
                         modificationRequired = true
                     } else {
                         // Check if types need update
-                        if (foundMember.build().typeFullName() != field.type.toQuotedString()) {
+                        if (foundMember.typeFullName() != field.type.toQuotedString()) {
                             modificationRequired = true
                             deleteField(foundMember)
-                        }
-                        else {
+                        } else {
                             // Check if modifications need updates
-                            driver.getNeighbours(f).use { memberG ->
-                                val existingModifiers = memberG.nodes(MODIFIER).asSequence()
-                                    .filterIsInstance<NewModifierBuilder>()
-                                    .map { it.build().modifierType() }
-                                    .toSortedSet()
-                                val newModifiers = SootParserUtil.determineModifiers(field.modifiers).toSortedSet()
-                                if (existingModifiers.minus(newModifiers).isNotEmpty())
-                                    modificationRequired = true
+                            val existingModifiers = g.nodes(MODIFIER).asSequence()
+                                .filterIsInstance<NewModifierBuilder>()
+                                .map { it.build().modifierType() }
+                                .toSortedSet()
+                            val newModifiers = SootParserUtil.determineModifiers(field.modifiers).toSortedSet()
+                            if (existingModifiers.minus(newModifiers).isNotEmpty()) {
+                                modificationRequired = true
+                                deleteField(foundMember)
                             }
                         }
                     }
@@ -81,15 +80,17 @@ class MarkFieldForRebuild(private val driver: IDriver) {
                     field.name
                 }.toSortedSet()
                 // Remove fields that are not there
-                fieldsToDelete = existingMembers.filter { !newMembers.contains(it.build().name()) }.map(::deleteField).size
+                fieldsToDelete = existingMembers.filter { !newMembers.contains(it.name()) }.map(::deleteField).size
             }
         }
         return output
     }
 
-    private fun deleteField(f: NewMemberBuilder) {
-        driver.getNeighbours(f).use { g -> g.nodes(MODIFIER).forEach { driver.deleteVertex(it.id(), it.label()) } }
-        driver.deleteVertex(f.id(), f.build().label())
+    private fun deleteField(f: Member) {
+        val memberBuilder = VertexMapper.mapToVertex(f)
+        driver.getNeighbours(memberBuilder)
+            .use { g -> g.nodes(MODIFIER).forEach { driver.deleteVertex(it.id(), it.label()) } }
+        driver.deleteVertex(f.id(), f.label())
     }
 
 }

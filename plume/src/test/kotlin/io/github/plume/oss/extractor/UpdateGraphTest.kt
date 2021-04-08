@@ -7,6 +7,7 @@ import io.github.plume.oss.drivers.TinkerGraphDriver
 import io.github.plume.oss.graphio.GraphMLWriter
 import io.github.plume.oss.store.LocalCache
 import io.shiftleft.codepropertygraph.generated.nodes.Literal
+import io.shiftleft.codepropertygraph.generated.nodes.Member
 import io.shiftleft.codepropertygraph.generated.nodes.Method
 import org.junit.jupiter.api.AfterEach
 import org.junit.jupiter.api.Assertions.*
@@ -131,14 +132,13 @@ class UpdateGraphTest {
         listOf(file1Update, testFile2).forEach { extractor.load(it) }
         extractor.project()
         driver.getWholeGraph().use { g2 ->
-            val g1s = g1.edges().asSequence().groupBy { it.label() }.mapValues { it.value.size }
-            val g2s = g2.edges().asSequence().groupBy { it.label() }.mapValues { it.value.size }
-            println(g1s)
-            println(g2s)
-            GraphMLWriter.write(g1, FileWriter("/tmp/plume/g1.xml"))
-            GraphMLWriter.write(g2, FileWriter("/tmp/plume/g2.xml"))
+            val membersG1 = g1.nodes().asSequence().filterIsInstance<Member>().toList()
+            val membersG2 = g2.nodes().asSequence().filterIsInstance<Member>().toList()
+            assertTrue(membersG1.any { it.name() == "i" && it.typeFullName() == "int" })
+            assertFalse(membersG1.any { it.name() == "j" && it.typeFullName() == "boolean" })
+            assertTrue(membersG2.any { it.name() == "i" && it.typeFullName() == "int" })
+            assertTrue(membersG2.any { it.name() == "j" && it.typeFullName() == "boolean" })
         }
-        TODO("Write test")
     }
 
     @Test

@@ -234,8 +234,7 @@ class Extractor(val driver: IDriver) {
             Build fields for TYPE_DECL
          */
         PlumeTimer.measure(ExtractorTimeKey.PROGRAM_STRUCTURE_BUILDING) {
-            val fieldsToBuild = MarkFieldForRebuild(driver)
-                .runPass(csToBuild.filter { it.second == FileChange.UPDATE }.map { it.first })
+            val fieldsToBuild = MarkFieldForRebuild(driver).runPass(csToBuild.map { it.first })
             MemberPass(driver).runPass(fieldsToBuild)
         }
         /*
