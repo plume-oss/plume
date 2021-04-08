@@ -5,6 +5,25 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](http://keepachangelog.com/)
 and this project adheres to [Semantic Versioning](http://semver.org/).
 
+## [Unreleased]
+
+### Added
+
+- Method bodies are now hashed and stored on the `Method` node
+- Finer updates on:
+  - class modifier level, 
+  - field type, value, modifier level, and
+  - method level
+
+### Fixed
+
+- `order` of methods in the `MethodStubPass`.
+- `DynamicInvoke` bootstrap arguments are now projected.
+
+### Changed
+
+- Separated hash functions to into a new util class called `HashUtil`.
+
 ## [0.4.0] - 2021-04-01
 
 ### Added

@@ -1,5 +1,6 @@
 package io.github.plume.oss.domain.files
 
+import io.github.plume.oss.util.HashUtil
 import java.io.File
 
 /**
@@ -8,7 +9,7 @@ import java.io.File
 abstract class PlumeFile(pathname: String, val fileType: PlumeFileType) : File(pathname) {
 
     override fun hashCode() = if (this.exists())
-        FileFactory.getFileHash(this)
+        HashUtil.getFileHash(this)
     else super.hashCode()
 
     override fun equals(other: Any?): Boolean {

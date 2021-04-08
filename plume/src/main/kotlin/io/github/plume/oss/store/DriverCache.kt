@@ -7,12 +7,10 @@ import io.github.plume.oss.util.SootToPlumeUtil
 import io.shiftleft.codepropertygraph.generated.NodeKeyNames.FULL_NAME
 import io.shiftleft.codepropertygraph.generated.NodeKeyNames.NAME
 import io.shiftleft.codepropertygraph.generated.NodeTypes.*
-import io.shiftleft.codepropertygraph.generated.nodes.NewFileBuilder
-import io.shiftleft.codepropertygraph.generated.nodes.NewNamespaceBlockBuilder
-import io.shiftleft.codepropertygraph.generated.nodes.NewTypeBuilder
-import io.shiftleft.codepropertygraph.generated.nodes.NewTypeDeclBuilder
+import io.shiftleft.codepropertygraph.generated.nodes.*
 import scala.Option
 import soot.SootClass
+import soot.SootMethod
 import soot.Type
 import java.io.File
 
@@ -182,5 +180,14 @@ class DriverCache(private val driver: IDriver) {
                 .typeDeclFullName(tdFullName)
                     ).apply { LocalCache.addType(this) }
     }
+
+    /**
+     * This will attempt to look for a METHOD vertex based on the new name. It is important to note that this doesn't
+     * use the cache but instead uses [PlumeStorage].
+     */
+    fun tryGetMethod(fullName: String): NewMethodBuilder? = PlumeStorage.getMethod(fullName)
+        ?: (driver.getVerticesByProperty(
+            FULL_NAME, fullName, METHOD
+        ).firstOrNull() as NewMethodBuilder?)?.apply { PlumeStorage.addMethod(this) }
 
 }

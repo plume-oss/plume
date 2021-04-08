@@ -15,4 +15,8 @@ public class UpdateTest1 {
         return x + 1;
     }
 
+    public static int bar(int x) {
+        return x + 2;
+    }
+
 }

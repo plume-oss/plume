@@ -64,3 +64,5 @@ interface ITypePass {
      */
     fun runPass(ts: List<soot.Type>): List<soot.Type>
 }
+
+enum class FileChange { UPDATE, NEW, NOP }

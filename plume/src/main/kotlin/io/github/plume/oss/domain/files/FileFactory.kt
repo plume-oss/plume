@@ -41,29 +41,6 @@ object FileFactory {
         }
     }
 
-    /**
-     * Will ingest a file's contents and return the xxHash32 representation. See
-     * [xxHash](https://cyan4973.github.io/xxHash/) for more information.
-     *
-     * @param f The file to hash.
-     * @return The given file's xxHash32 representation
-     */
-    fun getFileHash(f: File): Int {
-        val factory = XXHashFactory.fastestInstance()
-        FileInputStream(f).use { inStream ->
-            val seed = -0x68b84d74
-            val hash32: StreamingXXHash32 = factory.newStreamingHash32(seed)
-            val buf = ByteArray(8192)
-            while (true) {
-                val read = inStream.read(buf)
-                if (read == -1) {
-                    break
-                }
-                hash32.update(buf, 0, read)
-            }
-            return hash32.value
-        }
-    }
 }
 
 /**

@@ -77,7 +77,7 @@ class BaseCPGPass(private val g: BriefUnitGraph) {
 
     private fun runAstPass() {
         val mtd = g.body.method
-        logger.debug("Building AST for ${mtd.declaration}")
+        logger.trace("Building AST for ${mtd.declaration}")
         currentLine = mtd.javaSourceStartLineNumber
         currentCol = mtd.javaSourceStartColumnNumber
         // METHOD -AST-> METHOD_PARAM_*
@@ -97,7 +97,7 @@ class BaseCPGPass(private val g: BriefUnitGraph) {
 
     private fun runCfgPass() {
         val mtd = g.body.method
-        logger.debug("Building CFG for ${mtd.declaration}")
+        logger.trace("Building CFG for ${mtd.declaration}")
         currentLine = mtd.javaSourceStartLineNumber
         currentCol = mtd.javaSourceStartColumnNumber
         // Connect all units to their successors
@@ -110,7 +110,7 @@ class BaseCPGPass(private val g: BriefUnitGraph) {
 
     private fun runPdgPass() {
         val mtd = g.body.method
-        logger.debug("Building PDG for ${mtd.declaration}")
+        logger.trace("Building PDG for ${mtd.declaration}")
         currentLine = mtd.javaSourceStartLineNumber
         currentCol = mtd.javaSourceStartColumnNumber
         // Identifier REF edges

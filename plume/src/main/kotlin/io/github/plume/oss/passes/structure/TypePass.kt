@@ -31,8 +31,6 @@ open class TypePass(private val driver: IDriver) : IProgramStructurePass {
      *
      *     TYPE_DECL -(SOURCE_FILE)-> FILE
      *     TYPE_DECL <-(CONTAINS)- FILE
-     *     TYPE_DECL -(AST)-> *MEMBER
-     *     TYPE_DECL -(AST)-> *MODIFIER
      *     TYPE_DECL -(REF)-> TYPE
      *     TYPE_DECL <-(AST)- NAMESPACE_BLOCK
      */
@@ -42,7 +40,6 @@ open class TypePass(private val driver: IDriver) : IProgramStructurePass {
                 logger.debug("Building type declaration, modifiers and fields for ${c.type}")
                 buildTypeDeclaration(c.type)?.let { t ->
                     linkModifiers(c, t)
-                    linkMembers(c, t)
                     linkSourceFile(c, t)
                     linkNamespaceBlock(c, t)
                 }
@@ -61,24 +58,6 @@ open class TypePass(private val driver: IDriver) : IProgramStructurePass {
             driver.addEdge(t, f, SOURCE_FILE)
             driver.addEdge(f, t, CONTAINS)
         }
-    }
-
-    /*
-     * TYPE_DECL -(AST)-> MEMBER
-     */
-    private fun linkMembers(c: SootClass, t: NewTypeDeclBuilder) {
-        c.fields.forEachIndexed { i, field ->
-            projectMember(field, i + 1).let { memberVertex -> driver.addEdge(t, memberVertex, AST) }
-        }
-    }
-
-    /*
-     * TYPE_DECL -(AST)-> MODIFIER
-     */
-    private fun linkModifiers(c: SootClass, t: NewTypeDeclBuilder) {
-        SootParserUtil.determineModifiers(c.modifiers)
-            .mapIndexed { i, m -> NewModifierBuilder().modifierType(m).order(i + 1) }
-            .forEach { m -> driver.addEdge(t, m, AST) }
     }
 
     /**
@@ -101,13 +80,6 @@ open class TypePass(private val driver: IDriver) : IProgramStructurePass {
         return td
     }
 
-    private fun projectMember(field: SootField, childIdx: Int): NewMemberBuilder =
-        NewMemberBuilder()
-            .name(field.name)
-            .code(field.declaration)
-            .typeFullName(field.type.toQuotedString())
-            .order(childIdx)
-
     /*
      * TYPE_DECL <-(AST)- NAMESPACE_BLOCK
      */
@@ -115,6 +87,15 @@ open class TypePass(private val driver: IDriver) : IProgramStructurePass {
         val fileName = SootToPlumeUtil.sootClassToFileName(c)
         val fullName = "$fileName:${c.packageName}"
         cache.tryGetNamespaceBlock(fullName)?.let { n -> driver.addEdge(n, t, AST) }
+    }
+
+    /*
+     * TYPE_DECL -(AST)-> MODIFIER
+     */
+    private fun linkModifiers(c: SootClass, t: NewTypeDeclBuilder) {
+        SootParserUtil.determineModifiers(c.modifiers)
+            .mapIndexed { i, m -> NewModifierBuilder().modifierType(m).order(i + 1) }
+            .forEach { m -> driver.addEdge(t, m, AST) }
     }
 
 }

@@ -83,6 +83,7 @@ object VertexMapper {
                 .lineNumber(Option.apply(map[LINE_NUMBER] as Int))
                 .columnNumber(Option.apply(map[COLUMN_NUMBER] as Int))
                 .order(map[ORDER] as Int)
+                .hash(Option.apply(map[HASH] as String))
             MethodParameterIn.Label() -> NewMethodParameterInBuilder()
                 .code(map[CODE] as String)
                 .name(map[NAME] as String)
