@@ -1,21 +1,24 @@
 package io.github.plume.oss.extractor
 
 import io.github.plume.oss.Extractor
+import io.github.plume.oss.domain.mappers.VertexMapper
 import io.github.plume.oss.drivers.DriverFactory
 import io.github.plume.oss.drivers.GraphDatabase
 import io.github.plume.oss.drivers.TinkerGraphDriver
-import io.github.plume.oss.graphio.GraphMLWriter
 import io.github.plume.oss.store.LocalCache
+import io.shiftleft.codepropertygraph.generated.EdgeTypes.AST
+import io.shiftleft.codepropertygraph.generated.ModifierTypes.*
+import io.shiftleft.codepropertygraph.generated.NodeTypes.MODIFIER
 import io.shiftleft.codepropertygraph.generated.nodes.Literal
 import io.shiftleft.codepropertygraph.generated.nodes.Member
 import io.shiftleft.codepropertygraph.generated.nodes.Method
+import io.shiftleft.codepropertygraph.generated.nodes.Modifier
 import org.junit.jupiter.api.*
 import org.junit.jupiter.api.Assertions.*
 import overflowdb.Graph
 import java.io.File
 import java.io.FileInputStream
 import java.io.FileOutputStream
-import java.io.FileWriter
 
 class UpdateGraphTest {
 
@@ -32,7 +35,9 @@ class UpdateGraphTest {
         private lateinit var testFile2MethodUpdate: File
         private lateinit var testFile1FieldAdd: File
         private lateinit var testFile1FieldRemove: File
-        private lateinit var testFile1FieldUpdate: File
+        private lateinit var testFile1FieldUpdateValue: File
+        private lateinit var testFile1FieldUpdateModifier: File
+        private lateinit var testFile1FieldUpdateType: File
         private lateinit var g1: Graph
 
         private fun getTestResource(dir: String): File {
@@ -53,7 +58,9 @@ class UpdateGraphTest {
             testFile2MethodUpdate = getTestResource("${TEST_PATH}UpdateTest2_MethodUpdate.txt")
             testFile1FieldAdd = getTestResource("${TEST_PATH}UpdateTest1_FieldAdd.txt")
             testFile1FieldRemove = getTestResource("${TEST_PATH}UpdateTest1_FieldRemove.txt")
-            testFile1FieldUpdate = getTestResource("${TEST_PATH}UpdateTest1_FieldUpdate.txt")
+            testFile1FieldUpdateValue = getTestResource("${TEST_PATH}UpdateTest1_FieldUpdateValue.txt")
+            testFile1FieldUpdateModifier = getTestResource("${TEST_PATH}UpdateTest1_FieldUpdateModifier.txt")
+            testFile1FieldUpdateType = getTestResource("${TEST_PATH}UpdateTest1_FieldUpdateType.txt")
             extractor = Extractor(driver)
         }
 
@@ -163,8 +170,47 @@ class UpdateGraphTest {
     }
 
     @Test
-    fun testFieldUpdate() {
-        val file1Update = rewriteFileContents(testFile1, testFile1FieldUpdate)
+    fun testFieldUpdateValue() {
+        val file1Update = rewriteFileContents(testFile1, testFile1FieldUpdateValue)
+        listOf(file1Update, testFile2).forEach { extractor.load(it) }
+        extractor.project()
+        driver.getWholeGraph().use { g2 ->
+            val membersG1 = g1.nodes().asSequence().filterIsInstance<Member>().toList()
+            val membersG2 = g2.nodes().asSequence().filterIsInstance<Member>().toList()
+            assertTrue(membersG1.any { it.name() == "i" && it.typeFullName() == "int" })
+            assertTrue(membersG2.any { it.name() == "i" && it.typeFullName() == "int" })
+            assertTrue(g1.nodeCount() == g2.nodeCount())
+            assertTrue(g1.edgeCount() == g2.edgeCount())
+        }
+    }
+
+    @Test
+    fun testFieldUpdateModifier() {
+        val file1Update = rewriteFileContents(testFile1, testFile1FieldUpdateModifier)
+        listOf(file1Update, testFile2).forEach { extractor.load(it) }
+        extractor.project()
+        driver.getWholeGraph().use { g2 ->
+            val membersG1 = g1.nodes().asSequence().filterIsInstance<Member>().toList()
+            val membersG2 = g2.nodes().asSequence().filterIsInstance<Member>().toList()
+            val modifiersG1 = mutableListOf<Modifier>()
+            val modifiersG2 = mutableListOf<Modifier>()
+            membersG1.firstOrNull { it.name() == "i" && it.typeFullName() == "int" }?.let { m1 ->
+                g1.node(m1.id()).out(AST).asSequence().filterIsInstance<Modifier>().toCollection(modifiersG1)
+            }
+            membersG2.firstOrNull { it.name() == "i" && it.typeFullName() == "int" }?.let { m2 ->
+                g2.node(m2.id()).out(AST).asSequence().filterIsInstance<Modifier>().toCollection(modifiersG2)
+            }
+            assertTrue(modifiersG1.map { it.modifierType() }.contains(PRIVATE))
+            assertTrue(modifiersG2.map { it.modifierType() }.contains(PUBLIC)
+                    && modifiersG2.map { it.modifierType() }.contains(VIRTUAL))
+            assertTrue(g1.nodeCount() == g2.nodeCount() - 1)
+            assertTrue(g1.edgeCount() == g2.edgeCount() - 1)
+        }
+    }
+
+    @Test
+    fun testFieldUpdateType() {
+        val file1Update = rewriteFileContents(testFile1, testFile1FieldUpdateType)
         listOf(file1Update, testFile2).forEach { extractor.load(it) }
         extractor.project()
         driver.getWholeGraph().use { g2 ->

@@ -52,8 +52,7 @@ class MarkFieldForRebuild(private val driver: IDriver) {
                 val existingMembers = g.nodes(NodeTypes.MEMBER).asSequence().filterIsInstance<Member>().toList()
                 val newMembers = c.fields.toList().map { field ->
                     var modificationRequired = false
-                    val foundMember = existingMembers
-                        .firstOrNull { field.name == it.name() }
+                    val foundMember = existingMembers.firstOrNull { field.name == it.name() }
                     if (foundMember == null) {
                         // If null, then there is a new field to add
                         modificationRequired = true
@@ -69,7 +68,7 @@ class MarkFieldForRebuild(private val driver: IDriver) {
                                 .map { it.build().modifierType() }
                                 .toSortedSet()
                             val newModifiers = SootParserUtil.determineModifiers(field.modifiers).toSortedSet()
-                            if (existingModifiers.minus(newModifiers).isNotEmpty()) {
+                            if (existingModifiers != newModifiers) {
                                 modificationRequired = true
                                 deleteField(foundMember)
                             }
