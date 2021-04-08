@@ -1,23 +1,19 @@
 package io.github.plume.oss.passes.update
 
-import io.github.plume.oss.domain.mappers.VertexMapper
 import io.github.plume.oss.drivers.IDriver
 import io.github.plume.oss.passes.FileChange
-import io.github.plume.oss.passes.IProgramStructurePass
 import io.github.plume.oss.store.DriverCache
-import io.github.plume.oss.store.LocalCache
 import io.github.plume.oss.store.PlumeStorage
 import io.github.plume.oss.util.SootParserUtil
 import io.github.plume.oss.util.SootToPlumeUtil
 import io.shiftleft.codepropertygraph.generated.EdgeTypes.AST
-import io.shiftleft.codepropertygraph.generated.EdgeTypes.REF
-import io.shiftleft.codepropertygraph.generated.NodeKeyNames.*
-import io.shiftleft.codepropertygraph.generated.NodeTypes
-import io.shiftleft.codepropertygraph.generated.NodeTypes.*
-import io.shiftleft.codepropertygraph.generated.nodes.*
+import io.shiftleft.codepropertygraph.generated.NodeKeyNames.HASH
+import io.shiftleft.codepropertygraph.generated.NodeTypes.MODIFIER
+import io.shiftleft.codepropertygraph.generated.nodes.NewFileBuilder
+import io.shiftleft.codepropertygraph.generated.nodes.NewModifierBuilder
+import io.shiftleft.codepropertygraph.generated.nodes.NewTypeDeclBuilder
 import org.apache.logging.log4j.LogManager
 import org.apache.logging.log4j.Logger
-import overflowdb.Node
 import soot.SootClass
 
 /**

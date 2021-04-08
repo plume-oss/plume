@@ -18,12 +18,22 @@ import overflowdb.Node
 import soot.SootClass
 import soot.SootMethod
 
+/**
+ * Will run through the methods in the given class to determine whether, if the class is already in the database, it
+ * needs to be updated or not.
+ */
 class MarkMethodForRebuild(private val driver: IDriver) {
 
     private val logger: Logger = LogManager.getLogger(MarkMethodForRebuild::javaClass)
     private val cache = DriverCache(driver)
     private var methodsToDelete = 0
 
+    /**
+     * Given a set of classes, determines if its methods need to be updated or not.
+     *
+     * @param ms The set of classes.
+     * @return A set of all the methods to generate.
+     */
     fun runPass(ms: Set<SootClass>): Set<SootMethod> {
         val mPairs = ms.filter { it.isApplicationClass }.flatMap(::checkIfClassMethodsNeedUpdate).toList()
         val msToUpdate = mPairs.filter { it.second }

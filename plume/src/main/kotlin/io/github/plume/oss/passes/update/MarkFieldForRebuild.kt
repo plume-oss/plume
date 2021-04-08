@@ -14,6 +14,10 @@ import org.apache.logging.log4j.Logger
 import soot.SootClass
 import soot.SootField
 
+/**
+ * Examines the modifiers, types, and values of the fields in the given classes. It then determines whether, if the
+ * class is already in the database, these fields need to be updated or not.
+ */
 class MarkFieldForRebuild(private val driver: IDriver) {
 
     private val logger: Logger = LogManager.getLogger(MarkFieldForRebuild::javaClass)
