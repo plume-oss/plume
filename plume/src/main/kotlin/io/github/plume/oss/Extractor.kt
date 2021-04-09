@@ -62,6 +62,7 @@ import org.apache.logging.log4j.Level
 import org.apache.logging.log4j.LogManager
 import org.apache.logging.log4j.Logger
 import soot.*
+import soot.jimple.InvokeStmt
 import soot.jimple.spark.SparkTransformer
 import soot.jimple.toolkits.callgraph.CHATransformer
 import soot.options.Options
@@ -176,7 +177,7 @@ class Extractor(val driver: IDriver) {
         PlumeTimer.measure(ExtractorTimeKey.SOOT) {
             configureSoot()
             loadClassesIntoSoot(compiledFiles).toCollection(cs)
-            getAllMethods(cs).toCollection(ms)
+            getMethodsAndBuildBodies(cs).toCollection(ms)
             ms.map { it.declaringClass }.distinct().forEach(cs::add) // Make sure to build types of called types
         }
         compiledFiles.clear() // Done using compiledFiles
@@ -306,10 +307,15 @@ class Extractor(val driver: IDriver) {
         PlumeStorage.methodCpgs.clear()
     }
 
-    private fun getAllMethods(cs: Set<SootClass>): Set<SootMethod> {
-        return cs.flatMap { it.methods }.map { m ->
+    private fun getMethodsAndBuildBodies(cs: Set<SootClass>): Set<SootMethod> {
+        return cs.flatMap { it.methods }.map { it.retrieveActiveBody().method }.map { m ->
             val ms = mutableSetOf(m)
             if (ExtractorOptions.callGraphAlg != ExtractorOptions.CallGraphAlg.NONE) {
+                if (m.hasActiveBody()) {
+                    m.activeBody.units.filterIsInstance<InvokeStmt>()
+                        .mapNotNull { it.invokeExpr.methodRef.tryResolve() }
+                        .toCollection(ms)
+                }
                 Scene.v().callGraph.edgesOutOf(m).asSequence()
                     .map { it.tgt.method() }
                     .toCollection(ms)
