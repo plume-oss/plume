@@ -1,11 +1,12 @@
 package io.github.plume.oss.passes.update
 
+import io.github.plume.oss.domain.mappers.VertexMapper
 import io.github.plume.oss.drivers.IDriver
 import io.github.plume.oss.store.DriverCache
 import io.github.plume.oss.util.ExtractorConst.GLOBAL
 import io.shiftleft.codepropertygraph.generated.NodeKeyNames.FULL_NAME
-import io.shiftleft.codepropertygraph.generated.NodeTypes.METHOD
-import io.shiftleft.codepropertygraph.generated.NodeTypes.TYPE_DECL
+import io.shiftleft.codepropertygraph.generated.NodeTypes.*
+import io.shiftleft.codepropertygraph.generated.nodes.Member
 import io.shiftleft.codepropertygraph.generated.nodes.Method
 import io.shiftleft.codepropertygraph.generated.nodes.NewTypeDeclBuilder
 import org.apache.logging.log4j.LogManager
@@ -44,10 +45,21 @@ class MarkClassForRemoval(private val driver: IDriver) {
                 .filterIsInstance<Method>()
                 .map { it.fullName() }
                 .forEach(driver::deleteMethod)
-            // Delete FILE, NAMESPACE_BLOCK, TYPE, TYPE_DECL, MEMBER, MODIFIER
+            // Delete members
+            g.nodes(MEMBER).asSequence()
+                .filterIsInstance<Member>()
+                .forEach(::deleteField)
+            // Delete FILE, NAMESPACE_BLOCK, TYPE, TYPE_DECL, MODIFIER
             g.nodes().asSequence()
-                .filterNot { it.label() == METHOD }
+                .filterNot { it.label() == METHOD || it.label() == MEMBER }
                 .forEach { driver.deleteVertex(it.id(), it.label()) }
         }
+    }
+
+    private fun deleteField(m: Member) {
+        driver.getNeighbours(VertexMapper.mapToVertex(m)).use { g ->
+            g.nodes(MODIFIER).asSequence().forEach { driver.deleteVertex(it.id(), it.label()) }
+        }
+        driver.deleteVertex(m.id(), m.label())
     }
 }
