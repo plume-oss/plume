@@ -16,7 +16,7 @@ class NamespaceBlockTests extends PlumeCodeToCpgSuite {
       |""".stripMargin
 
   "should contain three namespace blocks in total (<global>, java.lang.object, foo.bar)" in {
-    cpg.namespaceBlock.size shouldBe 3
+    cpg.namespaceBlock.size shouldBe 5
     // There is no global namespace block in Java
   }
 

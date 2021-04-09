@@ -141,7 +141,7 @@ class BasicIntraproceduralTest {
         val ns = g.nodes().asSequence().toList()
         ns.filterIsInstance<NamespaceBlock>().let { nbv ->
             assertNotNull(nbv.find { it.name() == "intraprocedural.basic.basic5" })
-            assertEquals(5, nbv.toList().size)
+            assertEquals(6, nbv.toList().size)
         }
         ns.filterIsInstance<TypeDecl>().filter { !it.isExternal }.let { mrv ->
             assertNotNull(mrv.find { it.fullName() == "intraprocedural.basic.Basic5" })
@@ -149,7 +149,7 @@ class BasicIntraproceduralTest {
             assertNotNull(mrv.find { it.fullName() == "int" })
             assertNotNull(mrv.find { it.fullName() == "byte" })
             assertNotNull(mrv.find { it.fullName() == "java.lang.String[]" })
-            assertEquals(6, mrv.toList().size)
+            assertEquals(8, mrv.toList().size)
         }
         ns.filterIsInstance<Method>().filter { !it.isExternal }.let { mv ->
             assertNotNull(mv.find { it.fullName() == "intraprocedural.basic.Basic5.main:void(java.lang.String[])" })

@@ -25,7 +25,7 @@ class MethodReturnTests extends PlumeCodeToCpgSuite {
   }
 
   "should allow traversing to method" in {
-    cpg.methodReturn.code("int").method.name.l shouldBe List("foo")
+    cpg.methodReturn.code("int").method.name.l shouldBe List("foo", "hashCode")
   }
 
 }
