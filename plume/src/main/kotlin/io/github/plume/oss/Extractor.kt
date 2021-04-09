@@ -36,6 +36,7 @@ import io.github.plume.oss.passes.structure.MemberPass
 import io.github.plume.oss.passes.structure.TypePass
 import io.github.plume.oss.passes.type.GlobalTypePass
 import io.github.plume.oss.passes.update.MarkClassForRebuild
+import io.github.plume.oss.passes.update.MarkClassForRemoval
 import io.github.plume.oss.passes.update.MarkFieldForRebuild
 import io.github.plume.oss.passes.update.MarkMethodForRebuild
 import io.github.plume.oss.store.DriverCache
@@ -152,9 +153,11 @@ class Extractor(val driver: IDriver) {
     }
 
     /**
-     * Projects all loaded classes to the graph database.
+     * Projects all loaded classes to the graph database. This expects that all application files part of the artifact
+     * are loaded.
      */
     fun project(): Extractor {
+        // TODO: Put artifact hash in the meta data
         /*
             Load and compile files then feed them into Soot
          */
@@ -183,12 +186,14 @@ class Extractor(val driver: IDriver) {
         logger.info("Building internal program structure and type information")
         val csToBuild = mutableListOf<Pair<SootClass, FileChange>>()
         PlumeTimer.measure(ExtractorTimeKey.PROGRAM_STRUCTURE_BUILDING) {
+            // Remove classes no longer in the graph
+            MarkClassForRemoval(driver).runPass(cs)
+            // Look for classes which need updates
             MarkClassForRebuild(driver).runPass(cs).toCollection(csToBuild)
         }
         cs.clear() // Done using cs
         if (csToBuild.isEmpty()) return apply { logger.info("No new or changed files detected."); earlyStopCleanUp() }
         PlumeTimer.measure(ExtractorTimeKey.PROGRAM_STRUCTURE_BUILDING) {
-            // First read the existing TYPE, TYPE_DECL, and FILEs from the driver and load it into the cache
             pipeline(
                 FileAndPackagePass(driver)::runPass,
                 TypePass(driver)::runPass,
@@ -211,13 +216,25 @@ class Extractor(val driver: IDriver) {
                 .toCollection(sootUnitGraphs)
         }
         /*
+            Obtain inheritance information
+        */
+        logger.info("Obtaining class hierarchy")
+        val parentToChildCs: MutableList<Pair<SootClass, Set<SootClass>>> = mutableListOf()
+        PlumeTimer.measure(ExtractorTimeKey.SOOT) {
+            val fh = FastHierarchy()
+            Scene.v().classes.asSequence()
+                .map { Pair(it, fh.getSubclassesOf(it)) }
+                .map { Pair(it.first, csToBuild.map { c -> c.first }.intersect(it.second)) }
+                .filter { it.second.isNotEmpty() }.toCollection(parentToChildCs)
+        }
+        /*
             Obtain all referenced types from fields, returns, and locals
          */
-        val ts = mutableListOf<Type>()
+        val ts = mutableSetOf<Type>()
         PlumeTimer.measure(ExtractorTimeKey.PROGRAM_STRUCTURE_BUILDING) {
-            val fieldsAndRets =
-                csToBuild.map { it.first }.map { c -> c.fields.map { it.type } + c.methods.map { it.returnType } }
-                    .flatten().toSet()
+            val fieldsAndRets = parentToChildCs.map { it.first }
+                .map { c -> c.fields.map { it.type } + c.methods.map { it.returnType } }
+                .flatten().toSet()
             val locals = sootUnitGraphs.map { it.body.locals + it.body.parameterLocals }
                 .flatten().map { it.type }.toSet()
             val returns = sootUnitGraphs.map { it.body.method.returnType }.toSet()
@@ -231,7 +248,7 @@ class Extractor(val driver: IDriver) {
         PlumeTimer.measure(ExtractorTimeKey.PROGRAM_STRUCTURE_BUILDING) {
             pipeline(
                 GlobalTypePass(driver)::runPass
-            ).invoke(ts)
+            ).invoke(ts.toList())
         }
         /*
             Build fields for TYPE_DECL
@@ -239,18 +256,6 @@ class Extractor(val driver: IDriver) {
         PlumeTimer.measure(ExtractorTimeKey.PROGRAM_STRUCTURE_BUILDING) {
             val fieldsToBuild = MarkFieldForRebuild(driver).runPass(csToBuild.map { it.first })
             MemberPass(driver).runPass(fieldsToBuild)
-        }
-        /*
-            Obtain inheritance information
-        */
-        logger.info("Obtaining class hierarchy")
-        val parentToChildCs: MutableList<Pair<SootClass, Set<SootClass>>> = mutableListOf()
-        PlumeTimer.measure(ExtractorTimeKey.SOOT) {
-            val fh = FastHierarchy()
-            Scene.v().classes.asSequence()
-                .map { Pair(it, fh.getSubclassesOf(it)) }
-                .map { Pair(it.first, csToBuild.map { c -> c.first }.intersect(it.second)) }
-                .filter { it.second.isNotEmpty() }.toCollection(parentToChildCs)
         }
         /*
             Build external types
@@ -303,13 +308,13 @@ class Extractor(val driver: IDriver) {
 
     private fun getAllMethods(cs: Set<SootClass>): Set<SootMethod> {
         return cs.flatMap { it.methods }.map { m ->
+            val ms = mutableSetOf(m)
             if (ExtractorOptions.callGraphAlg != ExtractorOptions.CallGraphAlg.NONE) {
-                setOf(m) + Scene.v().callGraph.edgesOutOf(m).asSequence()
-                    .flatMap { listOf(it.src.method(), it.tgt.method()) }
-                    .toSet()
-            } else {
-                setOf(m)
+                Scene.v().callGraph.edgesOutOf(m).asSequence()
+                    .map { it.tgt.method() }
+                    .toCollection(ms)
             }
+            ms.toSet()
         }.flatten().toSet()
     }
 
