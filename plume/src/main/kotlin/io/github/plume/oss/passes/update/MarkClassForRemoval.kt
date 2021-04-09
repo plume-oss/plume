@@ -18,6 +18,7 @@ package io.github.plume.oss.passes.update
 import io.github.plume.oss.domain.mappers.VertexMapper
 import io.github.plume.oss.drivers.IDriver
 import io.github.plume.oss.store.DriverCache
+import io.github.plume.oss.store.LocalCache
 import io.github.plume.oss.util.ExtractorConst.GLOBAL
 import io.shiftleft.codepropertygraph.generated.NodeKeyNames.FULL_NAME
 import io.shiftleft.codepropertygraph.generated.NodeTypes.*
@@ -68,6 +69,10 @@ class MarkClassForRemoval(private val driver: IDriver) {
             g.nodes().asSequence()
                 .filterNot { it.label() == METHOD || it.label() == MEMBER }
                 .forEach { driver.deleteVertex(it.id(), it.label()) }
+            // Remove from cache if present
+            LocalCache.removeFile(td.build().filename())
+            LocalCache.removeType(td.build().fullName())
+            LocalCache.removeTypeDecl(td.build().fullName())
         }
     }
 

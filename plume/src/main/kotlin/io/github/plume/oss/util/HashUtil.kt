@@ -41,11 +41,17 @@ object HashUtil {
      * Will ingest a Jimple method body and return the xxHash32 representation.
      *
      * @param body The method body to hash.
-     * @return The given file's xxHash32 representation
+     * @return The given body's xxHash32 representation
      */
     fun getMethodHash(body: Body) = getHashFromInputStream(body.toString().byteInputStream())
 
-    private fun getHashFromInputStream(stream: InputStream): Int {
+    /**
+     * Will ingest an input stream and return the xxHash32 representation.
+     *
+     * @param stream The stream to hash.
+     * @return The given stream's xxHash32 representation
+     */
+    fun getHashFromInputStream(stream: InputStream): Int {
         stream.use { inStream ->
             val seed = -0x68b84d74
             val hash32: StreamingXXHash32 = factory.newStreamingHash32(seed)

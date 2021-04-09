@@ -83,6 +83,7 @@ object VertexMapper {
             MetaData.Label() -> NewMetaDataBuilder()
                 .language(map[LANGUAGE] as String)
                 .version(map[VERSION] as String)
+                .hash(Option.apply(map.getOrDefault(HASH, UNKNOWN) as String))
             File.Label() -> NewFileBuilder()
                 .name(map[NAME] as String)
                 .hash(Option.apply(map.getOrDefault(HASH, UNKNOWN) as String))

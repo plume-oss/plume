@@ -43,6 +43,7 @@ import io.github.plume.oss.store.DriverCache
 import io.github.plume.oss.store.PlumeStorage
 import io.github.plume.oss.util.ExtractorConst.LANGUAGE_FRONTEND
 import io.github.plume.oss.util.ExtractorConst.plumeVersion
+import io.github.plume.oss.util.HashUtil
 import io.github.plume.oss.util.ResourceCompilationUtil
 import io.github.plume.oss.util.ResourceCompilationUtil.COMP_DIR
 import io.github.plume.oss.util.ResourceCompilationUtil.TEMP_DIR
@@ -61,6 +62,7 @@ import me.tongfei.progressbar.ProgressBarStyle
 import org.apache.logging.log4j.Level
 import org.apache.logging.log4j.LogManager
 import org.apache.logging.log4j.Logger
+import scala.Option
 import soot.*
 import soot.jimple.InvokeStmt
 import soot.jimple.spark.SparkTransformer
@@ -68,15 +70,19 @@ import soot.jimple.toolkits.callgraph.CHATransformer
 import soot.options.Options
 import soot.toolkits.graph.BriefUnitGraph
 import java.io.File
+import java.io.FileInputStream
 import java.io.IOException
+import java.io.SequenceInputStream
 import java.nio.file.Files
 import java.nio.file.Path
 import java.nio.file.Paths
 import java.time.Duration
 import java.time.temporal.ChronoUnit
+import java.util.*
 import java.util.concurrent.Executors
 import java.util.stream.Collectors
 import java.util.zip.ZipFile
+import kotlin.collections.HashSet
 
 /**
  * The main entrypoint of the extractor from which the CPG will be created.
@@ -140,17 +146,38 @@ class Extractor(val driver: IDriver) {
         return this
     }
 
-    private fun upsertMetaData() {
+    /**
+     * Will update the meta data node if necessary or create a new one. Additionally, this will check if the loaded
+     * artifact is updated or not and will return a flag based on this.
+     *
+     * @return True if there is a difference in this artifact, false if otherwise.
+     */
+    private fun upsertMetaData(): Boolean {
+        // Do the overall hash
         val maybeMetaData = driver.getMetaData()
+        val currentBuildHash = getBuildDirectoryHash()
         if (maybeMetaData != null) {
             val metaData = maybeMetaData.build()
             if (metaData.language() != LANGUAGE_FRONTEND)
                 driver.updateVertexProperty(maybeMetaData.id(), META_DATA, LANGUAGE, LANGUAGE_FRONTEND)
             if (metaData.version() != plumeVersion)
                 driver.updateVertexProperty(maybeMetaData.id(), META_DATA, VERSION, plumeVersion)
+            if (metaData.hash().get() == currentBuildHash) return false
+            else driver.updateVertexProperty(maybeMetaData.id(), META_DATA, HASH, currentBuildHash)
         } else {
-            driver.addVertex(NewMetaDataBuilder().language(LANGUAGE_FRONTEND).version(plumeVersion))
+            driver.addVertex(NewMetaDataBuilder()
+                .language(LANGUAGE_FRONTEND)
+                .version(plumeVersion)
+                .hash(Option.apply(currentBuildHash))
+            )
         }
+        return true
+    }
+
+    private fun getBuildDirectoryHash(): String {
+        val filesToHash = Vector<FileInputStream>()
+        File(COMP_DIR).walkTopDown().filterNot { it.isDirectory }.map { FileInputStream(it) }.toCollection(filesToHash)
+        return HashUtil.getHashFromInputStream(SequenceInputStream(filesToHash.elements())).toString()
     }
 
     /**
@@ -158,7 +185,6 @@ class Extractor(val driver: IDriver) {
      * are loaded.
      */
     fun project(): Extractor {
-        // TODO: Put artifact hash in the meta data
         /*
             Load and compile files then feed them into Soot
          */
@@ -168,10 +194,13 @@ class Extractor(val driver: IDriver) {
         val cs = mutableSetOf<SootClass>()
         val ms = mutableSetOf<SootMethod>()
         val compiledFiles = mutableSetOf<JavaClassFile>()
+        var artifactChanged = true
         PlumeTimer.measure(ExtractorTimeKey.COMPILING_AND_UNPACKING) {
             ResourceCompilationUtil.compileLoadedFiles(loadedFiles).toCollection(compiledFiles)
-            if (compiledFiles.isNotEmpty()) upsertMetaData()
+            if (compiledFiles.isNotEmpty())
+                artifactChanged = upsertMetaData()
         }
+        if (!artifactChanged) return apply { logger.info("No change in the artifact detected."); earlyStopCleanUp() }
         if (compiledFiles.isEmpty()) return apply { logger.info("No supported files detected."); earlyStopCleanUp() }
         logger.info("Loading all classes into Soot")
         PlumeTimer.measure(ExtractorTimeKey.SOOT) {
