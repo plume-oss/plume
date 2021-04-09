@@ -7,13 +7,16 @@ and this project adheres to [Semantic Versioning](http://semver.org/).
 
 ## [Unreleased]
 
+## [0.4.1] - 2021-04-09
+
 ### Added
 
-- Method bodies are now hashed and stored on the `Method` node
+- Method bodies are now hashed and stored on the `Method` node.
 - Finer updates on:
   - class modifier level, 
   - field type, value, modifier level, and
   - method level
+- The latest copyright on all class headers.
 
 ### Fixed
 
