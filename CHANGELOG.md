@@ -7,6 +7,8 @@ and this project adheres to [Semantic Versioning](http://semver.org/).
 
 ## [Unreleased]
 
+## [0.4.2] - 2021-04-09
+
 ### Added
 
 - Artifact hash under `MetaData`. If artifact has no change then project will end early.
