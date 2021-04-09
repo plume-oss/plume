@@ -88,6 +88,22 @@ class UpdateGraphTest {
     }
 
     @Test
+    fun testNoChange() {
+        listOf(testFile1, testFile2).forEach { extractor.load(it) }
+        extractor.project()
+        driver.getWholeGraph().use { g2 ->
+            assertEquals(
+                g1.nodes().asSequence().groupBy { it.label() }.mapValues { it.value.size }.toList(),
+                g2.nodes().asSequence().groupBy { it.label() }.mapValues { it.value.size }.toList()
+            )
+            assertEquals(
+                g1.edges().asSequence().groupBy { it.label() }.mapValues { it.value.size }.toList(),
+                g2.edges().asSequence().groupBy { it.label() }.mapValues { it.value.size }.toList()
+            )
+        }
+    }
+
+    @Test
     fun testMethodAdd() {
         val file1Update = rewriteFileContents(testFile1, testFile1MethodAdd)
         listOf(file1Update, testFile2).forEach { extractor.load(it) }

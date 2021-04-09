@@ -7,6 +7,14 @@ and this project adheres to [Semantic Versioning](http://semver.org/).
 
 ## [Unreleased]
 
+### Added
+
+- Artifact hash under `MetaData`. If artifact has no change then project will end early.
+
+### Fixed
+
+- In instances where classes are removed, their respective cached data is removed now too.
+
 ## [0.4.1] - 2021-04-09
 
 ### Added

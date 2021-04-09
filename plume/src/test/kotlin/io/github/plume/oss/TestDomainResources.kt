@@ -51,7 +51,7 @@ class TestDomainResources {
             NewLocalBuilder().code(STRING_1).typeFullName(STRING_1).name(STRING_1).order(INT_1)
                 .lineNumber(Option.apply(INT_1)).columnNumber(Option.apply(INT_1)),
             NewMemberBuilder().code(STRING_1).name(STRING_1).typeFullName(STRING_1).order(INT_1),
-            NewMetaDataBuilder().language(STRING_1).version(STRING_1),
+            NewMetaDataBuilder().language(STRING_1).version(STRING_1).hash(Option.apply(STRING_2)),
             NewMethodParameterInBuilder().code(STRING_1).evaluationStrategy(EVAL_1).typeFullName(STRING_1)
                 .name(STRING_1).order(INT_1).lineNumber(Option.apply(INT_1)).columnNumber(Option.apply(INT_1)),
             NewMethodRefBuilder().methodInstFullName(Option.apply(STRING_1)).methodFullName(STRING_1).code(STRING_1)
@@ -117,6 +117,7 @@ class TestDomainResources {
         val namespaceBlockVertex2: NewNamespaceBlockBuilder =
             NewNamespaceBlockBuilder().name(STRING_2).fullName(STRING_2).order(INT_1).filename(STRING_2)
         val metaDataVertex: NewMetaDataBuilder = NewMetaDataBuilder().language(STRING_1).version(STRING_2)
+            .hash(Option.apply(STRING_2))
         val controlStructureVertex: NewControlStructureBuilder =
             NewControlStructureBuilder().controlStructureType(STRING_2).code(STRING_1).lineNumber(Option.apply(INT_1))
                 .columnNumber(Option.apply(INT_1)).order(INT_1).argumentIndex(INT_1)
