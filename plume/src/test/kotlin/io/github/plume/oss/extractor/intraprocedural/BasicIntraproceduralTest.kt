@@ -131,16 +131,17 @@ class BasicIntraproceduralTest {
     @Test
     fun basic5Test() {
         val extractor = Extractor(driver)
-        val resourceDir = "${PATH.absolutePath}${File.separator}basic5${File.separator}Basic$currentTestNumber.java"
+        val basic5 = "${PATH.absolutePath}${File.separator}Basic$currentTestNumber.java"
+        val basic5Basic5 = "${PATH.absolutePath}${File.separator}basic5${File.separator}Basic$currentTestNumber.java"
         // Load test resource and project + export graph
-        val f = File(resourceDir)
-        extractor.load(f)
-        extractor.project()
+        val f1 = File(basic5)
+        val f2 = File(basic5Basic5)
+        extractor.load(f1).load(f2).project()
         g = driver.getWholeGraph()
         val ns = g.nodes().asSequence().toList()
         ns.filterIsInstance<NamespaceBlock>().let { nbv ->
             assertNotNull(nbv.find { it.name() == "intraprocedural.basic.basic5" })
-            assertEquals(5, nbv.toList().size)
+            assertEquals(6, nbv.toList().size)
         }
         ns.filterIsInstance<TypeDecl>().filter { !it.isExternal }.let { mrv ->
             assertNotNull(mrv.find { it.fullName() == "intraprocedural.basic.Basic5" })
@@ -148,7 +149,7 @@ class BasicIntraproceduralTest {
             assertNotNull(mrv.find { it.fullName() == "int" })
             assertNotNull(mrv.find { it.fullName() == "byte" })
             assertNotNull(mrv.find { it.fullName() == "java.lang.String[]" })
-            assertEquals(6, mrv.toList().size)
+            assertEquals(8, mrv.toList().size)
         }
         ns.filterIsInstance<Method>().filter { !it.isExternal }.let { mv ->
             assertNotNull(mv.find { it.fullName() == "intraprocedural.basic.Basic5.main:void(java.lang.String[])" })

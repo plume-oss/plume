@@ -52,15 +52,24 @@ class MarkClassForRebuild(private val driver: IDriver) {
         cache.tryGetFile(newCName)?.let { oldCNode: NewFileBuilder ->
             val currentCHash = PlumeStorage.getFileHash(c)
             logger.debug("Found an existing class with name ${c.name}")
-            return if (oldCNode.build().properties().get(HASH).get() != currentCHash) {
-                logger.debug("Class hashes differ, marking ${c.name} for rebuild.")
-                Pair(c, FileChange.UPDATE)
-            } else {
-                logger.debug("Classes are identical - no update necessary.")
-                Pair(c, FileChange.NOP)
+            val maybeOldHash = oldCNode.build().properties().get(HASH)
+            return when {
+                maybeOldHash.isDefined -> {
+                    if (maybeOldHash.get() != currentCHash) {
+                        logger.debug("Class hashes differ, marking ${c.name} for rebuild.")
+                        Pair(c, FileChange.UPDATE)
+                    } else {
+                        logger.trace("Classes are identical - no update necessary.")
+                        Pair(c, FileChange.NOP)
+                    }
+                }
+                else -> {
+                    logger.trace("Class is external, not need to rebuild.")
+                    Pair(c, FileChange.NOP)
+                }
             }
         }
-        logger.debug("No existing class for ${c.name} found.")
+        logger.trace("No existing class for ${c.name} found.")
         return Pair(c, FileChange.NEW)
     }
 

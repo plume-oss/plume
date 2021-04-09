@@ -14,6 +14,7 @@ import overflowdb.Graph
 import java.io.File
 import java.io.FileInputStream
 import java.io.FileOutputStream
+import io.shiftleft.codepropertygraph.generated.nodes.File as ODBFile
 
 class UpdateGraphTest {
 
@@ -57,7 +58,7 @@ class UpdateGraphTest {
             testFile1FieldUpdateValue = getTestResource("${TEST_PATH}UpdateTest1_FieldUpdateValue.txt")
             testFile1FieldUpdateModifier = getTestResource("${TEST_PATH}UpdateTest1_FieldUpdateModifier.txt")
             testFile1FieldUpdateType = getTestResource("${TEST_PATH}UpdateTest1_FieldUpdateType.txt")
-            testFile2ClassUpdateModifier  = getTestResource("${TEST_PATH}UpdateTest2_ClassUpdateModifier.txt")
+            testFile2ClassUpdateModifier = getTestResource("${TEST_PATH}UpdateTest2_ClassUpdateModifier.txt")
             extractor = Extractor(driver)
         }
 
@@ -198,10 +199,12 @@ class UpdateGraphTest {
                 g2.node(m2.id()).out(AST).asSequence().filterIsInstance<Modifier>().toCollection(modifiersG2)
             }
             assertTrue(modifiersG1.map { it.modifierType() }.contains(PRIVATE))
-            assertTrue(modifiersG2.map { it.modifierType() }.contains(PUBLIC)
-                    && modifiersG2.map { it.modifierType() }.contains(VIRTUAL))
-            assertTrue(g1.nodeCount() == g2.nodeCount() - 1)
-            assertTrue(g1.edgeCount() == g2.edgeCount() - 1)
+            assertTrue(
+                modifiersG2.map { it.modifierType() }.contains(PUBLIC)
+                        && modifiersG2.map { it.modifierType() }.contains(VIRTUAL)
+            )
+            assertEquals(g1.nodeCount(), g2.nodeCount() - 1)
+            assertEquals(g1.edgeCount(), g2.edgeCount() - 1)
         }
     }
 
@@ -215,8 +218,8 @@ class UpdateGraphTest {
             val membersG2 = g2.nodes().asSequence().filterIsInstance<Member>().toList()
             assertTrue(membersG1.any { it.name() == "i" && it.typeFullName() == "int" })
             assertTrue(membersG2.any { it.name() == "i" && it.typeFullName() == "double" })
-            assertEquals(g1.nodeCount(), g2.nodeCount() - 2)
-            assertEquals(g1.edgeCount(), g2.edgeCount() - 4)
+            assertEquals(g1.nodeCount(), g2.nodeCount())
+            assertEquals(g1.edgeCount(), g2.edgeCount() + 2)
         }
     }
 
@@ -236,11 +239,57 @@ class UpdateGraphTest {
             typeDeclG2.firstOrNull { it.name() == "UpdateTest2" }?.let { td2 ->
                 g2.node(td2.id()).out(AST).asSequence().filterIsInstance<Modifier>().toCollection(modifiersG2)
             }
-            assertTrue(modifiersG1.map { it.modifierType() }.contains(PUBLIC)
-                    && modifiersG1.map { it.modifierType() }.contains(VIRTUAL))
+            assertTrue(
+                modifiersG1.map { it.modifierType() }.contains(PUBLIC)
+                        && modifiersG1.map { it.modifierType() }.contains(VIRTUAL)
+            )
             assertTrue(modifiersG2.map { it.modifierType() }.contains(VIRTUAL))
-            assertEquals(g1.nodeCount(), g2.nodeCount() + 1)
-            assertEquals(g1.edgeCount(), g2.edgeCount() + 1)
+            assertEquals(g1.nodeCount(), g2.nodeCount() + 2)
+            assertEquals(g1.edgeCount(), g2.edgeCount() + 2)
+        }
+    }
+
+    @Test
+    fun testClassRemoval() {
+        listOf(testFile2).forEach { extractor.load(it) }
+        extractor.project()
+        driver.getWholeGraph().use { g2 ->
+            // Only meta data may be the only node with no edges
+            assertEquals(1, g2.nodes().asSequence().filter { it.both().asSequence().toList().isEmpty() }.toList().size)
+            val filesG1 = g1.nodes().asSequence().filterIsInstance<ODBFile>().toList()
+            val filesG2 = g2.nodes().asSequence().filterIsInstance<ODBFile>().toList()
+            val npbG1 = g1.nodes().asSequence().filterIsInstance<NamespaceBlock>().toList()
+            val npbG2 = g2.nodes().asSequence().filterIsInstance<NamespaceBlock>().toList()
+            val tdG1 = g1.nodes().asSequence().filterIsInstance<TypeDecl>().toList()
+            val tdG2 = g2.nodes().asSequence().filterIsInstance<TypeDecl>().toList()
+            val tG1 = g1.nodes().asSequence().filterIsInstance<Type>().toList()
+            val tG2 = g2.nodes().asSequence().filterIsInstance<Type>().toList()
+
+            fun cleanPathSeps(s: String) = s.replace("/", File.separator)
+
+            // Check files
+            assertTrue(filesG1.any { it.name() == cleanPathSeps("/extractor_tests/update_test/UpdateTest1.class") })
+            assertTrue(filesG1.any { it.name() == cleanPathSeps("/extractor_tests/update_test/UpdateTest2.class") })
+            assertFalse(filesG2.any { it.name() == cleanPathSeps("/extractor_tests/update_test/UpdateTest1.class") })
+            assertTrue(filesG2.any { it.name() == cleanPathSeps("/extractor_tests/update_test/UpdateTest2.class") })
+            // Check namespace blocks
+            assertTrue(npbG1.any { it.fullName() == cleanPathSeps("/extractor_tests/update_test/UpdateTest1.class:extractor_tests.update_test") })
+            assertTrue(npbG1.any { it.fullName() == cleanPathSeps("/extractor_tests/update_test/UpdateTest2.class:extractor_tests.update_test") })
+            assertFalse(npbG2.any { it.fullName() == cleanPathSeps("/extractor_tests/update_test/UpdateTest1.class:extractor_tests.update_test") })
+            assertTrue(npbG2.any { it.fullName() == cleanPathSeps("/extractor_tests/update_test/UpdateTest2.class:extractor_tests.update_test") })
+            // Check types
+            assertTrue(tG1.any { it.fullName() == "extractor_tests.update_test.UpdateTest1" })
+            assertTrue(tG1.any { it.fullName() == "extractor_tests.update_test.UpdateTest2" })
+            assertFalse(tG2.any { it.fullName() == "extractor_tests.update_test.UpdateTest1" })
+            assertTrue(tG2.any { it.fullName() == "extractor_tests.update_test.UpdateTest2" })
+            // Check type decl
+            assertTrue(tdG1.any { it.fullName() == "extractor_tests.update_test.UpdateTest2" })
+            assertTrue(tdG1.any { it.fullName() == "extractor_tests.update_test.UpdateTest2" })
+            assertFalse(tdG2.any { it.fullName() == "extractor_tests.update_test.UpdateTest1" })
+            assertTrue(tdG2.any { it.fullName() == "extractor_tests.update_test.UpdateTest2" })
+
+            assertTrue(g1.nodeCount() > g2.nodeCount())
+            assertTrue(g1.edgeCount() > g2.edgeCount())
         }
     }
 

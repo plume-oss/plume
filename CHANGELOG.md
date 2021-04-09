@@ -19,10 +19,12 @@ and this project adheres to [Semantic Versioning](http://semver.org/).
 
 - `order` of methods in the `MethodStubPass`.
 - `DynamicInvoke` bootstrap arguments are now projected.
+- External methods referenced in calls are now added too.
 
 ### Changed
 
 - Separated hash functions to into a new util class called `HashUtil`.
+- Plume now expects the whole artifact to be loaded in order to detect class removals.
 
 ## [0.4.0] - 2021-04-01
 

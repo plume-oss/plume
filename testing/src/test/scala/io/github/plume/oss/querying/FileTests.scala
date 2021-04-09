@@ -13,18 +13,18 @@ class FileTests extends PlumeCodeToCpgSuite {
       | class Foo { int bar() { return 1; } }
       |""".stripMargin
 
-  "should contain two file nodes in total with order=1 (java.lang.Object and a.b.Foo)" in {
-    cpg.file.order.l shouldBe List(0, 1, 1)
+  "should contain four file nodes in total with order=1 (java.lang.Object|Class|String and a.b.Foo)" in {
+    cpg.file.order.l shouldBe List(0, 1, 1, 1, 1)
     cpg.file.name(File.UNKNOWN).size shouldBe 1
-    cpg.file.nameNot(File.UNKNOWN).size shouldBe 2
+    cpg.file.nameNot(File.UNKNOWN).size shouldBe 4
   }
 
-  "should contain exactly two non-placeholder file with absolute path in `name`" in {
-    val List(x, y) = cpg.file.nameNot(File.UNKNOWN).l
-    x.name should startWith(JFile.separator)
-    x.hash.isDefined shouldBe true
-    y.name should startWith(JFile.separator)
-    y.hash.isDefined shouldBe false
+  "should contain exactly four non-placeholder file with absolute path in `name`" in {
+    val List(u, v, _, _) = cpg.file.nameNot(File.UNKNOWN).l
+    u.name should startWith(JFile.separator)
+    u.hash.isDefined shouldBe true
+    v.name should startWith(JFile.separator)
+    v.hash.isDefined shouldBe false
   }
 
   "should allow traversing from file to its namespace blocks" in {
@@ -36,7 +36,7 @@ class FileTests extends PlumeCodeToCpgSuite {
   }
 
   "should allow traversing from file to its type declarations via namespace block" in {
-    cpg.file.nameNot(File.UNKNOWN).typeDecl.name.toSet shouldBe Set("Foo", "Object")
+    cpg.file.nameNot(File.UNKNOWN).typeDecl.name.toSet shouldBe Set("Foo", "Object", "Class", "String")
   }
 
 }
