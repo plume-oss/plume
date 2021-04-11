@@ -165,10 +165,11 @@ class Extractor(val driver: IDriver) {
             if (metaData.hash().get() == currentBuildHash) return false
             else driver.updateVertexProperty(maybeMetaData.id(), META_DATA, HASH, currentBuildHash)
         } else {
-            driver.addVertex(NewMetaDataBuilder()
-                .language(LANGUAGE_FRONTEND)
-                .version(plumeVersion)
-                .hash(Option.apply(currentBuildHash))
+            driver.addVertex(
+                NewMetaDataBuilder()
+                    .language(LANGUAGE_FRONTEND)
+                    .version(plumeVersion)
+                    .hash(Option.apply(currentBuildHash))
             )
         }
         return true
@@ -337,20 +338,22 @@ class Extractor(val driver: IDriver) {
     }
 
     private fun getMethodsAndBuildBodies(cs: Set<SootClass>): Set<SootMethod> {
-        return cs.flatMap { it.methods }.map { it.retrieveActiveBody().method }.map { m ->
-            val ms = mutableSetOf(m)
-            if (ExtractorOptions.callGraphAlg != ExtractorOptions.CallGraphAlg.NONE) {
-                if (m.hasActiveBody()) {
-                    m.activeBody.units.filterIsInstance<InvokeStmt>()
-                        .mapNotNull { it.invokeExpr.methodRef.tryResolve() }
+        return cs.flatMap { it.methods }
+            .mapNotNull { runCatching { it.retrieveActiveBody() }.getOrNull()?.method }
+            .map { m ->
+                val ms = mutableSetOf(m)
+                if (ExtractorOptions.callGraphAlg != ExtractorOptions.CallGraphAlg.NONE) {
+                    if (m.hasActiveBody()) {
+                        m.activeBody.units.filterIsInstance<InvokeStmt>()
+                            .mapNotNull { it.invokeExpr.methodRef.tryResolve() }
+                            .toCollection(ms)
+                    }
+                    Scene.v().callGraph.edgesOutOf(m).asSequence()
+                        .map { it.tgt.method() }
                         .toCollection(ms)
                 }
-                Scene.v().callGraph.edgesOutOf(m).asSequence()
-                    .map { it.tgt.method() }
-                    .toCollection(ms)
-            }
-            ms.toSet()
-        }.flatten().toSet()
+                ms.toSet()
+            }.flatten().toSet()
     }
 
     private fun buildMethods(

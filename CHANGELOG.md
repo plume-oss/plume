@@ -7,6 +7,11 @@ and this project adheres to [Semantic Versioning](http://semver.org/).
 
 ## [Unreleased]
 
+### Fixed
+
+- Uncaught exceptions are sometimes thrown when looking for all methods that the program references.
+  These are now caught appropriately.
+
 ## [0.4.2] - 2021-04-09
 
 ### Added
