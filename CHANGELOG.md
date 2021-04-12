@@ -7,6 +7,8 @@ and this project adheres to [Semantic Versioning](http://semver.org/).
 
 ## [Unreleased]
 
+## [0.4.4] - 2021-04-12
+
 ### Added
 
 - `AST` and `CONTAINS` edges for external method stubs
