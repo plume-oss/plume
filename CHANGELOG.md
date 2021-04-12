@@ -7,6 +7,10 @@ and this project adheres to [Semantic Versioning](http://semver.org/).
 
 ## [Unreleased]
 
+### Added
+
+- `AST` and `CONTAINS` edges for external method stubs
+
 ### Fixed
 
 - Fixed a bug where `Call` vertices which were removed were being recreated under `CGPass`
