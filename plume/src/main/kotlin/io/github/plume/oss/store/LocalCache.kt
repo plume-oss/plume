@@ -80,6 +80,8 @@ object LocalCache {
     fun getFile(name: String): NewFileBuilder? = fileCache[name]
         .apply { if (this != null) CacheMetrics.cacheHit() else CacheMetrics.cacheMiss() }
 
+    fun removeNamespaceBlock(fullName: String) = namespaceBlockCache.remove(fullName)
+
     fun addNamespaceBlock(n: NewNamespaceBlockBuilder) = namespaceBlockCache.put(n.build().fullName(), n)
 
     fun getNamespaceBlock(name: String): NewNamespaceBlockBuilder? = namespaceBlockCache[name]

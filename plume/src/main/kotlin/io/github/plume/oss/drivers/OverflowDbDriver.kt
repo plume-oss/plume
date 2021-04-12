@@ -150,8 +150,6 @@ class OverflowDbDriver internal constructor() : IDriver {
     private fun createEdge(src: NewNodeBuilder, tgt: NewNodeBuilder, edge: String) {
         val srcNode = graph.node(src.id())
         val dstNode = graph.node(tgt.id())
-        if (!(srcNode.id() == src.id() && dstNode.id() == tgt.id()))
-            println("$srcNode ($src) -$edge-> $dstNode ($tgt)")
         try {
             srcNode.addEdge(edge, dstNode)
         } catch (exc: RuntimeException) {
@@ -174,12 +172,7 @@ class OverflowDbDriver internal constructor() : IDriver {
                 .toCollection(eDels)
         }
         PlumeTimer.measure(ExtractorTimeKey.DATABASE_WRITE) {
-            vAdds.forEach {
-                if (!exists(it)) {
-                    if (it.id() > 0L) logger.error("bruh")
-                    createVertex(it)
-                }
-            }
+            vAdds.forEach { if (!exists(it)) createVertex(it) }
             eAdds.forEach { if (!exists(it.src, it.dst, it.e)) createEdge(it.src, it.dst, it.e) }
             vDels.forEach { graph.node(it.id)?.let { rv -> graph.remove(rv) } }
             eDels.forEach { removeEdge(it.src, it.dst, it.e) }
