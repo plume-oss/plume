@@ -29,7 +29,6 @@ import io.shiftleft.codepropertygraph.generated.nodes.NewCallBuilder
 import io.shiftleft.codepropertygraph.generated.nodes.NewMethodBuilder
 import org.apache.logging.log4j.LogManager
 import org.apache.logging.log4j.Logger
-import overflowdb.Node
 import soot.SootClass
 import soot.SootMethod
 
@@ -99,22 +98,18 @@ class MarkMethodForRebuild(private val driver: IDriver) {
     }
 
     private fun saveCallEdges(methodFullName: String) {
-        // TODO: This method head oculd be getten better
-        driver.getMethod(methodFullName, false).use { g ->
-            g.nodes { it == Method.Label() }.asSequence().firstOrNull()?.let { m1: Node ->
-                val m2 = VertexMapper.mapToVertex(m1) as NewMethodBuilder
-                val m2Build = m2.build()
-                driver.getNeighbours(m2).use { ns ->
-                    if (ns.V(m1.id()).hasNext()) {
-                        ns.V(m1.id()).next().`in`(NodeTypes.CALL).asSequence()
-                            .filterIsInstance<Call>()
-                            .forEach {
-                                PlumeStorage.storeCallEdge(
-                                    m2Build.fullName(),
-                                    VertexMapper.mapToVertex(it) as NewCallBuilder
-                                )
-                            }
-                    }
+        cache.tryGetMethod(methodFullName)?.let { m1: NewMethodBuilder ->
+            val m1Build = m1.build()
+            driver.getNeighbours(m1).use { ns ->
+                if (ns.V(m1.id()).hasNext()) {
+                    ns.V(m1.id()).next().`in`(NodeTypes.CALL).asSequence()
+                        .filterIsInstance<Call>()
+                        .forEach {
+                            PlumeStorage.storeCallEdge(
+                                m1Build.fullName(),
+                                VertexMapper.mapToVertex(it) as NewCallBuilder
+                            )
+                        }
                 }
             }
         }

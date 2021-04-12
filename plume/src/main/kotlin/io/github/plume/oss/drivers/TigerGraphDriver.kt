@@ -26,8 +26,6 @@ import io.github.plume.oss.util.CodeControl
 import io.github.plume.oss.util.ExtractorConst
 import io.github.plume.oss.util.ExtractorConst.BOOLEAN_TYPES
 import io.github.plume.oss.util.ExtractorConst.INT_TYPES
-import io.github.plume.oss.util.ExtractorConst.TYPE_REFERENCED_EDGES
-import io.github.plume.oss.util.ExtractorConst.TYPE_REFERENCED_NODES
 import io.github.plume.oss.util.PlumeKeyProvider
 import io.shiftleft.codepropertygraph.generated.EdgeTypes
 import io.shiftleft.codepropertygraph.generated.NodeKeyNames
@@ -360,18 +358,8 @@ class TigerGraphDriver internal constructor() : IOverridenIdDriver, ISchemaSafeD
         }
     }
 
-    override fun getMethodNames(): List<String> {
-        val result = get("query/$GRAPH_NAME/getMethodNames").first() as JSONObject
-        return (result["@@names"] as JSONArray?)?.map { it.toString() }?.toList() ?: emptyList()
-    }
-
     override fun getProgramStructure(): Graph {
         val result = get("query/$GRAPH_NAME/getProgramStructure")
-        return payloadToGraph(result)
-    }
-
-    override fun getProgramTypeData(): Graph {
-        val result = get("query/$GRAPH_NAME/getProgramTypeData")
         return payloadToGraph(result)
     }
 
@@ -820,17 +808,6 @@ CREATE QUERY getMethod(STRING FULL_NAME) FOR GRAPH <GRAPH_NAME> SYNTAX v2 {
   PRINT @@edges;
 }
 
-CREATE QUERY getMethodNames() FOR GRAPH <GRAPH_NAME> {
-  SetAccum<STRING> @@names;
-  allV = {ANY};
-  
-  result = SELECT s
-           FROM allV:s
-           WHERE s.label == "$METHOD"
-           ACCUM @@names += s._$FULL_NAME;
-  PRINT @@names;
-}
-
 CREATE QUERY getProgramStructure() FOR GRAPH <GRAPH_NAME> SYNTAX v2 {
   SetAccum<EDGE> @@edges;
 
@@ -849,49 +826,6 @@ CREATE QUERY getProgramStructure() FOR GRAPH <GRAPH_NAME> SYNTAX v2 {
                FROM allVert -(_AST>:e)- :t
                WHERE t.label == "NAMESPACE_BLOCK"
                ACCUM @@edges += e;
-
-  PRINT allVert;
-  PRINT @@edges;
-}
-
-CREATE QUERY getProgramTypeData() FOR GRAPH <GRAPH_NAME> SYNTAX v2 {
-  SetAccum<EDGE> @@edges;
-  ListAccum<STRING> @@nodeKeys;
-  @@nodeKeys += [${TYPE_REFERENCED_NODES.joinToString(", ") { "\"$it\"" }}];
-
-  start = {CPG_VERT.*};
-  start = SELECT s
-          FROM start:s
-          WHERE @@nodeKeys.contains(s.label);
-  allVert = start;
-
-  start = SELECT t
-          FROM start:s -((${TYPE_REFERENCED_EDGES.joinToString("|") { s -> "_$s>" }}|${
-                TYPE_REFERENCED_EDGES.joinToString(
-                    "|"
-                ) { s -> "<_$s" }
-            }):e)- :t
-          WHERE @@nodeKeys.contains(t.label)
-          ACCUM @@edges += e;
-  allVert = allVert UNION start;
-  start = SELECT s
-          FROM start:s -((${TYPE_REFERENCED_EDGES.joinToString("|") { s -> "_$s>" }}|${
-                TYPE_REFERENCED_EDGES.joinToString(
-                    "|"
-                ) { s -> "<_$s" }
-            }):e)- :t
-          WHERE @@nodeKeys.contains(t.label)
-          ACCUM @@edges += e;
-  allVert = allVert UNION start;
-
-  finalEdges = SELECT t
-               FROM allVert -((${TYPE_REFERENCED_EDGES.joinToString("|") { s -> "_$s>" }}|${
-                TYPE_REFERENCED_EDGES.joinToString(
-                    "|"
-                ) { s -> "<_$s" }
-            }):e)- :t
-               ACCUM @@edges += e;
-  allVert = allVert UNION finalEdges;
 
   PRINT allVert;
   PRINT @@edges;

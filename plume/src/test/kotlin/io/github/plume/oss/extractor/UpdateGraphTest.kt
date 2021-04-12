@@ -193,8 +193,8 @@ class UpdateGraphTest {
             val membersG2 = g2.nodes().asSequence().filterIsInstance<Member>().toList()
             assertTrue(membersG1.any { it.name() == "i" && it.typeFullName() == "int" })
             assertTrue(membersG2.any { it.name() == "i" && it.typeFullName() == "int" })
-            assertTrue(g1.nodeCount() == g2.nodeCount())
-            assertTrue(g1.edgeCount() == g2.edgeCount())
+            assertEquals(g1.nodeCount(), g2.nodeCount())
+            assertEquals(g1.edgeCount(), g2.edgeCount())
         }
     }
 

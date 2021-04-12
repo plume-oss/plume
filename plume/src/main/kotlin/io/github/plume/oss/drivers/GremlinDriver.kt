@@ -21,8 +21,6 @@ import io.github.plume.oss.domain.mappers.VertexMapper.checkSchemaConstraints
 import io.github.plume.oss.domain.model.DeltaGraph
 import io.github.plume.oss.metrics.ExtractorTimeKey
 import io.github.plume.oss.metrics.PlumeTimer
-import io.github.plume.oss.util.ExtractorConst.TYPE_REFERENCED_EDGES
-import io.github.plume.oss.util.ExtractorConst.TYPE_REFERENCED_NODES
 import io.shiftleft.codepropertygraph.generated.EdgeTypes.AST
 import io.shiftleft.codepropertygraph.generated.NodeKeyNames.FULL_NAME
 import io.shiftleft.codepropertygraph.generated.NodeTypes.*
@@ -242,8 +240,6 @@ abstract class GremlinDriver : IDriver {
         return gremlinToPlume(methodSubgraph)
     }
 
-    override fun getMethodNames(): List<String> = getPropertyFromVertices(FULL_NAME, METHOD)
-
     private fun getMethodWithBody(fullName: String): overflowdb.Graph {
         val methodSubgraph: MutableList<Edge> = mutableListOf()
         PlumeTimer.measure(ExtractorTimeKey.DATABASE_READ) {
@@ -280,33 +276,6 @@ abstract class GremlinDriver : IDriver {
                 .by(un.unfold<Any>())
                 .toList()
                 .forEach { addNodeToODB(graph, VertexMapper.mapToVertex(mapVertexKeys(it))) }
-        }
-        return graph
-    }
-
-    override fun getProgramTypeData(): overflowdb.Graph {
-        val tes: MutableList<Edge> = mutableListOf()
-        PlumeTimer.measure(ExtractorTimeKey.DATABASE_READ) {
-            g.V().hasLabel(
-                TYPE_REFERENCED_NODES.first(),
-                *TYPE_REFERENCED_NODES.copyOfRange(1, TYPE_REFERENCED_NODES.size)
-            )
-                .bothE(
-                    TYPE_REFERENCED_EDGES.first(),
-                    *TYPE_REFERENCED_EDGES.copyOfRange(1, TYPE_REFERENCED_EDGES.size)
-                ).dedup().toList().toCollection(tes)
-        }
-        val graph = gremlinToPlume(tes)
-        PlumeTimer.measure(ExtractorTimeKey.DATABASE_READ) {
-            g.V().hasLabel(
-                TYPE_REFERENCED_NODES.first(),
-                *TYPE_REFERENCED_NODES.copyOfRange(1, TYPE_REFERENCED_NODES.size)
-            )
-                .unfold<Vertex>()
-                .valueMap<String>()
-                .with(WithOptions.tokens)
-                .by(un.unfold<Any>())
-                .toList().forEach { addNodeToODB(graph, VertexMapper.mapToVertex(mapVertexKeys(it))) }
         }
         return graph
     }

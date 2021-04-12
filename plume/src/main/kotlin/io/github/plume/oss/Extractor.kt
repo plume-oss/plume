@@ -198,8 +198,7 @@ class Extractor(val driver: IDriver) {
         var artifactChanged = true
         PlumeTimer.measure(ExtractorTimeKey.COMPILING_AND_UNPACKING) {
             ResourceCompilationUtil.compileLoadedFiles(loadedFiles).toCollection(compiledFiles)
-            if (compiledFiles.isNotEmpty())
-                artifactChanged = upsertMetaData()
+            if (compiledFiles.isNotEmpty()) artifactChanged = upsertMetaData()
         }
         if (!artifactChanged) return apply { logger.info("No change in the artifact detected."); earlyStopCleanUp() }
         if (compiledFiles.isEmpty()) return apply { logger.info("No supported files detected."); earlyStopCleanUp() }
@@ -219,7 +218,7 @@ class Extractor(val driver: IDriver) {
         PlumeTimer.measure(ExtractorTimeKey.PROGRAM_STRUCTURE_BUILDING) {
             // Remove classes no longer in the graph
             MarkClassForRemoval(driver).runPass(cs)
-            // Look for classes which need updates
+            // Only add classes which need to be updated or built new
             MarkClassForRebuild(driver).runPass(cs).toCollection(csToBuild)
         }
         cs.clear() // Done using cs
@@ -285,8 +284,9 @@ class Extractor(val driver: IDriver) {
             Build fields for TYPE_DECL
          */
         PlumeTimer.measure(ExtractorTimeKey.PROGRAM_STRUCTURE_BUILDING) {
-            val fieldsToBuild = MarkFieldForRebuild(driver).runPass(csToBuild.map { it.first })
-            MemberPass(driver).runPass(fieldsToBuild)
+            val updatedFields = MarkFieldForRebuild(driver).runPass(csToBuild.filter { it.second == FileChange.UPDATE }.map { it.first })
+            val newFields = csToBuild.filter { it.second == FileChange.NEW }.flatMap { it.first.fields }
+            MemberPass(driver).runPass(updatedFields + newFields)
         }
         /*
             Build external types

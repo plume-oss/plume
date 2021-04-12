@@ -551,19 +551,6 @@ class Neo4jDriverIntTest {
         }
 
         @Test
-        fun testGetProgramTypeData() {
-            g = driver.getProgramTypeData()
-            val nodeCounts = g.nodes().asSequence().groupBy { it.label() }.mapValues { it.value.count() }.toMutableMap()
-            assertEquals(2, nodeCounts.remove(NAMESPACE_BLOCK))
-            nodeCounts.forEach { (_, u) -> assertEquals(1, u) }
-            val edgeCounts = g.edges().asSequence().groupBy { it.label() }.mapValues { it.value.count() }.toMutableMap()
-            assertEquals(17, edgeCounts[AST])
-            assertEquals(1, edgeCounts[REF])
-            assertEquals(20, g.nodeCount())
-            assertEquals(18, g.edgeCount())
-        }
-
-        @Test
         fun testGetNeighbours() {
             g = driver.getNeighbours(fileVertex)
             val ns = g.nodes().asSequence().toList()

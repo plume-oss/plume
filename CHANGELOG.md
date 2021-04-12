@@ -7,6 +7,22 @@ and this project adheres to [Semantic Versioning](http://semver.org/).
 
 ## [Unreleased]
 
+### Added
+
+- `AST` and `CONTAINS` edges for external method stubs
+
+### Fixed
+
+- Fixed a bug where `Call` vertices which were removed were being recreated under `CGPass`
+- Associated `NamespaceBlock` also removed from cache during class removal.
+
+### Changed
+
+- New fields are not checked for rebuild and are immediately added. Only updated class fields are 
+  now checked.
+- Removed driver classes that were deprecated and due for removal
+- Removed unused constants
+
 ## [0.4.3] - 2021-04-11
 
 ### Fixed

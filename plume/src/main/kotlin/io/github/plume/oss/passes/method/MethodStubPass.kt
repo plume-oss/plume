@@ -119,6 +119,8 @@ class MethodStubPass(private val m: SootMethod) : IMethodPass {
         if (!m.declaringClass.isApplicationClass) {
             // Create a call-to-return for external classes
             val ret = projectReturnVertex(m.javaSourceStartLineNumber, m.javaSourceStartColumnNumber, childIdx++)
+            builder.addEdge(mtdVertex, ret, AST)
+            builder.addEdge(mtdVertex, ret, CONTAINS)
             builder.addEdge(mtdVertex, ret, CFG)
             builder.addEdge(ret, mtdRet, CFG)
             // Create method params manually

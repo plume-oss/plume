@@ -24,6 +24,7 @@ import io.shiftleft.codepropertygraph.generated.NodeKeyNames.FULL_NAME
 import io.shiftleft.codepropertygraph.generated.NodeTypes.*
 import io.shiftleft.codepropertygraph.generated.nodes.Member
 import io.shiftleft.codepropertygraph.generated.nodes.Method
+import io.shiftleft.codepropertygraph.generated.nodes.NamespaceBlock
 import io.shiftleft.codepropertygraph.generated.nodes.NewTypeDeclBuilder
 import org.apache.logging.log4j.LogManager
 import org.apache.logging.log4j.Logger
@@ -67,12 +68,16 @@ class MarkClassForRemoval(private val driver: IDriver) {
                 .forEach(::deleteField)
             // Delete FILE, NAMESPACE_BLOCK, TYPE, TYPE_DECL, MODIFIER
             g.nodes().asSequence()
-                .filterNot { it.label() == METHOD || it.label() == MEMBER }
+                .filterNot { it.label() == METHOD }
+                .filterNot { it.label() == MEMBER }
                 .forEach { driver.deleteVertex(it.id(), it.label()) }
             // Remove from cache if present
             LocalCache.removeFile(td.build().filename())
             LocalCache.removeType(td.build().fullName())
             LocalCache.removeTypeDecl(td.build().fullName())
+            g.nodes(NAMESPACE_BLOCK).asSequence().filterIsInstance<NamespaceBlock>().firstOrNull()?.let { nb ->
+                LocalCache.removeNamespaceBlock(nb.fullName())
+            }
         }
     }
 

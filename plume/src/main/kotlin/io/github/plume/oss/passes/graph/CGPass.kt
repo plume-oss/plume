@@ -100,7 +100,7 @@ class CGPass(private val g: BriefUnitGraph, private val driver: IDriver) : IUnit
         PlumeStorage.getCallsIn(mtd.fullName()).let { incomingVs ->
             if (incomingVs.isNotEmpty()) {
                 logger.debug("Saved call graph edges found - reconnecting incoming call graph edges")
-                incomingVs.forEach { inV -> builder.addEdge(inV, mtdV, CALL) }
+                incomingVs.filter(driver::exists).forEach { inV -> builder.addEdge(inV, mtdV, CALL) }
             } else {
                 logger.trace("No previous call graph edges were found")
             }
