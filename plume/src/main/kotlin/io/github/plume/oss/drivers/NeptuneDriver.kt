@@ -15,6 +15,7 @@
  */
 package io.github.plume.oss.drivers
 
+import io.github.plume.oss.domain.model.DeltaGraph
 import io.github.plume.oss.metrics.ExtractorTimeKey
 import io.github.plume.oss.metrics.PlumeTimer
 import io.github.plume.oss.store.LocalCache
@@ -176,6 +177,31 @@ class NeptuneDriver internal constructor() : GremlinDriver() {
         val id = props.getOrDefault("id", "null")
         idMapper.values.find { it == id }?.let { idL -> outM["id"] = idL }
         return outM
+    }
+
+    override fun bulkTransaction(dg: DeltaGraph) {
+        val vAdds = mutableListOf<NewNodeBuilder>()
+        val eAdds = mutableListOf<DeltaGraph.EdgeAdd>()
+        val vDels = mutableListOf<DeltaGraph.VertexDelete>()
+        val eDels = mutableListOf<DeltaGraph.EdgeDelete>()
+        PlumeTimer.measure(ExtractorTimeKey.DATABASE_READ) {
+            dg.changes.filterIsInstance<DeltaGraph.VertexAdd>().map { it.n }.toCollection(vAdds)
+            dg.changes.filterIsInstance<DeltaGraph.EdgeAdd>().toCollection(eAdds)
+            dg.changes.filterIsInstance<DeltaGraph.VertexDelete>().filter { g.V(idMapper[it.id]).hasNext() }
+                .toCollection(vDels)
+            dg.changes.filterIsInstance<DeltaGraph.EdgeDelete>().filter { exists(it.src, it.dst, it.e) }
+                .toCollection(eDels)
+        }
+        PlumeTimer.measure(ExtractorTimeKey.DATABASE_WRITE) {
+            val tx = if (graph.features().graph().supportsTransactions()) g.tx() else null
+            tx?.open()
+            vAdds.forEach { if (!exists(it)) createVertex(it) }
+            tx?.commit(); tx?.open()
+            eAdds.forEach { addEdge(it.src, it.dst, it.e) }
+            vDels.forEach { deleteVertex(it.id, it.label) }
+            eDels.forEach { findVertexTraversal(it.src).outE(it.e).where(un.otherV().V(findVertexTraversal(it.dst))).drop().iterate() }
+            tx?.commit()
+        }
     }
 
     override fun clearGraph(): GremlinDriver {
