@@ -22,10 +22,6 @@ import io.github.plume.oss.domain.mappers.VertexMapper.checkSchemaConstraints
 import io.github.plume.oss.domain.model.DeltaGraph
 import io.github.plume.oss.metrics.ExtractorTimeKey
 import io.github.plume.oss.metrics.PlumeTimer
-import io.github.plume.oss.util.ExtractorConst.TYPE_REFERENCED_EDGES
-import io.github.plume.oss.util.ExtractorConst.TYPE_REFERENCED_NODES
-import io.shiftleft.codepropertygraph.generated.NodeKeyNames.FULL_NAME
-import io.shiftleft.codepropertygraph.generated.NodeTypes.METHOD
 import io.shiftleft.codepropertygraph.generated.nodes.*
 import org.apache.logging.log4j.LogManager
 import overflowdb.*
@@ -154,6 +150,8 @@ class OverflowDbDriver internal constructor() : IDriver {
     private fun createEdge(src: NewNodeBuilder, tgt: NewNodeBuilder, edge: String) {
         val srcNode = graph.node(src.id())
         val dstNode = graph.node(tgt.id())
+        if (!(srcNode.id() == src.id() && dstNode.id() == tgt.id()))
+            println("$srcNode ($src) -$edge-> $dstNode ($tgt)")
         try {
             srcNode.addEdge(edge, dstNode)
         } catch (exc: RuntimeException) {
@@ -176,7 +174,12 @@ class OverflowDbDriver internal constructor() : IDriver {
                 .toCollection(eDels)
         }
         PlumeTimer.measure(ExtractorTimeKey.DATABASE_WRITE) {
-            vAdds.forEach { if (!exists(it)) createVertex(it) }
+            vAdds.forEach {
+                if (!exists(it)) {
+                    if (it.id() > 0L) logger.error("bruh")
+                    createVertex(it)
+                }
+            }
             eAdds.forEach { if (!exists(it.src, it.dst, it.e)) createEdge(it.src, it.dst, it.e) }
             vDels.forEach { graph.node(it.id)?.let { rv -> graph.remove(rv) } }
             eDels.forEach { removeEdge(it.src, it.dst, it.e) }
@@ -197,8 +200,6 @@ class OverflowDbDriver internal constructor() : IDriver {
         if (includeBody) return deepCopyGraph(Traversals.getMethod(graph, fullName))
         return deepCopyGraph(Traversals.getMethodStub(graph, fullName))
     }
-
-    override fun getMethodNames(): List<String> = getPropertyFromVertices(FULL_NAME, METHOD)
 
     private fun deepCopyGraph(edges: List<Edge>): Graph {
         val newGraph = newOverflowGraph()
@@ -241,38 +242,6 @@ class OverflowDbDriver internal constructor() : IDriver {
                 }
         }
         return g
-    }
-
-    override fun getProgramTypeData(): Graph {
-        val pg = newOverflowGraph()
-        PlumeTimer.measure(ExtractorTimeKey.DATABASE_READ) {
-            graph.nodes(*TYPE_REFERENCED_NODES).asSequence().forEach { n ->
-                // Add vertices
-                if (pg.node(n.id()) == null) {
-                    val node = pg.addNode(n.id(), n.label())
-                    n.propertyMap().forEach { (key, value) -> node.setProperty(key, value) }
-                }
-            }
-            TYPE_REFERENCED_EDGES.forEach { tre ->
-                graph.edges(tre).asSequence()
-                    .map { e ->
-                        val srcNode = if (pg.node(e.outNode().id()) == null) {
-                            val s = pg.addNode(e.outNode().id(), e.outNode().label())
-                            e.outNode().propertyMap().forEach { (key, value) -> s.setProperty(key as String, value) }; s
-                        } else {
-                            pg.node(e.outNode().id())
-                        }
-                        val dstNode = if (pg.node(e.inNode().id()) == null) {
-                            val d = pg.addNode(e.inNode().id(), e.inNode().label())
-                            e.inNode().propertyMap().forEach { (key, value) -> d.setProperty(key as String, value) }; d
-                        } else {
-                            pg.node(e.inNode().id())
-                        }
-                        Triple(srcNode, dstNode, e.label())
-                    }.forEach { (src, dst, e) -> pg.node(src.id()).addEdge(e, pg.node(dst.id())) }
-            }
-        }
-        return pg
     }
 
     override fun getNeighbours(v: NewNodeBuilder): Graph = deepCopyGraph(Traversals.getNeighbours(graph, v.id()))

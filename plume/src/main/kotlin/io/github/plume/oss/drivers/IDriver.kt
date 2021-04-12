@@ -101,31 +101,11 @@ interface IDriver : AutoCloseable {
     fun getMethod(fullName: String, includeBody: Boolean = false): Graph
 
     /**
-     * Obtains all method full names in the CPG. These can be used in [IDriver.getMethod].
-     *
-     * @return A list of all method full names.
-     */
-    @Deprecated("Use IDriver.getPropertyFromVertices(FULL_NAME, METHOD) instead. Will be removed in 0.4.0")
-    fun getMethodNames(): List<String>
-
-    /**
      * Obtains all program structure related vertices. These are NAMESPACE_BLOCK, FILE, and TYPE_DECL vertices.
      *
      * @return The [Graph] containing the program structure related sub-graphs.
      */
     fun getProgramStructure(): Graph
-
-    /**
-     * Obtains all the type references, declarations, and arguments of a program to their children and referenced
-     * vertices.
-     *
-     * @return The [Graph] containing the type data of the CPG.
-     */
-    @Deprecated(
-        "Too expensive of a query and should be done in parts with getProgramStructure. " +
-                "Will be removed in 0.4.0"
-    )
-    fun getProgramTypeData(): Graph
 
     /**
      * Given a vertex, returns a [Graph] representation of neighbouring vertices.
