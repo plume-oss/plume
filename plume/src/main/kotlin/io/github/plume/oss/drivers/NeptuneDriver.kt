@@ -15,11 +15,17 @@
  */
 package io.github.plume.oss.drivers
 
+import io.github.plume.oss.metrics.ExtractorTimeKey
+import io.github.plume.oss.metrics.PlumeTimer
+import io.github.plume.oss.store.LocalCache
+import io.github.plume.oss.store.PlumeStorage
 import io.shiftleft.codepropertygraph.generated.nodes.NewNodeBuilder
 import org.apache.logging.log4j.LogManager
 import org.apache.tinkerpop.gremlin.driver.Cluster
 import org.apache.tinkerpop.gremlin.driver.remote.DriverRemoteConnection
 import org.apache.tinkerpop.gremlin.process.traversal.AnonymousTraversalSource.traversal
+import org.apache.tinkerpop.gremlin.process.traversal.Order
+import org.apache.tinkerpop.gremlin.process.traversal.dsl.graph.GraphTraversal
 import org.apache.tinkerpop.gremlin.structure.Graph
 import org.apache.tinkerpop.gremlin.structure.T
 import org.apache.tinkerpop.gremlin.structure.Vertex
@@ -28,11 +34,13 @@ import org.apache.tinkerpop.gremlin.structure.Vertex
 /**
  * The driver used to connect to a remote Amazon Neptune instance.
  */
-class NeptuneDriver internal constructor() : GremlinOverriddenIdDriver() {
+class NeptuneDriver internal constructor() : GremlinDriver() {
     private val logger = LogManager.getLogger(NeptuneDriver::class.java)
 
     private val builder: Cluster.Builder = Cluster.build()
     private lateinit var cluster: Cluster
+    private val idMapper = mutableMapOf<Long, String>()
+    private var id: Long = 0
 
     init {
         builder.port(DEFAULT_PORT).enableSsl(true)
@@ -74,6 +82,21 @@ class NeptuneDriver internal constructor() : GremlinOverriddenIdDriver() {
         super.g = traversal().withRemote(DriverRemoteConnection.using(cluster))
         graph = g.graph
         connected = true
+        populateIdMapper()
+    }
+
+    /**
+     * When connecting to a database with a subgraph already loaded, create a mapping for existing graph data.
+     */
+    private fun populateIdMapper() {
+        val vCount = g.V().count().next()
+        var inc = 0L
+        val loadedIds = idMapper.values.toSet()
+        (1..vCount).chunked(10000).map { Pair(it.minOrNull() ?: 0L, it.maxOrNull() ?: 10000) }
+            .flatMap { (l, h) -> g.V().order().by(T.id, Order.asc).range(l, h).id().toList().map { it.toString() } }
+            .filterNot(loadedIds::contains)
+            .forEach { id -> idMapper[inc++] = id }
+        id = idMapper.keys.maxOrNull() ?: 0L
     }
 
     /**
@@ -88,7 +111,22 @@ class NeptuneDriver internal constructor() : GremlinOverriddenIdDriver() {
             connected = false
         } catch (e: Exception) {
             logger.warn("Exception thrown while attempting to close graph.", e)
+        } finally {
+            // Have to also clear the cache otherwise the IDs won't be mapped correctly
+            LocalCache.clear()
+            PlumeStorage.clear()
+            idMapper.clear()
         }
+    }
+
+    override fun findVertexTraversal(v: NewNodeBuilder): GraphTraversal<Vertex, Vertex> {
+        var result: GraphTraversal<Vertex, Vertex>? = null
+        PlumeTimer.measure(ExtractorTimeKey.DATABASE_READ) {
+            val strId = idMapper[v.id()]
+            result = if (strId != null) g.V(strId)
+            else g.V("null")
+        }
+        return result!!
     }
 
     /**
@@ -100,9 +138,11 @@ class NeptuneDriver internal constructor() : GremlinOverriddenIdDriver() {
      */
     override fun createVertex(v: NewNodeBuilder): Vertex {
         val propertyMap = prepareVertexProperties(v)
-        var traversalPointer = g.addV(v.build().label()).property(T.id, v.id())
+        var traversalPointer = g.addV(v.build().label())
         for ((key, value) in propertyMap) traversalPointer = traversalPointer.property(key, value)
-        return traversalPointer.next()
+        return traversalPointer.next().apply {
+            idMapper[id++] = this.id().toString()
+        }
     }
 
     companion object {
