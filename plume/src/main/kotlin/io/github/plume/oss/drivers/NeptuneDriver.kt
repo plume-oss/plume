@@ -26,6 +26,7 @@ import org.apache.tinkerpop.gremlin.driver.remote.DriverRemoteConnection
 import org.apache.tinkerpop.gremlin.process.traversal.AnonymousTraversalSource.traversal
 import org.apache.tinkerpop.gremlin.process.traversal.Order
 import org.apache.tinkerpop.gremlin.process.traversal.dsl.graph.GraphTraversal
+import org.apache.tinkerpop.gremlin.process.traversal.dsl.graph.`__` as un
 import org.apache.tinkerpop.gremlin.structure.Graph
 import org.apache.tinkerpop.gremlin.structure.T
 import org.apache.tinkerpop.gremlin.structure.Vertex
@@ -85,10 +86,16 @@ class NeptuneDriver internal constructor() : GremlinDriver() {
         populateIdMapper()
     }
 
+    private fun resetIdMapper() {
+        idMapper.clear()
+        idMapper[-1L] = "null"
+    }
+
     /**
      * When connecting to a database with a subgraph already loaded, create a mapping for existing graph data.
      */
     private fun populateIdMapper() {
+        resetIdMapper()
         val vCount = g.V().count().next()
         var inc = 0L
         val loadedIds = idMapper.values.toSet()
@@ -115,7 +122,7 @@ class NeptuneDriver internal constructor() : GremlinDriver() {
             // Have to also clear the cache otherwise the IDs won't be mapped correctly
             LocalCache.clear()
             PlumeStorage.clear()
-            idMapper.clear()
+            resetIdMapper()
         }
     }
 
@@ -143,6 +150,37 @@ class NeptuneDriver internal constructor() : GremlinDriver() {
         return traversalPointer.next().apply {
             idMapper[id++] = this.id().toString()
         }
+    }
+
+    override fun deleteVertex(id: Long, label: String?) {
+        val mappedId = idMapper[id]
+        var res = false
+        PlumeTimer.measure(ExtractorTimeKey.DATABASE_READ) { res = g.V(mappedId).hasNext() }
+        if (!res) return
+        PlumeTimer.measure(ExtractorTimeKey.DATABASE_WRITE) { g.V(mappedId).drop().iterate() }
+    }
+
+    override fun deleteEdge(src: NewNodeBuilder, tgt: NewNodeBuilder, edge: String) {
+        if (!exists(src, tgt, edge)) return
+        PlumeTimer.measure(ExtractorTimeKey.DATABASE_WRITE) {
+            val srcId = idMapper[src.id()]
+            val dstId = idMapper[tgt.id()]
+            g.V(srcId).outE(edge).where(un.otherV().hasId(dstId)).drop().iterate()
+        }
+    }
+
+    // This handles Neptune -> ODB
+    override fun mapVertexKeys(props: Map<Any, Any>): Map<String, Any> {
+        val outM = mutableMapOf<String, Any>()
+        props.filterKeys { it != "id" }.mapKeys { it.key.toString() }.toMap(outM)
+        val id = props.getOrDefault("id", "null")
+        idMapper.values.find { it == id }?.let { idL -> outM["id"] = idL }
+        return outM
+    }
+
+    override fun clearGraph(): GremlinDriver {
+        resetIdMapper()
+        return super.clearGraph()
     }
 
     companion object {

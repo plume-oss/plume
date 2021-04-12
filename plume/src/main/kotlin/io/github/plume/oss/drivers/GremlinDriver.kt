@@ -180,6 +180,7 @@ abstract class GremlinDriver : IDriver {
         return newVertex!!
     }
 
+    // TODO: This doesn't handle the Scala lists using the util
     protected open fun prepareVertexProperties(v: NewNodeBuilder): Map<String, Any> =
         CollectionConverters.MapHasAsJava(v.build().properties()).asJava()
             .mapValues { (_, value) ->
@@ -288,7 +289,7 @@ abstract class GremlinDriver : IDriver {
             n.properties().foreachEntry { key, value -> newNode.setProperty(key, value) }
         }
         PlumeTimer.measure(ExtractorTimeKey.DATABASE_READ) {
-            g.V(v.id())
+            findVertexTraversal(v)
                 .repeat(un.outE(AST).bothV())
                 .times(1)
                 .inE()
