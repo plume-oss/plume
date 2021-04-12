@@ -153,7 +153,7 @@ abstract class GremlinDriver : IDriver {
             tx?.commit(); tx?.open()
             eAdds.forEach { addEdge(it.src, it.dst, it.e) }
             vDels.forEach { deleteVertex(it.id, it.label) }
-            eDels.forEach { g.V(it.src.id()).outE(it.e).where(un.otherV().hasId(it.dst.id())).drop().iterate() }
+            eDels.forEach { findVertexTraversal(it.src).outE(it.e).where(un.otherV().V(findVertexTraversal(it.dst))).drop().iterate() }
             tx?.commit()
         }
     }
