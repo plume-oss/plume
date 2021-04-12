@@ -220,7 +220,7 @@ class Extractor(val driver: IDriver) {
             // Remove classes no longer in the graph
             MarkClassForRemoval(driver).runPass(appCs)
             // Only add classes which need to be updated or built new
-            MarkClassForRebuild(driver).runPass(appCs).toCollection(csToBuild)
+            MarkClassForRebuild(driver).runPass(cs).toCollection(csToBuild)
         }
         cs.clear() // Done using cs
         if (csToBuild.isEmpty()) return apply { logger.info("No new or changed files detected."); earlyStopCleanUp() }
