@@ -216,9 +216,8 @@ class Extractor(val driver: IDriver) {
         logger.info("Building internal program structure and type information")
         val csToBuild = mutableListOf<Pair<SootClass, FileChange>>()
         PlumeTimer.measure(ExtractorTimeKey.PROGRAM_STRUCTURE_BUILDING) {
-            val appCs = cs.filter { it.isApplicationClass }.toSet()
             // Remove classes no longer in the graph
-            MarkClassForRemoval(driver).runPass(appCs)
+            MarkClassForRemoval(driver).runPass(cs)
             // Only add classes which need to be updated or built new
             MarkClassForRebuild(driver).runPass(cs).toCollection(csToBuild)
         }

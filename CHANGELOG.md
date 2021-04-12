@@ -16,7 +16,6 @@ and this project adheres to [Semantic Versioning](http://semver.org/).
 
 - New fields are not checked for rebuild and are immediately added. Only updated class fields are 
   now checked.
-- Only classes in the application are now checked for removal
 - Removed driver classes that were deprecated and due for removal
 - Removed unused constants
 
