@@ -116,7 +116,7 @@ class MethodStubPass(private val m: SootMethod) : IMethodPass {
                 LocalCache.getType(this.build().typeFullName())?.let { void -> builder.addEdge(this, void, EVAL_TYPE) }
             }
         // Extrapolate certain information manually for external classes
-        if (!m.declaringClass.isApplicationClass) {
+        if (!m.declaringClass.isApplicationClass || m.isNative) {
             // Create a call-to-return for external classes
             val ret = projectReturnVertex(m.javaSourceStartLineNumber, m.javaSourceStartColumnNumber, childIdx++)
             builder.addEdge(mtdVertex, ret, CFG)

@@ -327,7 +327,7 @@ class Extractor(val driver: IDriver) {
             Method body level analysis - only done on new/updated methods
          */
         logger.info("Running data flow passes")
-        PlumeTimer.measure(ExtractorTimeKey.DATA_FLOW_PASS) { DataFlowPass(driver).runPass() }
+//        PlumeTimer.measure(ExtractorTimeKey.DATA_FLOW_PASS) { DataFlowPass(driver).runPass() }
         PlumeStorage.methodCpgs.clear()
         return this
     }
@@ -339,7 +339,6 @@ class Extractor(val driver: IDriver) {
 
     private fun getMethodsAndBuildBodies(cs: Set<SootClass>): Set<SootMethod> {
         return cs.flatMap { it.methods }
-            .mapNotNull { runCatching { it.retrieveActiveBody() }.getOrNull()?.method }
             .map { m ->
                 val ms = mutableSetOf(m)
                 if (ExtractorOptions.callGraphAlg != ExtractorOptions.CallGraphAlg.NONE) {
