@@ -165,7 +165,10 @@ class NeptuneDriver internal constructor() : GremlinDriver() {
     override fun deleteVertex(id: Long, label: String?) {
         val mappedId = idMapper[id]
         var res = false
-        PlumeTimer.measure(ExtractorTimeKey.DATABASE_READ) { res = g.V(mappedId).hasNext() }
+        PlumeTimer.measure(ExtractorTimeKey.DATABASE_READ) {
+            res = if (mappedId != null) g.V(mappedId).hasNext()
+            else false
+        }
         if (!res) return
         PlumeTimer.measure(ExtractorTimeKey.DATABASE_WRITE) { g.V(mappedId).drop().iterate() }
         idMapper.remove(id)
@@ -239,7 +242,7 @@ class NeptuneDriver internal constructor() : GremlinDriver() {
                 .map { VertexMapper.mapToVertex(mapVertexKeys(it)) }
                 .forEach { addNodeToODB(graph, it) }
             g.E().toList()
-                .map { e->
+                .map { e ->
                     Triple(
                         graph.node(idMapper.entries.find { it.value == e.outVertex().id() }!!.key),
                         graph.node(idMapper.entries.find { it.value == e.inVertex().id() }!!.key),
