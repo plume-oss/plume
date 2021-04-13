@@ -33,7 +33,6 @@ import org.apache.tinkerpop.gremlin.process.traversal.step.util.WithOptions
 import org.apache.tinkerpop.gremlin.structure.Graph
 import org.apache.tinkerpop.gremlin.structure.T
 import org.apache.tinkerpop.gremlin.structure.Vertex
-import overflowdb.Node
 import scala.collection.immutable.`$colon$colon`
 import scala.collection.immutable.`Nil$`
 import scala.jdk.CollectionConverters
@@ -97,6 +96,7 @@ class NeptuneDriver internal constructor() : GremlinDriver() {
     private fun resetIdMapper() {
         idMapper.clear()
         idMapper[-1L] = "null"
+        id = 0
     }
 
     /**
