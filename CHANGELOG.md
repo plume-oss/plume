@@ -7,6 +7,10 @@ and this project adheres to [Semantic Versioning](http://semver.org/).
 
 ## [Unreleased]
 
+### Fixed
+
+- Neptune driver by mapping `Long` IDs to Neptune's native `String` IDs
+
 ## [0.4.4] - 2021-04-12
 
 ### Added
