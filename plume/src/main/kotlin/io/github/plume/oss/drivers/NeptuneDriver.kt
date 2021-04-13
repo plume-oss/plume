@@ -183,7 +183,7 @@ class NeptuneDriver internal constructor() : GremlinDriver() {
         val outM = mutableMapOf<String, Any>()
         props.filterKeys { it != T.id }.mapKeys { it.key.toString() }.toMap(outM)
         val id = props.getOrDefault(T.id, "null")
-        idMapper.values.find { it == id }?.let { idL -> outM["id"] = idL }
+        idMapper.entries.find { it.value == id }?.let { idL -> outM["id"] = idL.key }
         println("------------")
         println(props)
         println(outM)
