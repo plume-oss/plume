@@ -209,7 +209,7 @@ jacocoTestReport {
         csv.enabled false
     }
     executionData test, extractorTest, tinkerGraphIntTest, overflowDbIntTest, janusGraphIntTest, tigerGraphIntTest,
-            neo4jIntTest
+            neo4jIntTest, neptuneIntTest
 }
 
 check.dependsOn jacocoTestCoverageVerification

@@ -11,6 +11,13 @@ and this project adheres to [Semantic Versioning](http://semver.org/).
 
 - `TigerGraphDriver` now has timeout as a configurable parameter.
 
+### Fixed
+
+- Neptune driver by mapping `Long` IDs to Neptune's native `String` IDs
+
+### Changed
+
+- Removed `GremlinOverriddenIdDriver` as it is no longer used.
 
 ## [0.4.4] - 2021-04-12
 

@@ -16,6 +16,7 @@
 package io.github.plume.oss.drivers
 
 import io.github.plume.oss.domain.exceptions.PlumeSchemaViolationException
+import io.github.plume.oss.domain.mappers.ListMapper
 import io.github.plume.oss.domain.mappers.VertexMapper
 import io.github.plume.oss.domain.mappers.VertexMapper.checkSchemaConstraints
 import io.github.plume.oss.domain.model.DeltaGraph
@@ -39,6 +40,7 @@ import org.apache.tinkerpop.gremlin.tinkergraph.structure.TinkerGraph
 import overflowdb.Config
 import overflowdb.Node
 import scala.collection.immutable.`$colon$colon`
+import scala.collection.immutable.`Nil$`
 import scala.jdk.CollectionConverters
 import java.util.*
 import io.shiftleft.codepropertygraph.generated.edges.Factories as EdgeFactories
@@ -138,24 +140,41 @@ abstract class GremlinDriver : IDriver {
         val eAdds = mutableListOf<DeltaGraph.EdgeAdd>()
         val vDels = mutableListOf<DeltaGraph.VertexDelete>()
         val eDels = mutableListOf<DeltaGraph.EdgeDelete>()
-        PlumeTimer.measure(ExtractorTimeKey.DATABASE_READ) {
-            dg.changes.filterIsInstance<DeltaGraph.VertexAdd>().map { it.n }.toCollection(vAdds)
-            dg.changes.filterIsInstance<DeltaGraph.EdgeAdd>().toCollection(eAdds)
-            dg.changes.filterIsInstance<DeltaGraph.VertexDelete>().filter { g.V(it.id).hasNext() }
-                .toCollection(vDels)
-            dg.changes.filterIsInstance<DeltaGraph.EdgeDelete>().filter { exists(it.src, it.dst, it.e) }
-                .toCollection(eDels)
+        PlumeTimer.measure(ExtractorTimeKey.DATABASE_READ) { bulkTxReads(dg, vAdds, eAdds, vDels, eDels)  }
+        PlumeTimer.measure(ExtractorTimeKey.DATABASE_WRITE) { bulkTxWrites(vAdds, eAdds, vDels, eDels) }
+    }
+
+    protected open fun bulkTxReads(
+        dg: DeltaGraph,
+        vAdds: MutableList<NewNodeBuilder>,
+        eAdds: MutableList<DeltaGraph.EdgeAdd>,
+        vDels: MutableList<DeltaGraph.VertexDelete>,
+        eDels: MutableList<DeltaGraph.EdgeDelete>,
+    ) {
+        dg.changes.filterIsInstance<DeltaGraph.VertexAdd>().map { it.n }.toCollection(vAdds)
+        dg.changes.filterIsInstance<DeltaGraph.EdgeAdd>().toCollection(eAdds)
+        dg.changes.filterIsInstance<DeltaGraph.VertexDelete>().filter { g.V(it.id).hasNext() }
+            .toCollection(vDels)
+        dg.changes.filterIsInstance<DeltaGraph.EdgeDelete>().filter { exists(it.src, it.dst, it.e) }
+            .toCollection(eDels)
+    }
+
+    protected open fun bulkTxWrites(
+        vAdds: MutableList<NewNodeBuilder>,
+        eAdds: MutableList<DeltaGraph.EdgeAdd>,
+        vDels: MutableList<DeltaGraph.VertexDelete>,
+        eDels: MutableList<DeltaGraph.EdgeDelete>,
+    ) {
+        val tx = if (graph.features().graph().supportsTransactions()) g.tx() else null
+        tx?.open()
+        vAdds.forEach { if (!exists(it)) createVertex(it) }
+        tx?.commit(); tx?.open()
+        eAdds.forEach { addEdge(it.src, it.dst, it.e) }
+        vDels.forEach { deleteVertex(it.id, it.label) }
+        eDels.forEach {
+            findVertexTraversal(it.src).outE(it.e).where(un.otherV().V(findVertexTraversal(it.dst))).drop().iterate()
         }
-        PlumeTimer.measure(ExtractorTimeKey.DATABASE_WRITE) {
-            val tx = if (graph.features().graph().supportsTransactions()) g.tx() else null
-            tx?.open()
-            vAdds.forEach { if (!exists(it)) createVertex(it) }
-            tx?.commit(); tx?.open()
-            eAdds.forEach { addEdge(it.src, it.dst, it.e) }
-            vDels.forEach { deleteVertex(it.id, it.label) }
-            eDels.forEach { g.V(it.src.id()).outE(it.e).where(un.otherV().hasId(it.dst.id())).drop().iterate() }
-            tx?.commit()
-        }
+        tx?.commit()
     }
 
     override fun clearGraph() = apply {
@@ -184,11 +203,11 @@ abstract class GremlinDriver : IDriver {
         CollectionConverters.MapHasAsJava(v.build().properties()).asJava()
             .mapValues { (_, value) ->
                 when (value) {
-                    is `$colon$colon`<*> -> value.head()
+                    is `$colon$colon`<*> -> ListMapper.scalaListToString(value)
+                    is `Nil$` -> ListMapper.scalaListToString(value)
                     else -> value
                 }
             }.toMap()
-
 
     /**
      * Wrapper method for creating an edge between two vertices.
@@ -288,7 +307,7 @@ abstract class GremlinDriver : IDriver {
             n.properties().foreachEntry { key, value -> newNode.setProperty(key, value) }
         }
         PlumeTimer.measure(ExtractorTimeKey.DATABASE_READ) {
-            g.V(v.id())
+            findVertexTraversal(v)
                 .repeat(un.outE(AST).bothV())
                 .times(1)
                 .inE()
@@ -429,7 +448,7 @@ abstract class GremlinDriver : IDriver {
         return overflowGraph
     }
 
-    private fun addNodeToODB(graph: overflowdb.Graph, nBuilder: NewNodeBuilder): Node? {
+    protected fun addNodeToODB(graph: overflowdb.Graph, nBuilder: NewNodeBuilder): Node? {
         val n = nBuilder.build()
         val maybeNode = graph.node(nBuilder.id())
         return if (maybeNode != null) return maybeNode
@@ -438,7 +457,7 @@ abstract class GremlinDriver : IDriver {
         }
     }
 
-    private fun newOverflowGraph(): overflowdb.Graph = overflowdb.Graph.open(
+    protected fun newOverflowGraph(): overflowdb.Graph = overflowdb.Graph.open(
         Config.withDefaults(),
         NodeFactories.allAsJava(),
         EdgeFactories.allAsJava()
