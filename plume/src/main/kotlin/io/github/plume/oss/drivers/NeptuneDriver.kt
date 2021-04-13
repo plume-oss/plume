@@ -166,6 +166,7 @@ class NeptuneDriver internal constructor() : GremlinDriver() {
         PlumeTimer.measure(ExtractorTimeKey.DATABASE_READ) { res = g.V(mappedId).hasNext() }
         if (!res) return
         PlumeTimer.measure(ExtractorTimeKey.DATABASE_WRITE) { g.V(mappedId).drop().iterate() }
+        idMapper.remove(id)
     }
 
     override fun deleteEdge(src: NewNodeBuilder, tgt: NewNodeBuilder, edge: String) {
@@ -180,9 +181,12 @@ class NeptuneDriver internal constructor() : GremlinDriver() {
     // This handles Neptune -> ODB
     override fun mapVertexKeys(props: Map<Any, Any>): Map<String, Any> {
         val outM = mutableMapOf<String, Any>()
-        props.filterKeys { it != "id" }.mapKeys { it.key.toString() }.toMap(outM)
-        val id = props.getOrDefault("id", "null")
+        props.filterKeys { it != T.id }.mapKeys { it.key.toString() }.toMap(outM)
+        val id = props.getOrDefault(T.id, "null")
         idMapper.values.find { it == id }?.let { idL -> outM["id"] = idL }
+        println("------------")
+        println(props)
+        println(outM)
         return outM
     }
 
