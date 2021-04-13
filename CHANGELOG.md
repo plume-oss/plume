@@ -7,6 +7,10 @@ and this project adheres to [Semantic Versioning](http://semver.org/).
 
 ## [Unreleased]
 
+### Added
+
+- `TigerGraphDriver` now has timeout as a configurable parameter.
+
 ### Fixed
 
 - Neptune driver by mapping `Long` IDs to Neptune's native `String` IDs
