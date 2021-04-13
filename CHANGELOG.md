@@ -7,6 +7,11 @@ and this project adheres to [Semantic Versioning](http://semver.org/).
 
 ## [Unreleased]
 
+### Added
+
+- `TigerGraphDriver` now has timeout as a configurable parameter.
+
+
 ## [0.4.4] - 2021-04-12
 
 ### Added

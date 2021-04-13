@@ -107,9 +107,9 @@ class TigerGraphDriver internal constructor() : IOverridenIdDriver, ISchemaSafeD
         private set
 
     /**
-     * The query timeout in milliseconds. Default 5 minutes.
+     * The query timeout in milliseconds. Default 30 seconds.
      */
-    var timeout: Int = 300 * 100
+    var timeout: Int = 30 * 100
         private set
 
     init {
