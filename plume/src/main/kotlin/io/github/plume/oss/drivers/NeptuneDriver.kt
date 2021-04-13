@@ -189,9 +189,6 @@ class NeptuneDriver internal constructor() : GremlinDriver() {
         props.filterKeys { it != T.id }.mapKeys { it.key.toString() }.toMap(outM)
         val id = props.getOrDefault(T.id, "null")
         idMapper.entries.find { it.value == id }?.let { idL -> outM["id"] = idL.key }
-        println("------------")
-        println(props)
-        println(outM)
         return outM
     }
 
