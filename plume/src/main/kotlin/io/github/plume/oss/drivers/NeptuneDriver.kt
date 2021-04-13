@@ -27,10 +27,10 @@ import org.apache.tinkerpop.gremlin.driver.remote.DriverRemoteConnection
 import org.apache.tinkerpop.gremlin.process.traversal.AnonymousTraversalSource.traversal
 import org.apache.tinkerpop.gremlin.process.traversal.Order
 import org.apache.tinkerpop.gremlin.process.traversal.dsl.graph.GraphTraversal
-import org.apache.tinkerpop.gremlin.process.traversal.dsl.graph.`__` as un
 import org.apache.tinkerpop.gremlin.structure.Graph
 import org.apache.tinkerpop.gremlin.structure.T
 import org.apache.tinkerpop.gremlin.structure.Vertex
+import org.apache.tinkerpop.gremlin.process.traversal.dsl.graph.`__` as un
 
 
 /**
@@ -179,29 +179,19 @@ class NeptuneDriver internal constructor() : GremlinDriver() {
         return outM
     }
 
-    override fun bulkTransaction(dg: DeltaGraph) {
-        val vAdds = mutableListOf<NewNodeBuilder>()
-        val eAdds = mutableListOf<DeltaGraph.EdgeAdd>()
-        val vDels = mutableListOf<DeltaGraph.VertexDelete>()
-        val eDels = mutableListOf<DeltaGraph.EdgeDelete>()
-        PlumeTimer.measure(ExtractorTimeKey.DATABASE_READ) {
-            dg.changes.filterIsInstance<DeltaGraph.VertexAdd>().map { it.n }.toCollection(vAdds)
-            dg.changes.filterIsInstance<DeltaGraph.EdgeAdd>().toCollection(eAdds)
-            dg.changes.filterIsInstance<DeltaGraph.VertexDelete>().filter { g.V(idMapper[it.id]).hasNext() }
-                .toCollection(vDels)
-            dg.changes.filterIsInstance<DeltaGraph.EdgeDelete>().filter { exists(it.src, it.dst, it.e) }
-                .toCollection(eDels)
-        }
-        PlumeTimer.measure(ExtractorTimeKey.DATABASE_WRITE) {
-            val tx = if (graph.features().graph().supportsTransactions()) g.tx() else null
-            tx?.open()
-            vAdds.forEach { if (!exists(it)) createVertex(it) }
-            tx?.commit(); tx?.open()
-            eAdds.forEach { addEdge(it.src, it.dst, it.e) }
-            vDels.forEach { deleteVertex(it.id, it.label) }
-            eDels.forEach { findVertexTraversal(it.src).outE(it.e).where(un.otherV().V(findVertexTraversal(it.dst))).drop().iterate() }
-            tx?.commit()
-        }
+    override fun bulkTxReads(
+        dg: DeltaGraph,
+        vAdds: MutableList<NewNodeBuilder>,
+        eAdds: MutableList<DeltaGraph.EdgeAdd>,
+        vDels: MutableList<DeltaGraph.VertexDelete>,
+        eDels: MutableList<DeltaGraph.EdgeDelete>,
+    ) {
+        dg.changes.filterIsInstance<DeltaGraph.VertexAdd>().map { it.n }.toCollection(vAdds)
+        dg.changes.filterIsInstance<DeltaGraph.EdgeAdd>().toCollection(eAdds)
+        dg.changes.filterIsInstance<DeltaGraph.VertexDelete>().filter { g.V(idMapper[it.id]).hasNext() }
+            .toCollection(vDels)
+        dg.changes.filterIsInstance<DeltaGraph.EdgeDelete>().filter { exists(it.src, it.dst, it.e) }
+            .toCollection(eDels)
     }
 
     override fun clearGraph(): GremlinDriver {

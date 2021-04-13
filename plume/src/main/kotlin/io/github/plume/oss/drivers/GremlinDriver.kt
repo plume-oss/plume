@@ -138,24 +138,41 @@ abstract class GremlinDriver : IDriver {
         val eAdds = mutableListOf<DeltaGraph.EdgeAdd>()
         val vDels = mutableListOf<DeltaGraph.VertexDelete>()
         val eDels = mutableListOf<DeltaGraph.EdgeDelete>()
-        PlumeTimer.measure(ExtractorTimeKey.DATABASE_READ) {
-            dg.changes.filterIsInstance<DeltaGraph.VertexAdd>().map { it.n }.toCollection(vAdds)
-            dg.changes.filterIsInstance<DeltaGraph.EdgeAdd>().toCollection(eAdds)
-            dg.changes.filterIsInstance<DeltaGraph.VertexDelete>().filter { g.V(it.id).hasNext() }
-                .toCollection(vDels)
-            dg.changes.filterIsInstance<DeltaGraph.EdgeDelete>().filter { exists(it.src, it.dst, it.e) }
-                .toCollection(eDels)
+        PlumeTimer.measure(ExtractorTimeKey.DATABASE_READ) { bulkTxReads(dg, vAdds, eAdds, vDels, eDels)  }
+        PlumeTimer.measure(ExtractorTimeKey.DATABASE_WRITE) { bulkTxWrites(vAdds, eAdds, vDels, eDels) }
+    }
+
+    protected open fun bulkTxReads(
+        dg: DeltaGraph,
+        vAdds: MutableList<NewNodeBuilder>,
+        eAdds: MutableList<DeltaGraph.EdgeAdd>,
+        vDels: MutableList<DeltaGraph.VertexDelete>,
+        eDels: MutableList<DeltaGraph.EdgeDelete>,
+    ) {
+        dg.changes.filterIsInstance<DeltaGraph.VertexAdd>().map { it.n }.toCollection(vAdds)
+        dg.changes.filterIsInstance<DeltaGraph.EdgeAdd>().toCollection(eAdds)
+        dg.changes.filterIsInstance<DeltaGraph.VertexDelete>().filter { g.V(it.id).hasNext() }
+            .toCollection(vDels)
+        dg.changes.filterIsInstance<DeltaGraph.EdgeDelete>().filter { exists(it.src, it.dst, it.e) }
+            .toCollection(eDels)
+    }
+
+    protected open fun bulkTxWrites(
+        vAdds: MutableList<NewNodeBuilder>,
+        eAdds: MutableList<DeltaGraph.EdgeAdd>,
+        vDels: MutableList<DeltaGraph.VertexDelete>,
+        eDels: MutableList<DeltaGraph.EdgeDelete>,
+    ) {
+        val tx = if (graph.features().graph().supportsTransactions()) g.tx() else null
+        tx?.open()
+        vAdds.forEach { if (!exists(it)) createVertex(it) }
+        tx?.commit(); tx?.open()
+        eAdds.forEach { addEdge(it.src, it.dst, it.e) }
+        vDels.forEach { deleteVertex(it.id, it.label) }
+        eDels.forEach {
+            findVertexTraversal(it.src).outE(it.e).where(un.otherV().V(findVertexTraversal(it.dst))).drop().iterate()
         }
-        PlumeTimer.measure(ExtractorTimeKey.DATABASE_WRITE) {
-            val tx = if (graph.features().graph().supportsTransactions()) g.tx() else null
-            tx?.open()
-            vAdds.forEach { if (!exists(it)) createVertex(it) }
-            tx?.commit(); tx?.open()
-            eAdds.forEach { addEdge(it.src, it.dst, it.e) }
-            vDels.forEach { deleteVertex(it.id, it.label) }
-            eDels.forEach { findVertexTraversal(it.src).outE(it.e).where(un.otherV().V(findVertexTraversal(it.dst))).drop().iterate() }
-            tx?.commit()
-        }
+        tx?.commit()
     }
 
     override fun clearGraph() = apply {
