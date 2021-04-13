@@ -106,6 +106,12 @@ class TigerGraphDriver internal constructor() : IOverridenIdDriver, ISchemaSafeD
     var authKey: String = ""
         private set
 
+    /**
+     * The query timeout in milliseconds. Default 5 minutes.
+     */
+    var timeout: Int = 300 * 100
+        private set
+
     init {
         api = "http://$hostname:$restPpPort"
     }
@@ -162,8 +168,17 @@ class TigerGraphDriver internal constructor() : IOverridenIdDriver, ISchemaSafeD
      *
      * An example of where this is used is in
      * [TigerGraph Cloud](https://docs-beta.tigergraph.com/cloud/tigergraph-cloud-faqs).
+     *
+     * @param value the token to be put in the request.
      */
     fun authKey(value: String): TigerGraphDriver = apply { authKey = value }
+
+    /**
+     * Sets the query timeout.
+     *
+     * @param value the timeout in milliseconds.
+     */
+    fun timeout(value: Int): TigerGraphDriver = apply { timeout = value }
 
     override fun addVertex(v: NewNodeBuilder) {
         val payload = mutableMapOf<String, Any>(
@@ -515,9 +530,9 @@ class TigerGraphDriver internal constructor() : IOverridenIdDriver, ISchemaSafeD
     }
 
     private fun headers(contentType: String = "application/json"): Map<String, String> = if (authKey.isBlank()) {
-        mapOf("Content-Type" to contentType)
+        mapOf("Content-Type" to contentType, "GSQL-TIMEOUT" to timeout.toString())
     } else {
-        mapOf("Content-Type" to contentType, "Authorization" to "Bearer $authKey")
+        mapOf("Content-Type" to contentType, "GSQL-TIMEOUT" to timeout.toString(), "Authorization" to "Bearer $authKey")
     }
 
     /**
