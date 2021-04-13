@@ -448,7 +448,7 @@ abstract class GremlinDriver : IDriver {
         return overflowGraph
     }
 
-    private fun addNodeToODB(graph: overflowdb.Graph, nBuilder: NewNodeBuilder): Node? {
+    protected fun addNodeToODB(graph: overflowdb.Graph, nBuilder: NewNodeBuilder): Node? {
         val n = nBuilder.build()
         val maybeNode = graph.node(nBuilder.id())
         return if (maybeNode != null) return maybeNode
@@ -457,7 +457,7 @@ abstract class GremlinDriver : IDriver {
         }
     }
 
-    private fun newOverflowGraph(): overflowdb.Graph = overflowdb.Graph.open(
+    protected fun newOverflowGraph(): overflowdb.Graph = overflowdb.Graph.open(
         Config.withDefaults(),
         NodeFactories.allAsJava(),
         EdgeFactories.allAsJava()

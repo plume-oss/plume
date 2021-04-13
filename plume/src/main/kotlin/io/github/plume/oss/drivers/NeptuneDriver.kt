@@ -16,6 +16,7 @@
 package io.github.plume.oss.drivers
 
 import io.github.plume.oss.domain.mappers.ListMapper
+import io.github.plume.oss.domain.mappers.VertexMapper
 import io.github.plume.oss.domain.model.DeltaGraph
 import io.github.plume.oss.metrics.ExtractorTimeKey
 import io.github.plume.oss.metrics.PlumeTimer
@@ -28,9 +29,11 @@ import org.apache.tinkerpop.gremlin.driver.remote.DriverRemoteConnection
 import org.apache.tinkerpop.gremlin.process.traversal.AnonymousTraversalSource.traversal
 import org.apache.tinkerpop.gremlin.process.traversal.Order
 import org.apache.tinkerpop.gremlin.process.traversal.dsl.graph.GraphTraversal
+import org.apache.tinkerpop.gremlin.process.traversal.step.util.WithOptions
 import org.apache.tinkerpop.gremlin.structure.Graph
 import org.apache.tinkerpop.gremlin.structure.T
 import org.apache.tinkerpop.gremlin.structure.Vertex
+import overflowdb.Node
 import scala.collection.immutable.`$colon$colon`
 import scala.collection.immutable.`Nil$`
 import scala.jdk.CollectionConverters
@@ -212,6 +215,36 @@ class NeptuneDriver internal constructor() : GremlinDriver() {
             .toCollection(vDels)
         dg.changes.filterIsInstance<DeltaGraph.EdgeDelete>().filter { exists(it.src, it.dst, it.e) }
             .toCollection(eDels)
+    }
+
+    override fun updateVertexProperty(id: Long, label: String?, key: String, value: Any) {
+        var res = false
+        PlumeTimer.measure(ExtractorTimeKey.DATABASE_READ) { res = g.V(idMapper[id]).hasNext() }
+        if (!res) return
+        PlumeTimer.measure(ExtractorTimeKey.DATABASE_WRITE) { g.V(idMapper[id]).property(key, value).iterate() }
+    }
+
+    override fun getWholeGraph(): overflowdb.Graph {
+        val graph = newOverflowGraph()
+        PlumeTimer.measure(ExtractorTimeKey.DATABASE_READ) {
+            g.V().valueMap<Any>()
+                .by(un.unfold<Any>())
+                .with(WithOptions.tokens).toList()
+                .map { VertexMapper.mapToVertex(mapVertexKeys(it)) }
+                .forEach { addNodeToODB(graph, it) }
+            g.E().toList()
+                .map { e->
+                    Triple(
+                        graph.node(idMapper.entries.find { it.value == e.outVertex().id() }!!.key),
+                        graph.node(idMapper.entries.find { it.value == e.inVertex().id() }!!.key),
+                        e.label()
+                    )
+                }
+                .forEach { (src, dst, e) ->
+                    src?.addEdge(e, dst)
+                }
+        }
+        return graph
     }
 
     override fun clearGraph(): GremlinDriver {
