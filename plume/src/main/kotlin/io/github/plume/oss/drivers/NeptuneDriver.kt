@@ -15,6 +15,7 @@
  */
 package io.github.plume.oss.drivers
 
+import io.github.plume.oss.domain.mappers.ListMapper
 import io.github.plume.oss.domain.model.DeltaGraph
 import io.github.plume.oss.metrics.ExtractorTimeKey
 import io.github.plume.oss.metrics.PlumeTimer
@@ -30,6 +31,9 @@ import org.apache.tinkerpop.gremlin.process.traversal.dsl.graph.GraphTraversal
 import org.apache.tinkerpop.gremlin.structure.Graph
 import org.apache.tinkerpop.gremlin.structure.T
 import org.apache.tinkerpop.gremlin.structure.Vertex
+import scala.collection.immutable.`$colon$colon`
+import scala.collection.immutable.`Nil$`
+import scala.jdk.CollectionConverters
 import org.apache.tinkerpop.gremlin.process.traversal.dsl.graph.`__` as un
 
 
@@ -177,6 +181,20 @@ class NeptuneDriver internal constructor() : GremlinDriver() {
         val id = props.getOrDefault("id", "null")
         idMapper.values.find { it == id }?.let { idL -> outM["id"] = idL }
         return outM
+    }
+
+    // This handles ODB -> Neptune
+    override fun prepareVertexProperties(v: NewNodeBuilder): Map<String, Any> {
+        val outMap = CollectionConverters.MapHasAsJava(v.build().properties()).asJava()
+            .mapValues { (_, value) ->
+                when (value) {
+                    is `$colon$colon`<*> -> ListMapper.scalaListToString(value)
+                    is `Nil$` -> ListMapper.scalaListToString(value)
+                    else -> value
+                }
+            }.toMutableMap()
+        outMap["id"] = idMapper[outMap["id"]]
+        return outMap
     }
 
     override fun bulkTxReads(

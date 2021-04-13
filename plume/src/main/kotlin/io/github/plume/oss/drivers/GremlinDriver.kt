@@ -16,6 +16,7 @@
 package io.github.plume.oss.drivers
 
 import io.github.plume.oss.domain.exceptions.PlumeSchemaViolationException
+import io.github.plume.oss.domain.mappers.ListMapper
 import io.github.plume.oss.domain.mappers.VertexMapper
 import io.github.plume.oss.domain.mappers.VertexMapper.checkSchemaConstraints
 import io.github.plume.oss.domain.model.DeltaGraph
@@ -39,6 +40,7 @@ import org.apache.tinkerpop.gremlin.tinkergraph.structure.TinkerGraph
 import overflowdb.Config
 import overflowdb.Node
 import scala.collection.immutable.`$colon$colon`
+import scala.collection.immutable.`Nil$`
 import scala.jdk.CollectionConverters
 import java.util.*
 import io.shiftleft.codepropertygraph.generated.edges.Factories as EdgeFactories
@@ -197,12 +199,12 @@ abstract class GremlinDriver : IDriver {
         return newVertex!!
     }
 
-    // TODO: This doesn't handle the Scala lists using the util
     protected open fun prepareVertexProperties(v: NewNodeBuilder): Map<String, Any> =
         CollectionConverters.MapHasAsJava(v.build().properties()).asJava()
             .mapValues { (_, value) ->
                 when (value) {
-                    is `$colon$colon`<*> -> value.head()
+                    is `$colon$colon`<*> -> ListMapper.scalaListToString(value)
+                    is `Nil$` -> ListMapper.scalaListToString(value)
                     else -> value
                 }
             }.toMap()
