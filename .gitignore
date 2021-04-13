@@ -17,8 +17,11 @@ gradle-app.setting
 .project
 .settings
 .classpath
-/src/test/resources/conf/SFSRootCAG2.pem
-/sootOutput/
+
+# Misc build
+/plume/src/test/resources/conf/SFSRootCAG2.pem
 /plume/build/
+!/plume/build/jacoco/neptuneIntTest.exec
+/sootOutput/
 /plume/sootOutput/
 /testing/build/
