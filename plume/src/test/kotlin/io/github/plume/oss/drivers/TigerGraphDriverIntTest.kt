@@ -70,6 +70,7 @@ class TigerGraphDriverIntTest {
                 .restPpPort(9000)
                 .gsqlPort(14240)
                 .secure(false)
+                .timeout(5 * 100)
             assertEquals("127.0.0.1", driver.hostname)
             assertEquals(9000, driver.restPpPort)
             assertEquals(false, driver.secure)
