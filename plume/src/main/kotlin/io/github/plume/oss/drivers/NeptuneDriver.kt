@@ -156,7 +156,9 @@ class NeptuneDriver internal constructor() : GremlinDriver() {
         var traversalPointer = g.addV(v.build().label())
         for ((key, value) in propertyMap) traversalPointer = traversalPointer.property(key, value)
         return traversalPointer.next().apply {
-            idMapper[id++] = this.id().toString()
+            val newId = id++
+            idMapper[newId] = this.id().toString()
+            v.id(newId)
         }
     }
 
