@@ -193,7 +193,9 @@ class NeptuneDriver internal constructor() : GremlinDriver() {
                     else -> value
                 }
             }.toMutableMap()
-        outMap["id"] = idMapper[outMap["id"]]
+        if (outMap.containsKey("id")) {
+            outMap["id"] = idMapper[outMap["id"]]
+        }
         return outMap
     }
 

@@ -209,7 +209,6 @@ abstract class GremlinDriver : IDriver {
                 }
             }.toMap()
 
-
     /**
      * Wrapper method for creating an edge between two vertices.
      *
