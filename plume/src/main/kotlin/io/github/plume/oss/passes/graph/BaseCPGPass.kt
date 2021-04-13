@@ -403,7 +403,7 @@ class BaseCPGPass(private val g: BriefUnitGraph) {
      * @return the [NewCall] constructed.
      */
     private fun projectCallVertex(unit: InvokeExpr, childIdx: Int): NewNodeBuilder {
-        val args = unit.args + if(unit is DynamicInvokeExpr) unit.bootstrapArgs else listOf()
+        val args = unit.args + if (unit is DynamicInvokeExpr) unit.bootstrapArgs else listOf()
         val signature = "${unit.type}(${unit.methodRef.parameterTypes.joinToString(separator = ",")})"
         val code = "${unit.methodRef.name}(${args.joinToString(separator = ", ")})"
         val callVertex = NewCallBuilder()

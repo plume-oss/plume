@@ -53,7 +53,7 @@ class CGPass(private val g: BriefUnitGraph, private val driver: IDriver) : IUnit
             val (fullName, _, _) = SootToPlumeUtil.methodToStrings(mtd)
             getMethodHead(fullName)?.let { reconnectPriorCallGraphEdges(it) }
             // Connect all calls to their methods
-            this.g.body.units.filterNot { it is IdentityStmt }.forEach(this::projectUnit)
+            this.g.body.units.forEach(this::projectUnit)
         } catch (e: Exception) {
             logger.warn("Unable to complete CGPass on ${g.body.method.name}. Partial changes will be saved.", e)
         }

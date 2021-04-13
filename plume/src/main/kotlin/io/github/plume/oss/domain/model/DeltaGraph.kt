@@ -64,7 +64,6 @@ class DeltaGraph private constructor(val changes: List<Delta>) {
                 val b = n.build()
                 val v = g.addNode(n.id(), b.label())
                 b.properties().foreachEntry { key, value -> v.setProperty(key, value) }
-                n.id(v.id())
                 return v
             }
             changes.filterIsInstance<VertexAdd>().forEach { d -> g.node(d.n.id()) ?: addNode(d.n) }
