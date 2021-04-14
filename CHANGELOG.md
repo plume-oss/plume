@@ -7,6 +7,8 @@ and this project adheres to [Semantic Versioning](http://semver.org/).
 
 ## [Unreleased]
 
+## [0.4.6] - 2021-04-14
+
 ### Fixed
 
 - `OverflowDbDriver`'s existence checking now also makes sure that the ID returned
