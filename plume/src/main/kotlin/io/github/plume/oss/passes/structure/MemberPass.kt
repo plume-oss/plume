@@ -17,6 +17,7 @@ package io.github.plume.oss.passes.structure
 
 import io.github.plume.oss.drivers.IDriver
 import io.github.plume.oss.store.DriverCache
+import io.github.plume.oss.util.ProgressBarUtil
 import io.github.plume.oss.util.SootParserUtil
 import io.shiftleft.codepropertygraph.generated.EdgeTypes.AST
 import io.shiftleft.codepropertygraph.generated.EdgeTypes.EVAL_TYPE
@@ -31,7 +32,11 @@ class MemberPass(private val driver: IDriver) {
     private val logger: Logger = LogManager.getLogger(MemberPass::javaClass)
     private val cache = DriverCache(driver)
 
-    fun runPass(fs: List<SootField>) = fs.forEach(::linkMembers)
+    fun runPass(fs: List<SootField>) {
+        ProgressBarUtil.runInsideProgressBar(
+            logger.level, "Fields", fs.size.toLong()
+        ) { pb -> fs.forEach { linkMembers(it); pb?.step() } }
+    }
 
     /*
      * TYPE_DECL -(AST)-> MEMBER

@@ -15,13 +15,12 @@
  */
 package io.github.plume.oss.passes.update
 
-import io.github.plume.oss.domain.mappers.VertexMapper
 import io.github.plume.oss.drivers.IDriver
 import io.github.plume.oss.store.DriverCache
 import io.github.plume.oss.store.PlumeStorage
 import io.github.plume.oss.util.HashUtil
 import io.github.plume.oss.util.SootToPlumeUtil
-import io.shiftleft.codepropertygraph.generated.NodeTypes
+import io.shiftleft.codepropertygraph.generated.EdgeTypes
 import io.shiftleft.codepropertygraph.generated.NodeTypes.METHOD
 import io.shiftleft.codepropertygraph.generated.nodes.Call
 import io.shiftleft.codepropertygraph.generated.nodes.Method
@@ -40,7 +39,6 @@ class MarkMethodForRebuild(private val driver: IDriver) {
 
     private val logger: Logger = LogManager.getLogger(MarkMethodForRebuild::javaClass)
     private val cache = DriverCache(driver)
-    private var methodsToDelete = 0
 
     /**
      * Given a set of classes, determines if its methods need to be updated or not.
@@ -52,7 +50,7 @@ class MarkMethodForRebuild(private val driver: IDriver) {
         val mPairs = ms.filter { it.isApplicationClass }.flatMap(::checkIfClassMethodsNeedUpdate).toList()
         val msToUpdate = mPairs.filter { it.second }
         if (msToUpdate.isNotEmpty())
-            logger.info("Methods to create/update is ${msToUpdate.size}. Methods to remove is $methodsToDelete.")
+            logger.debug("Methods to create/update is ${msToUpdate.size}.")
         return msToUpdate.map { it.first }.toSet()
     }
 
@@ -66,7 +64,7 @@ class MarkMethodForRebuild(private val driver: IDriver) {
                 g.nodes(METHOD).asSequence()
                     .filterIsInstance<Method>()
                     .filterNot { cmsNames.contains(it.fullName()) }
-                    .forEach { driver.deleteMethod(it.fullName()); methodsToDelete++ }
+                    .forEach { driver.deleteMethod(it.fullName()) }
             }
         }
         // Check for methods which need to be added or updated
@@ -88,7 +86,6 @@ class MarkMethodForRebuild(private val driver: IDriver) {
             } else {
                 saveCallEdges(fullName)
                 driver.deleteMethod(fullName)
-                methodsToDelete++
                 Pair(m, true)
             }
         } else {
@@ -101,16 +98,14 @@ class MarkMethodForRebuild(private val driver: IDriver) {
         cache.tryGetMethod(methodFullName)?.let { m1: NewMethodBuilder ->
             val m1Build = m1.build()
             driver.getNeighbours(m1).use { ns ->
-                if (ns.V(m1.id()).hasNext()) {
-                    ns.V(m1.id()).next().`in`(NodeTypes.CALL).asSequence()
-                        .filterIsInstance<Call>()
-                        .forEach {
-                            PlumeStorage.storeCallEdge(
-                                m1Build.fullName(),
-                                VertexMapper.mapToVertex(it) as NewCallBuilder
-                            )
-                        }
-                }
+                ns.nodes(METHOD).next().`in`(EdgeTypes.CALL).asSequence()
+                    .filterIsInstance<Call>()
+                    .forEach {
+                        PlumeStorage.storeCallEdge(
+                            m1Build.fullName(),
+                            NewCallBuilder().id(it.id())
+                        )
+                    }
             }
         }
     }

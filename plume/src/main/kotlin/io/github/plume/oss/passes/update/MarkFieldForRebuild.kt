@@ -52,7 +52,7 @@ class MarkFieldForRebuild(private val driver: IDriver) {
             .map { it.first }
             .toList()
         if (fieldsToCreate.isNotEmpty())
-            logger.info("Fields to create is ${fieldsToCreate.size}. Fields to remove is $fieldsToDelete.")
+            logger.debug("Number of changes fields are ${fieldsToCreate.size + fieldsToDelete}.")
         return fieldsToCreate
     }
 

@@ -28,7 +28,6 @@ import org.apache.logging.log4j.LogManager
 import soot.Scene
 import soot.Unit
 import soot.jimple.AssignStmt
-import soot.jimple.IdentityStmt
 import soot.jimple.InvokeExpr
 import soot.jimple.InvokeStmt
 import soot.jimple.toolkits.callgraph.Edge
@@ -53,7 +52,7 @@ class CGPass(private val g: BriefUnitGraph, private val driver: IDriver) : IUnit
             val (fullName, _, _) = SootToPlumeUtil.methodToStrings(mtd)
             getMethodHead(fullName)?.let { reconnectPriorCallGraphEdges(it) }
             // Connect all calls to their methods
-            this.g.body.units.filterNot { it is IdentityStmt }.forEach(this::projectUnit)
+            this.g.body.units.forEach(this::projectUnit)
         } catch (e: Exception) {
             logger.warn("Unable to complete CGPass on ${g.body.method.name}. Partial changes will be saved.", e)
         }
@@ -61,8 +60,6 @@ class CGPass(private val g: BriefUnitGraph, private val driver: IDriver) : IUnit
     }
 
     private fun projectUnit(unit: Unit) {
-        val cg = Scene.v().callGraph
-        val edges = cg.edgesOutOf(unit) as Iterator<Edge>
         // If Soot points to the assignment as the call source then this is most likely from one of the children
         val srcUnit = if (unit is AssignStmt) unit.rightOp else unit
         when (srcUnit) {
@@ -70,8 +67,9 @@ class CGPass(private val g: BriefUnitGraph, private val driver: IDriver) : IUnit
             is InvokeStmt -> PlumeStorage.getCall(srcUnit.invokeExpr)
             else -> null
         }?.let { callV ->
+            if (!driver.exists(callV)) return
             var foundAndConnectedCallTgt = false
-            edges.forEach { e: Edge ->
+            Scene.v().callGraph.edgesOutOf(unit).forEach { e: Edge ->
                 val (fullName, _, _) = SootToPlumeUtil.methodToStrings(e.tgt.method())
                 getMethodHead(fullName)?.let { tgtPlumeVertex ->
                     builder.addEdge(callV, tgtPlumeVertex, CALL)
@@ -100,7 +98,7 @@ class CGPass(private val g: BriefUnitGraph, private val driver: IDriver) : IUnit
         PlumeStorage.getCallsIn(mtd.fullName()).let { incomingVs ->
             if (incomingVs.isNotEmpty()) {
                 logger.debug("Saved call graph edges found - reconnecting incoming call graph edges")
-                incomingVs.filter(driver::exists).forEach { inV -> builder.addEdge(inV, mtdV, CALL) }
+                incomingVs.forEach { inV -> if (driver.exists(inV)) builder.addEdge(inV, mtdV, CALL) }
             } else {
                 logger.trace("No previous call graph edges were found")
             }

@@ -64,13 +64,12 @@ class DeltaGraph private constructor(val changes: List<Delta>) {
                 val b = n.build()
                 val v = g.addNode(n.id(), b.label())
                 b.properties().foreachEntry { key, value -> v.setProperty(key, value) }
-                n.id(v.id())
                 return v
             }
             changes.filterIsInstance<VertexAdd>().forEach { d -> g.node(d.n.id()) ?: addNode(d.n) }
             changes.filterIsInstance<EdgeAdd>().forEach { d ->
-                val src = if (g.node(d.src.id()) != null) g.node(d.src.id()) else addNode(d.src)
-                val dst = if (g.node(d.dst.id()) != null) g.node(d.dst.id()) else addNode(d.dst)
+                val src = g.node(d.src.id()) ?: addNode(d.src)
+                val dst = g.node(d.dst.id()) ?: addNode(d.dst)
                 src.addEdge(d.e, dst)
             }
             changes.filterIsInstance<VertexDelete>().forEach { d -> g.node(d.id)?.remove() }
