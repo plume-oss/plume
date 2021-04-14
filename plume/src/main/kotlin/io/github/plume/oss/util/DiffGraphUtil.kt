@@ -72,7 +72,7 @@ object DiffGraphUtil {
         }
     }
 
-    fun convertNode(n: Any): NewNodeBuilder? =
+    private fun convertNode(n: Any): NewNodeBuilder? =
         when (n) {
         is NewNode -> VertexMapper.mapToVertex(n)
         is Node -> VertexMapper.mapToVertex(n)

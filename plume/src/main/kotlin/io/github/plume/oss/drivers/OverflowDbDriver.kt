@@ -125,17 +125,22 @@ class OverflowDbDriver internal constructor() : IDriver {
 
     override fun exists(v: NewNodeBuilder): Boolean {
         var res = false
-        PlumeTimer.measure(ExtractorTimeKey.DATABASE_READ) { res = (graph.node(v.id()) != null) }
+        PlumeTimer.measure(ExtractorTimeKey.DATABASE_READ) {
+            val maybeN = graph.node(v.id())
+            res = (maybeN != null && maybeN.id() == v.id())
+        }
         return res
     }
 
     override fun exists(src: NewNodeBuilder, tgt: NewNodeBuilder, edge: String): Boolean {
         var res = false
         PlumeTimer.measure(ExtractorTimeKey.DATABASE_READ) {
-            val srcNode = graph.node(src.id())
-            val dstNode = graph.node(tgt.id())
-            if (srcNode != null && dstNode != null)
-                res = srcNode.out(edge).asSequence().toList().any { node -> node.id() == dstNode.id() }
+            if (exists(src) && exists(tgt)) {
+                val srcNode = graph.node(src.id())
+                val dstNode = graph.node(tgt.id())
+                if (srcNode != null && dstNode != null)
+                    res = srcNode.out(edge).asSequence().toList().any { node -> node.id() == dstNode.id() }
+            }
         }
         return res
     }
@@ -159,24 +164,10 @@ class OverflowDbDriver internal constructor() : IDriver {
     }
 
     override fun bulkTransaction(dg: DeltaGraph) {
-        val vAdds = mutableListOf<NewNodeBuilder>()
-        val eAdds = mutableListOf<DeltaGraph.EdgeAdd>()
-        val vDels = mutableListOf<DeltaGraph.VertexDelete>()
-        val eDels = mutableListOf<DeltaGraph.EdgeDelete>()
-        PlumeTimer.measure(ExtractorTimeKey.DATABASE_READ) {
-            dg.changes.filterIsInstance<DeltaGraph.VertexAdd>().map { it.n }.toCollection(vAdds)
-            dg.changes.filterIsInstance<DeltaGraph.EdgeAdd>().toCollection(eAdds)
-            dg.changes.filterIsInstance<DeltaGraph.VertexDelete>().filter { (graph.node(it.id) != null) }
-                .toCollection(vDels)
-            dg.changes.filterIsInstance<DeltaGraph.EdgeDelete>().filter { exists(it.src, it.dst, it.e) }
-                .toCollection(eDels)
-        }
-        PlumeTimer.measure(ExtractorTimeKey.DATABASE_WRITE) {
-            vAdds.forEach { if (!exists(it)) createVertex(it) }
-            eAdds.forEach { if (!exists(it.src, it.dst, it.e)) createEdge(it.src, it.dst, it.e) }
-            vDels.forEach { graph.node(it.id)?.let { rv -> graph.remove(rv) } }
-            eDels.forEach { removeEdge(it.src, it.dst, it.e) }
-        }
+        dg.changes.filterIsInstance<DeltaGraph.VertexAdd>().map { it.n }.forEach { addVertex(it) }
+        dg.changes.filterIsInstance<DeltaGraph.EdgeAdd>().forEach { addEdge(it.src, it.dst, it.e) }
+        dg.changes.filterIsInstance<DeltaGraph.VertexDelete>().forEach { deleteVertex(it.id, it.label) }
+        dg.changes.filterIsInstance<DeltaGraph.EdgeDelete>().forEach { deleteEdge(it.src, it.dst, it.e) }
     }
 
     override fun clearGraph(): IDriver = apply {

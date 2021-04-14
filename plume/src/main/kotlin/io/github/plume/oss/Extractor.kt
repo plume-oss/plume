@@ -44,6 +44,7 @@ import io.github.plume.oss.store.PlumeStorage
 import io.github.plume.oss.util.ExtractorConst.LANGUAGE_FRONTEND
 import io.github.plume.oss.util.ExtractorConst.plumeVersion
 import io.github.plume.oss.util.HashUtil
+import io.github.plume.oss.util.ProgressBarUtil
 import io.github.plume.oss.util.ResourceCompilationUtil
 import io.github.plume.oss.util.ResourceCompilationUtil.COMP_DIR
 import io.github.plume.oss.util.ResourceCompilationUtil.TEMP_DIR
@@ -57,9 +58,6 @@ import io.shiftleft.codepropertygraph.generated.nodes.NewMethodBuilder
 import kotlinx.coroutines.channels.Channel
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.runBlocking
-import me.tongfei.progressbar.ProgressBar
-import me.tongfei.progressbar.ProgressBarStyle
-import org.apache.logging.log4j.Level
 import org.apache.logging.log4j.LogManager
 import org.apache.logging.log4j.Logger
 import scala.Option
@@ -76,8 +74,6 @@ import java.io.SequenceInputStream
 import java.nio.file.Files
 import java.nio.file.Path
 import java.nio.file.Paths
-import java.time.Duration
-import java.time.temporal.ChronoUnit
 import java.util.*
 import java.util.concurrent.Executors
 import java.util.stream.Collectors
@@ -213,7 +209,7 @@ class Extractor(val driver: IDriver) {
         /*
             Build program structure and remove sub-graphs which need to be rebuilt
          */
-        logger.info("Building internal program structure and type information")
+        logger.info("Checking any classes already in the database require updates")
         val csToBuild = mutableListOf<Pair<SootClass, FileChange>>()
         PlumeTimer.measure(ExtractorTimeKey.PROGRAM_STRUCTURE_BUILDING) {
             // Remove classes no longer in the graph
@@ -223,23 +219,28 @@ class Extractor(val driver: IDriver) {
         }
         cs.clear() // Done using cs
         if (csToBuild.isEmpty()) return apply { logger.info("No new or changed files detected."); earlyStopCleanUp() }
+        logger.info("Building internal program structure and type information")
         PlumeTimer.measure(ExtractorTimeKey.PROGRAM_STRUCTURE_BUILDING) {
             pipeline(
                 FileAndPackagePass(driver)::runPass,
                 TypePass(driver)::runPass,
             ).invoke(csToBuild.filter { it.second == FileChange.NEW }.map { it.first })
         }
+        val methodsToBuild = mutableListOf<SootMethod>()
+        PlumeTimer.measure(ExtractorTimeKey.BASE_CPG_BUILDING) {
+            val csToUpdate = csToBuild.filter { it.second == FileChange.UPDATE }
+            if (csToUpdate.isNotEmpty()) {
+                logger.info("Determining if any existing methods require an update")
+                MarkMethodForRebuild(driver)
+                    .runPass(csToUpdate.map { it.first }.toSet())
+                    .toCollection(methodsToBuild)
+            }
+            csToBuild.filter { it.second == FileChange.NEW }.flatMap { it.first.methods }.toCollection(methodsToBuild)
+        }
         /*
             Build Soot Unit graphs and extract types
          */
         logger.info("Building UnitGraphs")
-        val methodsToBuild = mutableListOf<SootMethod>()
-        PlumeTimer.measure(ExtractorTimeKey.BASE_CPG_BUILDING) {
-            MarkMethodForRebuild(driver)
-                .runPass(csToBuild.filter { it.second == FileChange.UPDATE }.map { it.first }.toSet())
-                .toCollection(methodsToBuild)
-            csToBuild.filter { it.second == FileChange.NEW }.flatMap { it.first.methods }.toCollection(methodsToBuild)
-        }
         val sootUnitGraphs = mutableListOf<BriefUnitGraph>()
         PlumeTimer.measure(ExtractorTimeKey.SOOT) {
             constructUnitGraphs(methodsToBuild.filter { it.declaringClass.isApplicationClass })
@@ -270,11 +271,11 @@ class Extractor(val driver: IDriver) {
             val returns = sootUnitGraphs.map { it.body.method.returnType }.toSet()
             (fieldsAndRets + locals + returns).distinct().toCollection(ts)
         }
+        logger.debug("All referenced types: ${ts.groupBy { it.javaClass }.mapValues { it.value.size }}}")
         /*
             Build primitive type information
          */
         logger.info("Building primitive type information")
-        logger.debug("All referenced types: ${ts.groupBy { it.javaClass }.mapValues { it.value.size }}}")
         PlumeTimer.measure(ExtractorTimeKey.PROGRAM_STRUCTURE_BUILDING) {
             pipeline(
                 GlobalTypePass(driver)::runPass
@@ -284,19 +285,30 @@ class Extractor(val driver: IDriver) {
             Build fields for TYPE_DECL
          */
         PlumeTimer.measure(ExtractorTimeKey.PROGRAM_STRUCTURE_BUILDING) {
-            val updatedFields = MarkFieldForRebuild(driver).runPass(csToBuild.filter { it.second == FileChange.UPDATE }.map { it.first })
-            val newFields = csToBuild.filter { it.second == FileChange.NEW }.flatMap { it.first.fields }
-            MemberPass(driver).runPass(updatedFields + newFields)
+            val csToUpdate = csToBuild.filter { it.second == FileChange.UPDATE }
+            val fieldsToCreate = mutableListOf<SootField>()
+            if (csToUpdate.isNotEmpty()) {
+                logger.info("Determining if any existing fields require an update")
+                MarkFieldForRebuild(driver).runPass(csToBuild.filter { it.second == FileChange.UPDATE }
+                    .map { it.first })
+                    .toCollection(fieldsToCreate)
+            }
+            csToBuild.filter { it.second == FileChange.NEW }.flatMap { it.first.fields }.toCollection(fieldsToCreate)
+            val internalFields = fieldsToCreate.filter { it.declaringClass.isApplicationClass }.size
+            val externalFields = fieldsToCreate.filterNot { it.declaringClass.isApplicationClass }.size
+            logger.info("Building $internalFields internal $externalFields external and fields and attaching them to type declarations")
+            MemberPass(driver).runPass(fieldsToCreate)
         }
         /*
             Build external types
          */
-        logger.info("Building external program structure and type information")
         PlumeTimer.measure(ExtractorTimeKey.BASE_CPG_BUILDING) {
             val referencedTypes = ts.filterNot { it is PrimType }
                 .map { if (it is ArrayType) it.baseType else it } + parentToChildCs.map { it.first.type }
             val filteredExtTypes =
                 referencedTypes.minus(csToBuild.map { it.first.type }).filterIsInstance<RefType>().toList()
+            val externalClasses = filteredExtTypes.filter { it.hasSootClass() }.map { it.sootClass }.distinct().size
+            logger.info("Building external program structure and type information for $externalClasses external classes.")
             pipeline(
                 FileAndPackagePass(driver)::runPass,
                 ExternalTypePass(driver)::runPass,
@@ -385,7 +397,11 @@ class Extractor(val driver: IDriver) {
                             .forEach(threadPool::submit)
                     }
                     // Consumer: Receive delta graphs and write changes to the driver in serial
-                    runInsideProgressBar("Method Heads", headsToBuild.size.toLong()) { pb ->
+                    ProgressBarUtil.runInsideProgressBar(
+                        logger.level,
+                        "Method Heads",
+                        headsToBuild.size.toLong()
+                    ) { pb ->
                         runBlocking {
                             repeat(headsToBuild.size) {
                                 val dg = channel.receive()
@@ -414,7 +430,11 @@ class Extractor(val driver: IDriver) {
                             .forEach(threadPool::submit)
                     }
                     // Consumer: Receive delta graphs and write changes to the driver in serial
-                    runInsideProgressBar("Method Bodies", bodiesToBuild.size.toLong()) { pb ->
+                    ProgressBarUtil.runInsideProgressBar(
+                        logger.level,
+                        "Method Bodies",
+                        bodiesToBuild.size.toLong()
+                    ) { pb ->
                         runBlocking {
                             repeat(bodiesToBuild.size) { driver.bulkTransaction(channel.receive()); pb?.step() }
                         }
@@ -433,36 +453,19 @@ class Extractor(val driver: IDriver) {
                         bodiesToBuild.chunked(chunkSize).forEach { chunk -> buildCallGraph(chunk, channel) }
                     }
                     // Consumer: Receive delta graphs and write changes to the driver in serial
+                    var callCount = 0
                     runBlocking {
-                        repeat(bodiesToBuild.size) { driver.bulkTransaction(channel.receive()) }
+                        repeat(bodiesToBuild.size) {
+                            driver.bulkTransaction(channel.receive().apply {
+                                callCount += this.changes.filterIsInstance<DeltaGraph.EdgeAdd>().size
+                            })
+                        }
                     }
-                    logger.info("All ${bodiesToBuild.size} method calls have been applied to the driver")
+                    logger.info("All $callCount methods calls have been applied to the driver")
                 }
             }
         } finally {
             channel.close()
-        }
-    }
-
-    private fun runInsideProgressBar(pbName: String, barMax: Long, f: (pb: ProgressBar?) -> Unit) {
-        val level = logger.level
-        if (level >= Level.INFO) {
-            ProgressBar(
-                pbName,
-                barMax,
-                1000,
-                System.out,
-                ProgressBarStyle.ASCII,
-                "",
-                1,
-                false,
-                null,
-                ChronoUnit.SECONDS,
-                0L,
-                Duration.ZERO
-            ).use { pb -> f(pb) }
-        } else {
-            f(null)
         }
     }
 

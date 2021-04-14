@@ -7,6 +7,17 @@ and this project adheres to [Semantic Versioning](http://semver.org/).
 
 ## [Unreleased]
 
+### Fixed
+
+- `OverflowDbDriver`'s existence checking now also makes sure that the ID returned
+  matches the ID given.
+  
+### Changed
+
+- Indicating in the logging which number of each member being reported belongs to the
+  application or an external library.
+- Making a progress bar is now done via `ProgressBarUtil`.
+
 ## [0.4.5] - 2021-04-13
 
 ### Added
