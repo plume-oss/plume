@@ -47,6 +47,7 @@ class NeptuneDriver internal constructor() : GremlinDriver() {
     private val logger = LogManager.getLogger(NeptuneDriver::class.java)
 
     private val builder: Cluster.Builder = Cluster.build()
+    private var clearOnConnect = false
     private lateinit var cluster: Cluster
     private val idMapper = mutableMapOf<Long, String>()
     private var id: Long = 0
@@ -87,6 +88,11 @@ class NeptuneDriver internal constructor() : GremlinDriver() {
     fun keyCertChainFile(keyChainFile: String): NeptuneDriver = apply { builder.keyCertChainFile(keyChainFile) }
 
     /**
+     * Will tell the driver to clear the database on connection before reading in existing IDs.
+     */
+    fun clearOnConnect(clear: Boolean): NeptuneDriver = apply { clearOnConnect = clear }
+
+    /**
      * Connects to the graph database with the given configuration.
      * See [Amazon Documentation](https://docs.aws.amazon.com/neptune/latest/userguide/access-graph-gremlin-java.html).
      *
@@ -98,7 +104,8 @@ class NeptuneDriver internal constructor() : GremlinDriver() {
         super.g = traversal().withRemote(DriverRemoteConnection.using(cluster))
         graph = g.graph
         connected = true
-        populateIdMapper()
+        if (clearOnConnect) clearGraph()
+        else populateIdMapper()
     }
 
     private fun resetIdMapper() {
@@ -298,9 +305,16 @@ class NeptuneDriver internal constructor() : GremlinDriver() {
         return graph
     }
 
-    override fun clearGraph(): GremlinDriver {
+    override fun clearGraph() = apply {
         resetIdMapper()
-        return super.clearGraph()
+        PlumeTimer.measure(ExtractorTimeKey.DATABASE_WRITE) {
+            val noVs = g.V().count().next()
+            var deleted = 0L
+            while (deleted < noVs) {
+                g.V().sample(50).drop().iterate()
+                deleted += 50
+            }
+        }
     }
 
     companion object {

@@ -61,6 +61,7 @@ class NeptuneDriverIntTest {
                 .port(8182)
                 .keyCertChainFile("src/test/resources/conf/SFSRootCAG2.pem")
                 .workerPoolSize(4)
+                .clearOnConnect(true)
                 .connect()
         }
 
