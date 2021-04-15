@@ -22,6 +22,7 @@ import io.github.plume.oss.metrics.ExtractorTimeKey
 import io.github.plume.oss.metrics.PlumeTimer
 import io.github.plume.oss.store.LocalCache
 import io.github.plume.oss.store.PlumeStorage
+import io.github.plume.oss.util.ProgressBarUtil
 import io.shiftleft.codepropertygraph.generated.nodes.NewNodeBuilder
 import org.apache.logging.log4j.LogManager
 import org.apache.tinkerpop.gremlin.driver.Cluster
@@ -310,10 +311,15 @@ class NeptuneDriver internal constructor() : GremlinDriver() {
         PlumeTimer.measure(ExtractorTimeKey.DATABASE_WRITE) {
             val noVs = g.V().count().next()
             var deleted = 0L
-            while (deleted < noVs) {
-                g.V().sample(50).drop().iterate()
-                deleted += 50
+            val step = 100
+            ProgressBarUtil.runInsideProgressBar(logger.level, "Clearing Neptune", noVs) { pb ->
+                while (deleted < noVs) {
+                    g.V().sample(step).drop().iterate()
+                    deleted += step
+                    pb?.stepBy(step.toLong())
+                }
             }
+
         }
     }
 
