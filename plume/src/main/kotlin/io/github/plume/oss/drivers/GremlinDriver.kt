@@ -177,6 +177,7 @@ abstract class GremlinDriver : IDriver {
     }
 
     protected open fun bulkAddNodes(vs: List<NewNodeBuilder>) {
+        if (vs.isEmpty()) return
         var gPtr: GraphTraversal<*, *>? = null
         val addedVs = mutableMapOf<String, NewNodeBuilder>()
         vs.forEachIndexed { i, v ->
@@ -196,21 +197,29 @@ abstract class GremlinDriver : IDriver {
             2 -> gPtr?.select<Any>(keys.first(), keys[1])
             else -> gPtr?.select<Any>(keys.first(), keys[1], *keys.minus(keys.first()).minus(keys[1]).toTypedArray())
         }
-        val newVs = gPtr?.next() as LinkedHashMap<*, *>
+        val newVs = gPtr?.next()
         addedVs.forEach { (t, u) ->
-            when (val maybeV = newVs[t]) {
-                is Vertex -> assignId(u, maybeV)
-                else -> Unit
+            when (newVs) {
+                is LinkedHashMap<*, *> -> {
+                    when (val maybeV = newVs[t]) {
+                        is Vertex -> assignId(u, maybeV)
+                        else -> logger.warn("Unhandled result from bulk node add from map: ${maybeV?.javaClass}")
+                    }
+                }
+                is Vertex -> assignId(u, newVs)
+                else -> logger.warn("Unhandled result from bulk node add: ${newVs?.javaClass}")
             }
+
         }
     }
     
     protected open fun assignId(n: NewNodeBuilder, v: Vertex): NewNodeBuilder = n.id(v.id() as Long)
 
-    protected open fun bulkAddEdges(vs: List<DeltaGraph.EdgeAdd>) {
+    protected open fun bulkAddEdges(es: List<DeltaGraph.EdgeAdd>) {
+        if (es.isEmpty()) return
         var gPtr: GraphTraversal<*, *>? = null
         PlumeTimer.measure(ExtractorTimeKey.DATABASE_WRITE) {
-            vs.map { Triple(g.V(it.src.id()).next(), it.e, g.V(it.dst.id()).next()) }.forEach { (src, e, dst) ->
+            es.map { Triple(g.V(it.src.id()).next(), it.e, g.V(it.dst.id()).next()) }.forEach { (src, e, dst) ->
                 if (gPtr == null) gPtr = g.V(src).addE(e).to(dst)
                 else gPtr?.V(src)?.addE(e)?.to(dst)
             }

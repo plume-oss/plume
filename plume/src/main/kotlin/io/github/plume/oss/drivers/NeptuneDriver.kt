@@ -221,6 +221,7 @@ class NeptuneDriver internal constructor() : GremlinDriver() {
     }
 
     override fun bulkAddNodes(vs: List<NewNodeBuilder>) {
+        if (vs.isEmpty()) return
         var gPtr: GraphTraversal<*, *>? = null
         vs.forEach { v ->
             if (!exists(v)) {
@@ -234,10 +235,11 @@ class NeptuneDriver internal constructor() : GremlinDriver() {
         gPtr?.next()
     }
 
-    override fun bulkAddEdges(vs: List<DeltaGraph.EdgeAdd>) {
+    override fun bulkAddEdges(es: List<DeltaGraph.EdgeAdd>) {
+        if (es.isEmpty()) return
         var gPtr: GraphTraversal<*, *>? = null
         PlumeTimer.measure(ExtractorTimeKey.DATABASE_WRITE) {
-            vs.map { Triple(g.V(idMapper[it.src.id()]).next(), it.e, g.V(idMapper[it.dst.id()]).next()) }
+            es.map { Triple(g.V(idMapper[it.src.id()]).next(), it.e, g.V(idMapper[it.dst.id()]).next()) }
                 .forEach { (src, e, dst) ->
                     if (gPtr == null) gPtr = g.V(src).addE(e).to(dst)
                     else gPtr?.V(src)?.addE(e)?.to(dst)
