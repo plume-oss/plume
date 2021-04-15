@@ -43,6 +43,7 @@ import scala.collection.immutable.`$colon$colon`
 import scala.collection.immutable.`Nil$`
 import scala.jdk.CollectionConverters
 import java.util.*
+import kotlin.collections.LinkedHashMap
 import io.shiftleft.codepropertygraph.generated.edges.Factories as EdgeFactories
 import io.shiftleft.codepropertygraph.generated.nodes.Factories as NodeFactories
 import org.apache.tinkerpop.gremlin.process.traversal.dsl.graph.`__` as un
@@ -151,7 +152,8 @@ abstract class GremlinDriver : IDriver {
         vDels: MutableList<DeltaGraph.VertexDelete>,
         eDels: MutableList<DeltaGraph.EdgeDelete>,
     ) {
-        dg.changes.filterIsInstance<DeltaGraph.VertexAdd>().map { it.n }.toCollection(vAdds)
+        dg.changes.filterIsInstance<DeltaGraph.VertexAdd>().map { it.n }
+            .forEachIndexed { i, va -> if (vAdds.none { va === it }) vAdds.add(va.id(-(i + 1).toLong())) }
         dg.changes.filterIsInstance<DeltaGraph.EdgeAdd>().toCollection(eAdds)
         dg.changes.filterIsInstance<DeltaGraph.VertexDelete>().filter { g.V(it.id).hasNext() }
             .toCollection(vDels)
@@ -165,16 +167,39 @@ abstract class GremlinDriver : IDriver {
         vDels: MutableList<DeltaGraph.VertexDelete>,
         eDels: MutableList<DeltaGraph.EdgeDelete>,
     ) {
-        val tx = if (graph.features().graph().supportsTransactions()) g.tx() else null
-        tx?.open()
-        vAdds.forEach { if (!exists(it)) createVertex(it) }
-        tx?.commit(); tx?.open()
+        vAdds.chunked(50).forEach { vs ->
+            var gPtr: GraphTraversal<*, *>? = null
+            val addedVs = mutableMapOf<String, NewNodeBuilder>()
+            vs.forEachIndexed { i, v ->
+                if (!exists(v)) {
+                    PlumeTimer.measure(ExtractorTimeKey.DATABASE_WRITE) {
+                        if (gPtr == null) gPtr = g.addV(v.build().label())
+                        else gPtr?.addV(v.build().label())
+                        prepareVertexProperties(v).forEach { (k, v) -> gPtr?.property(k, v) }
+                        gPtr?.`as`("v$i")
+                        addedVs["v$i"] = v
+                    }
+                }
+            }
+            val keys = addedVs.keys.toList()
+            when (keys.size) {
+                1 -> gPtr?.select<Any>(keys.first())
+                2 -> gPtr?.select<Any>(keys.first(), keys[1])
+                else -> gPtr?.select<Any>(keys.first(), keys[1], *keys.minus(keys.first()).minus(keys[1]).toTypedArray())
+            }
+            val newVs = gPtr?.next() as LinkedHashMap<*, *>
+            addedVs.forEach { (t, u) ->
+                when (val maybeV = newVs[t]) {
+                    is Vertex -> u.id(maybeV.id() as Long)
+                    else -> Unit
+                }
+            }
+        }
         eAdds.forEach { addEdge(it.src, it.dst, it.e) }
         vDels.forEach { deleteVertex(it.id, it.label) }
         eDels.forEach {
             findVertexTraversal(it.src).outE(it.e).where(un.otherV().V(findVertexTraversal(it.dst))).drop().iterate()
         }
-        tx?.commit()
     }
 
     override fun clearGraph() = apply {
