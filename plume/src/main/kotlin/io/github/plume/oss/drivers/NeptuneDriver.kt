@@ -312,14 +312,16 @@ class NeptuneDriver internal constructor() : GremlinDriver() {
         PlumeTimer.measure(ExtractorTimeKey.DATABASE_READ) {
             noVs = g.V().count().next()
         }
-        PlumeTimer.measure(ExtractorTimeKey.DATABASE_WRITE) {
-            var deleted = 0L
-            val step = 100
-            ProgressBarUtil.runInsideProgressBar(logger.level, "Clearing Neptune", noVs) { pb ->
-                while (deleted < noVs) {
-                    g.V().sample(step).drop().iterate()
-                    deleted += step
-                    pb?.stepBy(step.toLong())
+        if (noVs > 0) {
+            PlumeTimer.measure(ExtractorTimeKey.DATABASE_WRITE) {
+                var deleted = 0L
+                val step = 100
+                ProgressBarUtil.runInsideProgressBar(logger.level, "Clearing Neptune", noVs) { pb ->
+                    while (deleted < noVs) {
+                        g.V().sample(step).drop().iterate()
+                        deleted += step
+                        pb?.stepBy(step.toLong())
+                    }
                 }
             }
         }
