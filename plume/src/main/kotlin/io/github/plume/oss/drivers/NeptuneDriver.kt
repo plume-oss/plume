@@ -52,7 +52,7 @@ class NeptuneDriver internal constructor() : GremlinDriver() {
     private var id: Long = 0
 
     init {
-        builder.port(DEFAULT_PORT).enableSsl(true)
+        builder.port(DEFAULT_PORT).enableSsl(true).workerPoolSize(DEFAULT_WORKERS)
     }
 
     /**
@@ -70,6 +70,13 @@ class NeptuneDriver internal constructor() : GremlinDriver() {
      * @param port the port number e.g. 8182
      */
     fun port(port: Int): NeptuneDriver = apply { builder.port(port) }
+
+    /**
+     * Set the number of Gremlin workers for the pool. Default is 4.
+     *
+     * @param numWorkers the number of workers to specify.
+     */
+    fun workerPoolSize(numWorkers: Int): NeptuneDriver = apply { builder.workerPoolSize(numWorkers) }
 
     /**
      * Sets the certificate to use by the [Cluster].
@@ -300,6 +307,11 @@ class NeptuneDriver internal constructor() : GremlinDriver() {
         /**
          * Default port number a remote Gremlin server.
          */
-        private const val DEFAULT_PORT = 8182
+        const val DEFAULT_PORT = 8182
+
+        /**
+         * Default number of Gremlin workers.
+         */
+        const val DEFAULT_WORKERS = 4
     }
 }
