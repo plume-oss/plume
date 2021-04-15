@@ -22,7 +22,6 @@ import io.github.plume.oss.metrics.ExtractorTimeKey
 import io.github.plume.oss.metrics.PlumeTimer
 import io.github.plume.oss.store.LocalCache
 import io.github.plume.oss.store.PlumeStorage
-import io.github.plume.oss.util.ProgressBarUtil
 import io.shiftleft.codepropertygraph.generated.nodes.NewNodeBuilder
 import org.apache.logging.log4j.LogManager
 import org.apache.tinkerpop.gremlin.driver.Cluster
@@ -54,7 +53,7 @@ class NeptuneDriver internal constructor() : GremlinDriver() {
     private var id: Long = 0
 
     init {
-        builder.port(DEFAULT_PORT).enableSsl(true).workerPoolSize(DEFAULT_WORKERS)
+        builder.port(DEFAULT_PORT).enableSsl(true)
     }
 
     /**
@@ -72,13 +71,6 @@ class NeptuneDriver internal constructor() : GremlinDriver() {
      * @param port the port number e.g. 8182
      */
     fun port(port: Int): NeptuneDriver = apply { builder.port(port) }
-
-    /**
-     * Set the number of Gremlin workers for the pool. Default is 4.
-     *
-     * @param numWorkers the number of workers to specify.
-     */
-    fun workerPoolSize(numWorkers: Int): NeptuneDriver = apply { builder.workerPoolSize(numWorkers) }
 
     /**
      * Sets the certificate to use by the [Cluster].
@@ -261,15 +253,21 @@ class NeptuneDriver internal constructor() : GremlinDriver() {
         vDels: MutableList<DeltaGraph.VertexDelete>,
         eDels: MutableList<DeltaGraph.EdgeDelete>,
     ) {
+        val temp = mutableListOf<NewNodeBuilder>()
         dg.changes.filterIsInstance<DeltaGraph.VertexAdd>().map { it.n }
-            .map {
-                if (it.id() < 0) {
-                    it.id(++id)
-                    idMapper[id] = UUID.randomUUID().toString()
-                }
-                it
-            }.toCollection(vAdds)
-        dg.changes.filterIsInstance<DeltaGraph.EdgeAdd>().filter { exists(it.src, it.dst, it.e) }.toCollection(eAdds)
+            .filterNot(::exists)
+            .forEachIndexed { i, va ->
+                if (temp.none { va === it }) temp.add(va.id(-(i + 1).toLong()))
+            }
+        temp.map {
+            if (it.id() < 0) {
+                it.id(++id)
+                idMapper[id] = UUID.randomUUID().toString()
+            }
+            it
+        }.toCollection(vAdds)
+        dg.changes.filterIsInstance<DeltaGraph.EdgeAdd>().filter { exists(it.src, it.dst, it.e) }
+            .toCollection(eAdds)
         dg.changes.filterIsInstance<DeltaGraph.VertexDelete>().filter { g.V(idMapper[it.id]).hasNext() }
             .toCollection(vDels)
         dg.changes.filterIsInstance<DeltaGraph.EdgeDelete>().filter { exists(it.src, it.dst, it.e) }
@@ -316,12 +314,9 @@ class NeptuneDriver internal constructor() : GremlinDriver() {
             PlumeTimer.measure(ExtractorTimeKey.DATABASE_WRITE) {
                 var deleted = 0L
                 val step = 100
-                ProgressBarUtil.runInsideProgressBar(logger.level, "Clearing Neptune", noVs) { pb ->
-                    while (deleted < noVs) {
-                        g.V().sample(step).drop().iterate()
-                        deleted += step
-                        pb?.stepBy(step.toLong())
-                    }
+                while (deleted < noVs) {
+                    g.V().sample(step).drop().iterate()
+                    deleted += step
                 }
             }
         }
@@ -332,10 +327,5 @@ class NeptuneDriver internal constructor() : GremlinDriver() {
          * Default port number a remote Gremlin server.
          */
         const val DEFAULT_PORT = 8182
-
-        /**
-         * Default number of Gremlin workers.
-         */
-        const val DEFAULT_WORKERS = 4
     }
 }

@@ -153,6 +153,7 @@ abstract class GremlinDriver : IDriver {
         eDels: MutableList<DeltaGraph.EdgeDelete>,
     ) {
         dg.changes.filterIsInstance<DeltaGraph.VertexAdd>().map { it.n }
+            .filterNot(::exists)
             .forEachIndexed { i, va -> if (vAdds.none { va === it }) vAdds.add(va.id(-(i + 1).toLong())) }
         dg.changes.filterIsInstance<DeltaGraph.EdgeAdd>().filter { !exists(it.src, it.dst, it.e) }.toCollection(eAdds)
         dg.changes.filterIsInstance<DeltaGraph.VertexDelete>().filter { g.V(it.id).hasNext() }

@@ -60,7 +60,6 @@ class NeptuneDriverIntTest {
                 .addHostnames(System.getenv("NEPTUNE_HOSTNAME") ?: "localhost")
                 .port(8182)
                 .keyCertChainFile("src/test/resources/conf/SFSRootCAG2.pem")
-                .workerPoolSize(16)
                 .clearOnConnect(true)
                 .connect()
         }
