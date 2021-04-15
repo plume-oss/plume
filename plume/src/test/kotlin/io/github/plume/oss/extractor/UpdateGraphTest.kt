@@ -135,9 +135,11 @@ class UpdateGraphTest {
 
     @Test
     fun testMethodUpdate() {
+        driver.exportGraph("/tmp/plume/u1.xml")
         val file2Update = rewriteFileContents(testFile2, testFile2MethodUpdate)
         listOf(testFile1, file2Update).forEach { extractor.load(it) }
         extractor.project()
+        driver.exportGraph("/tmp/plume/u2.xml")
         driver.getWholeGraph().use { g2 ->
             val literalsG1 = g1.nodes().asSequence().filterIsInstance<Literal>().toList()
             val literalsG2 = g2.nodes().asSequence().filterIsInstance<Literal>().toList()
@@ -146,6 +148,10 @@ class UpdateGraphTest {
             assertTrue(literalsG2.none { it.code() == "5" })
             assertTrue(literalsG1.none { it.code() == "9" })
             assertFalse(g1 == g2)
+            val g1s = g1.edges().asSequence().groupBy { it.label() }.mapValues { it.value.size }.toList()
+            val g2s = g2.edges().asSequence().groupBy { it.label() }.mapValues { it.value.size }.toList()
+            println(g1s)
+            println(g2s)
             assertEquals(g1.nodeCount(), g2.nodeCount())
             assertEquals(g1.edgeCount(), g2.edgeCount())
         }
