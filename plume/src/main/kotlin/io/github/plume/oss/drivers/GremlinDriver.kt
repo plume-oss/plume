@@ -154,7 +154,7 @@ abstract class GremlinDriver : IDriver {
     ) {
         dg.changes.filterIsInstance<DeltaGraph.VertexAdd>().map { it.n }
             .forEachIndexed { i, va -> if (vAdds.none { va === it }) vAdds.add(va.id(-(i + 1).toLong())) }
-        dg.changes.filterIsInstance<DeltaGraph.EdgeAdd>().toCollection(eAdds)
+        dg.changes.filterIsInstance<DeltaGraph.EdgeAdd>().filter { !exists(it.src, it.dst, it.e) }.toCollection(eAdds)
         dg.changes.filterIsInstance<DeltaGraph.VertexDelete>().filter { g.V(it.id).hasNext() }
             .toCollection(vDels)
         dg.changes.filterIsInstance<DeltaGraph.EdgeDelete>().filter { exists(it.src, it.dst, it.e) }
@@ -167,39 +167,52 @@ abstract class GremlinDriver : IDriver {
         vDels: MutableList<DeltaGraph.VertexDelete>,
         eDels: MutableList<DeltaGraph.EdgeDelete>,
     ) {
-        vAdds.chunked(50).forEach { vs ->
-            var gPtr: GraphTraversal<*, *>? = null
-            val addedVs = mutableMapOf<String, NewNodeBuilder>()
-            vs.forEachIndexed { i, v ->
-                if (!exists(v)) {
-                    PlumeTimer.measure(ExtractorTimeKey.DATABASE_WRITE) {
-                        if (gPtr == null) gPtr = g.addV(v.build().label())
-                        else gPtr?.addV(v.build().label())
-                        prepareVertexProperties(v).forEach { (k, v) -> gPtr?.property(k, v) }
-                        gPtr?.`as`("v$i")
-                        addedVs["v$i"] = v
-                    }
-                }
-            }
-            val keys = addedVs.keys.toList()
-            when (keys.size) {
-                1 -> gPtr?.select<Any>(keys.first())
-                2 -> gPtr?.select<Any>(keys.first(), keys[1])
-                else -> gPtr?.select<Any>(keys.first(), keys[1], *keys.minus(keys.first()).minus(keys[1]).toTypedArray())
-            }
-            val newVs = gPtr?.next() as LinkedHashMap<*, *>
-            addedVs.forEach { (t, u) ->
-                when (val maybeV = newVs[t]) {
-                    is Vertex -> u.id(maybeV.id() as Long)
-                    else -> Unit
-                }
-            }
-        }
-        eAdds.forEach { addEdge(it.src, it.dst, it.e) }
+        vAdds.chunked(50).forEach { vs -> bulkAddNodes(vs) }
+        eAdds.chunked(50).forEach { es -> bulkAddEdges(es) }
         vDels.forEach { deleteVertex(it.id, it.label) }
         eDels.forEach {
             findVertexTraversal(it.src).outE(it.e).where(un.otherV().V(findVertexTraversal(it.dst))).drop().iterate()
         }
+    }
+
+    protected open fun bulkAddNodes(vs: List<NewNodeBuilder>) {
+        var gPtr: GraphTraversal<*, *>? = null
+        val addedVs = mutableMapOf<String, NewNodeBuilder>()
+        vs.forEachIndexed { i, v ->
+            if (!exists(v)) {
+                PlumeTimer.measure(ExtractorTimeKey.DATABASE_WRITE) {
+                    if (gPtr == null) gPtr = g.addV(v.build().label())
+                    else gPtr?.addV(v.build().label())
+                    prepareVertexProperties(v).forEach { (k, v) -> gPtr?.property(k, v) }
+                    gPtr?.`as`("v$i")
+                    addedVs["v$i"] = v
+                }
+            }
+        }
+        val keys = addedVs.keys.toList()
+        when (keys.size) {
+            1 -> gPtr?.select<Any>(keys.first())
+            2 -> gPtr?.select<Any>(keys.first(), keys[1])
+            else -> gPtr?.select<Any>(keys.first(), keys[1], *keys.minus(keys.first()).minus(keys[1]).toTypedArray())
+        }
+        val newVs = gPtr?.next() as LinkedHashMap<*, *>
+        addedVs.forEach { (t, u) ->
+            when (val maybeV = newVs[t]) {
+                is Vertex -> u.id(maybeV.id() as Long)
+                else -> Unit
+            }
+        }
+    }
+
+    protected open fun bulkAddEdges(vs: List<DeltaGraph.EdgeAdd>) {
+        var gPtr: GraphTraversal<*, *>? = null
+        PlumeTimer.measure(ExtractorTimeKey.DATABASE_WRITE) {
+            vs.map { Triple(g.V(it.src.id()).next(), it.e, g.V(it.dst.id()).next()) }.forEach { (src, e, dst) ->
+                if (gPtr == null) gPtr = g.V(src).addE(e).to(dst)
+                else gPtr?.V(src)?.addE(e)?.to(dst)
+            }
+        }
+        gPtr?.next()
     }
 
     override fun clearGraph() = apply {
