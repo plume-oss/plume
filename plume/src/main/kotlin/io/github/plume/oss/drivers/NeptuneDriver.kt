@@ -308,8 +308,11 @@ class NeptuneDriver internal constructor() : GremlinDriver() {
 
     override fun clearGraph() = apply {
         resetIdMapper()
+        var noVs = 0L
+        PlumeTimer.measure(ExtractorTimeKey.DATABASE_READ) {
+            noVs = g.V().count().next()
+        }
         PlumeTimer.measure(ExtractorTimeKey.DATABASE_WRITE) {
-            val noVs = g.V().count().next()
             var deleted = 0L
             val step = 100
             ProgressBarUtil.runInsideProgressBar(logger.level, "Clearing Neptune", noVs) { pb ->
@@ -319,7 +322,6 @@ class NeptuneDriver internal constructor() : GremlinDriver() {
                     pb?.stepBy(step.toLong())
                 }
             }
-
         }
     }
 
