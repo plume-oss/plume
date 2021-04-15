@@ -198,11 +198,13 @@ abstract class GremlinDriver : IDriver {
         val newVs = gPtr?.next() as LinkedHashMap<*, *>
         addedVs.forEach { (t, u) ->
             when (val maybeV = newVs[t]) {
-                is Vertex -> u.id(maybeV.id() as Long)
+                is Vertex -> assignId(u, maybeV)
                 else -> Unit
             }
         }
     }
+    
+    protected open fun assignId(n: NewNodeBuilder, v: Vertex): NewNodeBuilder = n.id(v.id() as Long)
 
     protected open fun bulkAddEdges(vs: List<DeltaGraph.EdgeAdd>) {
         var gPtr: GraphTraversal<*, *>? = null
@@ -233,7 +235,7 @@ abstract class GremlinDriver : IDriver {
             prepareVertexProperties(v).forEach { (k, v) -> newVertexTraversal.property(k, v) }
             newVertex = newVertexTraversal.next()
         }
-        v.id(newVertex!!.id() as Long)
+        assignId(v, newVertex!!)
         return newVertex!!
     }
 

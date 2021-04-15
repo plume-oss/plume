@@ -36,6 +36,7 @@ import org.apache.tinkerpop.gremlin.structure.Vertex
 import scala.collection.immutable.`$colon$colon`
 import scala.collection.immutable.`Nil$`
 import scala.jdk.CollectionConverters
+import java.util.*
 import org.apache.tinkerpop.gremlin.process.traversal.dsl.graph.`__` as un
 
 
@@ -156,9 +157,8 @@ class NeptuneDriver internal constructor() : GremlinDriver() {
         var traversalPointer = g.addV(v.build().label())
         for ((key, value) in propertyMap) traversalPointer = traversalPointer.property(key, value)
         return traversalPointer.next().apply {
-            val newId = id++
-            idMapper[newId] = this.id().toString()
-            v.id(newId)
+            idMapper[++id] = this.id().toString()
+            v.id(id)
         }
     }
 
@@ -208,6 +208,37 @@ class NeptuneDriver internal constructor() : GremlinDriver() {
         return outMap
     }
 
+    override fun assignId(n: NewNodeBuilder, v: Vertex) = n.apply {
+        idMapper[++id] = v.id().toString()
+        this.id(id)
+    }
+
+    override fun bulkAddNodes(vs: List<NewNodeBuilder>) {
+        var gPtr: GraphTraversal<*, *>? = null
+        vs.forEach { v ->
+            if (!exists(v)) {
+                PlumeTimer.measure(ExtractorTimeKey.DATABASE_WRITE) {
+                    if (gPtr == null) gPtr = g.addV(v.build().label()).property(T.id, idMapper[v.id()])
+                    else gPtr?.addV(v.build().label())?.property(T.id, idMapper[v.id()])
+                    prepareVertexProperties(v).forEach { (k, v) -> gPtr?.property(k, v) }
+                }
+            }
+        }
+        gPtr?.next()
+    }
+
+    override fun bulkAddEdges(vs: List<DeltaGraph.EdgeAdd>) {
+        var gPtr: GraphTraversal<*, *>? = null
+        PlumeTimer.measure(ExtractorTimeKey.DATABASE_WRITE) {
+            vs.map { Triple(g.V(idMapper[it.src.id()]).next(), it.e, g.V(idMapper[it.dst.id()]).next()) }
+                .forEach { (src, e, dst) ->
+                    if (gPtr == null) gPtr = g.V(src).addE(e).to(dst)
+                    else gPtr?.V(src)?.addE(e)?.to(dst)
+                }
+        }
+        gPtr?.next()
+    }
+
     override fun bulkTxReads(
         dg: DeltaGraph,
         vAdds: MutableList<NewNodeBuilder>,
@@ -215,8 +246,15 @@ class NeptuneDriver internal constructor() : GremlinDriver() {
         vDels: MutableList<DeltaGraph.VertexDelete>,
         eDels: MutableList<DeltaGraph.EdgeDelete>,
     ) {
-        dg.changes.filterIsInstance<DeltaGraph.VertexAdd>().map { it.n }.toCollection(vAdds)
-        dg.changes.filterIsInstance<DeltaGraph.EdgeAdd>().toCollection(eAdds)
+        dg.changes.filterIsInstance<DeltaGraph.VertexAdd>().map { it.n }
+            .map {
+                if (it.id() < 0) {
+                    it.id(++id)
+                    idMapper[id] = UUID.randomUUID().toString()
+                }
+                it
+            }.toCollection(vAdds)
+        dg.changes.filterIsInstance<DeltaGraph.EdgeAdd>().filter { exists(it.src, it.dst, it.e) }.toCollection(eAdds)
         dg.changes.filterIsInstance<DeltaGraph.VertexDelete>().filter { g.V(idMapper[it.id]).hasNext() }
             .toCollection(vDels)
         dg.changes.filterIsInstance<DeltaGraph.EdgeDelete>().filter { exists(it.src, it.dst, it.e) }
