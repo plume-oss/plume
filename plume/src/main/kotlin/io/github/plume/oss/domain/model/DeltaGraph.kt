@@ -28,28 +28,7 @@ import overflowdb.Node
  */
 class DeltaGraph private constructor(val changes: List<Delta>) {
 
-    private val logger = LogManager.getLogger(DeltaGraph::javaClass)
-
     private constructor(builder: Builder) : this(builder.getChanges())
-
-    /**
-     * Applies stored changes to the given driver.
-     *
-     * @param driver The driver to write changes to.
-     */
-    @Deprecated("Use IDriver.bulkTransaction instead. Will be removed in 0.5.0.")
-    fun apply(driver: IDriver) {
-        changes.forEach { d ->
-            runCatching {
-                when (d) {
-                    is VertexAdd -> driver.addVertex(d.n)
-                    is VertexDelete -> driver.deleteVertex(d.id, d.label)
-                    is EdgeAdd -> driver.addEdge(d.src, d.dst, d.e)
-                    is EdgeDelete -> driver.deleteEdge(d.src, d.dst, d.e)
-                }
-            }.onFailure { e -> logger.warn(e.message) }
-        }
-    }
 
     /**
      * Applies the delta graph to an OverflowDB instance. To have valid IDs this must be passed into the driver with
