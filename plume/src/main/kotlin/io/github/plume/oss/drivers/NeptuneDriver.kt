@@ -36,6 +36,7 @@ import org.apache.tinkerpop.gremlin.structure.Vertex
 import scala.collection.immutable.`$colon$colon`
 import scala.collection.immutable.`Nil$`
 import scala.jdk.CollectionConverters
+import java.util.*
 import org.apache.tinkerpop.gremlin.process.traversal.dsl.graph.`__` as un
 
 
@@ -46,6 +47,7 @@ class NeptuneDriver internal constructor() : GremlinDriver() {
     private val logger = LogManager.getLogger(NeptuneDriver::class.java)
 
     private val builder: Cluster.Builder = Cluster.build()
+    private var clearOnConnect = false
     private lateinit var cluster: Cluster
     private val idMapper = mutableMapOf<Long, String>()
     private var id: Long = 0
@@ -79,6 +81,11 @@ class NeptuneDriver internal constructor() : GremlinDriver() {
     fun keyCertChainFile(keyChainFile: String): NeptuneDriver = apply { builder.keyCertChainFile(keyChainFile) }
 
     /**
+     * Will tell the driver to clear the database on connection before reading in existing IDs.
+     */
+    fun clearOnConnect(clear: Boolean): NeptuneDriver = apply { clearOnConnect = clear }
+
+    /**
      * Connects to the graph database with the given configuration.
      * See [Amazon Documentation](https://docs.aws.amazon.com/neptune/latest/userguide/access-graph-gremlin-java.html).
      *
@@ -90,7 +97,8 @@ class NeptuneDriver internal constructor() : GremlinDriver() {
         super.g = traversal().withRemote(DriverRemoteConnection.using(cluster))
         graph = g.graph
         connected = true
-        populateIdMapper()
+        if (clearOnConnect) clearGraph()
+        else populateIdMapper()
     }
 
     private fun resetIdMapper() {
@@ -156,9 +164,8 @@ class NeptuneDriver internal constructor() : GremlinDriver() {
         var traversalPointer = g.addV(v.build().label())
         for ((key, value) in propertyMap) traversalPointer = traversalPointer.property(key, value)
         return traversalPointer.next().apply {
-            val newId = id++
-            idMapper[newId] = this.id().toString()
-            v.id(newId)
+            idMapper[++id] = this.id().toString()
+            v.id(id)
         }
     }
 
@@ -208,6 +215,39 @@ class NeptuneDriver internal constructor() : GremlinDriver() {
         return outMap
     }
 
+    override fun assignId(n: NewNodeBuilder, v: Vertex) = n.apply {
+        idMapper[++id] = v.id().toString()
+        this.id(id)
+    }
+
+    override fun bulkAddNodes(vs: List<NewNodeBuilder>) {
+        if (vs.isEmpty()) return
+        var gPtr: GraphTraversal<*, *>? = null
+        vs.forEach { v ->
+            if (!exists(v)) {
+                PlumeTimer.measure(ExtractorTimeKey.DATABASE_WRITE) {
+                    if (gPtr == null) gPtr = g.addV(v.build().label()).property(T.id, idMapper[v.id()])
+                    else gPtr?.addV(v.build().label())?.property(T.id, idMapper[v.id()])
+                    prepareVertexProperties(v).forEach { (k, v) -> gPtr?.property(k, v) }
+                }
+            }
+        }
+        gPtr?.next()
+    }
+
+    override fun bulkAddEdges(es: List<DeltaGraph.EdgeAdd>) {
+        if (es.isEmpty()) return
+        var gPtr: GraphTraversal<*, *>? = null
+        PlumeTimer.measure(ExtractorTimeKey.DATABASE_WRITE) {
+            es.map { Triple(g.V(idMapper[it.src.id()]).next(), it.e, g.V(idMapper[it.dst.id()]).next()) }
+                .forEach { (src, e, dst) ->
+                    if (gPtr == null) gPtr = g.V(src).addE(e).to(dst)
+                    else gPtr?.V(src)?.addE(e)?.to(dst)
+                }
+        }
+        gPtr?.next()
+    }
+
     override fun bulkTxReads(
         dg: DeltaGraph,
         vAdds: MutableList<NewNodeBuilder>,
@@ -215,8 +255,21 @@ class NeptuneDriver internal constructor() : GremlinDriver() {
         vDels: MutableList<DeltaGraph.VertexDelete>,
         eDels: MutableList<DeltaGraph.EdgeDelete>,
     ) {
-        dg.changes.filterIsInstance<DeltaGraph.VertexAdd>().map { it.n }.toCollection(vAdds)
-        dg.changes.filterIsInstance<DeltaGraph.EdgeAdd>().toCollection(eAdds)
+        val temp = mutableListOf<NewNodeBuilder>()
+        dg.changes.filterIsInstance<DeltaGraph.VertexAdd>().map { it.n }
+            .filterNot(::exists)
+            .forEachIndexed { i, va ->
+                if (temp.none { va === it }) temp.add(va.id(-(i + 1).toLong()))
+            }
+        temp.map {
+            if (it.id() < 0) {
+                it.id(++id)
+                idMapper[id] = UUID.randomUUID().toString()
+            }
+            it
+        }.toCollection(vAdds)
+        dg.changes.filterIsInstance<DeltaGraph.EdgeAdd>().distinct().filterNot { exists(it.src, it.dst, it.e) }
+            .toCollection(eAdds)
         dg.changes.filterIsInstance<DeltaGraph.VertexDelete>().filter { g.V(idMapper[it.id]).hasNext() }
             .toCollection(vDels)
         dg.changes.filterIsInstance<DeltaGraph.EdgeDelete>().filter { exists(it.src, it.dst, it.e) }
@@ -253,15 +306,28 @@ class NeptuneDriver internal constructor() : GremlinDriver() {
         return graph
     }
 
-    override fun clearGraph(): GremlinDriver {
+    override fun clearGraph() = apply {
         resetIdMapper()
-        return super.clearGraph()
+        var noVs = 0L
+        PlumeTimer.measure(ExtractorTimeKey.DATABASE_READ) {
+            noVs = g.V().count().next()
+        }
+        if (noVs > 0) {
+            PlumeTimer.measure(ExtractorTimeKey.DATABASE_WRITE) {
+                var deleted = 0L
+                val step = 100
+                while (deleted < noVs) {
+                    g.V().sample(step).drop().iterate()
+                    deleted += step
+                }
+            }
+        }
     }
 
     companion object {
         /**
          * Default port number a remote Gremlin server.
          */
-        private const val DEFAULT_PORT = 8182
+        const val DEFAULT_PORT = 8182
     }
 }

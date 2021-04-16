@@ -7,6 +7,18 @@ and this project adheres to [Semantic Versioning](http://semver.org/).
 
 ## [Unreleased]
 
+### Fixed
+
+- `GremlinDriver` bulk transactions properly implemented now.
+- Duplicate edges in `bulkTransaction` filtered out
+
+### Changed
+
+- Duplicates in bulk transactions of the `GremlinDriver` are more
+  thoroughly removed.
+- `NeptuneDriver` now clears the graph in chunks to avoid timing out
+  on larger graphs.
+
 ## [0.4.6] - 2021-04-14
 
 ### Fixed

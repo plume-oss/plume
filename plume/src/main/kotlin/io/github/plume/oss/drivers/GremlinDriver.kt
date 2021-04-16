@@ -43,6 +43,7 @@ import scala.collection.immutable.`$colon$colon`
 import scala.collection.immutable.`Nil$`
 import scala.jdk.CollectionConverters
 import java.util.*
+import kotlin.collections.LinkedHashMap
 import io.shiftleft.codepropertygraph.generated.edges.Factories as EdgeFactories
 import io.shiftleft.codepropertygraph.generated.nodes.Factories as NodeFactories
 import org.apache.tinkerpop.gremlin.process.traversal.dsl.graph.`__` as un
@@ -140,7 +141,7 @@ abstract class GremlinDriver : IDriver {
         val eAdds = mutableListOf<DeltaGraph.EdgeAdd>()
         val vDels = mutableListOf<DeltaGraph.VertexDelete>()
         val eDels = mutableListOf<DeltaGraph.EdgeDelete>()
-        PlumeTimer.measure(ExtractorTimeKey.DATABASE_READ) { bulkTxReads(dg, vAdds, eAdds, vDels, eDels)  }
+        PlumeTimer.measure(ExtractorTimeKey.DATABASE_READ) { bulkTxReads(dg, vAdds, eAdds, vDels, eDels) }
         PlumeTimer.measure(ExtractorTimeKey.DATABASE_WRITE) { bulkTxWrites(vAdds, eAdds, vDels, eDels) }
     }
 
@@ -151,8 +152,11 @@ abstract class GremlinDriver : IDriver {
         vDels: MutableList<DeltaGraph.VertexDelete>,
         eDels: MutableList<DeltaGraph.EdgeDelete>,
     ) {
-        dg.changes.filterIsInstance<DeltaGraph.VertexAdd>().map { it.n }.toCollection(vAdds)
-        dg.changes.filterIsInstance<DeltaGraph.EdgeAdd>().toCollection(eAdds)
+        dg.changes.filterIsInstance<DeltaGraph.VertexAdd>().map { it.n }
+            .filterNot(::exists)
+            .forEachIndexed { i, va -> if (vAdds.none { va === it }) vAdds.add(va.id(-(i + 1).toLong())) }
+        dg.changes.filterIsInstance<DeltaGraph.EdgeAdd>().distinct().filterNot { exists(it.src, it.dst, it.e) }
+            .toCollection(eAdds)
         dg.changes.filterIsInstance<DeltaGraph.VertexDelete>().filter { g.V(it.id).hasNext() }
             .toCollection(vDels)
         dg.changes.filterIsInstance<DeltaGraph.EdgeDelete>().filter { exists(it.src, it.dst, it.e) }
@@ -165,16 +169,63 @@ abstract class GremlinDriver : IDriver {
         vDels: MutableList<DeltaGraph.VertexDelete>,
         eDels: MutableList<DeltaGraph.EdgeDelete>,
     ) {
-        val tx = if (graph.features().graph().supportsTransactions()) g.tx() else null
-        tx?.open()
-        vAdds.forEach { if (!exists(it)) createVertex(it) }
-        tx?.commit(); tx?.open()
-        eAdds.forEach { addEdge(it.src, it.dst, it.e) }
+        vAdds.chunked(50).forEach { vs -> bulkAddNodes(vs) }
+        eAdds.chunked(50).forEach { es -> bulkAddEdges(es) }
         vDels.forEach { deleteVertex(it.id, it.label) }
         eDels.forEach {
             findVertexTraversal(it.src).outE(it.e).where(un.otherV().V(findVertexTraversal(it.dst))).drop().iterate()
         }
-        tx?.commit()
+    }
+
+    protected open fun bulkAddNodes(vs: List<NewNodeBuilder>) {
+        if (vs.isEmpty()) return
+        var gPtr: GraphTraversal<*, *>? = null
+        val addedVs = mutableMapOf<String, NewNodeBuilder>()
+        vs.forEachIndexed { i, v ->
+            if (!exists(v)) {
+                PlumeTimer.measure(ExtractorTimeKey.DATABASE_WRITE) {
+                    if (gPtr == null) gPtr = g.addV(v.build().label())
+                    else gPtr?.addV(v.build().label())
+                    prepareVertexProperties(v).forEach { (k, v) -> gPtr?.property(k, v) }
+                    gPtr?.`as`("v$i")
+                    addedVs["v$i"] = v
+                }
+            }
+        }
+        val keys = addedVs.keys.toList()
+        when (keys.size) {
+            1 -> gPtr?.select<Any>(keys.first())
+            2 -> gPtr?.select<Any>(keys.first(), keys[1])
+            else -> gPtr?.select<Any>(keys.first(), keys[1], *keys.minus(keys.first()).minus(keys[1]).toTypedArray())
+        }
+        val newVs = gPtr?.next()
+        addedVs.forEach { (t, u) ->
+            when (newVs) {
+                is LinkedHashMap<*, *> -> {
+                    when (val maybeV = newVs[t]) {
+                        is Vertex -> assignId(u, maybeV)
+                        else -> logger.warn("Unhandled result from bulk node add from map: ${maybeV?.javaClass}")
+                    }
+                }
+                is Vertex -> assignId(u, newVs)
+                else -> logger.warn("Unhandled result from bulk node add: ${newVs?.javaClass}")
+            }
+
+        }
+    }
+
+    protected open fun assignId(n: NewNodeBuilder, v: Vertex): NewNodeBuilder = n.id(v.id() as Long)
+
+    protected open fun bulkAddEdges(es: List<DeltaGraph.EdgeAdd>) {
+        if (es.isEmpty()) return
+        var gPtr: GraphTraversal<*, *>? = null
+        PlumeTimer.measure(ExtractorTimeKey.DATABASE_WRITE) {
+            es.map { Triple(g.V(it.src.id()).next(), it.e, g.V(it.dst.id()).next()) }.forEach { (src, e, dst) ->
+                if (gPtr == null) gPtr = g.V(src).addE(e).to(dst)
+                else gPtr?.V(src)?.addE(e)?.to(dst)
+            }
+        }
+        gPtr?.next()
     }
 
     override fun clearGraph() = apply {
@@ -195,7 +246,7 @@ abstract class GremlinDriver : IDriver {
             prepareVertexProperties(v).forEach { (k, v) -> newVertexTraversal.property(k, v) }
             newVertex = newVertexTraversal.next()
         }
-        v.id(newVertex!!.id() as Long)
+        assignId(v, newVertex!!)
         return newVertex!!
     }
 
