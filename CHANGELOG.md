@@ -7,6 +7,8 @@ and this project adheres to [Semantic Versioning](http://semver.org/).
 
 ## [Unreleased]
 
+## [0.4.7] - 2021-04-15
+
 ### Fixed
 
 - `GremlinDriver` bulk transactions properly implemented now.
