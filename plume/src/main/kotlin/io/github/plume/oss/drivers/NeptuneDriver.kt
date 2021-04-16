@@ -268,7 +268,7 @@ class NeptuneDriver internal constructor() : GremlinDriver() {
             }
             it
         }.toCollection(vAdds)
-        dg.changes.filterIsInstance<DeltaGraph.EdgeAdd>().filterNot { exists(it.src, it.dst, it.e) }
+        dg.changes.filterIsInstance<DeltaGraph.EdgeAdd>().distinct().filterNot { exists(it.src, it.dst, it.e) }
             .toCollection(eAdds)
         dg.changes.filterIsInstance<DeltaGraph.VertexDelete>().filter { g.V(idMapper[it.id]).hasNext() }
             .toCollection(vDels)

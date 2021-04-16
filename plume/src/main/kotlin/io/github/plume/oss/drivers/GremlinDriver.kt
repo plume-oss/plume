@@ -141,7 +141,7 @@ abstract class GremlinDriver : IDriver {
         val eAdds = mutableListOf<DeltaGraph.EdgeAdd>()
         val vDels = mutableListOf<DeltaGraph.VertexDelete>()
         val eDels = mutableListOf<DeltaGraph.EdgeDelete>()
-        PlumeTimer.measure(ExtractorTimeKey.DATABASE_READ) { bulkTxReads(dg, vAdds, eAdds, vDels, eDels)  }
+        PlumeTimer.measure(ExtractorTimeKey.DATABASE_READ) { bulkTxReads(dg, vAdds, eAdds, vDels, eDels) }
         PlumeTimer.measure(ExtractorTimeKey.DATABASE_WRITE) { bulkTxWrites(vAdds, eAdds, vDels, eDels) }
     }
 
@@ -155,7 +155,8 @@ abstract class GremlinDriver : IDriver {
         dg.changes.filterIsInstance<DeltaGraph.VertexAdd>().map { it.n }
             .filterNot(::exists)
             .forEachIndexed { i, va -> if (vAdds.none { va === it }) vAdds.add(va.id(-(i + 1).toLong())) }
-        dg.changes.filterIsInstance<DeltaGraph.EdgeAdd>().filter { !exists(it.src, it.dst, it.e) }.toCollection(eAdds)
+        dg.changes.filterIsInstance<DeltaGraph.EdgeAdd>().distinct().filterNot { exists(it.src, it.dst, it.e) }
+            .toCollection(eAdds)
         dg.changes.filterIsInstance<DeltaGraph.VertexDelete>().filter { g.V(it.id).hasNext() }
             .toCollection(vDels)
         dg.changes.filterIsInstance<DeltaGraph.EdgeDelete>().filter { exists(it.src, it.dst, it.e) }
@@ -212,7 +213,7 @@ abstract class GremlinDriver : IDriver {
 
         }
     }
-    
+
     protected open fun assignId(n: NewNodeBuilder, v: Vertex): NewNodeBuilder = n.id(v.id() as Long)
 
     protected open fun bulkAddEdges(es: List<DeltaGraph.EdgeAdd>) {
