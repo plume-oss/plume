@@ -267,7 +267,7 @@ class Neo4jDriver internal constructor() : IDriver {
         PlumeTimer.measure(ExtractorTimeKey.DATABASE_READ) {
             dg.changes.filterIsInstance<DeltaGraph.VertexAdd>().map { it.n }.filterNot(::exists)
                 .forEachIndexed { i, va -> if (vAdds.none { va === it }) vAdds.add(va.id(-(i + 1).toLong())) }
-            dg.changes.filterIsInstance<DeltaGraph.EdgeAdd>().filter { !exists(it.src, it.dst, it.e) }
+            dg.changes.filterIsInstance<DeltaGraph.EdgeAdd>().distinct().filterNot { exists(it.src, it.dst, it.e) }
                 .toCollection(eAdds)
             dg.changes.filterIsInstance<DeltaGraph.VertexDelete>().filter { checkVertexExist(it.id, it.label) }
                 .toCollection(vDels)

@@ -165,7 +165,7 @@ class OverflowDbDriver internal constructor() : IDriver {
 
     override fun bulkTransaction(dg: DeltaGraph) {
         dg.changes.filterIsInstance<DeltaGraph.VertexAdd>().map { it.n }.forEach { addVertex(it) }
-        dg.changes.filterIsInstance<DeltaGraph.EdgeAdd>().forEach { addEdge(it.src, it.dst, it.e) }
+        dg.changes.filterIsInstance<DeltaGraph.EdgeAdd>().distinct().forEach { addEdge(it.src, it.dst, it.e) }
         dg.changes.filterIsInstance<DeltaGraph.VertexDelete>().forEach { deleteVertex(it.id, it.label) }
         dg.changes.filterIsInstance<DeltaGraph.EdgeDelete>().forEach { deleteEdge(it.src, it.dst, it.e) }
     }

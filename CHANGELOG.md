@@ -10,6 +10,7 @@ and this project adheres to [Semantic Versioning](http://semver.org/).
 ### Fixed
 
 - `GremlinDriver` bulk transactions properly implemented now.
+- Duplicate edges in `bulkTransaction` filtered out
 
 ### Changed
 

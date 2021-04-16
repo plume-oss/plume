@@ -265,7 +265,8 @@ class TigerGraphDriver internal constructor() : IOverridenIdDriver, ISchemaSafeD
                     it
                 }.distinctBy { it.id() }
                 .toCollection(vAdds)
-            dg.changes.filterIsInstance<DeltaGraph.EdgeAdd>().filter { !exists(it.src, it.dst, it.e) }
+            dg.changes.filterIsInstance<DeltaGraph.EdgeAdd>().distinct()
+                .filterNot { exists(it.src, it.dst, it.e) }
                 .toCollection(eAdds)
             dg.changes.filterIsInstance<DeltaGraph.VertexDelete>().filter { checkVertexExists(it.id, it.label) }
                 .toCollection(vDels)
