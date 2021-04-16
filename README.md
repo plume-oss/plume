@@ -22,7 +22,8 @@ For more documentation and basic guides, check out the [project homepage](https:
 
 * If you have any questions or want to be involved then check out
   our [discussions page](https://github.com/plume-oss/plume/discussions).
-* Joern's [Gitter](https://gitter.im/joern-code-analyzer/community).
+* Joern's [Discord](https://discord.gg/28uCANEkK2). Note, this will give you temporary membership
+  to the server. Once joined you can obtain permanent membership by being assigned role if necessary. 
 * Plume is primarily maintained by [David Baker Effendi](https://davidbakereffendi.github.io/)
     * DM on [Twitter](https://twitter.com/SDBakerEffendi)
     * Email at dbe@sun.ac.za
