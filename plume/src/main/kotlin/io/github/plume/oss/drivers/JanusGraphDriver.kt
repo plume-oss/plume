@@ -19,9 +19,9 @@ import io.github.plume.oss.metrics.ExtractorTimeKey
 import io.github.plume.oss.metrics.PlumeTimer
 import io.github.plume.oss.util.ExtractorConst
 import io.shiftleft.codepropertygraph.generated.EdgeTypes
-import io.shiftleft.codepropertygraph.generated.NodeKeyNames
-import io.shiftleft.codepropertygraph.generated.NodeKeyNames.*
+import io.shiftleft.codepropertygraph.generated.PropertyNames.*
 import io.shiftleft.codepropertygraph.generated.NodeTypes
+import io.shiftleft.codepropertygraph.generated.PropertyNames
 import io.shiftleft.codepropertygraph.generated.nodes.NewNodeBuilder
 import org.apache.commons.configuration.PropertiesConfiguration
 import org.apache.logging.log4j.LogManager
@@ -123,7 +123,7 @@ class JanusGraphDriver internal constructor() : GremlinDriver(), ISchemaSafeDriv
         schema.append("// Edge labels\n")
         EdgeTypes.ALL.forEach { schema.append("mgmt.containsEdgeLabel('$it') ?: mgmt.makeEdgeLabel('$it').make()\n") }
         schema.append("// Properties\n")
-        NodeKeyNames.ALL.forEach { k ->
+        PropertyNames.ALL.forEach { k ->
             schema.append("mgmt.containsPropertyKey('_$k') ?: mgmt.makePropertyKey('_$k')")
             when {
                 ExtractorConst.BOOLEAN_TYPES.contains(k) -> schema.append(".dataType(Boolean.class)")

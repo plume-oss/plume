@@ -28,8 +28,8 @@ import io.github.plume.oss.util.ExtractorConst.BOOLEAN_TYPES
 import io.github.plume.oss.util.ExtractorConst.INT_TYPES
 import io.github.plume.oss.util.PlumeKeyProvider
 import io.shiftleft.codepropertygraph.generated.EdgeTypes
-import io.shiftleft.codepropertygraph.generated.NodeKeyNames
-import io.shiftleft.codepropertygraph.generated.NodeKeyNames.*
+import io.shiftleft.codepropertygraph.generated.PropertyNames
+import io.shiftleft.codepropertygraph.generated.PropertyNames.*
 import io.shiftleft.codepropertygraph.generated.NodeTypes.*
 import io.shiftleft.codepropertygraph.generated.nodes.NewMetaDataBuilder
 import io.shiftleft.codepropertygraph.generated.nodes.NewNodeBuilder
@@ -695,7 +695,7 @@ class TigerGraphDriver internal constructor() : IOverridenIdDriver, ISchemaSafeD
         schema.append("\n")
         // Handle vertices
         val cpgNodeBlacklist = listOf(LANGUAGE, VERSION, OVERLAYS, NODE_LABEL)
-        val propertiesList = NodeKeyNames.ALL.filterNot(cpgNodeBlacklist::contains).toList()
+        val propertiesList = PropertyNames.ALL.filterNot(cpgNodeBlacklist::contains).toList()
         propertiesList.forEachIndexed { i: Int, k: String ->
             when {
                 BOOLEAN_TYPES.contains(k) -> schema.append("\t_$k BOOL DEFAULT \"TRUE\"")

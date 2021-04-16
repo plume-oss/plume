@@ -32,12 +32,10 @@ import io.github.plume.oss.TestDomainResources.Companion.typeParameterVertex
 import io.github.plume.oss.TestDomainResources.Companion.typeRefVertex
 import io.github.plume.oss.TestDomainResources.Companion.unknownVertex
 import io.github.plume.oss.domain.exceptions.PlumeSchemaViolationException
-import io.github.plume.oss.domain.mappers.ListMapper
 import io.github.plume.oss.domain.model.DeltaGraph
-import io.github.plume.oss.util.SootToPlumeUtil
 import io.shiftleft.codepropertygraph.generated.EdgeTypes.*
-import io.shiftleft.codepropertygraph.generated.NodeKeyNames.*
 import io.shiftleft.codepropertygraph.generated.NodeTypes.*
+import io.shiftleft.codepropertygraph.generated.PropertyNames.*
 import io.shiftleft.codepropertygraph.generated.nodes.*
 import org.junit.jupiter.api.*
 import org.junit.jupiter.api.Assertions.*
@@ -141,10 +139,10 @@ class NeptuneDriverIntTest {
 
         @Test
         fun findMethodRefVertex() {
-            val v1 = NewMethodRefBuilder().methodInstFullName(Option.apply(STRING_1)).methodFullName(STRING_2)
+            val v1 = NewMethodRefBuilder().methodFullName(STRING_2)
                 .code(STRING_1).order(INT_1).argumentIndex(INT_1).lineNumber(Option.apply(INT_1))
                 .columnNumber(Option.apply(INT_1))
-            val v2 = NewMethodRefBuilder().methodInstFullName(Option.apply(STRING_2)).methodFullName(STRING_1)
+            val v2 = NewMethodRefBuilder().methodFullName(STRING_1)
                 .code(STRING_1).order(INT_1).argumentIndex(INT_1).lineNumber(Option.apply(INT_1))
                 .columnNumber(Option.apply(INT_1))
             assertFalse(driver.exists(v1))
@@ -173,13 +171,11 @@ class NeptuneDriverIntTest {
 
         @Test
         fun findTypeRefVertex() {
-            val v1 = NewTypeRefBuilder().typeFullName(STRING_1).dynamicTypeHintFullName(
-                ListMapper.stringToScalaList(STRING_2)
-            ).code(STRING_1).argumentIndex(INT_1).order(INT_1).lineNumber(Option.apply(INT_1))
+            val v1 = NewTypeRefBuilder().typeFullName(STRING_1).code(STRING_1).argumentIndex(INT_1).order(INT_1)
+                .lineNumber(Option.apply(INT_1))
                 .columnNumber(Option.apply(INT_1))
-            val v2 = NewTypeRefBuilder().typeFullName(STRING_2).dynamicTypeHintFullName(
-                ListMapper.stringToScalaList(STRING_1)
-            ).code(STRING_1).argumentIndex(INT_1).order(INT_1).lineNumber(Option.apply(INT_1))
+            val v2 = NewTypeRefBuilder().typeFullName(STRING_2).code(STRING_1).argumentIndex(INT_1).order(INT_1)
+                .lineNumber(Option.apply(INT_1))
                 .columnNumber(Option.apply(INT_1))
             assertFalse(driver.exists(v1))
             assertFalse(driver.exists(v2))

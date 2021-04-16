@@ -20,7 +20,7 @@ import io.github.plume.oss.drivers.IDriver
 import io.github.plume.oss.store.DriverCache
 import io.github.plume.oss.store.LocalCache
 import io.github.plume.oss.util.ExtractorConst.GLOBAL
-import io.shiftleft.codepropertygraph.generated.NodeKeyNames.FULL_NAME
+import io.shiftleft.codepropertygraph.generated.PropertyNames.FULL_NAME
 import io.shiftleft.codepropertygraph.generated.NodeTypes.*
 import io.shiftleft.codepropertygraph.generated.nodes.Member
 import io.shiftleft.codepropertygraph.generated.nodes.Method

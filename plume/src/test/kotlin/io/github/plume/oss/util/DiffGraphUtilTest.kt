@@ -9,7 +9,7 @@ import io.github.plume.oss.drivers.DriverFactory
 import io.github.plume.oss.drivers.GraphDatabase
 import io.github.plume.oss.drivers.TinkerGraphDriver
 import io.shiftleft.codepropertygraph.generated.EdgeTypes.SOURCE_FILE
-import io.shiftleft.codepropertygraph.generated.NodeKeyNames.NAME
+import io.shiftleft.codepropertygraph.generated.PropertyNames.NAME
 import io.shiftleft.codepropertygraph.generated.nodes.File
 import io.shiftleft.codepropertygraph.generated.nodes.StoredNode
 import org.junit.jupiter.api.AfterEach
@@ -17,7 +17,6 @@ import org.junit.jupiter.api.Assertions.assertFalse
 import org.junit.jupiter.api.Assertions.assertTrue
 import org.junit.jupiter.api.Test
 import overflowdb.Edge
-import overflowdb.Node
 import scala.Tuple2
 import scala.collection.immutable.Seq
 import scala.jdk.CollectionConverters

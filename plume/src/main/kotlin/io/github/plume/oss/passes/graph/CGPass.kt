@@ -21,8 +21,8 @@ import io.github.plume.oss.passes.IUnitGraphPass
 import io.github.plume.oss.store.PlumeStorage
 import io.github.plume.oss.util.SootToPlumeUtil
 import io.shiftleft.codepropertygraph.generated.EdgeTypes.CALL
-import io.shiftleft.codepropertygraph.generated.NodeKeyNames.FULL_NAME
 import io.shiftleft.codepropertygraph.generated.NodeTypes.METHOD
+import io.shiftleft.codepropertygraph.generated.PropertyNames.FULL_NAME
 import io.shiftleft.codepropertygraph.generated.nodes.NewMethodBuilder
 import org.apache.logging.log4j.LogManager
 import soot.Scene

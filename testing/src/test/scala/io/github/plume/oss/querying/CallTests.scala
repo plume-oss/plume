@@ -26,11 +26,9 @@ class CallTests extends PlumeCodeToCpgSuite {
     x.code shouldBe "add(argc, 3)"
     x.name shouldBe "add"
     x.order shouldBe 2
-    x.methodInstFullName shouldBe None // Deprecated
     x.methodFullName shouldBe "Foo.add:int(int,int)"
     x.signature shouldBe "int(int,int)"
     x.argumentIndex shouldBe 2
-    // x.typeFullName : deprecated
     x.lineNumber shouldBe Some(8)
   }
 

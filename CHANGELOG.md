@@ -7,6 +7,10 @@ and this project adheres to [Semantic Versioning](http://semver.org/).
 
 ## [Unreleased]
 
+### Changed
+
+- Latest SCPG schema applied with deprecated properties removed
+
 ## [0.4.7] - 2021-04-15
 
 ### Fixed

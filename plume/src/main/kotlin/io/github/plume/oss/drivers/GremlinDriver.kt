@@ -23,7 +23,7 @@ import io.github.plume.oss.domain.model.DeltaGraph
 import io.github.plume.oss.metrics.ExtractorTimeKey
 import io.github.plume.oss.metrics.PlumeTimer
 import io.shiftleft.codepropertygraph.generated.EdgeTypes.AST
-import io.shiftleft.codepropertygraph.generated.NodeKeyNames.FULL_NAME
+import io.shiftleft.codepropertygraph.generated.PropertyNames.FULL_NAME
 import io.shiftleft.codepropertygraph.generated.NodeTypes.*
 import io.shiftleft.codepropertygraph.generated.nodes.NewMetaDataBuilder
 import io.shiftleft.codepropertygraph.generated.nodes.NewNode
