@@ -15,6 +15,7 @@
  */
 package io.github.plume.oss.passes.structure
 
+import io.github.plume.oss.domain.model.DeltaGraph
 import io.github.plume.oss.drivers.IDriver
 import io.github.plume.oss.store.DriverCache
 import io.github.plume.oss.util.ProgressBarUtil
@@ -23,6 +24,9 @@ import io.shiftleft.codepropertygraph.generated.EdgeTypes.AST
 import io.shiftleft.codepropertygraph.generated.EdgeTypes.EVAL_TYPE
 import io.shiftleft.codepropertygraph.generated.nodes.NewMemberBuilder
 import io.shiftleft.codepropertygraph.generated.nodes.NewModifierBuilder
+import kotlinx.coroutines.channels.Channel
+import kotlinx.coroutines.launch
+import kotlinx.coroutines.runBlocking
 import org.apache.logging.log4j.LogManager
 import org.apache.logging.log4j.Logger
 import soot.SootField
@@ -33,9 +37,37 @@ class MemberPass(private val driver: IDriver) {
     private val cache = DriverCache(driver)
 
     fun runPass(fs: List<SootField>) {
-        ProgressBarUtil.runInsideProgressBar(
-            logger.level, "Fields", fs.size.toLong()
-        ) { pb -> fs.forEach { linkMembers(it); pb?.step() } }
+        val channel = Channel<Pair<Int, DeltaGraph>>()
+        try {
+            runBlocking {
+                val chunkSize = 200
+                val chunks = fs.chunked(chunkSize)
+                // Producer: Converts chunks of fields into delta graphs
+                launch {
+                    fs.chunked(chunkSize)
+                        .forEach { chunk ->
+                            launch {
+                                val builder = DeltaGraph.Builder()
+                                chunk.forEach { linkMembers(builder, it) }
+                                channel.send(Pair(chunk.size, builder.build()))
+                            }
+                        }
+                }
+                // Consumer: Receive delta graphs and write changes to the driver in serial
+                ProgressBarUtil.runInsideProgressBar(
+                    logger.level, "Fields", fs.size.toLong()
+                ) { pb ->
+                    runBlocking {
+                        repeat(chunks.size) {
+                            val (step, dg) = channel.receive()
+                            driver.bulkTransaction(dg); pb?.stepBy(step.toLong())
+                        }
+                    }
+                }
+            }
+        } finally {
+            channel.close()
+        }
     }
 
     /*
@@ -43,25 +75,28 @@ class MemberPass(private val driver: IDriver) {
      * MEMBER -(AST)-> MODIFIER
      * MEMBER -(EVAL_TYPE)-> TYPE
      */
-    private fun linkMembers(f: SootField) {
+    private fun linkMembers(builder: DeltaGraph.Builder, f: SootField): DeltaGraph.Builder {
         val c = f.declaringClass
         val t = cache.getOrMakeTypeDecl(c.type)
-        c.fields.forEachIndexed { i, field ->
-            projectMember(field, i + 1).let { memberVertex ->
-                driver.addEdge(t, memberVertex, AST)
+        try {
+            projectMember(f, c.fields.indexOf(f) + 1).let { memberVertex ->
+                builder.addEdge(t, memberVertex, AST)
                 // Add modifiers to member
-                SootParserUtil.determineModifiers(field.modifiers)
+                SootParserUtil.determineModifiers(f.modifiers)
                     .mapIndexed { i, m -> NewModifierBuilder().modifierType(m).order(i + 1) }
-                    .forEach { m -> driver.addEdge(memberVertex, m, AST) }
+                    .forEach { m -> builder.addEdge(memberVertex, m, AST) }
                 // Link member to type
-                cache.tryGetGlobalType(field.type.toQuotedString())?.let { mType ->
-                    driver.addEdge(memberVertex, mType, EVAL_TYPE)
+                cache.tryGetGlobalType(f.type.toQuotedString())?.let { mType ->
+                    builder.addEdge(memberVertex, mType, EVAL_TYPE)
                 }
-                cache.tryGetType(field.type.toQuotedString())?.let { mType ->
-                    driver.addEdge(memberVertex, mType, EVAL_TYPE)
+                cache.tryGetType(f.type.toQuotedString())?.let { mType ->
+                    builder.addEdge(memberVertex, mType, EVAL_TYPE)
                 }
             }
+        } catch (e: Exception) {
+            logger.warn("Unable to build member $f, skipping...")
         }
+        return builder
     }
 
     private fun projectMember(field: SootField, childIdx: Int): NewMemberBuilder =

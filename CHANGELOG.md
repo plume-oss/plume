@@ -18,6 +18,8 @@ and this project adheres to [Semantic Versioning](http://semver.org/).
   thoroughly removed.
 - `NeptuneDriver` now clears the graph in chunks to avoid timing out
   on larger graphs.
+- Grouped field construction into chunks and execute chunks in bulk
+  transactions.  
 
 ## [0.4.6] - 2021-04-14
 

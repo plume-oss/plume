@@ -461,7 +461,7 @@ class Extractor(val driver: IDriver) {
                             })
                         }
                     }
-                    logger.info("All $callCount methods calls have been applied to the driver")
+                    logger.info("All $callCount method call edges have been applied to the driver")
                 }
             }
         } finally {
