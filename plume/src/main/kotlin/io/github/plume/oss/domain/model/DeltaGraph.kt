@@ -59,6 +59,12 @@ class DeltaGraph private constructor(val changes: List<Delta>) {
      * @return An OverflowDB graph with the changes from this [DeltaGraph] applied to it.
      */
     fun toOverflowDb(existingG: Graph): Graph {
+        fun exists(g: Graph, id: Long): Boolean {
+            val maybeNode = g.node(id)
+            return if (maybeNode == null) false
+            else (maybeNode.id() == id)
+        }
+
         fun d2g(g: Graph) {
             fun addNode(n: NewNodeBuilder): Node {
                 val b = n.build()
@@ -66,10 +72,10 @@ class DeltaGraph private constructor(val changes: List<Delta>) {
                 b.properties().foreachEntry { key, value -> v.setProperty(key, value) }
                 return v
             }
-            changes.filterIsInstance<VertexAdd>().forEach { d -> g.node(d.n.id()) ?: addNode(d.n) }
+            changes.filterIsInstance<VertexAdd>().forEach { d -> if (!exists(g, d.n.id())) addNode(d.n) }
             changes.filterIsInstance<EdgeAdd>().forEach { d ->
-                val src = g.node(d.src.id()) ?: addNode(d.src)
-                val dst = g.node(d.dst.id()) ?: addNode(d.dst)
+                val src = if (exists(g, d.src.id())) g.node(d.src.id()) else addNode(d.src)
+                val dst = if (exists(g, d.dst.id())) g.node(d.dst.id()) else g.node(d.dst.id()) ?: addNode(d.dst)
                 src.addEdge(d.e, dst)
             }
             changes.filterIsInstance<VertexDelete>().forEach { d -> g.node(d.id)?.remove() }
