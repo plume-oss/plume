@@ -19,13 +19,12 @@ import io.github.plume.oss.drivers.IDriver
 import io.github.plume.oss.util.ExtractorConst
 import io.github.plume.oss.util.ExtractorConst.GLOBAL
 import io.github.plume.oss.util.SootToPlumeUtil
-import io.shiftleft.codepropertygraph.generated.NodeKeyNames.FULL_NAME
-import io.shiftleft.codepropertygraph.generated.NodeKeyNames.NAME
 import io.shiftleft.codepropertygraph.generated.NodeTypes.*
+import io.shiftleft.codepropertygraph.generated.PropertyNames.FULL_NAME
+import io.shiftleft.codepropertygraph.generated.PropertyNames.NAME
 import io.shiftleft.codepropertygraph.generated.nodes.*
 import scala.Option
 import soot.SootClass
-import soot.SootMethod
 import soot.Type
 import java.io.File
 

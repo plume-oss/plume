@@ -15,16 +15,13 @@
  */
 package io.github.plume.oss.passes.type
 
-import io.github.plume.oss.store.DriverCache
 import io.github.plume.oss.drivers.IDriver
 import io.github.plume.oss.passes.ITypePass
 import io.github.plume.oss.passes.structure.TypePass
-import io.github.plume.oss.store.LocalCache
+import io.github.plume.oss.store.DriverCache
 import io.github.plume.oss.util.ExtractorConst.GLOBAL
 import io.github.plume.oss.util.ExtractorConst.UNKNOWN
 import io.shiftleft.codepropertygraph.generated.EdgeTypes.*
-import io.shiftleft.codepropertygraph.generated.NodeKeyNames.NAME
-import io.shiftleft.codepropertygraph.generated.NodeTypes.*
 import org.apache.logging.log4j.LogManager
 import org.apache.logging.log4j.Logger
 import soot.RefType

@@ -22,7 +22,7 @@ import io.github.plume.oss.store.PlumeStorage
 import io.github.plume.oss.util.SootParserUtil
 import io.github.plume.oss.util.SootToPlumeUtil
 import io.shiftleft.codepropertygraph.generated.EdgeTypes.AST
-import io.shiftleft.codepropertygraph.generated.NodeKeyNames.HASH
+import io.shiftleft.codepropertygraph.generated.PropertyNames.HASH
 import io.shiftleft.codepropertygraph.generated.NodeTypes.MODIFIER
 import io.shiftleft.codepropertygraph.generated.nodes.NewFileBuilder
 import io.shiftleft.codepropertygraph.generated.nodes.NewModifierBuilder

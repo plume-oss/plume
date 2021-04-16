@@ -15,7 +15,7 @@
  */
 package io.github.plume.oss.util
 
-import io.shiftleft.codepropertygraph.generated.NodeKeyNames
+import io.shiftleft.codepropertygraph.generated.PropertyNames.*
 
 object ExtractorConst {
     const val LANGUAGE_FRONTEND = "Plume"
@@ -24,18 +24,15 @@ object ExtractorConst {
     const val UNKNOWN = "<unknown>"
     const val GLOBAL = "<global>"
     val BOOLEAN_TYPES = setOf(
-        NodeKeyNames.HAS_MAPPING,
-        NodeKeyNames.IS_METHOD_NEVER_OVERRIDDEN,
-        NodeKeyNames.IS_EXTERNAL
+        IS_METHOD_NEVER_OVERRIDDEN,
+        IS_EXTERNAL
     )
     val INT_TYPES = setOf(
-        NodeKeyNames.COLUMN_NUMBER,
-        NodeKeyNames.DEPTH_FIRST_ORDER,
-        NodeKeyNames.ARGUMENT_INDEX,
-        NodeKeyNames.ORDER,
-        NodeKeyNames.LINE_NUMBER,
-        NodeKeyNames.LINE_NUMBER_END,
-        NodeKeyNames.INTERNAL_FLAGS,
-        NodeKeyNames.COLUMN_NUMBER_END
+        COLUMN_NUMBER,
+        ARGUMENT_INDEX,
+        ORDER,
+        LINE_NUMBER,
+        LINE_NUMBER_END,
+        COLUMN_NUMBER_END
     )
 }

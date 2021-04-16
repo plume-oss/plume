@@ -16,7 +16,7 @@
 package io.github.plume.oss.domain.mappers
 
 import io.github.plume.oss.util.ExtractorConst.UNKNOWN
-import io.shiftleft.codepropertygraph.generated.NodeKeyNames.*
+import io.shiftleft.codepropertygraph.generated.PropertyNames.*
 import io.shiftleft.codepropertygraph.generated.nodes.*
 import org.apache.logging.log4j.LogManager
 import org.apache.logging.log4j.Logger
@@ -163,7 +163,6 @@ object VertexMapper {
                 .columnNumber(Option.apply(map[COLUMN_NUMBER] as Int))
                 .argumentIndex(map[ARGUMENT_INDEX] as Int)
             Call.Label() -> NewCallBuilder()
-                .typeFullName(map[TYPE_FULL_NAME] as String)
                 .code(map[CODE] as String)
                 .name(map[NAME] as String)
                 .order(map[ORDER] as Int)
@@ -173,7 +172,6 @@ object VertexMapper {
                 .signature(map[SIGNATURE] as String)
                 .dispatchType(map[DISPATCH_TYPE] as String)
                 .methodFullName(map[METHOD_FULL_NAME] as String)
-                .dynamicTypeHintFullName(ListMapper.stringToScalaList(map[DYNAMIC_TYPE_HINT_FULL_NAME] as String))
             Local.Label() -> NewLocalBuilder()
                 .typeFullName(map[TYPE_FULL_NAME] as String)
                 .code(map[CODE] as String)
@@ -213,13 +211,11 @@ object VertexMapper {
                 .code(map[CODE] as String)
                 .order(map[ORDER] as Int)
                 .methodFullName(map[METHOD_FULL_NAME] as String)
-                .methodInstFullName(Option.apply(map[METHOD_INST_FULL_NAME] as String))
                 .lineNumber(Option.apply(map[LINE_NUMBER] as Int))
                 .columnNumber(Option.apply(map[COLUMN_NUMBER] as Int))
                 .argumentIndex(map[ARGUMENT_INDEX] as Int)
             TypeRef.Label() -> NewTypeRefBuilder()
                 .typeFullName(map[TYPE_FULL_NAME] as String)
-                .dynamicTypeHintFullName(ListMapper.stringToScalaList(map[DYNAMIC_TYPE_HINT_FULL_NAME] as String))
                 .code(map[CODE] as String)
                 .order(map[ORDER] as Int)
                 .lineNumber(Option.apply(map[LINE_NUMBER] as Int))

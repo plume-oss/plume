@@ -22,7 +22,7 @@ import io.github.plume.oss.passes.IProgramStructurePass
 import io.github.plume.oss.util.ExtractorConst.GLOBAL
 import io.github.plume.oss.util.ExtractorConst.UNKNOWN
 import io.shiftleft.codepropertygraph.generated.EdgeTypes.*
-import io.shiftleft.codepropertygraph.generated.NodeKeyNames.NAME
+import io.shiftleft.codepropertygraph.generated.PropertyNames.NAME
 import io.shiftleft.codepropertygraph.generated.NodeTypes.NAMESPACE
 import io.shiftleft.codepropertygraph.generated.nodes.NewFileBuilder
 import io.shiftleft.codepropertygraph.generated.nodes.NewNamespaceBlockBuilder

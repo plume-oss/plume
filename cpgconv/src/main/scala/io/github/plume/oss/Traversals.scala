@@ -2,7 +2,7 @@ package io.github.plume.oss
 
 import java.util
 import io.shiftleft.codepropertygraph.Cpg
-import io.shiftleft.codepropertygraph.generated.{EdgeTypes, NodeKeyNames, nodes}
+import io.shiftleft.codepropertygraph.generated.{EdgeTypes, nodes}
 import io.shiftleft.codepropertygraph.generated.nodes.{AstNode, File, MetaData, NamespaceBlock, StoredNode, TypeDecl}
 import io.shiftleft.semanticcpg.language._
 import overflowdb.{Edge, Graph}
