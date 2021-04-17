@@ -7,6 +7,11 @@ and this project adheres to [Semantic Versioning](http://semver.org/).
 
 ## [Unreleased]
 
+### Changed
+
+- Duplicates are now handled the same in `TigerGraphDriver` as the rest
+  of the drivers.
+
 ## [0.5.0] - 2021-04-15
 
 ### Changed

@@ -28,9 +28,10 @@ import io.github.plume.oss.util.ExtractorConst.BOOLEAN_TYPES
 import io.github.plume.oss.util.ExtractorConst.INT_TYPES
 import io.github.plume.oss.util.PlumeKeyProvider
 import io.shiftleft.codepropertygraph.generated.EdgeTypes
+import io.shiftleft.codepropertygraph.generated.NodeTypes.META_DATA
+import io.shiftleft.codepropertygraph.generated.NodeTypes.UNKNOWN
 import io.shiftleft.codepropertygraph.generated.PropertyNames
 import io.shiftleft.codepropertygraph.generated.PropertyNames.*
-import io.shiftleft.codepropertygraph.generated.NodeTypes.*
 import io.shiftleft.codepropertygraph.generated.nodes.NewMetaDataBuilder
 import io.shiftleft.codepropertygraph.generated.nodes.NewNodeBuilder
 import khttp.responses.Response
@@ -258,13 +259,9 @@ class TigerGraphDriver internal constructor() : IOverridenIdDriver, ISchemaSafeD
         val vDels = mutableListOf<DeltaGraph.VertexDelete>()
         val eDels = mutableListOf<DeltaGraph.EdgeDelete>()
         PlumeTimer.measure(ExtractorTimeKey.DATABASE_READ) {
-            dg.changes.asSequence().filterIsInstance<DeltaGraph.VertexAdd>().map { it.n }
+            dg.changes.filterIsInstance<DeltaGraph.VertexAdd>().map { it.n }
                 .filterNot(::exists)
-                .map {
-                    if (it.id() < 0) it.id(PlumeKeyProvider.getNewId(this))
-                    it
-                }.distinctBy { it.id() }
-                .toCollection(vAdds)
+                .forEachIndexed { i, va -> if (vAdds.none { va === it }) vAdds.add(va.id(-(i + 1).toLong())) }
             dg.changes.filterIsInstance<DeltaGraph.EdgeAdd>().distinct()
                 .filterNot { exists(it.src, it.dst, it.e) }
                 .toCollection(eAdds)
@@ -275,7 +272,8 @@ class TigerGraphDriver internal constructor() : IOverridenIdDriver, ISchemaSafeD
         }
         PlumeTimer.measure(ExtractorTimeKey.DATABASE_WRITE) {
             // Aggregate all requests going into the add
-            val vAddPayload = vAdds.map(::createVertexPayload)
+            val vAddPayload = vAdds.map { it.id(PlumeKeyProvider.getNewId(this)) }
+                .map(::createVertexPayload)
                 .foldRight(mutableMapOf<Any, Any>()) { x, y -> deepMerge(x as MutableMap<Any, Any>, y) }
             val eAddPayload = eAdds.map { createEdgePayload(it.src, it.dst, it.e) }
                 .foldRight(mutableMapOf<Any, Any>()) { x, y -> deepMerge(x as MutableMap<Any, Any>, y) }
