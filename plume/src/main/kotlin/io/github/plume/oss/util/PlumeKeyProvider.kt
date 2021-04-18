@@ -69,6 +69,6 @@ object PlumeKeyProvider {
     /**
      * In the case key pools need to be regenerated they can be cleared here.
      */
-    fun clearKeyPools() = keySet.clear()
+    fun clearKeyPools() { keySet.clear(); currentMax = -1L }
 
 }
