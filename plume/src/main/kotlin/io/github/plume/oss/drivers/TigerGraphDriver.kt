@@ -272,9 +272,19 @@ class TigerGraphDriver internal constructor() : IOverridenIdDriver, ISchemaSafeD
         }
         PlumeTimer.measure(ExtractorTimeKey.DATABASE_WRITE) {
             // Aggregate all requests going into the add
-            val vAddPayload = vAdds.map { it.id(PlumeKeyProvider.getNewId(this)) }
-                .map(::createVertexPayload)
-                .foldRight(mutableMapOf<Any, Any>()) { x, y -> deepMerge(x as MutableMap<Any, Any>, y) }
+            val vAddPayload = mapOf("CPG_VERT" to vAdds
+                .map {
+                    Pair(
+                        it.id(PlumeKeyProvider.getNewId(this)).id().toString(),
+                        CollectionConverters.MapHasAsJava(it.build().properties()).asJava() +
+                                mapOf("label" to it.build().label())
+                    )
+                }
+                .foldRight(mutableMapOf<String, Any>()) { x, y ->
+                    y.apply {
+                        this[x.first] = extractAttributesFromMap(x.second.toMutableMap())
+                    }
+                })
             val eAddPayload = eAdds.map { createEdgePayload(it.src, it.dst, it.e) }
                 .foldRight(mutableMapOf<Any, Any>()) { x, y -> deepMerge(x as MutableMap<Any, Any>, y) }
             if (vAdds.size > 1 || eAdds.size > 1) {
@@ -483,7 +493,7 @@ class TigerGraphDriver internal constructor() : IOverridenIdDriver, ISchemaSafeD
                 val vertices = o["allVert"] as JSONArray
                 vertices.map { vertexPayloadToNode(it as JSONObject) }.forEach {
                     val n = it.build()
-                    if (graph.node(it.id()) == null) {
+                    if (!vs.containsKey(it.id())) {
                         val node = graph.addNode(it.id(), n.label())
                         n.properties().foreachEntry { key, value -> node.setProperty(key, value) }
                         vs[it.id()] = node
@@ -868,7 +878,7 @@ CREATE QUERY deleteMethod(STRING FULL_NAME) FOR GRAPH <GRAPH_NAME> SYNTAX v2 {
   allVert = start;
   # Get method's body vertices
   start = SELECT t
-          FROM start:s -((_AST>|_REF>|_CFG>|_ARGUMENT>|_CAPTURED_BY>|_BINDS_TO>|_RECEIVER>|_CONDITION>|_BINDS>)*) - :t;
+          FROM start:s -((_AST>|_CONTAINS>|_REF>|_CFG>|_ARGUMENT>|_CAPTURED_BY>|_BINDS_TO>|_RECEIVER>|_CONDITION>|_BINDS>)*) - :t;
   allVert = allVert UNION start;
 
   DELETE s FROM allVert:s;
