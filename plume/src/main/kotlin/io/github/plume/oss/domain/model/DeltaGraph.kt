@@ -16,6 +16,7 @@
 package io.github.plume.oss.domain.model
 
 import io.github.plume.oss.drivers.IDriver
+import io.github.plume.oss.drivers.TigerGraphDriver
 import io.shiftleft.codepropertygraph.generated.nodes.NewNodeBuilder
 import org.apache.logging.log4j.LogManager
 import overflowdb.Graph
@@ -28,6 +29,7 @@ import overflowdb.Node
  */
 class DeltaGraph private constructor(val changes: List<Delta>) {
 
+    private val logger = LogManager.getLogger(DeltaGraph::class.java)
     private constructor(builder: Builder) : this(builder.getChanges())
 
     /**
@@ -55,7 +57,11 @@ class DeltaGraph private constructor(val changes: List<Delta>) {
             changes.filterIsInstance<EdgeAdd>().forEach { d ->
                 val src = if (exists(g, d.src.id())) g.node(d.src.id()) else addNode(d.src)
                 val dst = if (exists(g, d.dst.id())) g.node(d.dst.id()) else g.node(d.dst.id()) ?: addNode(d.dst)
-                src.addEdge(d.e, dst)
+                try {
+                    src.addEdge(d.e, dst)
+                } catch (e: Exception) {
+                    logger.error("Exception while adding edge between ${d.src} ($src) and ${d.dst} ($dst)", e)
+                }
             }
             changes.filterIsInstance<VertexDelete>().forEach { d -> g.node(d.id)?.remove() }
             changes.filterIsInstance<EdgeDelete>().forEach { d ->
