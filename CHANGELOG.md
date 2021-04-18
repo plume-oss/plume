@@ -7,6 +7,8 @@ and this project adheres to [Semantic Versioning](http://semver.org/).
 
 ## [Unreleased]
 
+## [0.5.1] - 2021-04-18
+
 ### Fixed
 
 - `PlumeKeyProvider` was providing duplicates - this is now fixed.
