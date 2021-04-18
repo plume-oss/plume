@@ -53,6 +53,7 @@ class PlumeKeyProviderTest {
         assertEquals(15, PlumeKeyProvider.getNewId(mockDriver))
         assertEquals(16, PlumeKeyProvider.getNewId(mockDriver))
         assertEquals(17, PlumeKeyProvider.getNewId(mockDriver))
+        assertEquals(18, PlumeKeyProvider.getNewId(mockDriver))
     }
 
 }
