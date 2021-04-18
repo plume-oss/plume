@@ -19,6 +19,8 @@ import io.github.plume.oss.drivers.IOverridenIdDriver
 
 object PlumeKeyProvider {
 
+    private var currentMax = -1L
+
     /**
      * The size of how many IDs to assign and hold in a pool at a given time. Default is 100 000.
      */
@@ -44,11 +46,12 @@ object PlumeKeyProvider {
         return keySet.removeFirst()
     }
 
+    /**
+     * Obtains new IDs for the key set once it's depleted.
+     */
     private fun generateNewIdPool(d: IOverridenIdDriver): MutableList<Long> {
         // Find the max ID among the pools
-        var currentMax = keySet.maxOrNull() ?: -1L
         val freeIds = mutableSetOf<Long>()
-        var oldSize: Int
         while (freeIds.size < keyPoolSize) {
             // Choose a lower bound, the max among the pools or the max among the free IDs found
             val lowerBound = currentMax + 1
@@ -57,9 +60,8 @@ object PlumeKeyProvider {
             val xs = (lowerBound..upperBound).toSet()
             val takenIds = d.getVertexIds(lowerBound, upperBound)
             val availableIds = xs.minus(takenIds)
-            oldSize = freeIds.size
             freeIds.addAll(availableIds)
-            if (freeIds.size == oldSize) currentMax += keyPoolSize + 1
+            currentMax = freeIds.maxOrNull() ?: currentMax + keyPoolSize + 1
         }
         return freeIds.toMutableList()
     }
@@ -67,6 +69,6 @@ object PlumeKeyProvider {
     /**
      * In the case key pools need to be regenerated they can be cleared here.
      */
-    fun clearKeyPools() = keySet.clear()
+    fun clearKeyPools() { keySet.clear(); currentMax = -1L }
 
 }

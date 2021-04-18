@@ -7,6 +7,15 @@ and this project adheres to [Semantic Versioning](http://semver.org/).
 
 ## [Unreleased]
 
+### Fixed
+
+- `PlumeKeyProvider` was providing duplicates - this is now fixed.
+
+### Changed
+
+- Duplicates are now handled the same in `TigerGraphDriver` as the rest
+  of the drivers.
+
 ## [0.5.0] - 2021-04-15
 
 ### Changed
