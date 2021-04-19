@@ -208,8 +208,8 @@ class TigerGraphDriver internal constructor() : IOverridenIdDriver, ISchemaSafeD
                 mapOf(
                     "V_FROM" to src.id().toString(),
                     "V_TO" to tgt.id().toString(),
-                    "V_FROM.type" to src.build().label(),
-                    "V_TO.type" to tgt.build().label(),
+                    "V_FROM.type" to "${src.build().label()}_VERT",
+                    "V_TO.type" to "${tgt.build().label()}_VERT",
                     "EDGE_LABEL" to "_$edge"
                 )
             ).firstOrNull()
@@ -275,7 +275,10 @@ class TigerGraphDriver internal constructor() : IOverridenIdDriver, ISchemaSafeD
                 payloadByType["${type}_VERT"] = ns.map {
                     Pair(
                         it.id(PlumeKeyProvider.getNewId(this)).id().toString(),
-                        CollectionConverters.MapHasAsJava(it.build().properties()).asJava()
+                        VertexMapper.stripUnusedProperties(
+                            type,
+                            CollectionConverters.MapHasAsJava(it.build().properties()).asJava().toMutableMap()
+                        )
                     )
                 }.foldRight(mutableMapOf<String, Any>()) { x, y ->
                     y.apply {
@@ -395,7 +398,7 @@ class TigerGraphDriver internal constructor() : IOverridenIdDriver, ISchemaSafeD
             "query/$GRAPH_NAME/getNeighbours",
             mapOf(
                 "SOURCE" to v.id().toString(),
-                "SOURCE.type" to v.build().label()
+                "SOURCE.type" to "${v.build().label()}_VERT"
             )
         )
         return payloadToGraph(result)
@@ -446,12 +449,13 @@ class TigerGraphDriver internal constructor() : IOverridenIdDriver, ISchemaSafeD
             INT_TYPES.contains(propertyKey) -> "getVerticesByIProperty"
             else -> "getVerticesBySProperty"
         }
+        val lbl = "${label}_VERT"
         val result = (get(
             endpoint = "query/$GRAPH_NAME/$path",
             params = mapOf(
                 "PROPERTY_KEY" to "_$propertyKey",
                 "PROPERTY_VALUE" to propertyValue.toString(),
-                "LABEL" to (label ?: "null")
+                "LABEL" to (if (label != null) lbl else "null")
             )
         ).first() as JSONObject)["result"] as JSONArray
         return result.map { vertexPayloadToNode(it as JSONObject) }
@@ -465,11 +469,12 @@ class TigerGraphDriver internal constructor() : IOverridenIdDriver, ISchemaSafeD
             INT_TYPES.contains(propertyKey) -> "getIPropertyFromVertices"
             else -> "getSPropertyFromVertices"
         }
+        val lbl = "${label}_VERT"
         val result = (get(
             "query/$GRAPH_NAME/$path",
             params = mapOf(
                 "PROPERTY_KEY" to "_$propertyKey",
-                "LABEL" to (label ?: "null")
+                "LABEL" to (if (label != null) lbl else "null")
             )
         ).first() as JSONObject)["@@props"] as JSONArray
         return result.map { it as T }
@@ -478,7 +483,7 @@ class TigerGraphDriver internal constructor() : IOverridenIdDriver, ISchemaSafeD
     override fun getVerticesOfType(label: String): List<NewNodeBuilder> {
         val result = (get(
             endpoint = "query/$GRAPH_NAME/getVerticesOfType",
-            params = mapOf("LABEL" to label)
+            params = mapOf("LABEL" to "${label}_VERT")
         ).first() as JSONObject)["result"] as JSONArray
         return result.map { vertexPayloadToNode(it as JSONObject) }.toList()
     }
@@ -525,7 +530,7 @@ class TigerGraphDriver internal constructor() : IOverridenIdDriver, ISchemaSafeD
 
     private fun vertexPayloadToNode(o: JSONObject): NewNodeBuilder {
         val attributes = o["attributes"] as JSONObject
-        val vertexMap = mutableMapOf<String, Any>()
+        val vertexMap = mutableMapOf<String, Any>("label" to o["v_type"].toString().removeSuffix("_VERT"))
         attributes.keySet()
             .map {
                 if (it == "id") Pair(it, attributes[it].toString().toLong())
@@ -923,7 +928,7 @@ CREATE VERTEX ${CALL}_VERT (
 CREATE VERTEX ${LOCAL}_VERT (
     PRIMARY_ID id UINT,
     _$CODE STRING,
-    _$NAME INT,
+    _$NAME STRING,
     _$TYPE_FULL_NAME STRING,
     _$LINE_NUMBER INT,
     _$COLUMN_NUMBER INT,

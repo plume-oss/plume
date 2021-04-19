@@ -16,10 +16,11 @@
 package io.github.plume.oss.domain.mappers
 
 import io.github.plume.oss.util.ExtractorConst.UNKNOWN
-import io.shiftleft.codepropertygraph.generated.NodeTypes.ARRAY_INITIALIZER
-import io.shiftleft.codepropertygraph.generated.NodeTypes.BINDING
+import io.shiftleft.codepropertygraph.generated.NodeTypes
+import io.shiftleft.codepropertygraph.generated.NodeTypes.*
 import io.shiftleft.codepropertygraph.generated.PropertyNames.*
 import io.shiftleft.codepropertygraph.generated.nodes.*
+import io.shiftleft.proto.cpg.Cpg
 import org.apache.logging.log4j.LogManager
 import org.apache.logging.log4j.Logger
 import overflowdb.Node
@@ -254,6 +255,12 @@ object VertexMapper {
         return when (label) {
             ARRAY_INITIALIZER -> map.apply { remove(ARGUMENT_INDEX) }
             BINDING -> map.apply { remove(IS_METHOD_NEVER_OVERRIDDEN) }
+            CONTROL_STRUCTURE ->  map.apply { remove(PARSER_TYPE_NAME) }
+            JUMP_TARGET ->  map.apply { remove(PARSER_TYPE_NAME) }
+            METHOD ->  map.apply { remove(FILENAME) }
+            METHOD_REF -> map.apply { remove(TYPE_FULL_NAME) }
+            TYPE_DECL ->  map.apply { remove(FILENAME) }
+            NodeTypes.UNKNOWN ->  map.apply { remove(CONTAINED_REF); remove(PARSER_TYPE_NAME) }
             else -> map
         }
     }
