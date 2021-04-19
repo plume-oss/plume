@@ -7,6 +7,8 @@ and this project adheres to [Semantic Versioning](http://semver.org/).
 
 ## [Unreleased]
 
+## [0.5.2] - 2021-04-19
+
 ### Fixed
 
 - `PlumeKeyProvider` was getting stuck on the `currentMax` variable - this is now fixed.
