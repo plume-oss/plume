@@ -28,8 +28,8 @@ import io.github.plume.oss.util.ExtractorConst.BOOLEAN_TYPES
 import io.github.plume.oss.util.ExtractorConst.INT_TYPES
 import io.github.plume.oss.util.PlumeKeyProvider
 import io.shiftleft.codepropertygraph.generated.EdgeTypes
-import io.shiftleft.codepropertygraph.generated.NodeTypes.META_DATA
-import io.shiftleft.codepropertygraph.generated.NodeTypes.UNKNOWN
+import io.shiftleft.codepropertygraph.generated.NodeTypes
+import io.shiftleft.codepropertygraph.generated.NodeTypes.*
 import io.shiftleft.codepropertygraph.generated.PropertyNames
 import io.shiftleft.codepropertygraph.generated.PropertyNames.*
 import io.shiftleft.codepropertygraph.generated.nodes.NewMetaDataBuilder
@@ -328,8 +328,7 @@ class TigerGraphDriver internal constructor() : IOverridenIdDriver, ISchemaSafeD
     private fun createVertexPayload(v: NewNodeBuilder): MutableMap<String, MutableMap<String, Any>> {
         val node = v.build()
         val propertyMap = CollectionConverters.MapHasAsJava(node.properties()).asJava().toMutableMap()
-        propertyMap["label"] = node.label()
-        val vertexType = if (v is NewMetaDataBuilder) "META_DATA_VERT" else "CPG_VERT"
+        val vertexType = "${v.build().label()}_VERT"
         if (v.id() < 0L) v.id(PlumeKeyProvider.getNewId(this))
         return mutableMapOf(
             vertexType to mutableMapOf(
@@ -399,13 +398,12 @@ class TigerGraphDriver internal constructor() : IOverridenIdDriver, ISchemaSafeD
 
     override fun deleteVertex(id: Long, label: String?) {
         if (!checkVertexExists(id, label)) return
-        val lbl = if (label == META_DATA) "META_DATA_VERT" else "CPG_VERT"
-        delete("graph/$GRAPH_NAME/vertices/$lbl/$id")
+        delete("graph/$GRAPH_NAME/vertices/${label}_VERT/$id")
     }
 
     override fun deleteEdge(src: NewNodeBuilder, tgt: NewNodeBuilder, edge: String) {
         if (!exists(src, tgt, edge)) return
-        delete("graph/$GRAPH_NAME/edges/CPG_VERT/${src.id()}/_$edge/CPG_VERT/${tgt.id()}")
+        delete("graph/$GRAPH_NAME/edges/${src.build().label()}_VERT/${src.id()}/_$edge/${tgt.build().label()}_VERT/${tgt.id()}")
     }
 
     override fun deleteMethod(fullName: String) {
@@ -418,8 +416,7 @@ class TigerGraphDriver internal constructor() : IOverridenIdDriver, ISchemaSafeD
 
     override fun updateVertexProperty(id: Long, label: String?, key: String, value: Any) {
         if (!checkVertexExists(id, label)) return
-        val lbl = if (label == META_DATA) "META_DATA_VERT" else "CPG_VERT"
-        val payload = mapOf("vertices" to mapOf(lbl to mapOf(id to mapOf("_$key" to mapOf("value" to value)))))
+        val payload = mapOf("vertices" to mapOf("${label}_VERT" to mapOf(id to mapOf("_$key" to mapOf("value" to value)))))
         post("graph/$GRAPH_NAME", payload)
     }
 
@@ -533,8 +530,9 @@ class TigerGraphDriver internal constructor() : IOverridenIdDriver, ISchemaSafeD
     }
 
     override fun clearGraph() = apply {
-        delete("graph/$GRAPH_NAME/delete_by_type/vertices/META_DATA_VERT")
-        delete("graph/$GRAPH_NAME/delete_by_type/vertices/CPG_VERT")
+        NodeTypes.ALL.forEach { nodeType ->
+            delete("graph/$GRAPH_NAME/delete_by_type/vertices/${nodeType}_VERT")
+        }
         PlumeKeyProvider.clearKeyPools()
     }
 
@@ -695,40 +693,254 @@ class TigerGraphDriver internal constructor() : IOverridenIdDriver, ISchemaSafeD
             """
             DROP ALL
             
-            CREATE VERTEX CPG_VERT (
+            CREATE VERTEX ${ARRAY_INITIALIZER}_VERT (
                 PRIMARY_ID id UINT,
-                label STRING DEFAULT "$UNKNOWN",
-        """.trimIndent()
-        )
-        schema.append("\n")
-        // Handle vertices
-        val cpgNodeBlacklist = listOf(LANGUAGE, VERSION, OVERLAYS, NODE_LABEL)
-        val propertiesList = PropertyNames.ALL.filterNot(cpgNodeBlacklist::contains).toList()
-        propertiesList.forEachIndexed { i: Int, k: String ->
-            when {
-                BOOLEAN_TYPES.contains(k) -> schema.append("\t_$k BOOL DEFAULT \"TRUE\"")
-                INT_TYPES.contains(k) -> schema.append("\t_$k INT DEFAULT -1")
-                else -> schema.append("\t_$k STRING DEFAULT \"null\"")
-            }
-            if (i < propertiesList.size - 1) schema.append(",\n") else schema.append("\n")
-        }
-        schema.append(
-            """
+                _$ORDER INT,
+                _$CODE STRING,
+                _$LINE_NUMBER INT,
+                _$COLUMN_NUMBER INT
             ) WITH primary_id_as_attribute="true"
             
-            CREATE VERTEX META_DATA_VERT (
+            CREATE VERTEX ${BINDING}_VERT (
                 PRIMARY_ID id UINT,
-                label STRING DEFAULT "$META_DATA",
+                _$NAME STRING,
+                _$SIGNATURE STRING
+            )
+            
+            CREATE VERTEX ${META_DATA}_VERT (
+                PRIMARY_ID id UINT,
                 _$LANGUAGE STRING DEFAULT "${ExtractorConst.LANGUAGE_FRONTEND}",
                 _$VERSION STRING DEFAULT "${ExtractorConst.plumeVersion}",
-                _$OVERLAYS STRING DEFAULT "null",
                 _$HASH STRING DEFAULT "null"
+            ) WITH primary_id_as_attribute="true"
+            
+            CREATE VERTEX ${FILE}_VERT (
+                PRIMARY_ID id UINT,
+                _$NAME STRING,
+                _$HASH STRING,
+                _$ORDER INT
+            ) WITH primary_id_as_attribute="true"
+            
+            CREATE VERTEX ${METHOD}_VERT (
+                PRIMARY_ID id UINT,
+                _$AST_PARENT_FULL_NAME STRING,
+                _$AST_PARENT_TYPE STRING,
+                _$NAME STRING,
+                _$CODE STRING,
+                _$IS_EXTERNAL BOOL,
+                _$FULL_NAME STRING,
+                _$SIGNATURE STRING,
+                _$LINE_NUMBER INT,
+                _$COLUMN_NUMBER INT,
+                _$ORDER INT,
+                _$HASH STRING
+            ) WITH primary_id_as_attribute="true"
+            
+            CREATE VERTEX ${METHOD_PARAMETER_IN}_VERT (
+                PRIMARY_ID id UINT,
+                _$CODE STRING,
+                _$NAME STRING,
+                _$EVALUATION_STRATEGY STRING,
+                _$TYPE_FULL_NAME STRING,
+                _$LINE_NUMBER INT,
+                _$COLUMN_NUMBER INT,
+                _$ORDER INT
+            ) WITH primary_id_as_attribute="true"
+            
+            CREATE VERTEX ${METHOD_PARAMETER_OUT}_VERT (
+                PRIMARY_ID id UINT,
+                _$CODE STRING,
+                _$NAME STRING,
+                _$EVALUATION_STRATEGY STRING,
+                _$TYPE_FULL_NAME STRING,
+                _$LINE_NUMBER INT,
+                _$COLUMN_NUMBER INT,
+                _$ORDER INT
+            ) WITH primary_id_as_attribute="true"
+            
+            CREATE VERTEX ${METHOD_RETURN}_VERT (
+                PRIMARY_ID id UINT,
+                _$CODE STRING,
+                _$EVALUATION_STRATEGY STRING,
+                _$TYPE_FULL_NAME STRING,
+                _$LINE_NUMBER INT,
+                _$COLUMN_NUMBER INT,
+                _$ORDER INT
+            ) WITH primary_id_as_attribute="true"
+            
+            CREATE VERTEX ${MODIFIER}_VERT (
+                PRIMARY_ID id UINT,
+                _$MODIFIER_TYPE STRING,
+                _$ORDER INT
+            ) WITH primary_id_as_attribute="true"
+            
+            CREATE VERTEX ${TYPE}_VERT (
+                PRIMARY_ID id UINT,
+                _$NAME STRING,
+                _$FULL_NAME STRING,
+                _$TYPE_DECL_FULL_NAME STRING
+            ) WITH primary_id_as_attribute="true"
+            
+            CREATE VERTEX ${TYPE_PARAMETER}_VERT (
+                PRIMARY_ID id UINT,
+                _$NAME STRING,
+                _$ORDER INT
+            ) WITH primary_id_as_attribute="true"
+            
+            CREATE VERTEX ${TYPE_ARGUMENT}_VERT (
+                PRIMARY_ID id UINT,
+                _$ORDER INT
+            ) WITH primary_id_as_attribute="true"
+            
+            CREATE VERTEX ${MEMBER}_VERT (
+                PRIMARY_ID id UINT,
+                _$NAME STRING,
+                _$CODE STRING,
+                _$TYPE_FULL_NAME STRING,
+                _$ORDER INT
+            ) WITH primary_id_as_attribute="true"
+            
+            CREATE VERTEX ${NAMESPACE}_VERT (
+                PRIMARY_ID id UINT,
+                _$NAME STRING,
+                _$ORDER INT
+            ) WITH primary_id_as_attribute="true"
+            
+            CREATE VERTEX ${NAMESPACE_BLOCK}_VERT (
+                PRIMARY_ID id UINT,
+                _$FULL_NAME STRING,
+                _$FILENAME STRING,
+                _$NAME STRING,
+                _$ORDER INT
+            ) WITH primary_id_as_attribute="true"
+            
+            CREATE VERTEX ${LITERAL}_VERT (
+                PRIMARY_ID id UINT,
+                _$CODE STRING,
+                _$ARGUMENT_INDEX INT,
+                _$TYPE_FULL_NAME STRING,
+                _$LINE_NUMBER INT,
+                _$COLUMN_NUMBER INT,
+                _$ORDER INT
+            ) WITH primary_id_as_attribute="true"
+            
+            CREATE VERTEX ${CALL}_VERT (
+                PRIMARY_ID id UINT,
+                _$CODE STRING,
+                _$NAME STRING,
+                _$LINE_NUMBER INT,
+                _$COLUMN_NUMBER INT,
+                _$ORDER INT,
+                _$ARGUMENT_INDEX INT,
+                _$SIGNATURE STRING,
+                _$DISPATCH_TYPE STRING,
+                _$METHOD_FULL_NAME STRING
+            ) WITH primary_id_as_attribute="true"
+            
+            CREATE VERTEX ${LOCAL}_VERT (
+                PRIMARY_ID id UINT,
+                _$CODE STRING,
+                _$NAME INT,
+                _$TYPE_FULL_NAME STRING,
+                _$LINE_NUMBER INT,
+                _$COLUMN_NUMBER INT,
+                _$ORDER INT
+            ) WITH primary_id_as_attribute="true"
+            
+            CREATE VERTEX ${IDENTIFIER}_VERT (
+                PRIMARY_ID id UINT,
+                _$CODE STRING,
+                _$ARGUMENT_INDEX INT,
+                _$TYPE_FULL_NAME STRING,
+                _$LINE_NUMBER INT,
+                _$COLUMN_NUMBER INT,
+                _$ORDER INT,
+                _$ARGUMENT_INDEX INT
+            ) WITH primary_id_as_attribute="true"
+            
+            CREATE VERTEX ${FIELD_IDENTIFIER}_VERT (
+                PRIMARY_ID id UINT,
+                _$CODE STRING,
+                _$ARGUMENT_INDEX INT,
+                _$CANONICAL_NAME STRING,
+                _$LINE_NUMBER INT,
+                _$COLUMN_NUMBER INT,
+                _$ORDER INT
+            ) WITH primary_id_as_attribute="true"
+            
+            CREATE VERTEX ${RETURN}_VERT (
+                PRIMARY_ID id UINT,
+                _$CODE STRING,
+                _$ARGUMENT_INDEX INT,
+                _$LINE_NUMBER INT,
+                _$COLUMN_NUMBER INT,
+                _$ORDER INT
+            ) WITH primary_id_as_attribute="true"
+            
+            CREATE VERTEX ${BLOCK}_VERT (
+                PRIMARY_ID id UINT,
+                _$CODE STRING,
+                _$ARGUMENT_INDEX INT,
+                _$TYPE_FULL_NAME STRING,
+                _$LINE_NUMBER INT,
+                _$COLUMN_NUMBER INT,
+                _$ORDER INT
+            ) WITH primary_id_as_attribute="true"
+            
+            CREATE VERTEX ${METHOD_REF}_VERT (
+                PRIMARY_ID id UINT,
+                _$CODE STRING,
+                _$ARGUMENT_INDEX INT,
+                _$METHOD_FULL_NAME STRING,
+                _$LINE_NUMBER INT,
+                _$COLUMN_NUMBER INT,
+                _$ORDER INT
+            ) WITH primary_id_as_attribute="true"
+            
+            CREATE VERTEX ${TYPE_REF}_VERT (
+                PRIMARY_ID id UINT,
+                _$CODE STRING,
+                _$ARGUMENT_INDEX INT,
+                _$TYPE_FULL_NAME STRING,
+                _$LINE_NUMBER INT,
+                _$COLUMN_NUMBER INT,
+                _$ORDER INT
+            ) WITH primary_id_as_attribute="true"
+            
+            CREATE VERTEX ${JUMP_TARGET}_VERT (
+                PRIMARY_ID id UINT,
+                _$CODE STRING,
+                _$ARGUMENT_INDEX INT,
+                _$NAME STRING,
+                _$LINE_NUMBER INT,
+                _$COLUMN_NUMBER INT,
+                _$ORDER INT
+            ) WITH primary_id_as_attribute="true"
+            
+            CREATE VERTEX ${CONTROL_STRUCTURE}_VERT (
+                PRIMARY_ID id UINT,
+                _$CODE STRING,
+                _$ARGUMENT_INDEX INT,
+                _$CONTROL_STRUCTURE_TYPE STRING,
+                _$LINE_NUMBER INT,
+                _$COLUMN_NUMBER INT,
+                _$ORDER INT
+            ) WITH primary_id_as_attribute="true"
+            
+            CREATE VERTEX ${UNKNOWN}_VERT (
+                PRIMARY_ID id UINT,
+                _$CODE STRING,
+                _$ARGUMENT_INDEX INT,
+                _$TYPE_FULL_NAME STRING,
+                _$LINE_NUMBER INT,
+                _$COLUMN_NUMBER INT,
+                _$ORDER INT
             ) WITH primary_id_as_attribute="true"
         """.trimIndent()
         )
         schema.append("\n\n")
         // Handle edges
-        EdgeTypes.ALL.forEach { schema.append("CREATE DIRECTED EDGE _$it (FROM CPG_VERT, TO CPG_VERT)\n") }
+        EdgeTypes.ALL.forEach { schema.append("CREATE DIRECTED EDGE _$it (FROM *, TO *)\n") }
         schema.append("\nCREATE GRAPH cpg (*)\n")
         // Set queries
         schema.append(QUERIES.replace("<GRAPH_NAME>", GRAPH_NAME))
