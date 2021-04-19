@@ -7,6 +7,8 @@ and this project adheres to [Semantic Versioning](http://semver.org/).
 
 ## [Unreleased]
 
+## [0.5.3] - 2021-04-19
+
 ### Changed
 
 - `TigerGraphDriver` now uses a TigerGraph v3.0 feature that allows edges to be defined between
