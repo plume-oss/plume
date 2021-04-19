@@ -1080,11 +1080,11 @@ CREATE QUERY getMethod(STRING FULL_NAME) FOR GRAPH <GRAPH_NAME> SYNTAX v2 {
   allVert = start;
   # Get method's body vertices
   start = SELECT t
-          FROM start:s -((_AST>|_REF>|_CFG>|_ARGUMENT>|_BINDS_TO>|_RECEIVER>|_CONDITION>|_BINDS>)*) - :t;
+          FROM start:s -(_AST>*) - :t;
   allVert = allVert UNION start;
   # Get edges between body methods
   finalEdges = SELECT t
-               FROM allVert -((_AST>|_REF>|_CFG>|_ARGUMENT>|_BINDS_TO>|_RECEIVER>|_CONDITION>|_BINDS>):e)-:t
+               FROM allVert -(:e)-:t
                ACCUM @@edges += e;
   PRINT allVert;
   PRINT @@edges;
