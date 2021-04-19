@@ -278,48 +278,65 @@ class Neo4jDriver internal constructor() : IDriver {
             val idToAlias = mutableMapOf<NewNodeBuilder, String>()
             val vPayloads = mutableMapOf<NewNodeBuilder, String>()
             if (vAdds.isNotEmpty()) {
-                val temp = vAdds.distinctBy { it.id() }.toMutableList()
-                vAdds.clear()
-                vAdds.addAll(temp)
-                vAdds.mapIndexed { i, v ->
-                    idToAlias[v] = "n$i"
-                    vPayloads[v] = createVertexPayload(v, i)
-                }
-                val create = vPayloads.values.joinToString("\n") { it }
-                val ret = "RETURN " + vAdds
-                    .joinToString(", ") { v -> "ID(${idToAlias[v]}) as id${idToAlias[v]}" }
-                driver.session().use { session ->
-                    session.writeTransaction { tx ->
-                        val result = tx.run(
-                            """
-                            $create
-                            $ret
-                        """.trimIndent()
-                        )
-                        val row = result.next()
-                        vAdds.forEach { v -> v.id(row["id${idToAlias[v]}"].toString().toLong()) }
+                vAdds.distinctBy { it.id() }.chunked(50).forEach { vs ->
+                    idToAlias.clear()
+                    vPayloads.clear()
+                    vs.mapIndexed { i, v ->
+                        idToAlias[v] = "n$i"
+                        vPayloads[v] = createVertexPayload(v, i)
+                    }
+                    val create = vPayloads.values.joinToString("\n") { it }
+                    val ret = "RETURN " + vs
+                        .joinToString(", ") { v -> "ID(${idToAlias[v]}) as id${idToAlias[v]}" }
+                    driver.session().use { session ->
+                        try {
+                            session.writeTransaction { tx ->
+                                val result = tx.run(
+                                    """
+                                $create
+                                $ret
+                                """.trimIndent()
+                                )
+                                val row = result.next()
+                                vs.forEach { v -> v.id(row["id${idToAlias[v]}"].toString().toLong()) }
+                            }
+                        } catch (e: Exception) {
+                            logger.error("Exception occurred while writing tx with body: $create $ret")
+                            throw e
+                        }
                     }
                 }
             }
             if (eAdds.isNotEmpty()) {
-                val match = "MATCH " + vAdds
-                    .mapIndexed { i, v -> idToAlias[v] = "n$i"; "(n$i:${v.build().label()})" }
-                    .joinToString(", ")
-                val where = "WHERE " + vAdds.joinToString(" AND ") { v -> "id(${idToAlias[v]})=${v.id()}" }
-                val create = "CREATE " + eAdds
-                    .mapIndexed { i, eAdd -> "(${idToAlias[eAdd.src]})-[r$i:${eAdd.e}]->(${idToAlias[eAdd.dst]})" }
-                    .joinToString(", ")
-                driver.session().use { session ->
-                    session.writeTransaction { tx ->
-                        tx.run(
-                            """
-                            $match
-                            $where
-                            $create
-                        """.trimIndent()
-                        )
+                eAdds.chunked(50).forEach { es ->
+                    idToAlias.clear()
+                    // Separate the vs attached to es
+                    es.flatMap { listOf(it.src, it.dst) }.distinct().forEachIndexed { i, v -> idToAlias[v] = "n$i" }
+                    val match = "MATCH " + idToAlias.keys
+                        .mapIndexed { i, v -> idToAlias[v] = "n$i"; "(n$i:${v.build().label()})" }
+                        .joinToString(", ")
+                    val where = "WHERE " + idToAlias.keys.joinToString(" AND ") { v -> "id(${idToAlias[v]})=${v.id()}" }
+                    val create = "CREATE " + es
+                        .mapIndexed { i, eAdd -> "(${idToAlias[eAdd.src]})-[r$i:${eAdd.e}]->(${idToAlias[eAdd.dst]})" }
+                        .joinToString(", ")
+                    driver.session().use { session ->
+                        try {
+                            session.writeTransaction { tx ->
+                                tx.run(
+                                    """
+                                    $match
+                                    $where
+                                    $create
+                                """.trimIndent()
+                                )
+                            }
+                        } catch (e: Exception) {
+                            logger.error("Exception occurred while writing tx with body: $match $where $create")
+                            throw e
+                        }
                     }
                 }
+
             }
             // TODO: This can be bulk but deletes are currently very uncommon
             vDels.forEach { deleteVertex(it.id, it.label) }

@@ -7,6 +7,16 @@ and this project adheres to [Semantic Versioning](http://semver.org/).
 
 ## [Unreleased]
 
+### Fixed
+
+- `PlumeKeyProvider` was getting stuck on the `currentMax` variable - this is now fixed.
+- `Neo4jDriver`'s `bulkTransction` was too tightly coupled on the vertex and edge add which lead
+  to bugs. This is now separated and the bug is no longer present.
+
+### Changed
+
+- `Neo4jDriver` bulk transactions are now chunked in that they insert by chunks of 50.
+
 ## [0.5.1] - 2021-04-18
 
 ### Fixed
