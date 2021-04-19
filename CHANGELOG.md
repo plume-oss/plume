@@ -7,6 +7,13 @@ and this project adheres to [Semantic Versioning](http://semver.org/).
 
 ## [Unreleased]
 
+### Changed
+
+- `TigerGraphDriver` now uses a TigerGraph v3.0 feature that allows edges to be defined between
+  different vertex types. This means that now the CPG schema can be properly defined with unique
+  vertex names.
+- If a property is unused it is stripped from being added.  
+
 ## [0.5.2] - 2021-04-19
 
 ### Fixed

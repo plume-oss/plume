@@ -177,7 +177,10 @@ class Neo4jDriver internal constructor() : IDriver {
 
     private fun createVertexPayload(v: NewNodeBuilder, idx: Int): String {
         val node = v.build()
-        val propertyMap = CollectionConverters.MapHasAsJava(node.properties()).asJava().toMutableMap()
+        val propertyMap = VertexMapper.stripUnusedProperties(
+            v.build().label(),
+            CollectionConverters.MapHasAsJava(node.properties()).asJava().toMutableMap()
+        )
         propertyMap["label"] = node.label()
         val payload = StringBuilder("{")
         val attributeList = extractAttributesFromMap(propertyMap).toList()
