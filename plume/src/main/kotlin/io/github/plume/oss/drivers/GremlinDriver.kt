@@ -16,15 +16,14 @@
 package io.github.plume.oss.drivers
 
 import io.github.plume.oss.domain.exceptions.PlumeSchemaViolationException
-import io.github.plume.oss.domain.mappers.ListMapper
 import io.github.plume.oss.domain.mappers.VertexMapper
 import io.github.plume.oss.domain.mappers.VertexMapper.checkSchemaConstraints
 import io.github.plume.oss.domain.model.DeltaGraph
 import io.github.plume.oss.metrics.ExtractorTimeKey
 import io.github.plume.oss.metrics.PlumeTimer
 import io.shiftleft.codepropertygraph.generated.EdgeTypes.AST
-import io.shiftleft.codepropertygraph.generated.PropertyNames.FULL_NAME
 import io.shiftleft.codepropertygraph.generated.NodeTypes.*
+import io.shiftleft.codepropertygraph.generated.PropertyNames.FULL_NAME
 import io.shiftleft.codepropertygraph.generated.nodes.NewMetaDataBuilder
 import io.shiftleft.codepropertygraph.generated.nodes.NewNode
 import io.shiftleft.codepropertygraph.generated.nodes.NewNodeBuilder
@@ -39,11 +38,8 @@ import org.apache.tinkerpop.gremlin.structure.Vertex
 import org.apache.tinkerpop.gremlin.tinkergraph.structure.TinkerGraph
 import overflowdb.Config
 import overflowdb.Node
-import scala.collection.immutable.`$colon$colon`
-import scala.collection.immutable.`Nil$`
 import scala.jdk.CollectionConverters
 import java.util.*
-import kotlin.collections.LinkedHashMap
 import io.shiftleft.codepropertygraph.generated.edges.Factories as EdgeFactories
 import io.shiftleft.codepropertygraph.generated.nodes.Factories as NodeFactories
 import org.apache.tinkerpop.gremlin.process.traversal.dsl.graph.`__` as un
@@ -251,14 +247,11 @@ abstract class GremlinDriver : IDriver {
     }
 
     protected open fun prepareVertexProperties(v: NewNodeBuilder): Map<String, Any> =
-        CollectionConverters.MapHasAsJava(v.build().properties()).asJava()
-            .mapValues { (_, value) ->
-                when (value) {
-                    is `$colon$colon`<*> -> ListMapper.scalaListToString(value)
-                    is `Nil$` -> ListMapper.scalaListToString(value)
-                    else -> value
-                }
-            }.toMap()
+        VertexMapper.prepareListsInMap(
+            VertexMapper.stripUnusedProperties(
+                v.build().label(), CollectionConverters.MapHasAsJava(v.build().properties()).asJava().toMutableMap()
+            )
+        ).toMap()
 
     /**
      * Wrapper method for creating an edge between two vertices.

@@ -33,10 +33,8 @@ import io.github.plume.oss.TestDomainResources.Companion.typeRefVertex
 import io.github.plume.oss.TestDomainResources.Companion.unknownVertex
 import io.github.plume.oss.domain.exceptions.PlumeSchemaViolationException
 import io.github.plume.oss.domain.model.DeltaGraph
-import io.shiftleft.codepropertygraph.generated.EdgeTypes
 import io.shiftleft.codepropertygraph.generated.EdgeTypes.*
 import io.shiftleft.codepropertygraph.generated.NodeTypes.*
-import io.shiftleft.codepropertygraph.generated.PropertyNames
 import io.shiftleft.codepropertygraph.generated.PropertyNames.*
 import io.shiftleft.codepropertygraph.generated.nodes.*
 import org.junit.jupiter.api.*
@@ -52,13 +50,6 @@ class TigerGraphDriverIntTest {
         lateinit var driver: TigerGraphDriver
         private var testStartTime by Delegates.notNull<Long>()
 
-        private fun testPayloadContents() {
-            val payload = driver.buildSchemaPayload()
-            PropertyNames.ALL.filterNot { it == NODE_LABEL }.map(payload::contains)
-                .forEach(Assertions::assertTrue)
-            EdgeTypes.ALL.map(payload::contains).forEach(Assertions::assertTrue)
-        }
-
         @JvmStatic
         @BeforeAll
         fun setUpAll() {
@@ -73,7 +64,6 @@ class TigerGraphDriverIntTest {
             assertEquals("127.0.0.1", driver.hostname)
             assertEquals(9000, driver.restPpPort)
             assertEquals(false, driver.secure)
-            testPayloadContents()
             driver.buildSchema()
             testStartTime = System.nanoTime()
         }

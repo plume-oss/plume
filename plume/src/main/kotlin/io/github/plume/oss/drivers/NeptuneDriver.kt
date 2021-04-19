@@ -201,16 +201,13 @@ class NeptuneDriver internal constructor() : GremlinDriver() {
 
     // This handles ODB -> Neptune
     override fun prepareVertexProperties(v: NewNodeBuilder): Map<String, Any> {
-        val outMap = CollectionConverters.MapHasAsJava(v.build().properties()).asJava()
-            .mapValues { (_, value) ->
-                when (value) {
-                    is `$colon$colon`<*> -> ListMapper.scalaListToString(value)
-                    is `Nil$` -> ListMapper.scalaListToString(value)
-                    else -> value
-                }
-            }.toMutableMap()
+        val outMap = VertexMapper.prepareListsInMap(
+            VertexMapper.stripUnusedProperties(
+                v.build().label(),
+                CollectionConverters.MapHasAsJava(v.build().properties()).asJava().toMutableMap()
+            )).toMutableMap()
         if (outMap.containsKey("id")) {
-            outMap["id"] = idMapper[outMap["id"]]
+            outMap["id"] = idMapper[outMap["id"]]!!
         }
         return outMap
     }
