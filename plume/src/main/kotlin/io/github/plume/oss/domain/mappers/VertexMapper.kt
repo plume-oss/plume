@@ -16,6 +16,8 @@
 package io.github.plume.oss.domain.mappers
 
 import io.github.plume.oss.util.ExtractorConst.UNKNOWN
+import io.shiftleft.codepropertygraph.generated.NodeTypes.ARRAY_INITIALIZER
+import io.shiftleft.codepropertygraph.generated.NodeTypes.BINDING
 import io.shiftleft.codepropertygraph.generated.PropertyNames.*
 import io.shiftleft.codepropertygraph.generated.nodes.*
 import org.apache.logging.log4j.LogManager
@@ -246,6 +248,17 @@ object VertexMapper {
     }
 
     /**
+     * Removes properties not used by Plume.
+     */
+    fun stripUnusedProperties(label: String, map: MutableMap<String, Any>): MutableMap<String, Any> {
+        return when (label) {
+            ARRAY_INITIALIZER -> map.apply { remove(ARGUMENT_INDEX) }
+            BINDING -> map.apply { remove(IS_METHOD_NEVER_OVERRIDDEN) }
+            else -> map
+        }
+    }
+
+    /**
      * Checks if the given edge complies with the CPG schema given the from and two vertices.
      *
      * @param fromV The vertex from which the edge connects from.
@@ -261,10 +274,11 @@ object VertexMapper {
      *
      * @param fromLabel The vertex label from which the edge connects from.
      * @param toLabel The vertex label to which the edge connects to.
-     * @param edge the edge label between the two vertices.
+     * @param edge The edge label between the two vertices.
+     * @param silent If true, will not log any warnings.
      * @return true if the edge complies with the CPG schema, false if otherwise.
      */
-    fun checkSchemaConstraints(fromLabel: String, toLabel: String, edge: String): Boolean {
+    fun checkSchemaConstraints(fromLabel: String, toLabel: String, edge: String, silent: Boolean = false): Boolean {
         val outRule = when (fromLabel) {
             ArrayInitializer.Label() -> ArrayInitializer.`Edges$`.`MODULE$`.Out().contains(edge)
             Binding.Label() -> Binding.`Edges$`.`MODULE$`.Out().contains(edge)
@@ -295,7 +309,7 @@ object VertexMapper {
             ControlStructure.Label() -> ControlStructure.`Edges$`.`MODULE$`.Out().contains(edge)
             Unknown.Label() -> Unknown.`Edges$`.`MODULE$`.Out().contains(edge)
             else -> {
-                logger.warn("Unknown node label $fromLabel"); false
+                if (!silent) logger.warn("Unknown node label $fromLabel"); false
             }
         }
         val toRule = when (toLabel) {
@@ -328,7 +342,7 @@ object VertexMapper {
             ControlStructure.Label() -> ControlStructure.`Edges$`.`MODULE$`.In().contains(edge)
             Unknown.Label() -> Unknown.`Edges$`.`MODULE$`.In().contains(edge)
             else -> {
-                logger.warn("Unknown node label $fromLabel"); false
+                if (!silent) logger.warn("Unknown node label $fromLabel"); false
             }
         }
         return outRule && toRule

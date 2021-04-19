@@ -208,6 +208,8 @@ class TigerGraphDriver internal constructor() : IOverridenIdDriver, ISchemaSafeD
                 mapOf(
                     "V_FROM" to src.id().toString(),
                     "V_TO" to tgt.id().toString(),
+                    "V_FROM.type" to src.build().label(),
+                    "V_TO.type" to tgt.build().label(),
                     "EDGE_LABEL" to "_$edge"
                 )
             ).firstOrNull()
@@ -323,7 +325,10 @@ class TigerGraphDriver internal constructor() : IOverridenIdDriver, ISchemaSafeD
 
     private fun createVertexPayload(v: NewNodeBuilder): MutableMap<String, MutableMap<String, Any>> {
         val node = v.build()
-        val propertyMap = CollectionConverters.MapHasAsJava(node.properties()).asJava().toMutableMap()
+        val propertyMap = VertexMapper.stripUnusedProperties(
+            v.build().label(),
+            CollectionConverters.MapHasAsJava(node.properties()).asJava().toMutableMap()
+        )
         val vertexType = "${v.build().label()}_VERT"
         if (v.id() < 0L) v.id(PlumeKeyProvider.getNewId(this))
         return mutableMapOf(
@@ -335,7 +340,7 @@ class TigerGraphDriver internal constructor() : IOverridenIdDriver, ISchemaSafeD
 
     private fun extractAttributesFromMap(propertyMap: MutableMap<String, Any>): MutableMap<String, Any> =
         VertexMapper.prepareListsInMap(propertyMap)
-            .mapKeys { if (it.key != "label") "_${it.key}" else it.key }
+            .mapKeys { "_${it.key}" }
             .mapValues { mapOf("value" to it.value) }
             .toMutableMap()
 
@@ -386,7 +391,13 @@ class TigerGraphDriver internal constructor() : IOverridenIdDriver, ISchemaSafeD
             val newNode = this.addNode(n.label())
             n.properties().foreachEntry { key, value -> newNode.setProperty(key, value) }
         }
-        val result = get("query/$GRAPH_NAME/getNeighbours", mapOf("SOURCE" to v.id().toString()))
+        val result = get(
+            "query/$GRAPH_NAME/getNeighbours",
+            mapOf(
+                "SOURCE" to v.id().toString(),
+                "SOURCE.type" to v.build().label()
+            )
+        )
         return payloadToGraph(result)
     }
 
@@ -688,258 +699,29 @@ class TigerGraphDriver internal constructor() : IOverridenIdDriver, ISchemaSafeD
     override fun buildSchema() = postGSQL(buildSchemaPayload())
 
     override fun buildSchemaPayload(): String {
-        val schema = StringBuilder(
-            """
-            DROP ALL
-            
-            CREATE VERTEX ${ARRAY_INITIALIZER}_VERT (
-                PRIMARY_ID id UINT,
-                _$ORDER INT,
-                _$CODE STRING,
-                _$LINE_NUMBER INT,
-                _$COLUMN_NUMBER INT
-            ) WITH primary_id_as_attribute="true"
-            
-            CREATE VERTEX ${BINDING}_VERT (
-                PRIMARY_ID id UINT,
-                _$NAME STRING,
-                _$SIGNATURE STRING
-            )
-            
-            CREATE VERTEX ${META_DATA}_VERT (
-                PRIMARY_ID id UINT,
-                _$LANGUAGE STRING DEFAULT "${ExtractorConst.LANGUAGE_FRONTEND}",
-                _$VERSION STRING DEFAULT "${ExtractorConst.plumeVersion}",
-                _$HASH STRING DEFAULT "null"
-            ) WITH primary_id_as_attribute="true"
-            
-            CREATE VERTEX ${FILE}_VERT (
-                PRIMARY_ID id UINT,
-                _$NAME STRING,
-                _$HASH STRING,
-                _$ORDER INT
-            ) WITH primary_id_as_attribute="true"
-            
-            CREATE VERTEX ${METHOD}_VERT (
-                PRIMARY_ID id UINT,
-                _$AST_PARENT_FULL_NAME STRING,
-                _$AST_PARENT_TYPE STRING,
-                _$NAME STRING,
-                _$CODE STRING,
-                _$IS_EXTERNAL BOOL,
-                _$FULL_NAME STRING,
-                _$SIGNATURE STRING,
-                _$LINE_NUMBER INT,
-                _$COLUMN_NUMBER INT,
-                _$ORDER INT,
-                _$HASH STRING
-            ) WITH primary_id_as_attribute="true"
-            
-            CREATE VERTEX ${METHOD_PARAMETER_IN}_VERT (
-                PRIMARY_ID id UINT,
-                _$CODE STRING,
-                _$NAME STRING,
-                _$EVALUATION_STRATEGY STRING,
-                _$TYPE_FULL_NAME STRING,
-                _$LINE_NUMBER INT,
-                _$COLUMN_NUMBER INT,
-                _$ORDER INT
-            ) WITH primary_id_as_attribute="true"
-            
-            CREATE VERTEX ${METHOD_PARAMETER_OUT}_VERT (
-                PRIMARY_ID id UINT,
-                _$CODE STRING,
-                _$NAME STRING,
-                _$EVALUATION_STRATEGY STRING,
-                _$TYPE_FULL_NAME STRING,
-                _$LINE_NUMBER INT,
-                _$COLUMN_NUMBER INT,
-                _$ORDER INT
-            ) WITH primary_id_as_attribute="true"
-            
-            CREATE VERTEX ${METHOD_RETURN}_VERT (
-                PRIMARY_ID id UINT,
-                _$CODE STRING,
-                _$EVALUATION_STRATEGY STRING,
-                _$TYPE_FULL_NAME STRING,
-                _$LINE_NUMBER INT,
-                _$COLUMN_NUMBER INT,
-                _$ORDER INT
-            ) WITH primary_id_as_attribute="true"
-            
-            CREATE VERTEX ${MODIFIER}_VERT (
-                PRIMARY_ID id UINT,
-                _$MODIFIER_TYPE STRING,
-                _$ORDER INT
-            ) WITH primary_id_as_attribute="true"
-            
-            CREATE VERTEX ${TYPE}_VERT (
-                PRIMARY_ID id UINT,
-                _$NAME STRING,
-                _$FULL_NAME STRING,
-                _$TYPE_DECL_FULL_NAME STRING
-            ) WITH primary_id_as_attribute="true"
-            
-            CREATE VERTEX ${TYPE_PARAMETER}_VERT (
-                PRIMARY_ID id UINT,
-                _$NAME STRING,
-                _$ORDER INT
-            ) WITH primary_id_as_attribute="true"
-            
-            CREATE VERTEX ${TYPE_ARGUMENT}_VERT (
-                PRIMARY_ID id UINT,
-                _$ORDER INT
-            ) WITH primary_id_as_attribute="true"
-            
-            CREATE VERTEX ${MEMBER}_VERT (
-                PRIMARY_ID id UINT,
-                _$NAME STRING,
-                _$CODE STRING,
-                _$TYPE_FULL_NAME STRING,
-                _$ORDER INT
-            ) WITH primary_id_as_attribute="true"
-            
-            CREATE VERTEX ${NAMESPACE}_VERT (
-                PRIMARY_ID id UINT,
-                _$NAME STRING,
-                _$ORDER INT
-            ) WITH primary_id_as_attribute="true"
-            
-            CREATE VERTEX ${NAMESPACE_BLOCK}_VERT (
-                PRIMARY_ID id UINT,
-                _$FULL_NAME STRING,
-                _$FILENAME STRING,
-                _$NAME STRING,
-                _$ORDER INT
-            ) WITH primary_id_as_attribute="true"
-            
-            CREATE VERTEX ${LITERAL}_VERT (
-                PRIMARY_ID id UINT,
-                _$CODE STRING,
-                _$ARGUMENT_INDEX INT,
-                _$TYPE_FULL_NAME STRING,
-                _$LINE_NUMBER INT,
-                _$COLUMN_NUMBER INT,
-                _$ORDER INT
-            ) WITH primary_id_as_attribute="true"
-            
-            CREATE VERTEX ${CALL}_VERT (
-                PRIMARY_ID id UINT,
-                _$CODE STRING,
-                _$NAME STRING,
-                _$LINE_NUMBER INT,
-                _$COLUMN_NUMBER INT,
-                _$ORDER INT,
-                _$ARGUMENT_INDEX INT,
-                _$SIGNATURE STRING,
-                _$DISPATCH_TYPE STRING,
-                _$METHOD_FULL_NAME STRING
-            ) WITH primary_id_as_attribute="true"
-            
-            CREATE VERTEX ${LOCAL}_VERT (
-                PRIMARY_ID id UINT,
-                _$CODE STRING,
-                _$NAME INT,
-                _$TYPE_FULL_NAME STRING,
-                _$LINE_NUMBER INT,
-                _$COLUMN_NUMBER INT,
-                _$ORDER INT
-            ) WITH primary_id_as_attribute="true"
-            
-            CREATE VERTEX ${IDENTIFIER}_VERT (
-                PRIMARY_ID id UINT,
-                _$CODE STRING,
-                _$ARGUMENT_INDEX INT,
-                _$TYPE_FULL_NAME STRING,
-                _$LINE_NUMBER INT,
-                _$COLUMN_NUMBER INT,
-                _$ORDER INT,
-                _$ARGUMENT_INDEX INT
-            ) WITH primary_id_as_attribute="true"
-            
-            CREATE VERTEX ${FIELD_IDENTIFIER}_VERT (
-                PRIMARY_ID id UINT,
-                _$CODE STRING,
-                _$ARGUMENT_INDEX INT,
-                _$CANONICAL_NAME STRING,
-                _$LINE_NUMBER INT,
-                _$COLUMN_NUMBER INT,
-                _$ORDER INT
-            ) WITH primary_id_as_attribute="true"
-            
-            CREATE VERTEX ${RETURN}_VERT (
-                PRIMARY_ID id UINT,
-                _$CODE STRING,
-                _$ARGUMENT_INDEX INT,
-                _$LINE_NUMBER INT,
-                _$COLUMN_NUMBER INT,
-                _$ORDER INT
-            ) WITH primary_id_as_attribute="true"
-            
-            CREATE VERTEX ${BLOCK}_VERT (
-                PRIMARY_ID id UINT,
-                _$CODE STRING,
-                _$ARGUMENT_INDEX INT,
-                _$TYPE_FULL_NAME STRING,
-                _$LINE_NUMBER INT,
-                _$COLUMN_NUMBER INT,
-                _$ORDER INT
-            ) WITH primary_id_as_attribute="true"
-            
-            CREATE VERTEX ${METHOD_REF}_VERT (
-                PRIMARY_ID id UINT,
-                _$CODE STRING,
-                _$ARGUMENT_INDEX INT,
-                _$METHOD_FULL_NAME STRING,
-                _$LINE_NUMBER INT,
-                _$COLUMN_NUMBER INT,
-                _$ORDER INT
-            ) WITH primary_id_as_attribute="true"
-            
-            CREATE VERTEX ${TYPE_REF}_VERT (
-                PRIMARY_ID id UINT,
-                _$CODE STRING,
-                _$ARGUMENT_INDEX INT,
-                _$TYPE_FULL_NAME STRING,
-                _$LINE_NUMBER INT,
-                _$COLUMN_NUMBER INT,
-                _$ORDER INT
-            ) WITH primary_id_as_attribute="true"
-            
-            CREATE VERTEX ${JUMP_TARGET}_VERT (
-                PRIMARY_ID id UINT,
-                _$CODE STRING,
-                _$ARGUMENT_INDEX INT,
-                _$NAME STRING,
-                _$LINE_NUMBER INT,
-                _$COLUMN_NUMBER INT,
-                _$ORDER INT
-            ) WITH primary_id_as_attribute="true"
-            
-            CREATE VERTEX ${CONTROL_STRUCTURE}_VERT (
-                PRIMARY_ID id UINT,
-                _$CODE STRING,
-                _$ARGUMENT_INDEX INT,
-                _$CONTROL_STRUCTURE_TYPE STRING,
-                _$LINE_NUMBER INT,
-                _$COLUMN_NUMBER INT,
-                _$ORDER INT
-            ) WITH primary_id_as_attribute="true"
-            
-            CREATE VERTEX ${UNKNOWN}_VERT (
-                PRIMARY_ID id UINT,
-                _$CODE STRING,
-                _$ARGUMENT_INDEX INT,
-                _$TYPE_FULL_NAME STRING,
-                _$LINE_NUMBER INT,
-                _$COLUMN_NUMBER INT,
-                _$ORDER INT
-            ) WITH primary_id_as_attribute="true"
-        """.trimIndent()
-        )
-        schema.append("\n\n")
+        val schema = StringBuilder("DROP ALL\n\n")
+        // Handle vertices
+        schema.append("$VERTICES\n\n")
         // Handle edges
-        EdgeTypes.ALL.forEach { schema.append("CREATE DIRECTED EDGE _$it (FROM *, TO *)\n") }
+        EdgeTypes.ALL.mapNotNull { e ->
+            val validCombos = mutableListOf<Pair<String, String>>()
+            NodeTypes.ALL.forEach { src ->
+                NodeTypes.ALL.forEach { dst ->
+                    if (checkSchemaConstraints(src, dst, e, true)) {
+                        validCombos.add(Pair(src, dst))
+                    }
+                }
+            }
+            if (validCombos.isNotEmpty()) Pair(e, validCombos)
+            else null
+        }.toMap().forEach { (edge, nodePairs) ->
+            schema.append("\nCREATE DIRECTED EDGE _$edge (")
+            schema.append(nodePairs.joinToString(separator = "|") { pair ->
+                val (src, dst) = pair
+                "FROM ${src}_VERT, TO ${dst}_VERT"
+            })
+            schema.append(")")
+        }
         schema.append("\nCREATE GRAPH cpg (*)\n")
         // Set queries
         schema.append(QUERIES.replace("<GRAPH_NAME>", GRAPH_NAME))
@@ -982,9 +764,267 @@ class TigerGraphDriver internal constructor() : IOverridenIdDriver, ISchemaSafeD
          */
         private const val MAX_RETRY = 5
 
+        private val VERTICES: String by lazy {
+            """
+CREATE VERTEX ${ARRAY_INITIALIZER}_VERT (
+    PRIMARY_ID id UINT,
+    _$ORDER INT,
+    _$CODE STRING,
+    _$LINE_NUMBER INT,
+    _$COLUMN_NUMBER INT
+) WITH primary_id_as_attribute="true"
+
+CREATE VERTEX ${BINDING}_VERT (
+    PRIMARY_ID id UINT,
+    _$NAME STRING,
+    _$SIGNATURE STRING
+)
+
+CREATE VERTEX ${META_DATA}_VERT (
+    PRIMARY_ID id UINT,
+    _$LANGUAGE STRING DEFAULT "${ExtractorConst.LANGUAGE_FRONTEND}",
+    _$VERSION STRING DEFAULT "${ExtractorConst.plumeVersion}",
+    _$HASH STRING DEFAULT "null"
+) WITH primary_id_as_attribute="true"
+
+CREATE VERTEX ${FILE}_VERT (
+    PRIMARY_ID id UINT,
+    _$NAME STRING,
+    _$HASH STRING,
+    _$ORDER INT
+) WITH primary_id_as_attribute="true"
+
+CREATE VERTEX ${METHOD}_VERT (
+    PRIMARY_ID id UINT,
+    _$AST_PARENT_FULL_NAME STRING,
+    _$AST_PARENT_TYPE STRING,
+    _$NAME STRING,
+    _$CODE STRING,
+    _$IS_EXTERNAL BOOL,
+    _$FULL_NAME STRING,
+    _$SIGNATURE STRING,
+    _$LINE_NUMBER INT,
+    _$COLUMN_NUMBER INT,
+    _$ORDER INT,
+    _$HASH STRING
+) WITH primary_id_as_attribute="true"
+
+CREATE VERTEX ${METHOD_PARAMETER_IN}_VERT (
+    PRIMARY_ID id UINT,
+    _$CODE STRING,
+    _$NAME STRING,
+    _$EVALUATION_STRATEGY STRING,
+    _$TYPE_FULL_NAME STRING,
+    _$LINE_NUMBER INT,
+    _$COLUMN_NUMBER INT,
+    _$ORDER INT
+) WITH primary_id_as_attribute="true"
+
+CREATE VERTEX ${METHOD_PARAMETER_OUT}_VERT (
+    PRIMARY_ID id UINT,
+    _$CODE STRING,
+    _$NAME STRING,
+    _$EVALUATION_STRATEGY STRING,
+    _$TYPE_FULL_NAME STRING,
+    _$LINE_NUMBER INT,
+    _$COLUMN_NUMBER INT,
+    _$ORDER INT
+) WITH primary_id_as_attribute="true"
+
+CREATE VERTEX ${METHOD_RETURN}_VERT (
+    PRIMARY_ID id UINT,
+    _$CODE STRING,
+    _$EVALUATION_STRATEGY STRING,
+    _$TYPE_FULL_NAME STRING,
+    _$LINE_NUMBER INT,
+    _$COLUMN_NUMBER INT,
+    _$ORDER INT
+) WITH primary_id_as_attribute="true"
+
+CREATE VERTEX ${MODIFIER}_VERT (
+    PRIMARY_ID id UINT,
+    _$MODIFIER_TYPE STRING,
+    _$ORDER INT
+) WITH primary_id_as_attribute="true"
+
+CREATE VERTEX ${TYPE}_VERT (
+    PRIMARY_ID id UINT,
+    _$NAME STRING,
+    _$FULL_NAME STRING,
+    _$TYPE_DECL_FULL_NAME STRING
+) WITH primary_id_as_attribute="true"
+
+CREATE VERTEX ${TYPE_DECL}_VERT (
+    PRIMARY_ID id UINT,
+    _$AST_PARENT_FULL_NAME STRING,
+    _$AST_PARENT_TYPE STRING,
+    _$NAME STRING,
+    _$FULL_NAME STRING,
+    _$ORDER INT,
+    _$IS_EXTERNAL BOOL
+) WITH primary_id_as_attribute="true"
+
+CREATE VERTEX ${TYPE_PARAMETER}_VERT (
+    PRIMARY_ID id UINT,
+    _$NAME STRING,
+    _$ORDER INT
+) WITH primary_id_as_attribute="true"
+
+CREATE VERTEX ${TYPE_ARGUMENT}_VERT (
+    PRIMARY_ID id UINT,
+    _$ORDER INT
+) WITH primary_id_as_attribute="true"
+
+CREATE VERTEX ${MEMBER}_VERT (
+    PRIMARY_ID id UINT,
+    _$NAME STRING,
+    _$CODE STRING,
+    _$TYPE_FULL_NAME STRING,
+    _$ORDER INT
+) WITH primary_id_as_attribute="true"
+
+CREATE VERTEX ${NAMESPACE}_VERT (
+    PRIMARY_ID id UINT,
+    _$NAME STRING,
+    _$ORDER INT
+) WITH primary_id_as_attribute="true"
+
+CREATE VERTEX ${NAMESPACE_BLOCK}_VERT (
+    PRIMARY_ID id UINT,
+    _$FULL_NAME STRING,
+    _$FILENAME STRING,
+    _$NAME STRING,
+    _$ORDER INT
+) WITH primary_id_as_attribute="true"
+
+CREATE VERTEX ${LITERAL}_VERT (
+    PRIMARY_ID id UINT,
+    _$CODE STRING,
+    _$ARGUMENT_INDEX INT,
+    _$TYPE_FULL_NAME STRING,
+    _$LINE_NUMBER INT,
+    _$COLUMN_NUMBER INT,
+    _$ORDER INT
+) WITH primary_id_as_attribute="true"
+
+CREATE VERTEX ${CALL}_VERT (
+    PRIMARY_ID id UINT,
+    _$CODE STRING,
+    _$NAME STRING,
+    _$LINE_NUMBER INT,
+    _$COLUMN_NUMBER INT,
+    _$ORDER INT,
+    _$ARGUMENT_INDEX INT,
+    _$SIGNATURE STRING,
+    _$DISPATCH_TYPE STRING,
+    _$METHOD_FULL_NAME STRING
+) WITH primary_id_as_attribute="true"
+
+CREATE VERTEX ${LOCAL}_VERT (
+    PRIMARY_ID id UINT,
+    _$CODE STRING,
+    _$NAME INT,
+    _$TYPE_FULL_NAME STRING,
+    _$LINE_NUMBER INT,
+    _$COLUMN_NUMBER INT,
+    _$ORDER INT
+) WITH primary_id_as_attribute="true"
+
+CREATE VERTEX ${IDENTIFIER}_VERT (
+    PRIMARY_ID id UINT,
+    _$CODE STRING,
+    _$NAME STRING,
+    _$TYPE_FULL_NAME STRING,
+    _$LINE_NUMBER INT,
+    _$COLUMN_NUMBER INT,
+    _$ORDER INT,
+    _$ARGUMENT_INDEX INT
+) WITH primary_id_as_attribute="true"
+
+CREATE VERTEX ${FIELD_IDENTIFIER}_VERT (
+    PRIMARY_ID id UINT,
+    _$CODE STRING,
+    _$ARGUMENT_INDEX INT,
+    _$CANONICAL_NAME STRING,
+    _$LINE_NUMBER INT,
+    _$COLUMN_NUMBER INT,
+    _$ORDER INT
+) WITH primary_id_as_attribute="true"
+
+CREATE VERTEX ${RETURN}_VERT (
+    PRIMARY_ID id UINT,
+    _$CODE STRING,
+    _$ARGUMENT_INDEX INT,
+    _$LINE_NUMBER INT,
+    _$COLUMN_NUMBER INT,
+    _$ORDER INT
+) WITH primary_id_as_attribute="true"
+
+CREATE VERTEX ${BLOCK}_VERT (
+    PRIMARY_ID id UINT,
+    _$CODE STRING,
+    _$ARGUMENT_INDEX INT,
+    _$TYPE_FULL_NAME STRING,
+    _$LINE_NUMBER INT,
+    _$COLUMN_NUMBER INT,
+    _$ORDER INT
+) WITH primary_id_as_attribute="true"
+
+CREATE VERTEX ${METHOD_REF}_VERT (
+    PRIMARY_ID id UINT,
+    _$CODE STRING,
+    _$ARGUMENT_INDEX INT,
+    _$METHOD_FULL_NAME STRING,
+    _$LINE_NUMBER INT,
+    _$COLUMN_NUMBER INT,
+    _$ORDER INT
+) WITH primary_id_as_attribute="true"
+
+CREATE VERTEX ${TYPE_REF}_VERT (
+    PRIMARY_ID id UINT,
+    _$CODE STRING,
+    _$ARGUMENT_INDEX INT,
+    _$TYPE_FULL_NAME STRING,
+    _$LINE_NUMBER INT,
+    _$COLUMN_NUMBER INT,
+    _$ORDER INT
+) WITH primary_id_as_attribute="true"
+
+CREATE VERTEX ${JUMP_TARGET}_VERT (
+    PRIMARY_ID id UINT,
+    _$CODE STRING,
+    _$ARGUMENT_INDEX INT,
+    _$NAME STRING,
+    _$LINE_NUMBER INT,
+    _$COLUMN_NUMBER INT,
+    _$ORDER INT
+) WITH primary_id_as_attribute="true"
+
+CREATE VERTEX ${CONTROL_STRUCTURE}_VERT (
+    PRIMARY_ID id UINT,
+    _$CODE STRING,
+    _$ARGUMENT_INDEX INT,
+    _$CONTROL_STRUCTURE_TYPE STRING,
+    _$LINE_NUMBER INT,
+    _$COLUMN_NUMBER INT,
+    _$ORDER INT
+) WITH primary_id_as_attribute="true"
+
+CREATE VERTEX ${UNKNOWN}_VERT (
+    PRIMARY_ID id UINT,
+    _$CODE STRING,
+    _$ARGUMENT_INDEX INT,
+    _$TYPE_FULL_NAME STRING,
+    _$LINE_NUMBER INT,
+    _$COLUMN_NUMBER INT,
+    _$ORDER INT
+) WITH primary_id_as_attribute="true"
+        """.trimIndent()
+        }
+
         private val QUERIES: String by lazy {
             """
-CREATE QUERY areVerticesJoinedByEdge(VERTEX<CPG_VERT> V_FROM, VERTEX<CPG_VERT> V_TO, STRING EDGE_LABEL) FOR GRAPH <GRAPH_NAME> {
+CREATE QUERY areVerticesJoinedByEdge(VERTEX V_FROM, VERTEX V_TO, STRING EDGE_LABEL) FOR GRAPH <GRAPH_NAME> {
   bool result;
   setFrom = {ANY};
   temp = SELECT tgt
@@ -1008,10 +1048,10 @@ CREATE QUERY showAll() FOR GRAPH <GRAPH_NAME> {
 
 CREATE QUERY getMethodHead(STRING FULL_NAME) FOR GRAPH <GRAPH_NAME> {
   SetAccum<EDGE> @@edges;
-  allV = {ANY};
+  allV = {METHOD_VERT.*};
   start = SELECT src
           FROM allV:src
-          WHERE src._FULL_NAME == FULL_NAME AND src.label == "METHOD";
+          WHERE src._FULL_NAME == FULL_NAME;
   allVert = start;
 
   start = SELECT t
@@ -1025,19 +1065,19 @@ CREATE QUERY getMethodHead(STRING FULL_NAME) FOR GRAPH <GRAPH_NAME> {
 
 CREATE QUERY getMethod(STRING FULL_NAME) FOR GRAPH <GRAPH_NAME> SYNTAX v2 {
   SetAccum<EDGE> @@edges;
-  allV = {ANY};
+  allV = {METHOD_VERT.*};
   # Get method
   start = SELECT src
           FROM allV:src
-          WHERE src._FULL_NAME == FULL_NAME AND src.label == "METHOD";
+          WHERE src._FULL_NAME == FULL_NAME;
   allVert = start;
   # Get method's body vertices
   start = SELECT t
-          FROM start:s -((_AST>|_REF>|_CFG>|_ARGUMENT>|_CAPTURED_BY>|_BINDS_TO>|_RECEIVER>|_CONDITION>|_BINDS>)*) - :t;
+          FROM start:s -((_AST>|_REF>|_CFG>|_ARGUMENT>|_BINDS_TO>|_RECEIVER>|_CONDITION>|_BINDS>)*) - :t;
   allVert = allVert UNION start;
   # Get edges between body methods
   finalEdges = SELECT t
-               FROM allVert -((_AST>|_REF>|_CFG>|_ARGUMENT>|_CAPTURED_BY>|_BINDS_TO>|_RECEIVER>|_CONDITION>|_BINDS>):e)-:t
+               FROM allVert -((_AST>|_REF>|_CFG>|_ARGUMENT>|_BINDS_TO>|_RECEIVER>|_CONDITION>|_BINDS>):e)-:t
                ACCUM @@edges += e;
   PRINT allVert;
   PRINT @@edges;
@@ -1046,32 +1086,32 @@ CREATE QUERY getMethod(STRING FULL_NAME) FOR GRAPH <GRAPH_NAME> SYNTAX v2 {
 CREATE QUERY getProgramStructure() FOR GRAPH <GRAPH_NAME> SYNTAX v2 {
   SetAccum<EDGE> @@edges;
 
-  start = {CPG_VERT.*};
+  start = {FILE_VERT.*, TYPE_DECL_VERT.*, NAMESPACE_BLOCK_VERT.*};
+  namespaceBlockSeed = {NAMESPACE_BLOCK_VERT.*};
+  
   start = SELECT s
-          FROM start:s
-          WHERE s.label == "FILE" OR s.label == "TYPE_DECL" OR s.label == "NAMESPACE_BLOCK";
+          FROM start:s;
   allVert = start;
-
+  
   start = SELECT t
-          FROM start:s -(_AST>*)- :t
-          WHERE t.label == "NAMESPACE_BLOCK";
+          FROM namespaceBlockSeed:s -(_AST>*)- :t;
   allVert = allVert UNION start;
 
   finalEdges = SELECT t
                FROM allVert -(_AST>:e)- :t
-               WHERE t.label == "NAMESPACE_BLOCK"
+               WHERE t.type == "NAMESPACE_BLOCK_VERT"
                ACCUM @@edges += e;
 
   PRINT allVert;
   PRINT @@edges;
 }
 
-CREATE QUERY getNeighbours(VERTEX<CPG_VERT> SOURCE) FOR GRAPH <GRAPH_NAME> SYNTAX v2 {
+CREATE QUERY getNeighbours(VERTEX SOURCE) FOR GRAPH <GRAPH_NAME> SYNTAX v2 {
   SetAccum<EDGE> @@edges;
-  seed = {CPG_VERT.*};
+  seed = {ANY};
   sourceSet = {SOURCE};
   outVert = SELECT tgt
-            FROM seed:src -(:e)- CPG_VERT:tgt
+            FROM seed:src -(:e)- :tgt
             WHERE src == SOURCE
             ACCUM @@edges += e;
   allVert = outVert UNION sourceSet;
@@ -1081,7 +1121,7 @@ CREATE QUERY getNeighbours(VERTEX<CPG_VERT> SOURCE) FOR GRAPH <GRAPH_NAME> SYNTA
 }
 
 CREATE QUERY deleteMethod(STRING FULL_NAME) FOR GRAPH <GRAPH_NAME> SYNTAX v2 {
-  allV = {ANY};
+  allV = {METHOD_VERT.*};
   # Get method
   start = SELECT src
           FROM allV:src
@@ -1089,7 +1129,7 @@ CREATE QUERY deleteMethod(STRING FULL_NAME) FOR GRAPH <GRAPH_NAME> SYNTAX v2 {
   allVert = start;
   # Get method's body vertices
   start = SELECT t
-          FROM start:s -((_AST>|_CONTAINS>|_REF>|_CFG>|_ARGUMENT>|_CAPTURED_BY>|_BINDS_TO>|_RECEIVER>|_CONDITION>|_BINDS>)*) - :t;
+          FROM start:s -((_AST>|_CONTAINS>|_REF>|_CFG>|_ARGUMENT>|_BINDS_TO>|_RECEIVER>|_CONDITION>|_BINDS>)*) - :t;
   allVert = allVert UNION start;
 
   DELETE s FROM allVert:s;
@@ -1109,7 +1149,7 @@ ${
                 listOf("STRING", "BOOL", "INT").joinToString("\n\n") { t: String ->
                     """
 CREATE QUERY getVerticesBy${t.first()}Property(STRING PROPERTY_KEY, $t PROPERTY_VALUE, STRING LABEL) FOR GRAPH <GRAPH_NAME> {
-  start = {CPG_VERT.*};
+  start = {ANY};
   IF LABEL == "null" THEN
     result = SELECT src
       FROM start:src
@@ -1117,7 +1157,7 @@ CREATE QUERY getVerticesBy${t.first()}Property(STRING PROPERTY_KEY, $t PROPERTY_
   ELSE
     result = SELECT src
       FROM start:src
-      WHERE src.label == LABEL 
+      WHERE src.type == LABEL 
         AND src.getAttr(PROPERTY_KEY, "$t") == PROPERTY_VALUE;
   END;
   PRINT result;
@@ -1131,7 +1171,7 @@ ${
                     """
 CREATE QUERY get${t.first()}PropertyFromVertices(STRING PROPERTY_KEY, STRING LABEL) FOR GRAPH <GRAPH_NAME> {
   ListAccum<$t> @@props;
-  start = {CPG_VERT.*};
+  start = {ANY};
   IF LABEL == "null" THEN
     result = SELECT src
       FROM start:src
@@ -1139,7 +1179,7 @@ CREATE QUERY get${t.first()}PropertyFromVertices(STRING PROPERTY_KEY, STRING LAB
   ELSE
     result = SELECT src
       FROM start:src
-      WHERE src.label == LABEL 
+      WHERE src.type == LABEL 
       ACCUM @@props += src.getAttr(PROPERTY_KEY, "$t");
   END;
   PRINT @@props;
@@ -1152,7 +1192,7 @@ CREATE QUERY getVerticesOfType(STRING LABEL) FOR GRAPH <GRAPH_NAME> {
   start = {ANY};
   result = SELECT src
            FROM start:src
-           WHERE src.label == LABEL;
+           WHERE src.type == LABEL;
   PRINT result;
 }
 
