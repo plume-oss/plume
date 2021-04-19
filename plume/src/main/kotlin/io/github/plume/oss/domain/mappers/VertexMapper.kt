@@ -98,6 +98,7 @@ object VertexMapper {
                 .code(map[CODE] as String)
                 .isExternal(map[IS_EXTERNAL] as Boolean)
                 .fullName(map[FULL_NAME] as String)
+                .filename(map[FILENAME] as String)
                 .signature(map[SIGNATURE] as String)
                 .lineNumber(Option.apply(map[LINE_NUMBER] as Int))
                 .columnNumber(Option.apply(map[COLUMN_NUMBER] as Int))
@@ -137,6 +138,7 @@ object VertexMapper {
                 .astParentFullName(map[AST_PARENT_FULL_NAME] as String)
                 .astParentType(map[AST_PARENT_TYPE] as String)
                 .name(map[NAME] as String)
+                .filename(map[FILENAME] as String)
                 .fullName(map[FULL_NAME] as String)
                 .order(map[ORDER] as Int)
                 .isExternal(map[IS_EXTERNAL] as Boolean)
@@ -257,9 +259,7 @@ object VertexMapper {
             BINDING -> map.apply { remove(IS_METHOD_NEVER_OVERRIDDEN) }
             CONTROL_STRUCTURE ->  map.apply { remove(PARSER_TYPE_NAME) }
             JUMP_TARGET ->  map.apply { remove(PARSER_TYPE_NAME) }
-            METHOD ->  map.apply { remove(FILENAME) }
             METHOD_REF -> map.apply { remove(TYPE_FULL_NAME) }
-            TYPE_DECL ->  map.apply { remove(FILENAME) }
             NodeTypes.UNKNOWN ->  map.apply { remove(CONTAINED_REF); remove(PARSER_TYPE_NAME) }
             else -> map
         }
