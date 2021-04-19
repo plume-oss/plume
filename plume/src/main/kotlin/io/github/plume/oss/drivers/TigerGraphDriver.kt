@@ -30,7 +30,6 @@ import io.github.plume.oss.util.PlumeKeyProvider
 import io.shiftleft.codepropertygraph.generated.EdgeTypes
 import io.shiftleft.codepropertygraph.generated.NodeTypes
 import io.shiftleft.codepropertygraph.generated.NodeTypes.*
-import io.shiftleft.codepropertygraph.generated.PropertyNames
 import io.shiftleft.codepropertygraph.generated.PropertyNames.*
 import io.shiftleft.codepropertygraph.generated.nodes.NewMetaDataBuilder
 import io.shiftleft.codepropertygraph.generated.nodes.NewNodeBuilder
@@ -191,10 +190,7 @@ class TigerGraphDriver internal constructor() : IOverridenIdDriver, ISchemaSafeD
     override fun exists(v: NewNodeBuilder): Boolean = checkVertexExists(v.id(), v.build().label())
 
     private fun checkVertexExists(id: Long, label: String?): Boolean {
-        val route = when (label) {
-            META_DATA -> "graph/$GRAPH_NAME/vertices/META_DATA_VERT"
-            else -> "graph/$GRAPH_NAME/vertices/CPG_VERT"
-        }
+        val route = "graph/$GRAPH_NAME/vertices/${label}_VERT"
         return try {
             get("$route/$id")
             true
@@ -272,24 +268,24 @@ class TigerGraphDriver internal constructor() : IOverridenIdDriver, ISchemaSafeD
         }
         PlumeTimer.measure(ExtractorTimeKey.DATABASE_WRITE) {
             // Aggregate all requests going into the add
-            val vAddPayload = mapOf("CPG_VERT" to vAdds
-                .map {
+            val payloadByType = mutableMapOf<String, Any>()
+            vAdds.groupBy { it.build().label() }.forEach { (type, ns) ->
+                payloadByType["${type}_VERT"] = ns.map {
                     Pair(
                         it.id(PlumeKeyProvider.getNewId(this)).id().toString(),
-                        CollectionConverters.MapHasAsJava(it.build().properties()).asJava() +
-                                mapOf("label" to it.build().label())
+                        CollectionConverters.MapHasAsJava(it.build().properties()).asJava()
                     )
-                }
-                .foldRight(mutableMapOf<String, Any>()) { x, y ->
+                }.foldRight(mutableMapOf<String, Any>()) { x, y ->
                     y.apply {
                         this[x.first] = extractAttributesFromMap(x.second.toMutableMap())
                     }
-                })
+                }
+            }
             val eAddPayload = eAdds.map { createEdgePayload(it.src, it.dst, it.e) }
                 .foldRight(mutableMapOf<Any, Any>()) { x, y -> deepMerge(x as MutableMap<Any, Any>, y) }
             if (vAdds.size > 1 || eAdds.size > 1) {
                 val payload = mapOf(
-                    "vertices" to vAddPayload,
+                    "vertices" to payloadByType,
                     "edges" to eAddPayload
                 )
                 post("graph/$GRAPH_NAME", payload)
@@ -348,10 +344,8 @@ class TigerGraphDriver internal constructor() : IOverridenIdDriver, ISchemaSafeD
         to: NewNodeBuilder,
         edge: String
     ): MutableMap<String, MutableMap<String, MutableMap<String, Any>>> {
-        val fromPayload = createVertexPayload(from)
-        val toPayload = createVertexPayload(to)
-        val fromLabel = fromPayload.keys.first()
-        val toLabel = toPayload.keys.first()
+        val fromLabel = "${from.build().label()}_VERT"
+        val toLabel = "${to.build().label()}_VERT"
         return mutableMapOf(
             fromLabel to mutableMapOf(
                 from.id().toString() to mutableMapOf(
@@ -403,7 +397,11 @@ class TigerGraphDriver internal constructor() : IOverridenIdDriver, ISchemaSafeD
 
     override fun deleteEdge(src: NewNodeBuilder, tgt: NewNodeBuilder, edge: String) {
         if (!exists(src, tgt, edge)) return
-        delete("graph/$GRAPH_NAME/edges/${src.build().label()}_VERT/${src.id()}/_$edge/${tgt.build().label()}_VERT/${tgt.id()}")
+        delete(
+            "graph/$GRAPH_NAME/edges/${src.build().label()}_VERT/${src.id()}/_$edge/${
+                tgt.build().label()
+            }_VERT/${tgt.id()}"
+        )
     }
 
     override fun deleteMethod(fullName: String) {
@@ -416,7 +414,8 @@ class TigerGraphDriver internal constructor() : IOverridenIdDriver, ISchemaSafeD
 
     override fun updateVertexProperty(id: Long, label: String?, key: String, value: Any) {
         if (!checkVertexExists(id, label)) return
-        val payload = mapOf("vertices" to mapOf("${label}_VERT" to mapOf(id to mapOf("_$key" to mapOf("value" to value)))))
+        val payload =
+            mapOf("vertices" to mapOf("${label}_VERT" to mapOf(id to mapOf("_$key" to mapOf("value" to value)))))
         post("graph/$GRAPH_NAME", payload)
     }
 
