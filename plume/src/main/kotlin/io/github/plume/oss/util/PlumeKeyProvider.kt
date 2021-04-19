@@ -60,8 +60,11 @@ object PlumeKeyProvider {
             val xs = (lowerBound..upperBound).toSet()
             val takenIds = d.getVertexIds(lowerBound, upperBound)
             val availableIds = xs.minus(takenIds)
+            val oldMax = freeIds.maxOrNull()
             freeIds.addAll(availableIds)
             currentMax = freeIds.maxOrNull() ?: currentMax + keyPoolSize + 1
+            // If no new elements were added, then increase the size of the bracket
+            if (currentMax == oldMax && freeIds.size < keyPoolSize) currentMax += keyPoolSize
         }
         return freeIds.toMutableList()
     }
