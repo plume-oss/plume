@@ -16,6 +16,7 @@
 package io.github.plume.oss.util
 
 import io.github.plume.oss.domain.mappers.VertexMapper
+import io.github.plume.oss.domain.model.DeltaGraph
 import io.github.plume.oss.drivers.IDriver
 import io.shiftleft.codepropertygraph.generated.nodes.NewNode
 import io.shiftleft.codepropertygraph.generated.nodes.NewNodeBuilder
@@ -70,6 +71,37 @@ object DiffGraphUtil {
                 else -> logger.warn("Unsupported DiffGraph operation ${change.javaClass} encountered.")
             }
         }
+    }
+
+    fun toDeltaGraph(df: DiffGraph): DeltaGraph {
+        val builder = DeltaGraph.Builder()
+        df.iterator().foreach { change: DiffGraph.Change ->
+            when (change) {
+                is io.shiftleft.passes.`DiffGraph$Change$CreateNode` -> {
+                    val n = convertNode(change.node())
+                    if (n != null) builder.addVertex(n)
+                    else logger.warn("Could not convert ${change.node()} from $change.")
+                }
+                is io.shiftleft.passes.`DiffGraph$Change$RemoveEdge` -> {
+                    val edge = change.edge()
+                    builder.deleteEdge(
+                            src = VertexMapper.mapToVertex(edge.outNode() as Node),
+                            tgt = VertexMapper.mapToVertex(edge.inNode() as Node),
+                            e = edge.label()
+                    )
+                }
+                is io.shiftleft.passes.`DiffGraph$Change$CreateEdge` -> {
+                    val src: NewNodeBuilder? = convertNode(change.src())
+                    val dst: NewNodeBuilder? = convertNode(change.dst())
+                    if (src == null) logger.warn("Could not convert ${change.src()} from $change.")
+                    if (dst == null) logger.warn("Could not convert ${change.dst()} from $change.")
+                    if (src != null && dst != null) builder.addEdge(src, dst, change.label())
+                    else null
+                }
+                else -> Unit
+            }
+        }
+        return builder.build()
     }
 
     private fun convertNode(n: Any): NewNodeBuilder? =

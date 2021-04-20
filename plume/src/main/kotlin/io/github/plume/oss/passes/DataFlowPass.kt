@@ -19,6 +19,7 @@ import io.github.plume.oss.domain.model.DeltaGraph
 import io.github.plume.oss.drivers.IDriver
 import io.github.plume.oss.store.PlumeStorage
 import io.github.plume.oss.util.DiffGraphUtil
+import io.github.plume.oss.util.ProgressBarUtil
 import io.shiftleft.codepropertygraph.Cpg
 import io.shiftleft.codepropertygraph.generated.NodeTypes
 import io.shiftleft.codepropertygraph.generated.nodes.Method
@@ -33,7 +34,6 @@ import org.apache.logging.log4j.Logger
 import overflowdb.Config
 import overflowdb.Graph
 import scala.jdk.CollectionConverters
-import kotlin.streams.toList
 import io.shiftleft.codepropertygraph.generated.edges.Factories as EdgeFactories
 import io.shiftleft.codepropertygraph.generated.nodes.Factories as NodeFactories
 
@@ -72,22 +72,42 @@ class DataFlowPass(private val driver: IDriver) {
      * Pass the parts in a parallel stream while catching any exceptions and logging them.
      */
     private fun <T> runParallelPass(parts: List<T>, pass: ParallelCpgPass<T>) {
-        parts.parallelStream()
-            .map { part ->
-                mutableListOf<DiffGraph>().apply {
-                    runCatching { pass.runOnPart(part) }
-                        .onFailure { e -> logger.warn("Exception encountered while running parallel pass.", e) }
-                        .getOrNull()
-                        ?.let { dfs ->
+        val channel = Channel<List<DeltaGraph>>()
+        try {
+            runBlocking {
+                // Producer
+                launch {
+                    parts.parallelStream().map { part ->
+                        val out = mutableListOf<DiffGraph>()
+                        val dfs = runCatching { pass.runOnPart(part) }
+                                .onFailure { e -> logger.warn("Exception encountered while running parallel pass.", e) }
+                                .getOrNull()
+                        if (dfs != null)
                             CollectionConverters.IteratorHasAsJava(dfs)
-                                .asJava()
-                                .asSequence()
-                                .toCollection(this)
+                                    .asJava()
+                                    .asSequence()
+                                    .toCollection(out)
+                        out.map(DiffGraphUtil::toDeltaGraph).toList()
+                    }.forEach { dgs -> launch { channel.send(dgs) } }
+                }
+                // Consumer
+                ProgressBarUtil.runInsideProgressBar(
+                        logger.level,
+                        "Data Flow Pass",
+                        parts.size.toLong()
+                ) { pb ->
+                    repeat(parts.size) {
+                        runBlocking {
+                            val dgs = channel.receive()
+                            dgs.forEach(driver::bulkTransaction)
+                            pb?.step()
                         }
+                    }
                 }
             }
-            .sequential().toList().flatten()
-            .forEach { DiffGraphUtil.processDiffGraph(driver, it) }
+        } finally {
+            channel.close()
+        }
     }
 
 

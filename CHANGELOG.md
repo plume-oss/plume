@@ -7,6 +7,11 @@ and this project adheres to [Semantic Versioning](http://semver.org/).
 
 ## [Unreleased]
 
+### Changed
+
+- `DataFlowPass` now converts `DiffGraph`s into `DeltaGraphs` in order to use `bulkTransaction`s.
+- `DataFlowPass` now shows progress bar.
+
 ## [0.5.3] - 2021-04-19
 
 ### Changed
