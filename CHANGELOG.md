@@ -7,6 +7,8 @@ and this project adheres to [Semantic Versioning](http://semver.org/).
 
 ## [Unreleased]
 
+## [0.5.4] - 2021-04-21
+
 ### Added
 
 - Added new timer measurements `CONNECT_DESERIALIZE` and `DISCONNECT_SERIALIZE`.
