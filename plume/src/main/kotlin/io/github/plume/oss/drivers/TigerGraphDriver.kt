@@ -20,7 +20,7 @@ import io.github.plume.oss.domain.exceptions.PlumeTransactionException
 import io.github.plume.oss.domain.mappers.VertexMapper
 import io.github.plume.oss.domain.mappers.VertexMapper.checkSchemaConstraints
 import io.github.plume.oss.domain.model.DeltaGraph
-import io.github.plume.oss.metrics.ExtractorTimeKey
+import io.github.plume.oss.metrics.DriverTimeKey
 import io.github.plume.oss.metrics.PlumeTimer
 import io.github.plume.oss.util.CodeControl
 import io.github.plume.oss.util.ExtractorConst
@@ -256,7 +256,7 @@ class TigerGraphDriver internal constructor() : IOverridenIdDriver, ISchemaSafeD
         val eAdds = mutableListOf<DeltaGraph.EdgeAdd>()
         val vDels = mutableListOf<DeltaGraph.VertexDelete>()
         val eDels = mutableListOf<DeltaGraph.EdgeDelete>()
-        PlumeTimer.measure(ExtractorTimeKey.DATABASE_READ) {
+        PlumeTimer.measure(DriverTimeKey.DATABASE_READ) {
             dg.changes.filterIsInstance<DeltaGraph.VertexAdd>().map { it.n }
                 .filterNot(::exists)
                 .forEachIndexed { i, va -> if (vAdds.none { va === it }) vAdds.add(va.id(-(i + 1).toLong())) }
@@ -268,7 +268,7 @@ class TigerGraphDriver internal constructor() : IOverridenIdDriver, ISchemaSafeD
             dg.changes.filterIsInstance<DeltaGraph.EdgeDelete>().filter { exists(it.src, it.dst, it.e) }
                 .toCollection(eDels)
         }
-        PlumeTimer.measure(ExtractorTimeKey.DATABASE_WRITE) {
+        PlumeTimer.measure(DriverTimeKey.DATABASE_WRITE) {
             // Aggregate all requests going into the add
             val payloadByType = mutableMapOf<String, Any>()
             vAdds.groupBy { it.build().label() }.forEach { (type, ns) ->
@@ -498,7 +498,7 @@ class TigerGraphDriver internal constructor() : IOverridenIdDriver, ISchemaSafeD
 
     private fun payloadToGraph(a: JSONArray): Graph {
         val graph = newOverflowGraph()
-        PlumeTimer.measure(ExtractorTimeKey.DATABASE_READ) {
+        PlumeTimer.measure(DriverTimeKey.DATABASE_READ) {
             val vs = mutableMapOf<Long, Node>()
             a[0]?.let { res ->
                 val o = res as JSONObject
@@ -580,7 +580,7 @@ class TigerGraphDriver internal constructor() : IOverridenIdDriver, ISchemaSafeD
     @Throws(PlumeTransactionException::class)
     private fun get(endpoint: String, params: Map<String, String>): JSONArray {
         var res = JSONArray()
-        PlumeTimer.measure(ExtractorTimeKey.DATABASE_READ) {
+        PlumeTimer.measure(DriverTimeKey.DATABASE_READ) {
             var tryCount = 0
             val response = if (params.isEmpty()) khttp.get(
                 url = "${api}/$endpoint",
@@ -609,7 +609,7 @@ class TigerGraphDriver internal constructor() : IOverridenIdDriver, ISchemaSafeD
      */
     @Throws(PlumeTransactionException::class)
     private fun post(endpoint: String, payload: Map<String, Any>) {
-        PlumeTimer.measure(ExtractorTimeKey.DATABASE_WRITE) {
+        PlumeTimer.measure(DriverTimeKey.DATABASE_WRITE) {
             var tryCount = 0
             while (++tryCount < MAX_RETRY) {
                 val response = khttp.post(
@@ -646,7 +646,7 @@ class TigerGraphDriver internal constructor() : IOverridenIdDriver, ISchemaSafeD
      */
     private fun delete(endpoint: String) {
         var tryCount = 0
-        PlumeTimer.measure(ExtractorTimeKey.DATABASE_WRITE) {
+        PlumeTimer.measure(DriverTimeKey.DATABASE_WRITE) {
             while (++tryCount < MAX_RETRY) {
                 val response = khttp.delete(url = "$api/$endpoint", headers = headers())
                 logger.debug("Delete ${response.url}")

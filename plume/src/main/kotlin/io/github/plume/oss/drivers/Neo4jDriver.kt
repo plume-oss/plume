@@ -20,7 +20,7 @@ import io.github.plume.oss.domain.mappers.VertexMapper
 import io.github.plume.oss.domain.mappers.VertexMapper.checkSchemaConstraints
 import io.github.plume.oss.domain.mappers.VertexMapper.mapToVertex
 import io.github.plume.oss.domain.model.DeltaGraph
-import io.github.plume.oss.metrics.ExtractorTimeKey
+import io.github.plume.oss.metrics.DriverTimeKey
 import io.github.plume.oss.metrics.PlumeTimer
 import io.shiftleft.codepropertygraph.generated.EdgeTypes.AST
 import io.shiftleft.codepropertygraph.generated.EdgeTypes.SOURCE_FILE
@@ -124,18 +124,22 @@ class Neo4jDriver internal constructor() : IDriver {
     fun port(value: Int) = apply { port = value }
 
     fun connect(): Neo4jDriver = apply {
-        require(!connected) { "Please close the graph before trying to make another connection." }
-        driver = GraphDatabase.driver("bolt://$hostname:$port", AuthTokens.basic(username, password))
-        connected = true
+        PlumeTimer.measure(DriverTimeKey.CONNECT_DESERIALIZE) {
+            require(!connected) { "Please close the graph before trying to make another connection." }
+            driver = GraphDatabase.driver("bolt://$hostname:$port", AuthTokens.basic(username, password))
+            connected = true
+        }
     }
 
     override fun close() {
-        require(connected) { "Cannot close a graph that is not already connected!" }
-        try {
-            driver.close()
-            connected = false
-        } catch (e: Exception) {
-            logger.warn("Exception thrown while attempting to close graph.", e)
+        PlumeTimer.measure(DriverTimeKey.DISCONNECT_SERIALIZE) {
+            require(connected) { "Cannot close a graph that is not already connected!" }
+            try {
+                driver.close()
+                connected = false
+            } catch (e: Exception) {
+                logger.warn("Exception thrown while attempting to close graph.", e)
+            }
         }
     }
 
@@ -159,7 +163,7 @@ class Neo4jDriver internal constructor() : IDriver {
 
     override fun addVertex(v: NewNodeBuilder) {
         if (exists(v)) return
-        PlumeTimer.measure(ExtractorTimeKey.DATABASE_WRITE) {
+        PlumeTimer.measure(DriverTimeKey.DATABASE_WRITE) {
             driver.session().use { session ->
                 session.writeTransaction { tx ->
                     val idx = 0
@@ -199,7 +203,7 @@ class Neo4jDriver internal constructor() : IDriver {
 
     private fun checkVertexExist(id: Long, label: String? = null): Boolean {
         var res = false
-        PlumeTimer.measure(ExtractorTimeKey.DATABASE_READ) {
+        PlumeTimer.measure(DriverTimeKey.DATABASE_READ) {
             driver.session().use { session ->
                 res = session.writeTransaction { tx ->
                     val result = tx.run(
@@ -218,9 +222,9 @@ class Neo4jDriver internal constructor() : IDriver {
 
     override fun exists(src: NewNodeBuilder, tgt: NewNodeBuilder, edge: String): Boolean {
         var res = false
-        PlumeTimer.measure(ExtractorTimeKey.DATABASE_READ) { res = exists(src) && exists(tgt) }
+        PlumeTimer.measure(DriverTimeKey.DATABASE_READ) { res = exists(src) && exists(tgt) }
         if (!res) return false
-        PlumeTimer.measure(ExtractorTimeKey.DATABASE_READ) {
+        PlumeTimer.measure(DriverTimeKey.DATABASE_READ) {
             val srcN = src.build()
             val tgtN = tgt.build()
             driver.session().use { session ->
@@ -243,7 +247,7 @@ class Neo4jDriver internal constructor() : IDriver {
         if (!checkSchemaConstraints(src, tgt, edge)) throw PlumeSchemaViolationException(src, tgt, edge)
         if (!exists(src)) addVertex(src)
         if (!exists(tgt)) addVertex(tgt)
-        PlumeTimer.measure(ExtractorTimeKey.DATABASE_WRITE) {
+        PlumeTimer.measure(DriverTimeKey.DATABASE_WRITE) {
             val srcN = src.build()
             val tgtN = tgt.build()
             driver.session().use { session ->
@@ -267,7 +271,7 @@ class Neo4jDriver internal constructor() : IDriver {
         val eAdds = mutableListOf<DeltaGraph.EdgeAdd>()
         val vDels = mutableListOf<DeltaGraph.VertexDelete>()
         val eDels = mutableListOf<DeltaGraph.EdgeDelete>()
-        PlumeTimer.measure(ExtractorTimeKey.DATABASE_READ) {
+        PlumeTimer.measure(DriverTimeKey.DATABASE_READ) {
             dg.changes.filterIsInstance<DeltaGraph.VertexAdd>().map { it.n }.filterNot(::exists)
                 .forEachIndexed { i, va -> if (vAdds.none { va === it }) vAdds.add(va.id(-(i + 1).toLong())) }
             dg.changes.filterIsInstance<DeltaGraph.EdgeAdd>().distinct().filterNot { exists(it.src, it.dst, it.e) }
@@ -277,7 +281,7 @@ class Neo4jDriver internal constructor() : IDriver {
             dg.changes.filterIsInstance<DeltaGraph.EdgeDelete>().filter { exists(it.src, it.dst, it.e) }
                 .toCollection(eDels)
         }
-        PlumeTimer.measure(ExtractorTimeKey.DATABASE_WRITE) {
+        PlumeTimer.measure(DriverTimeKey.DATABASE_WRITE) {
             val idToAlias = mutableMapOf<NewNodeBuilder, String>()
             val vPayloads = mutableMapOf<NewNodeBuilder, String>()
             if (vAdds.isNotEmpty()) {
@@ -348,7 +352,7 @@ class Neo4jDriver internal constructor() : IDriver {
     }
 
     override fun clearGraph(): IDriver {
-        PlumeTimer.measure(ExtractorTimeKey.DATABASE_WRITE) {
+        PlumeTimer.measure(DriverTimeKey.DATABASE_WRITE) {
             driver.session().use { session ->
                 session.writeTransaction { tx ->
                     tx.run(
@@ -365,7 +369,7 @@ class Neo4jDriver internal constructor() : IDriver {
 
     override fun getWholeGraph(): Graph {
         val graph = newOverflowGraph()
-        PlumeTimer.measure(ExtractorTimeKey.DATABASE_READ) {
+        PlumeTimer.measure(DriverTimeKey.DATABASE_READ) {
             driver.session().use { session ->
                 val orphanVertices = session.writeTransaction { tx ->
                     tx.run(
@@ -427,7 +431,7 @@ class Neo4jDriver internal constructor() : IDriver {
             WITH DISTINCT (r1 + r2 + r3) AS coll
             """.trimIndent()
         val plumeGraph = newOverflowGraph()
-        PlumeTimer.measure(ExtractorTimeKey.DATABASE_READ) {
+        PlumeTimer.measure(DriverTimeKey.DATABASE_READ) {
             driver.session().use { session ->
                 session.writeTransaction { tx ->
                     val result = tx.run(
@@ -484,7 +488,7 @@ class Neo4jDriver internal constructor() : IDriver {
 
     override fun getNeighbours(v: NewNodeBuilder): Graph {
         val graph = newOverflowGraph()
-        PlumeTimer.measure(ExtractorTimeKey.DATABASE_READ) {
+        PlumeTimer.measure(DriverTimeKey.DATABASE_READ) {
             driver.session().use { session ->
                 val result = session.writeTransaction { tx ->
                     tx.run(
@@ -526,7 +530,7 @@ class Neo4jDriver internal constructor() : IDriver {
 
     override fun deleteVertex(id: Long, label: String?) {
         if (!checkVertexExist(id, label)) return
-        PlumeTimer.measure(ExtractorTimeKey.DATABASE_WRITE) {
+        PlumeTimer.measure(DriverTimeKey.DATABASE_WRITE) {
             driver.session().use { session ->
                 session.writeTransaction { tx ->
                     tx.run(
@@ -543,7 +547,7 @@ class Neo4jDriver internal constructor() : IDriver {
 
     override fun deleteEdge(src: NewNodeBuilder, tgt: NewNodeBuilder, edge: String) {
         if (!exists(src, tgt, edge)) return
-        PlumeTimer.measure(ExtractorTimeKey.DATABASE_WRITE) {
+        PlumeTimer.measure(DriverTimeKey.DATABASE_WRITE) {
             val srcN = src.build()
             val tgtN = tgt.build()
             driver.session().use { session ->
@@ -561,7 +565,7 @@ class Neo4jDriver internal constructor() : IDriver {
     }
 
     override fun deleteMethod(fullName: String) {
-        PlumeTimer.measure(ExtractorTimeKey.DATABASE_WRITE) {
+        PlumeTimer.measure(DriverTimeKey.DATABASE_WRITE) {
             driver.session().use { session ->
                 session.writeTransaction { tx ->
                     tx.run(
@@ -579,7 +583,7 @@ class Neo4jDriver internal constructor() : IDriver {
 
     override fun updateVertexProperty(id: Long, label: String?, key: String, value: Any) {
         if (!checkVertexExist(id, label)) return
-        PlumeTimer.measure(ExtractorTimeKey.DATABASE_WRITE) {
+        PlumeTimer.measure(DriverTimeKey.DATABASE_WRITE) {
             driver.session().use { session ->
                 session.writeTransaction { tx ->
                     tx.run(
@@ -596,7 +600,7 @@ class Neo4jDriver internal constructor() : IDriver {
 
     override fun getMetaData(): NewMetaDataBuilder? {
         var meta: NewMetaDataBuilder? = null
-        PlumeTimer.measure(ExtractorTimeKey.DATABASE_WRITE) {
+        PlumeTimer.measure(DriverTimeKey.DATABASE_WRITE) {
             driver.session().use { session ->
                 meta = session.writeTransaction { tx ->
                     tx.run(
@@ -621,7 +625,7 @@ class Neo4jDriver internal constructor() : IDriver {
     ): List<NewNodeBuilder> {
         val l = mutableListOf<NewNodeBuilder>()
         if (propertyKey.length != sanitizePayload(propertyKey).length || propertyKey.contains("[<|>]".toRegex())) return emptyList()
-        PlumeTimer.measure(ExtractorTimeKey.DATABASE_READ) {
+        PlumeTimer.measure(DriverTimeKey.DATABASE_READ) {
             driver.session().use { session ->
                 session.writeTransaction { tx ->
                     tx.run(
@@ -642,7 +646,7 @@ class Neo4jDriver internal constructor() : IDriver {
     override fun <T : Any> getPropertyFromVertices(propertyKey: String, label: String?): List<T> {
         val l = mutableListOf<T>()
         if (propertyKey.length != sanitizePayload(propertyKey).length || propertyKey.contains("[<|>]".toRegex())) return emptyList()
-        PlumeTimer.measure(ExtractorTimeKey.DATABASE_READ) {
+        PlumeTimer.measure(DriverTimeKey.DATABASE_READ) {
             driver.session().use { session ->
                 session.writeTransaction { tx ->
                     tx.run(
@@ -659,7 +663,7 @@ class Neo4jDriver internal constructor() : IDriver {
 
     override fun getVerticesOfType(label: String): List<NewNodeBuilder> {
         val l = mutableListOf<NewNodeBuilder>()
-        PlumeTimer.measure(ExtractorTimeKey.DATABASE_READ) {
+        PlumeTimer.measure(DriverTimeKey.DATABASE_READ) {
             driver.session().use { session ->
                 session.writeTransaction { tx ->
                     tx.run(

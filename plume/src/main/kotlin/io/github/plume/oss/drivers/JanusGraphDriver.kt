@@ -15,13 +15,14 @@
  */
 package io.github.plume.oss.drivers
 
-import io.github.plume.oss.metrics.ExtractorTimeKey
+import io.github.plume.oss.metrics.DriverTimeKey
 import io.github.plume.oss.metrics.PlumeTimer
 import io.github.plume.oss.util.ExtractorConst
 import io.shiftleft.codepropertygraph.generated.EdgeTypes
-import io.shiftleft.codepropertygraph.generated.PropertyNames.*
 import io.shiftleft.codepropertygraph.generated.NodeTypes
 import io.shiftleft.codepropertygraph.generated.PropertyNames
+import io.shiftleft.codepropertygraph.generated.PropertyNames.FULL_NAME
+import io.shiftleft.codepropertygraph.generated.PropertyNames.NAME
 import io.shiftleft.codepropertygraph.generated.nodes.NewNodeBuilder
 import org.apache.commons.configuration.PropertiesConfiguration
 import org.apache.logging.log4j.LogManager
@@ -54,23 +55,27 @@ class JanusGraphDriver internal constructor() : GremlinDriver(), ISchemaSafeDriv
      * not set.
      */
     override fun connect(): JanusGraphDriver = apply {
-        require(!connected) { "Please close the graph before trying to make another connection." }
-        require(config.containsKey(REMOTE_CONFIG)) { "Remote config path not set! See the config field in JanusGraphDriver with key REMOTE_CONFIG." }
-        // Test that the connection works and then close again
-        super.g = AnonymousTraversalSource.traversal().withRemote(config.getString(REMOTE_CONFIG))
-        super.graph = super.g.graph
-        connected = true
+        PlumeTimer.measure(DriverTimeKey.CONNECT_DESERIALIZE) {
+            require(!connected) { "Please close the graph before trying to make another connection." }
+            require(config.containsKey(REMOTE_CONFIG)) { "Remote config path not set! See the config field in JanusGraphDriver with key REMOTE_CONFIG." }
+            // Test that the connection works and then close again
+            super.g = AnonymousTraversalSource.traversal().withRemote(config.getString(REMOTE_CONFIG))
+            super.graph = super.g.graph
+            connected = true
+        }
     }
 
     override fun close() {
-        require(connected) { "Cannot close a graph that is not already connected!" }
-        try {
-            // The graphs are immutable so we can't call close() from graph
-            g.close()
-        } catch (e: Exception) {
-            logger.warn("Exception thrown while attempting to close graph.", e)
-        } finally {
-            connected = false
+        PlumeTimer.measure(DriverTimeKey.DISCONNECT_SERIALIZE) {
+            require(connected) { "Cannot close a graph that is not already connected!" }
+            try {
+                // The graphs are immutable so we can't call close() from graph
+                g.close()
+            } catch (e: Exception) {
+                logger.warn("Exception thrown while attempting to close graph.", e)
+            } finally {
+                connected = false
+            }
         }
     }
 
@@ -84,9 +89,9 @@ class JanusGraphDriver internal constructor() : GremlinDriver(), ISchemaSafeDriv
 
     override fun updateVertexProperty(id: Long, label: String?, key: String, value: Any) {
         var res = false
-        PlumeTimer.measure(ExtractorTimeKey.DATABASE_READ) { res = g.V(id).hasNext() }
+        PlumeTimer.measure(DriverTimeKey.DATABASE_READ) { res = g.V(id).hasNext() }
         if (!res) return
-        PlumeTimer.measure(ExtractorTimeKey.DATABASE_WRITE) {
+        PlumeTimer.measure(DriverTimeKey.DATABASE_WRITE) {
             g.V(id).property("_$key", value).iterate()
         }
     }

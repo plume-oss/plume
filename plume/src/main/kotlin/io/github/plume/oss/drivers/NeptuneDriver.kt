@@ -15,10 +15,9 @@
  */
 package io.github.plume.oss.drivers
 
-import io.github.plume.oss.domain.mappers.ListMapper
 import io.github.plume.oss.domain.mappers.VertexMapper
 import io.github.plume.oss.domain.model.DeltaGraph
-import io.github.plume.oss.metrics.ExtractorTimeKey
+import io.github.plume.oss.metrics.DriverTimeKey
 import io.github.plume.oss.metrics.PlumeTimer
 import io.github.plume.oss.store.LocalCache
 import io.github.plume.oss.store.PlumeStorage
@@ -33,8 +32,6 @@ import org.apache.tinkerpop.gremlin.process.traversal.step.util.WithOptions
 import org.apache.tinkerpop.gremlin.structure.Graph
 import org.apache.tinkerpop.gremlin.structure.T
 import org.apache.tinkerpop.gremlin.structure.Vertex
-import scala.collection.immutable.`$colon$colon`
-import scala.collection.immutable.`Nil$`
 import scala.jdk.CollectionConverters
 import java.util.*
 import org.apache.tinkerpop.gremlin.process.traversal.dsl.graph.`__` as un
@@ -92,11 +89,13 @@ class NeptuneDriver internal constructor() : GremlinDriver() {
      * @throws IllegalArgumentException if the graph database is already connected.
      */
     override fun connect(): NeptuneDriver = apply {
-        require(!connected) { "Please close the graph before trying to make another connection." }
-        cluster = builder.create()
-        super.g = traversal().withRemote(DriverRemoteConnection.using(cluster))
-        graph = g.graph
-        connected = true
+        PlumeTimer.measure(DriverTimeKey.CONNECT_DESERIALIZE) {
+            require(!connected) { "Please close the graph before trying to make another connection." }
+            cluster = builder.create()
+            super.g = traversal().withRemote(DriverRemoteConnection.using(cluster))
+            graph = g.graph
+            connected = true
+        }
         if (clearOnConnect) clearGraph()
         else populateIdMapper()
     }
@@ -109,6 +108,7 @@ class NeptuneDriver internal constructor() : GremlinDriver() {
 
     /**
      * When connecting to a database with a subgraph already loaded, create a mapping for existing graph data.
+     * TODO: A list of IDs could be saved in some file of some sorts.
      */
     private fun populateIdMapper() {
         resetIdMapper()
@@ -128,23 +128,25 @@ class NeptuneDriver internal constructor() : GremlinDriver() {
      * @throws IllegalArgumentException if one attempts to close an already closed graph.
      */
     override fun close() {
-        require(connected) { "Cannot close a graph that is not already connected!" }
-        try {
-            cluster.close()
-            connected = false
-        } catch (e: Exception) {
-            logger.warn("Exception thrown while attempting to close graph.", e)
-        } finally {
-            // Have to also clear the cache otherwise the IDs won't be mapped correctly
-            LocalCache.clear()
-            PlumeStorage.clear()
-            resetIdMapper()
+        PlumeTimer.measure(DriverTimeKey.DISCONNECT_SERIALIZE) {
+            require(connected) { "Cannot close a graph that is not already connected!" }
+            try {
+                cluster.close()
+                connected = false
+            } catch (e: Exception) {
+                logger.warn("Exception thrown while attempting to close graph.", e)
+            } finally {
+                // Have to also clear the cache otherwise the IDs won't be mapped correctly
+                LocalCache.clear()
+                PlumeStorage.clear()
+                resetIdMapper()
+            }
         }
     }
 
     override fun findVertexTraversal(v: NewNodeBuilder): GraphTraversal<Vertex, Vertex> {
         var result: GraphTraversal<Vertex, Vertex>? = null
-        PlumeTimer.measure(ExtractorTimeKey.DATABASE_READ) {
+        PlumeTimer.measure(DriverTimeKey.DATABASE_READ) {
             val strId = idMapper[v.id()]
             result = if (strId != null) g.V(strId)
             else g.V("null")
@@ -172,18 +174,18 @@ class NeptuneDriver internal constructor() : GremlinDriver() {
     override fun deleteVertex(id: Long, label: String?) {
         val mappedId = idMapper[id]
         var res = false
-        PlumeTimer.measure(ExtractorTimeKey.DATABASE_READ) {
+        PlumeTimer.measure(DriverTimeKey.DATABASE_READ) {
             res = if (mappedId != null) g.V(mappedId).hasNext()
             else false
         }
         if (!res) return
-        PlumeTimer.measure(ExtractorTimeKey.DATABASE_WRITE) { g.V(mappedId).drop().iterate() }
+        PlumeTimer.measure(DriverTimeKey.DATABASE_WRITE) { g.V(mappedId).drop().iterate() }
         idMapper.remove(id)
     }
 
     override fun deleteEdge(src: NewNodeBuilder, tgt: NewNodeBuilder, edge: String) {
         if (!exists(src, tgt, edge)) return
-        PlumeTimer.measure(ExtractorTimeKey.DATABASE_WRITE) {
+        PlumeTimer.measure(DriverTimeKey.DATABASE_WRITE) {
             val srcId = idMapper[src.id()]
             val dstId = idMapper[tgt.id()]
             g.V(srcId).outE(edge).where(un.otherV().hasId(dstId)).drop().iterate()
@@ -205,7 +207,8 @@ class NeptuneDriver internal constructor() : GremlinDriver() {
             VertexMapper.stripUnusedProperties(
                 v.build().label(),
                 CollectionConverters.MapHasAsJava(v.build().properties()).asJava().toMutableMap()
-            )).toMutableMap()
+            )
+        ).toMutableMap()
         if (outMap.containsKey("id")) {
             outMap["id"] = idMapper[outMap["id"]]!!
         }
@@ -222,7 +225,7 @@ class NeptuneDriver internal constructor() : GremlinDriver() {
         var gPtr: GraphTraversal<*, *>? = null
         vs.forEach { v ->
             if (!exists(v)) {
-                PlumeTimer.measure(ExtractorTimeKey.DATABASE_WRITE) {
+                PlumeTimer.measure(DriverTimeKey.DATABASE_WRITE) {
                     if (gPtr == null) gPtr = g.addV(v.build().label()).property(T.id, idMapper[v.id()])
                     else gPtr?.addV(v.build().label())?.property(T.id, idMapper[v.id()])
                     prepareVertexProperties(v).forEach { (k, v) -> gPtr?.property(k, v) }
@@ -235,7 +238,7 @@ class NeptuneDriver internal constructor() : GremlinDriver() {
     override fun bulkAddEdges(es: List<DeltaGraph.EdgeAdd>) {
         if (es.isEmpty()) return
         var gPtr: GraphTraversal<*, *>? = null
-        PlumeTimer.measure(ExtractorTimeKey.DATABASE_WRITE) {
+        PlumeTimer.measure(DriverTimeKey.DATABASE_WRITE) {
             es.map { Triple(g.V(idMapper[it.src.id()]).next(), it.e, g.V(idMapper[it.dst.id()]).next()) }
                 .forEach { (src, e, dst) ->
                     if (gPtr == null) gPtr = g.V(src).addE(e).to(dst)
@@ -275,14 +278,14 @@ class NeptuneDriver internal constructor() : GremlinDriver() {
 
     override fun updateVertexProperty(id: Long, label: String?, key: String, value: Any) {
         var res = false
-        PlumeTimer.measure(ExtractorTimeKey.DATABASE_READ) { res = g.V(idMapper[id]).hasNext() }
+        PlumeTimer.measure(DriverTimeKey.DATABASE_READ) { res = g.V(idMapper[id]).hasNext() }
         if (!res) return
-        PlumeTimer.measure(ExtractorTimeKey.DATABASE_WRITE) { g.V(idMapper[id]).property(key, value).iterate() }
+        PlumeTimer.measure(DriverTimeKey.DATABASE_WRITE) { g.V(idMapper[id]).property(key, value).iterate() }
     }
 
     override fun getWholeGraph(): overflowdb.Graph {
         val graph = newOverflowGraph()
-        PlumeTimer.measure(ExtractorTimeKey.DATABASE_READ) {
+        PlumeTimer.measure(DriverTimeKey.DATABASE_READ) {
             g.V().valueMap<Any>()
                 .by(un.unfold<Any>())
                 .with(WithOptions.tokens).toList()
@@ -306,11 +309,11 @@ class NeptuneDriver internal constructor() : GremlinDriver() {
     override fun clearGraph() = apply {
         resetIdMapper()
         var noVs = 0L
-        PlumeTimer.measure(ExtractorTimeKey.DATABASE_READ) {
+        PlumeTimer.measure(DriverTimeKey.DATABASE_READ) {
             noVs = g.V().count().next()
         }
         if (noVs > 0) {
-            PlumeTimer.measure(ExtractorTimeKey.DATABASE_WRITE) {
+            PlumeTimer.measure(DriverTimeKey.DATABASE_WRITE) {
                 var deleted = 0L
                 val step = 100
                 while (deleted < noVs) {
