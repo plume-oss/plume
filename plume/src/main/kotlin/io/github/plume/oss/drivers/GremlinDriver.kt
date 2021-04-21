@@ -19,7 +19,7 @@ import io.github.plume.oss.domain.exceptions.PlumeSchemaViolationException
 import io.github.plume.oss.domain.mappers.VertexMapper
 import io.github.plume.oss.domain.mappers.VertexMapper.checkSchemaConstraints
 import io.github.plume.oss.domain.model.DeltaGraph
-import io.github.plume.oss.metrics.ExtractorTimeKey
+import io.github.plume.oss.metrics.DriverTimeKey
 import io.github.plume.oss.metrics.PlumeTimer
 import io.shiftleft.codepropertygraph.generated.EdgeTypes.AST
 import io.shiftleft.codepropertygraph.generated.NodeTypes.*
@@ -75,10 +75,12 @@ abstract class GremlinDriver : IDriver {
      * @throws IllegalArgumentException if the graph database is already connected to.
      */
     open fun connect(): GremlinDriver = apply {
-        require(!connected) { "Please close the graph before trying to make another connection." }
-        graph = TinkerGraph.open(config)
-        g = graph.traversal()
-        connected = true
+        PlumeTimer.measure(DriverTimeKey.CONNECT_DESERIALIZE) {
+            require(!connected) { "Please close the graph before trying to make another connection." }
+            graph = TinkerGraph.open(config)
+            g = graph.traversal()
+            connected = true
+        }
     }
 
 
@@ -88,14 +90,16 @@ abstract class GremlinDriver : IDriver {
      * @throws IllegalArgumentException if one attempts to close an already closed graph.
      */
     override fun close() {
-        require(connected) { "Cannot close a graph that is not already connected!" }
-        try {
-            g.close()
-            graph.close()
-        } catch (e: Exception) {
-            logger.warn("Exception thrown while attempting to close graph.", e)
-        } finally {
-            connected = false
+        PlumeTimer.measure(DriverTimeKey.DISCONNECT_SERIALIZE) {
+            require(connected) { "Cannot close a graph that is not already connected!" }
+            try {
+                g.close()
+                graph.close()
+            } catch (e: Exception) {
+                logger.warn("Exception thrown while attempting to close graph.", e)
+            } finally {
+                connected = false
+            }
         }
     }
 
@@ -107,7 +111,7 @@ abstract class GremlinDriver : IDriver {
 
     protected open fun findVertexTraversal(v: NewNodeBuilder): GraphTraversal<Vertex, Vertex> {
         var result: GraphTraversal<Vertex, Vertex>? = null
-        PlumeTimer.measure(ExtractorTimeKey.DATABASE_READ) { result = g.V(v.id()) }
+        PlumeTimer.measure(DriverTimeKey.DATABASE_READ) { result = g.V(v.id()) }
         return result!!
     }
 
@@ -116,7 +120,7 @@ abstract class GremlinDriver : IDriver {
         val a = findVertexTraversal(src).next()
         val b = findVertexTraversal(tgt).next()
         var res = false
-        PlumeTimer.measure(ExtractorTimeKey.DATABASE_READ) {
+        PlumeTimer.measure(DriverTimeKey.DATABASE_READ) {
             res = g.V(a).outE(edge).filter(un.inV().`is`(b)).hasLabel(edge).hasNext()
         }
         return res
@@ -137,8 +141,8 @@ abstract class GremlinDriver : IDriver {
         val eAdds = mutableListOf<DeltaGraph.EdgeAdd>()
         val vDels = mutableListOf<DeltaGraph.VertexDelete>()
         val eDels = mutableListOf<DeltaGraph.EdgeDelete>()
-        PlumeTimer.measure(ExtractorTimeKey.DATABASE_READ) { bulkTxReads(dg, vAdds, eAdds, vDels, eDels) }
-        PlumeTimer.measure(ExtractorTimeKey.DATABASE_WRITE) { bulkTxWrites(vAdds, eAdds, vDels, eDels) }
+        PlumeTimer.measure(DriverTimeKey.DATABASE_READ) { bulkTxReads(dg, vAdds, eAdds, vDels, eDels) }
+        PlumeTimer.measure(DriverTimeKey.DATABASE_WRITE) { bulkTxWrites(vAdds, eAdds, vDels, eDels) }
     }
 
     protected open fun bulkTxReads(
@@ -179,7 +183,7 @@ abstract class GremlinDriver : IDriver {
         val addedVs = mutableMapOf<String, NewNodeBuilder>()
         vs.forEachIndexed { i, v ->
             if (!exists(v)) {
-                PlumeTimer.measure(ExtractorTimeKey.DATABASE_WRITE) {
+                PlumeTimer.measure(DriverTimeKey.DATABASE_WRITE) {
                     if (gPtr == null) gPtr = g.addV(v.build().label())
                     else gPtr?.addV(v.build().label())
                     prepareVertexProperties(v).forEach { (k, v) -> gPtr?.property(k, v) }
@@ -215,7 +219,7 @@ abstract class GremlinDriver : IDriver {
     protected open fun bulkAddEdges(es: List<DeltaGraph.EdgeAdd>) {
         if (es.isEmpty()) return
         var gPtr: GraphTraversal<*, *>? = null
-        PlumeTimer.measure(ExtractorTimeKey.DATABASE_WRITE) {
+        PlumeTimer.measure(DriverTimeKey.DATABASE_WRITE) {
             es.map { Triple(g.V(it.src.id()).next(), it.e, g.V(it.dst.id()).next()) }.forEach { (src, e, dst) ->
                 if (gPtr == null) gPtr = g.V(src).addE(e).to(dst)
                 else gPtr?.V(src)?.addE(e)?.to(dst)
@@ -225,7 +229,7 @@ abstract class GremlinDriver : IDriver {
     }
 
     override fun clearGraph() = apply {
-        PlumeTimer.measure(ExtractorTimeKey.DATABASE_WRITE) { g.V().drop().iterate() }
+        PlumeTimer.measure(DriverTimeKey.DATABASE_WRITE) { g.V().drop().iterate() }
     }
 
     /**
@@ -237,7 +241,7 @@ abstract class GremlinDriver : IDriver {
      */
     protected open fun createVertex(v: NewNodeBuilder): Vertex {
         var newVertex: Vertex? = null
-        PlumeTimer.measure(ExtractorTimeKey.DATABASE_WRITE) {
+        PlumeTimer.measure(DriverTimeKey.DATABASE_WRITE) {
             val newVertexTraversal = g.addV(v.build().label())
             prepareVertexProperties(v).forEach { (k, v) -> newVertexTraversal.property(k, v) }
             newVertex = newVertexTraversal.next()
@@ -262,12 +266,12 @@ abstract class GremlinDriver : IDriver {
      * @return The newly created [Edge].
      */
     private fun createEdge(v1: Vertex, edge: String, v2: Vertex) {
-        PlumeTimer.measure(ExtractorTimeKey.DATABASE_WRITE) { g.V(v1.id()).addE(edge).to(g.V(v2.id())).next() }
+        PlumeTimer.measure(DriverTimeKey.DATABASE_WRITE) { g.V(v1.id()).addE(edge).to(g.V(v2.id())).next() }
     }
 
     override fun getWholeGraph(): overflowdb.Graph {
         val graph = newOverflowGraph()
-        PlumeTimer.measure(ExtractorTimeKey.DATABASE_READ) {
+        PlumeTimer.measure(DriverTimeKey.DATABASE_READ) {
             g.V().valueMap<Any>()
                 .by(un.unfold<Any>())
                 .with(WithOptions.tokens).toList().map { VertexMapper.mapToVertex(mapVertexKeys(it)) }
@@ -290,7 +294,7 @@ abstract class GremlinDriver : IDriver {
     override fun getMethod(fullName: String, includeBody: Boolean): overflowdb.Graph {
         if (includeBody) return getMethodWithBody(fullName)
         val methodSubgraph: MutableList<Edge> = mutableListOf()
-        PlumeTimer.measure(ExtractorTimeKey.DATABASE_READ) {
+        PlumeTimer.measure(DriverTimeKey.DATABASE_READ) {
             g.V().hasLabel(METHOD)
                 .let {
                     if (this !is JanusGraphDriver) it.has(FULL_NAME, fullName)
@@ -305,7 +309,7 @@ abstract class GremlinDriver : IDriver {
 
     private fun getMethodWithBody(fullName: String): overflowdb.Graph {
         val methodSubgraph: MutableList<Edge> = mutableListOf()
-        PlumeTimer.measure(ExtractorTimeKey.DATABASE_READ) {
+        PlumeTimer.measure(DriverTimeKey.DATABASE_READ) {
             g.V().hasLabel(METHOD)
                 .let {
                     if (this !is JanusGraphDriver) it.has(FULL_NAME, fullName)
@@ -321,7 +325,7 @@ abstract class GremlinDriver : IDriver {
 
     override fun getProgramStructure(): overflowdb.Graph {
         val fes: MutableList<Edge> = mutableListOf()
-        PlumeTimer.measure(ExtractorTimeKey.DATABASE_READ) {
+        PlumeTimer.measure(DriverTimeKey.DATABASE_READ) {
             g.V().hasLabel(FILE)
                 .repeat(un.outE(AST).inV()).emit()
                 .inE()
@@ -329,7 +333,7 @@ abstract class GremlinDriver : IDriver {
                 .toCollection(fes)
         }
         val graph = gremlinToPlume(fes)
-        PlumeTimer.measure(ExtractorTimeKey.DATABASE_READ) {
+        PlumeTimer.measure(DriverTimeKey.DATABASE_READ) {
             // Transfer type decl vertices to the result, this needs to be done with the tokens step to get all properties
             // from the remote server
             g.V().hasLabel(TYPE_DECL, FILE, NAMESPACE_BLOCK)
@@ -350,7 +354,7 @@ abstract class GremlinDriver : IDriver {
             val newNode = this.addNode(n.label())
             n.properties().foreachEntry { key, value -> newNode.setProperty(key, value) }
         }
-        PlumeTimer.measure(ExtractorTimeKey.DATABASE_READ) {
+        PlumeTimer.measure(DriverTimeKey.DATABASE_READ) {
             findVertexTraversal(v)
                 .repeat(un.outE(AST).bothV())
                 .times(1)
@@ -363,21 +367,21 @@ abstract class GremlinDriver : IDriver {
 
     override fun deleteVertex(id: Long, label: String?) {
         var res = false
-        PlumeTimer.measure(ExtractorTimeKey.DATABASE_READ) { res = g.V(id).hasNext() }
+        PlumeTimer.measure(DriverTimeKey.DATABASE_READ) { res = g.V(id).hasNext() }
         if (!res) return
-        PlumeTimer.measure(ExtractorTimeKey.DATABASE_WRITE) { g.V(id).drop().iterate() }
+        PlumeTimer.measure(DriverTimeKey.DATABASE_WRITE) { g.V(id).drop().iterate() }
     }
 
     override fun deleteEdge(src: NewNodeBuilder, tgt: NewNodeBuilder, edge: String) {
         if (!exists(src, tgt, edge)) return
-        PlumeTimer.measure(ExtractorTimeKey.DATABASE_WRITE) {
+        PlumeTimer.measure(DriverTimeKey.DATABASE_WRITE) {
             g.V(src.id()).outE(edge).where(un.otherV().hasId(tgt.id())).drop().iterate()
         }
     }
 
     override fun deleteMethod(fullName: String) {
         var methodV: Optional<Vertex> = Optional.empty()
-        PlumeTimer.measure(ExtractorTimeKey.DATABASE_READ) {
+        PlumeTimer.measure(DriverTimeKey.DATABASE_READ) {
             methodV = g.V().hasLabel(METHOD)
                 .let {
                     if (this !is JanusGraphDriver) it.has(FULL_NAME, fullName)
@@ -386,7 +390,7 @@ abstract class GremlinDriver : IDriver {
                 .tryNext()
         }
         if (methodV.isPresent) {
-            PlumeTimer.measure(ExtractorTimeKey.DATABASE_WRITE) {
+            PlumeTimer.measure(DriverTimeKey.DATABASE_WRITE) {
                 g.V(methodV.get()).aggregate("x")
                     .repeat(un.out(AST)).emit().barrier()
                     .aggregate("x")
@@ -400,17 +404,17 @@ abstract class GremlinDriver : IDriver {
 
     override fun updateVertexProperty(id: Long, label: String?, key: String, value: Any) {
         var res = false
-        PlumeTimer.measure(ExtractorTimeKey.DATABASE_READ) { res = g.V(id).hasNext() }
+        PlumeTimer.measure(DriverTimeKey.DATABASE_READ) { res = g.V(id).hasNext() }
         if (!res) return
-        PlumeTimer.measure(ExtractorTimeKey.DATABASE_WRITE) { g.V(id).property(key, value).iterate() }
+        PlumeTimer.measure(DriverTimeKey.DATABASE_WRITE) { g.V(id).property(key, value).iterate() }
     }
 
     override fun getMetaData(): NewMetaDataBuilder? {
         var hasNext = false
-        PlumeTimer.measure(ExtractorTimeKey.DATABASE_READ) { hasNext = g.V().hasLabel(META_DATA).hasNext() }
+        PlumeTimer.measure(DriverTimeKey.DATABASE_READ) { hasNext = g.V().hasLabel(META_DATA).hasNext() }
         return if (hasNext) {
             val props = mutableMapOf<String, Any>()
-            PlumeTimer.measure(ExtractorTimeKey.DATABASE_READ) {
+            PlumeTimer.measure(DriverTimeKey.DATABASE_READ) {
                 mapVertexKeys(
                     g.V().hasLabel(META_DATA).valueMap<Any>()
                         .by(un.unfold<Any>())
@@ -430,7 +434,7 @@ abstract class GremlinDriver : IDriver {
         label: String?
     ): List<NewNodeBuilder> {
         val l = mutableListOf<NewNodeBuilder>()
-        PlumeTimer.measure(ExtractorTimeKey.DATABASE_READ) {
+        PlumeTimer.measure(DriverTimeKey.DATABASE_READ) {
             (if (label != null) g.V().hasLabel(label) else g.V())
                 .has("${if (this is JanusGraphDriver) "_" else ""}$propertyKey", propertyValue)
                 .valueMap<Any>()
@@ -446,7 +450,7 @@ abstract class GremlinDriver : IDriver {
 
     override fun <T : Any> getPropertyFromVertices(propertyKey: String, label: String?): List<T> {
         val l = mutableListOf<T>()
-        PlumeTimer.measure(ExtractorTimeKey.DATABASE_READ) {
+        PlumeTimer.measure(DriverTimeKey.DATABASE_READ) {
             (if (label != null) g.V().hasLabel(label) else g.V())
                 .values<T>("${if (this is JanusGraphDriver) "_" else ""}$propertyKey")
                 .toList()
@@ -457,7 +461,7 @@ abstract class GremlinDriver : IDriver {
 
     override fun getVerticesOfType(label: String): List<NewNodeBuilder> {
         val l = mutableListOf<NewNodeBuilder>()
-        PlumeTimer.measure(ExtractorTimeKey.DATABASE_READ) {
+        PlumeTimer.measure(DriverTimeKey.DATABASE_READ) {
             g.V().hasLabel(label)
                 .valueMap<Any>()
                 .with(WithOptions.tokens)
@@ -474,7 +478,7 @@ abstract class GremlinDriver : IDriver {
 
     private fun gremlinToPlume(es: List<Edge>): overflowdb.Graph {
         val overflowGraph = newOverflowGraph()
-        PlumeTimer.measure(ExtractorTimeKey.DATABASE_READ) {
+        PlumeTimer.measure(DriverTimeKey.DATABASE_READ) {
             es.map {
                 Triple(
                     g.V(it.outVertex().id()).valueMap<Any>().with(WithOptions.tokens).by(un.unfold<Any>()).next(),

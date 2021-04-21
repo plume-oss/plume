@@ -15,7 +15,7 @@
  */
 package io.github.plume.oss.drivers
 
-import io.github.plume.oss.metrics.ExtractorTimeKey
+import io.github.plume.oss.metrics.DriverTimeKey
 import io.github.plume.oss.metrics.PlumeTimer
 import org.apache.commons.configuration.BaseConfiguration
 import java.io.File
@@ -47,7 +47,7 @@ class TinkerGraphDriver internal constructor() : GremlinDriver() {
             "Unsupported graph extension! Supported types are GraphML," +
                     " GraphSON, and Gryo."
         }
-        PlumeTimer.measure(ExtractorTimeKey.DATABASE_WRITE) { g.io<Any>(filePath).write().iterate() }
+        PlumeTimer.measure(DriverTimeKey.DISCONNECT_SERIALIZE) { g.io<Any>(filePath).write().iterate() }
     }
 
     /**
@@ -62,7 +62,7 @@ class TinkerGraphDriver internal constructor() : GremlinDriver() {
                     " GraphSON, and Gryo."
         }
         require(File(filePath).exists()) { "No existing serialized graph file was found at $filePath" }
-        PlumeTimer.measure(ExtractorTimeKey.DATABASE_READ) { g.io<Any>(filePath).read().iterate() }
+        PlumeTimer.measure(DriverTimeKey.CONNECT_DESERIALIZE) { g.io<Any>(filePath).read().iterate() }
     }
 
     /**

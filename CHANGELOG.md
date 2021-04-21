@@ -7,10 +7,15 @@ and this project adheres to [Semantic Versioning](http://semver.org/).
 
 ## [Unreleased]
 
+### Added
+
+- Added new timer measurements `CONNECT_DESERIALIZE` and `DISCONNECT_SERIALIZE`.
+
 ### Changed
 
 - `DataFlowPass` now converts `DiffGraph`s into `DeltaGraphs` in order to use `bulkTransaction`s.
 - `DataFlowPass` now shows progress bar.
+- Separated Extractor and Driver measurements under `PlumeTimer`.
 
 ## [0.5.3] - 2021-04-19
 

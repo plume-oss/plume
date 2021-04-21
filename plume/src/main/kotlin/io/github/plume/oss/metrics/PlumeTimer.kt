@@ -20,10 +20,17 @@ package io.github.plume.oss.metrics
  */
 object PlumeTimer {
 
-    private val totalTimes = mutableMapOf<ExtractorTimeKey, Long>()
+    private val extractorTimes = mutableMapOf<ExtractorTimeKey, Long>()
+    private val driverTimes = mutableMapOf<DriverTimeKey, Long>()
 
     init {
-        ExtractorTimeKey.values().forEach { totalTimes[it] = 0L }
+        reset()
+    }
+
+    private fun measureFunctionTime(f: () -> Unit): Long {
+        val start = System.nanoTime()
+        f()
+        return System.nanoTime() - start
     }
 
     /**
@@ -33,23 +40,36 @@ object PlumeTimer {
      * @param f The function to measure.
      */
     fun measure(key: ExtractorTimeKey, f: () -> Unit) {
-        val start = System.nanoTime()
-        f()
-        val totalTime = System.nanoTime() - start
-        totalTimes[key] = totalTimes.getOrDefault(key, 0L) + totalTime
+        extractorTimes[key] = extractorTimes.getOrDefault(key, 0L) + measureFunctionTime(f)
+    }
+
+    /**
+     * Measures the time the given function takes to complete.
+     *
+     * @param key The key(s) on which to measure.
+     * @param f The function to measure.
+     */
+    fun measure(key: DriverTimeKey, f: () -> Unit) {
+        driverTimes[key] = driverTimes.getOrDefault(key, 0L) + measureFunctionTime(f)
     }
 
     /**
      * Resets all timers.
      */
     fun reset() = apply {
-        ExtractorTimeKey.values().forEach { totalTimes[it] = 0L }
+        ExtractorTimeKey.values().forEach { extractorTimes[it] = 0L }
+        DriverTimeKey.values().forEach { driverTimes[it] = 0L }
     }
 
     /**
-     * Gets all the recorded times.
+     * Gets all the recorded extractor times.
      */
-    fun getTimes(): Map<ExtractorTimeKey, Long> = totalTimes.toMap()
+    fun getExtractorTimes(): Map<ExtractorTimeKey, Long> = extractorTimes.toMap()
+
+    /**
+     * Gets all the recorded driver times.
+     */
+    fun getDriverTimes(): Map<DriverTimeKey, Long> = driverTimes.toMap()
 
 }
 
@@ -76,6 +96,13 @@ enum class ExtractorTimeKey {
     PROGRAM_STRUCTURE_BUILDING,
 
     /**
+     * Wall clock time spent running semantic code property graph passes from [io.shiftleft.dataflowengineoss.passes].
+     */
+    DATA_FLOW_PASS
+}
+
+enum class DriverTimeKey {
+    /**
      * CPU time spent on database writes.
      */
     DATABASE_WRITE,
@@ -86,8 +113,14 @@ enum class ExtractorTimeKey {
     DATABASE_READ,
 
     /**
-     * Wall clock time spent running semantic code property graph passes from [io.shiftleft.dataflowengineoss.passes].
+     * The time spent opening a socket/connection when using a remote database or importing/creating a graph in memory
+     * when using an embedded database.
      */
-    DATA_FLOW_PASS
-}
+    CONNECT_DESERIALIZE,
 
+    /**
+     * The time spent closing a socket/connection when using a remote databse or exporting/freeing a graph from memory
+     * when using an embedded database.
+     */
+    DISCONNECT_SERIALIZE
+}
