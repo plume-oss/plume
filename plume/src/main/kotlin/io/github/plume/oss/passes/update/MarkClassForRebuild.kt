@@ -19,10 +19,10 @@ import io.github.plume.oss.drivers.IDriver
 import io.github.plume.oss.passes.FileChange
 import io.github.plume.oss.store.DriverCache
 import io.github.plume.oss.store.PlumeStorage
+import io.github.plume.oss.util.ExtractorConst.UNKNOWN
 import io.github.plume.oss.util.SootParserUtil
 import io.github.plume.oss.util.SootToPlumeUtil
 import io.shiftleft.codepropertygraph.generated.EdgeTypes.AST
-import io.shiftleft.codepropertygraph.generated.PropertyNames.HASH
 import io.shiftleft.codepropertygraph.generated.NodeTypes.MODIFIER
 import io.shiftleft.codepropertygraph.generated.nodes.NewFileBuilder
 import io.shiftleft.codepropertygraph.generated.nodes.NewModifierBuilder
@@ -67,15 +67,22 @@ class MarkClassForRebuild(private val driver: IDriver) {
         cache.tryGetFile(newCName)?.let { oldCNode: NewFileBuilder ->
             val currentCHash = PlumeStorage.getFileHash(c)
             logger.debug("Found an existing class with name ${c.name}")
-            val maybeOldHash = oldCNode.build().properties().get(HASH)
+            val maybeOldHash = oldCNode.build().hash()
             return when {
                 maybeOldHash.isDefined -> {
-                    if (maybeOldHash.get() != currentCHash) {
-                        logger.debug("Class hashes differ, marking ${c.name} for rebuild.")
-                        Pair(c, FileChange.UPDATE)
-                    } else {
-                        logger.trace("Classes are identical - no update necessary.")
-                        Pair(c, FileChange.NOP)
+                    when {
+                        maybeOldHash.get() == UNKNOWN -> {
+                            logger.trace("Class is external, not need to rebuild.")
+                            Pair(c, FileChange.NOP)
+                        }
+                        maybeOldHash.get() != currentCHash -> {
+                            logger.debug("Class hashes differ, marking ${c.name} for rebuild.")
+                            Pair(c, FileChange.UPDATE)
+                        }
+                        else -> {
+                            logger.trace("Classes are identical - no update necessary.")
+                            Pair(c, FileChange.NOP)
+                        }
                     }
                 }
                 else -> {
