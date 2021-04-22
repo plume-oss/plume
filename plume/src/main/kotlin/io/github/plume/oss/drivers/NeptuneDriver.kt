@@ -24,6 +24,7 @@ import io.github.plume.oss.store.PlumeStorage
 import io.shiftleft.codepropertygraph.generated.nodes.NewNodeBuilder
 import org.apache.logging.log4j.LogManager
 import org.apache.tinkerpop.gremlin.driver.Cluster
+import org.apache.tinkerpop.gremlin.driver.Host
 import org.apache.tinkerpop.gremlin.driver.remote.DriverRemoteConnection
 import org.apache.tinkerpop.gremlin.process.traversal.AnonymousTraversalSource.traversal
 import org.apache.tinkerpop.gremlin.process.traversal.Order
@@ -33,6 +34,7 @@ import org.apache.tinkerpop.gremlin.structure.Graph
 import org.apache.tinkerpop.gremlin.structure.T
 import org.apache.tinkerpop.gremlin.structure.Vertex
 import org.apache.tinkerpop.shaded.jackson.databind.ObjectMapper
+import org.json.JSONObject
 import scala.jdk.CollectionConverters
 import java.util.*
 import org.apache.tinkerpop.gremlin.process.traversal.dsl.graph.`__` as un
@@ -313,7 +315,7 @@ class NeptuneDriver internal constructor() : GremlinDriver() {
         PlumeTimer.measure(DriverTimeKey.DATABASE_READ) {
             noVs = g.V().count().next()
         }
-        if (noVs > 10000) {
+        if (noVs < 10000) {
             // On small graphs, we can get away with using Gremlin to clear the graph
             PlumeTimer.measure(DriverTimeKey.DATABASE_WRITE) {
                 var deleted = 0L
@@ -327,7 +329,8 @@ class NeptuneDriver internal constructor() : GremlinDriver() {
             val objectMapper = ObjectMapper()
             val contentType = mapOf("Content-Type" to "application/json")
             // On larger graphs, it's better to do a database reset
-            cluster.allHosts().mapNotNull { hostname ->
+            cluster.allHosts().mapNotNull { host: Host ->
+                val hostname = host.address.hostString
                 val endpoint = "https://$hostname:8182/system"
                 runCatching {
                     val payload = khttp.post(
@@ -336,7 +339,7 @@ class NeptuneDriver internal constructor() : GremlinDriver() {
                         data = objectMapper.writeValueAsString(
                             mapOf("action" to "initiateDatabaseReset")
                         )
-                    ).jsonObject["payload"] as Map<*, *>
+                    ).jsonObject["payload"] as JSONObject
                     Pair(endpoint, payload)
                 }.onFailure { logger.warn("Unable to initiate database reset for $endpoint.", it) }
                     .getOrNull()
@@ -355,11 +358,12 @@ class NeptuneDriver internal constructor() : GremlinDriver() {
                     )
                 }.onFailure { logger.warn("Unable to perform database reset for $endpoint.", it) }
             }
-            // Wait until all hostnames are healthy
+            // Wait until all hosts are healthy
             var healthy = false
             while (!healthy) {
-                Thread.sleep(2500)
-                healthy = cluster.allHosts().mapNotNull { hostname ->
+                Thread.sleep(10000)
+                healthy = cluster.allHosts().mapNotNull { host: Host ->
+                    val hostname = host.address.hostString
                     val endpoint = "https://$hostname:8182/status"
                     runCatching {
                         val payload = khttp.get(
@@ -368,7 +372,7 @@ class NeptuneDriver internal constructor() : GremlinDriver() {
                         ).jsonObject["status"] as String
                         payload == "healthy"
                     }.onFailure { logger.warn("Unable to get health of $endpoint.", it) }
-                        .getOrNull()
+                        .getOrNull() ?: false
                 }.fold(true) { x, y -> x && y }
             }
         }
