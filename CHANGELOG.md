@@ -11,6 +11,11 @@ and this project adheres to [Semantic Versioning](http://semver.org/).
 
 - External classes getting marked for rebuild on disconnected updates.
 
+### Changed
+
+- `NeptuneDriver::clearGraph` now uses the HTTP system database reset if the graph has over
+  10 000 vertices.
+
 ## [0.5.4] - 2021-04-21
 
 ### Added
