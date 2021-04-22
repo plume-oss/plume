@@ -18,6 +18,7 @@ package io.github.plume.oss.passes.update
 import io.github.plume.oss.drivers.IDriver
 import io.github.plume.oss.store.DriverCache
 import io.github.plume.oss.store.PlumeStorage
+import io.github.plume.oss.util.ExtractorConst.UNKNOWN
 import io.github.plume.oss.util.HashUtil
 import io.github.plume.oss.util.SootToPlumeUtil
 import io.shiftleft.codepropertygraph.generated.EdgeTypes
@@ -81,12 +82,14 @@ class MarkMethodForRebuild(private val driver: IDriver) {
             // case for if method hash may or may not differ
             val currentMethodHash = HashUtil.getMethodHash(m.activeBody).toString()
             val existingMethodHash = maybeMethod.build().hash().get()
-            if (currentMethodHash == existingMethodHash) {
-                Pair(m, false)
-            } else {
-                saveCallEdges(fullName)
-                driver.deleteMethod(fullName)
-                Pair(m, true)
+            when (currentMethodHash) {
+                UNKNOWN -> Pair(m, false)
+                existingMethodHash -> Pair(m, false)
+                else -> {
+                    saveCallEdges(fullName)
+                    driver.deleteMethod(fullName)
+                    Pair(m, true)
+                }
             }
         } else {
             // case for method existing but is most likely an external method
