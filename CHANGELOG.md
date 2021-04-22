@@ -7,6 +7,10 @@ and this project adheres to [Semantic Versioning](http://semver.org/).
 
 ## [Unreleased]
 
+### Fixed
+
+- External classes getting marked for rebuild on disconnected updates.
+
 ## [0.5.4] - 2021-04-21
 
 ### Added

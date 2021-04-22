@@ -41,8 +41,7 @@ class DriverCache(private val driver: IDriver) {
      */
     fun tryGetFile(name: String): NewFileBuilder? =
         LocalCache.getFile(name) ?: (driver.getVerticesByProperty(
-            NAME, name,
-            FILE
+            NAME, name, FILE
         ).firstOrNull() as NewFileBuilder?)?.apply { LocalCache.addFile(this) }
 
     /**
