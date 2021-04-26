@@ -19,8 +19,6 @@ import io.github.plume.oss.domain.mappers.VertexMapper
 import io.github.plume.oss.domain.model.DeltaGraph
 import io.github.plume.oss.metrics.DriverTimeKey
 import io.github.plume.oss.metrics.PlumeTimer
-import io.github.plume.oss.store.LocalCache
-import io.github.plume.oss.store.PlumeStorage
 import io.shiftleft.codepropertygraph.generated.nodes.NewNodeBuilder
 import org.apache.logging.log4j.LogManager
 import org.apache.tinkerpop.gremlin.driver.Cluster
@@ -51,7 +49,6 @@ class NeptuneDriver internal constructor() : GremlinDriver() {
 
     private val hostnames = mutableListOf<String>()
     private var port = DEFAULT_PORT
-    private var enableSsl = true
     private var clearOnConnect = false
     private var keyCertChainFile = "src/main/resources/conf/SFSRootCAG2.pem"
     private lateinit var cluster: Cluster
