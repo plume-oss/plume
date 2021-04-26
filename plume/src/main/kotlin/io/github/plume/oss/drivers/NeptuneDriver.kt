@@ -127,11 +127,11 @@ class NeptuneDriver internal constructor() : GremlinDriver() {
     }
 
     private fun serializeIds() {
-        println("Serialziing IDS $idMapper")
         val filePath = "$idStorageLocation$idFileName"
+        println("Serializing IDS $idMapper to $filePath")
         File(filePath).let { f -> if (!f.exists()) f.createNewFile() }
         FileWriter(filePath).use { fw ->
-            idMapper.forEach { (l, s) -> fw.write("$l:$s\n") }
+            idMapper.forEach { (l, s) ->  println("writeing $l $s"); fw.write("$l:$s\n") }
         }
     }
 
