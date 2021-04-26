@@ -63,7 +63,7 @@ class NeptuneDriverIntTest {
                 .addHostnames(System.getenv("NEPTUNE_HOSTNAME") ?: "localhost")
                 .port(8182)
                 .keyCertChainFile("src/test/resources/conf/SFSRootCAG2.pem")
-                .idStorageLocation("./")
+                .idStorageLocation("/tmp/plume/")
                 .clearOnConnect(true)
                 .connect()
         }
@@ -730,7 +730,7 @@ class NeptuneDriverIntTest {
             driver.addVertex(methodVertex)
             driver.addVertex(fileVertex)
             driver.close()
-            FileReader("./neptune_ids").useLines {  ls ->
+            FileReader("/tmp/plume/neptune_ids").useLines {  ls ->
                 ls.forEach (::println)
             }
             connectDriver()
