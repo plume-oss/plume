@@ -7,6 +7,12 @@ and this project adheres to [Semantic Versioning](http://semver.org/).
 
 ## [Unreleased]
 
+## [0.5.6] - 2021-04-23
+
+### Changed
+
+- Increased wait time after `clearGraph` call in `NeptuneDriver`
+
 ## [0.5.6] - 2021-04-22
 
 ### Fixed

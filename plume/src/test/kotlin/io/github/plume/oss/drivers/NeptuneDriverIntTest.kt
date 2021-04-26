@@ -41,6 +41,7 @@ import org.junit.jupiter.api.*
 import org.junit.jupiter.api.Assertions.*
 import overflowdb.Graph
 import scala.Option
+import java.io.FileReader
 import kotlin.properties.Delegates
 
 @Suppress("DEPRECATION")
@@ -54,10 +55,15 @@ class NeptuneDriverIntTest {
         @BeforeAll
         fun setUpAll() {
             testStartTime = System.nanoTime()
+            connectDriver()
+        }
+
+        fun connectDriver() {
             driver = (DriverFactory(GraphDatabase.NEPTUNE) as NeptuneDriver)
                 .addHostnames(System.getenv("NEPTUNE_HOSTNAME") ?: "localhost")
                 .port(8182)
                 .keyCertChainFile("src/test/resources/conf/SFSRootCAG2.pem")
+                .idStorageLocation("./")
                 .clearOnConnect(true)
                 .connect()
         }
@@ -711,6 +717,23 @@ class NeptuneDriverIntTest {
             assertFalse(driver.exists(methodVertex, localVertex, AST))
             assertTrue(driver.exists(identifierVertex))
             driver.getWholeGraph().use { g -> assertEquals(0, g.nodeCount(METHOD)) }
+        }
+
+    }
+
+    @Nested
+    @DisplayName("Test serialization of IDs")
+    inner class SerializedIDsTests {
+
+        @Test
+        fun serializeIds() {
+            driver.addVertex(methodVertex)
+            driver.addVertex(fileVertex)
+            driver.close()
+            FileReader("./neptune_ids").useLines {  ls ->
+                ls.forEach (::println)
+            }
+            connectDriver()
         }
 
     }
