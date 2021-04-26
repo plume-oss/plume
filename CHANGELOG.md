@@ -7,6 +7,8 @@ and this project adheres to [Semantic Versioning](http://semver.org/).
 
 ## [Unreleased]
 
+## [0.5.7] - 2021-04-26
+
 ### Added
 
 - `NeptuneDriver::idStorageLocation` specifies a storage location where ID mapper values can be written.
