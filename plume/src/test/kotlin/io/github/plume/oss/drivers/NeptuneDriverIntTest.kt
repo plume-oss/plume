@@ -41,6 +41,7 @@ import org.junit.jupiter.api.*
 import org.junit.jupiter.api.Assertions.*
 import overflowdb.Graph
 import scala.Option
+import java.io.FileReader
 import kotlin.properties.Delegates
 
 @Suppress("DEPRECATION")
@@ -54,11 +55,16 @@ class NeptuneDriverIntTest {
         @BeforeAll
         fun setUpAll() {
             testStartTime = System.nanoTime()
+            connectDriver()
+        }
+
+        fun connectDriver(clearOnConnect: Boolean = true) {
             driver = (DriverFactory(GraphDatabase.NEPTUNE) as NeptuneDriver)
                 .addHostnames(System.getenv("NEPTUNE_HOSTNAME") ?: "localhost")
                 .port(8182)
                 .keyCertChainFile("src/test/resources/conf/SFSRootCAG2.pem")
-                .clearOnConnect(true)
+                .idStorageLocation("/tmp/plume/")
+                .clearOnConnect(clearOnConnect)
                 .connect()
         }
 
@@ -711,6 +717,30 @@ class NeptuneDriverIntTest {
             assertFalse(driver.exists(methodVertex, localVertex, AST))
             assertTrue(driver.exists(identifierVertex))
             driver.getWholeGraph().use { g -> assertEquals(0, g.nodeCount(METHOD)) }
+        }
+
+    }
+
+    @Nested
+    @DisplayName("Test serialization of IDs")
+    inner class SerializedIDsTests {
+
+        @Test
+        fun serializeIds() {
+            driver.addVertex(methodVertex)
+            driver.addVertex(fileVertex)
+            driver.close()
+            FileReader("/tmp/plume/neptune_ids").useLines { ls ->
+                assertEquals(3, ls.asSequence().toList().size)
+            }
+            connectDriver(false)
+            driver.deleteVertex(methodVertex.id(), METHOD)
+            driver.deleteVertex(fileVertex.id(), FILE)
+            driver.close()
+            FileReader("/tmp/plume/neptune_ids").useLines { ls ->
+                assertEquals(1, ls.asSequence().toList().size)
+            }
+            connectDriver(true)
         }
 
     }

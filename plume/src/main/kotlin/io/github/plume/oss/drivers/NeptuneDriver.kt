@@ -36,6 +36,9 @@ import org.apache.tinkerpop.gremlin.structure.Vertex
 import org.apache.tinkerpop.shaded.jackson.databind.ObjectMapper
 import org.json.JSONObject
 import scala.jdk.CollectionConverters
+import java.io.File
+import java.io.FileReader
+import java.io.FileWriter
 import java.util.*
 import org.apache.tinkerpop.gremlin.process.traversal.dsl.graph.`__` as un
 
@@ -51,6 +54,8 @@ class NeptuneDriver internal constructor() : GremlinDriver() {
     private lateinit var cluster: Cluster
     private val idMapper = mutableMapOf<Long, String>()
     private var id: Long = 0
+    private var idStorageLocation = ".${File.separator}"
+    private val idFileName = "neptune_ids"
 
     init {
         builder.port(DEFAULT_PORT).enableSsl(true)
@@ -86,6 +91,17 @@ class NeptuneDriver internal constructor() : GremlinDriver() {
     fun clearOnConnect(clear: Boolean): NeptuneDriver = apply { clearOnConnect = clear }
 
     /**
+     * Where the driver will store the mapped IDs. This must be an existing directory.
+     */
+    fun idStorageLocation(location: String): NeptuneDriver = apply {
+        File(location).let { f ->
+            require(f.isDirectory && f.exists()) { "The storage location should be an existing directory." }
+        }
+        idStorageLocation = if (!location.endsWith(File.separator)) "$location${File.separator}"
+        else location
+    }
+
+    /**
      * Connects to the graph database with the given configuration.
      * See [Amazon Documentation](https://docs.aws.amazon.com/neptune/latest/userguide/access-graph-gremlin-java.html).
      *
@@ -100,7 +116,7 @@ class NeptuneDriver internal constructor() : GremlinDriver() {
             connected = true
         }
         if (clearOnConnect) clearGraph()
-        else populateIdMapper()
+        else deserializeIds()
     }
 
     private fun resetIdMapper() {
@@ -109,16 +125,43 @@ class NeptuneDriver internal constructor() : GremlinDriver() {
         id = 0
     }
 
+    private fun serializeIds() {
+        val filePath = "$idStorageLocation$idFileName"
+        File(filePath).let { f ->
+            if (!f.exists())
+                f.createNewFile()
+            else
+                File("$idStorageLocation${File.separator}$idFileName").delete()
+        }
+        FileWriter(filePath).use { fw ->
+            idMapper.forEach { (l, s) -> fw.write("$l:$s\n") }
+        }
+    }
+
+    private fun deserializeIds() {
+        val filePath = "$idStorageLocation$idFileName"
+        if (!File(filePath).exists()) {
+            populateIdMapper()
+        } else {
+            FileReader(filePath).useLines { ls ->
+                ls.forEach { l ->
+                    val split = l.trim().split(":")
+                    if (split.size == 2) idMapper[split[0].toLong()] = split[1]
+                }
+            }
+        }
+    }
+
     /**
      * When connecting to a database with a subgraph already loaded, create a mapping for existing graph data.
-     * TODO: A list of IDs could be saved in some file of some sorts.
      */
     private fun populateIdMapper() {
         resetIdMapper()
+        File("$idStorageLocation${File.separator}$idFileName").delete()
         val vCount = g.V().count().next()
         var inc = 0L
         val loadedIds = idMapper.values.toSet()
-        (1..vCount).chunked(10000).map { Pair(it.minOrNull() ?: 0L, it.maxOrNull() ?: 10000) }
+        (1..vCount).chunked(5000).map { Pair(it.minOrNull() ?: 0L, it.maxOrNull() ?: 10000) }
             .flatMap { (l, h) -> g.V().order().by(T.id, Order.asc).range(l, h).id().toList().map { it.toString() } }
             .filterNot(loadedIds::contains)
             .forEach { id -> idMapper[inc++] = id }
@@ -140,6 +183,7 @@ class NeptuneDriver internal constructor() : GremlinDriver() {
                 logger.warn("Exception thrown while attempting to close graph.", e)
             } finally {
                 // Have to also clear the cache otherwise the IDs won't be mapped correctly
+                serializeIds()
                 LocalCache.clear()
                 PlumeStorage.clear()
                 resetIdMapper()
@@ -361,7 +405,7 @@ class NeptuneDriver internal constructor() : GremlinDriver() {
             // Wait until all hosts are healthy
             var healthy = false
             while (!healthy) {
-                Thread.sleep(10000)
+                Thread.sleep(30000)
                 healthy = cluster.allHosts().mapNotNull { host: Host ->
                     val hostname = host.address.hostString
                     val endpoint = "https://$hostname:8182/status"
