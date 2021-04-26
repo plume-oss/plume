@@ -146,10 +146,7 @@ class NeptuneDriver internal constructor() : GremlinDriver() {
             FileReader(filePath).useLines { ls ->
                 ls.forEach { l ->
                     val split = l.trim().split(":")
-                    if (split.size == 2) {
-                        println("Inserting ${split[0].toLong()} -> ${split[1]}")
-                        idMapper[split[0].toLong()] = split[1]
-                    }
+                    if (split.size == 2) idMapper[split[0].toLong()] = split[1]
                 }
             }
         }
