@@ -58,13 +58,13 @@ class NeptuneDriverIntTest {
             connectDriver()
         }
 
-        fun connectDriver() {
+        fun connectDriver(clearOnConnect: Boolean = true) {
             driver = (DriverFactory(GraphDatabase.NEPTUNE) as NeptuneDriver)
                 .addHostnames(System.getenv("NEPTUNE_HOSTNAME") ?: "localhost")
                 .port(8182)
                 .keyCertChainFile("src/test/resources/conf/SFSRootCAG2.pem")
                 .idStorageLocation("/tmp/plume/")
-                .clearOnConnect(true)
+                .clearOnConnect(clearOnConnect)
                 .connect()
         }
 
@@ -730,10 +730,17 @@ class NeptuneDriverIntTest {
             driver.addVertex(methodVertex)
             driver.addVertex(fileVertex)
             driver.close()
-            FileReader("/tmp/plume/neptune_ids").useLines {  ls ->
-                ls.forEach (::println)
+            FileReader("/tmp/plume/neptune_ids").useLines { ls ->
+                assertEquals(3, ls.asSequence().toList().size)
             }
-            connectDriver()
+            connectDriver(false)
+            driver.deleteVertex(methodVertex.id(), METHOD)
+            driver.deleteVertex(fileVertex.id(), FILE)
+            driver.close()
+            FileReader("/tmp/plume/neptune_ids").useLines { ls ->
+                assertEquals(1, ls.asSequence().toList().size)
+            }
+            connectDriver(true)
         }
 
     }
