@@ -97,7 +97,8 @@ class NeptuneDriver internal constructor() : GremlinDriver() {
         File(location).let { f ->
             require(f.isDirectory && f.exists()) { "The storage location should be an existing directory." }
         }
-        idStorageLocation = location
+        idStorageLocation = if (!location.endsWith(File.separator)) "$location${File.separator}"
+        else location
     }
 
     /**
@@ -126,7 +127,8 @@ class NeptuneDriver internal constructor() : GremlinDriver() {
     }
 
     private fun serializeIds() {
-        val filePath = "$idStorageLocation${File.separator}$idFileName"
+        println("Serialziing IDS $idMapper")
+        val filePath = "$idStorageLocation$idFileName"
         File(filePath).let { f -> if (!f.exists()) f.createNewFile() }
         FileWriter(filePath).use { fw ->
             idMapper.forEach { (l, s) -> fw.write("$l:$s\n") }
@@ -134,7 +136,7 @@ class NeptuneDriver internal constructor() : GremlinDriver() {
     }
 
     private fun deserializeIds() {
-        val filePath = "$idStorageLocation${File.separator}$idFileName"
+        val filePath = "$idStorageLocation$idFileName"
         if (!File(filePath).exists()) {
             populateIdMapper()
         } else {
