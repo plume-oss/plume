@@ -127,6 +127,7 @@ class NeptuneDriver internal constructor() : GremlinDriver() {
 
     private fun serializeIds() {
         val filePath = "$idStorageLocation${File.separator}$idFileName"
+        File(filePath).let { f -> if (!f.exists()) f.createNewFile() }
         FileWriter(filePath).use { fw ->
             idMapper.forEach { (l, s) -> fw.write("$l:$s\n") }
         }
@@ -176,9 +177,9 @@ class NeptuneDriver internal constructor() : GremlinDriver() {
                 logger.warn("Exception thrown while attempting to close graph.", e)
             } finally {
                 // Have to also clear the cache otherwise the IDs won't be mapped correctly
+                serializeIds()
                 LocalCache.clear()
                 PlumeStorage.clear()
-                serializeIds()
                 resetIdMapper()
             }
         }
