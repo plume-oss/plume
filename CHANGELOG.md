@@ -7,6 +7,15 @@ and this project adheres to [Semantic Versioning](http://semver.org/).
 
 ## [Unreleased]
 
+### Added
+
+- Improved logging for `NeptuneDriver`.
+
+### Fixed
+
+- Bug where cluster builder details cause empty re-connections.
+- The `id` was not being set from the deserialized IDs in `NeptuneDriver`.
+
 ## [0.5.7] - 2021-04-26
 
 ### Added

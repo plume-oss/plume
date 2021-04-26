@@ -49,17 +49,16 @@ import org.apache.tinkerpop.gremlin.process.traversal.dsl.graph.`__` as un
 class NeptuneDriver internal constructor() : GremlinDriver() {
     private val logger = LogManager.getLogger(NeptuneDriver::class.java)
 
-    private val builder: Cluster.Builder = Cluster.build()
+    private val hostnames = mutableListOf<String>()
+    private var port = DEFAULT_PORT
+    private var enableSsl = true
     private var clearOnConnect = false
+    private var keyCertChainFile = "src/main/resources/conf/SFSRootCAG2.pem"
     private lateinit var cluster: Cluster
     private val idMapper = mutableMapOf<Long, String>()
     private var id: Long = 0
     private var idStorageLocation = ".${File.separator}"
     private val idFileName = "neptune_ids"
-
-    init {
-        builder.port(DEFAULT_PORT).enableSsl(true)
-    }
 
     /**
      * Add one or more the addresses of a Gremlin Servers to the list of servers a Client will try to contact to send
@@ -68,22 +67,21 @@ class NeptuneDriver internal constructor() : GremlinDriver() {
      *
      * @param addresses the address(es) of Gremlin Servers to contact.
      */
-    fun addHostnames(vararg addresses: String): NeptuneDriver = apply { builder.addContactPoints(*addresses) }
+    fun addHostnames(vararg addresses: String): NeptuneDriver = apply { hostnames.addAll(addresses.toList()) }
 
     /**
      * Set the port for the Neptune Gremlin server. Default port number is 8182.
      *
      * @param port the port number e.g. 8182
      */
-    fun port(port: Int): NeptuneDriver = apply { builder.port(port) }
+    fun port(port: Int): NeptuneDriver = apply { this.port = port }
 
     /**
      * Sets the certificate to use by the [Cluster].
      *
      * @param keyChainFile The X.509 certificate chain file in PEM format.
      */
-    @Suppress("DEPRECATION")
-    fun keyCertChainFile(keyChainFile: String): NeptuneDriver = apply { builder.keyCertChainFile(keyChainFile) }
+    fun keyCertChainFile(keyChainFile: String): NeptuneDriver = apply { this.keyCertChainFile = keyChainFile }
 
     /**
      * Will tell the driver to clear the database on connection before reading in existing IDs.
@@ -107,10 +105,16 @@ class NeptuneDriver internal constructor() : GremlinDriver() {
      *
      * @throws IllegalArgumentException if the graph database is already connected.
      */
+    @Suppress("DEPRECATION")
     override fun connect(): NeptuneDriver = apply {
         PlumeTimer.measure(DriverTimeKey.CONNECT_DESERIALIZE) {
             require(!connected) { "Please close the graph before trying to make another connection." }
-            cluster = builder.create()
+            cluster = Cluster.build().addContactPoints(*hostnames.toTypedArray())
+                .port(port)
+                .enableSsl(true)
+                .keyCertChainFile(keyCertChainFile)
+                .create()
+            logger.info("Connected to the following Neptune cluster: $hostnames")
             super.g = traversal().withRemote(DriverRemoteConnection.using(cluster))
             graph = g.graph
             connected = true
@@ -136,6 +140,7 @@ class NeptuneDriver internal constructor() : GremlinDriver() {
         FileWriter(filePath).use { fw ->
             idMapper.forEach { (l, s) -> fw.write("$l:$s\n") }
         }
+        logger.info("Serialized ${idMapper.size} IDs to disk.")
     }
 
     private fun deserializeIds() {
@@ -146,9 +151,10 @@ class NeptuneDriver internal constructor() : GremlinDriver() {
             FileReader(filePath).useLines { ls ->
                 ls.forEach { l ->
                     val split = l.trim().split(":")
-                    if (split.size == 2) idMapper[split[0].toLong()] = split[1]
+                    if (split.size == 2) idMapper[split[0].toLong()] = split[1].trim()
                 }
             }
+            logger.info("Deserialized ${idMapper.size} IDs from disk.")
         }
         id = (idMapper.keys.maxOrNull() ?: -1L) + 1
     }
@@ -157,6 +163,7 @@ class NeptuneDriver internal constructor() : GremlinDriver() {
      * When connecting to a database with a subgraph already loaded, create a mapping for existing graph data.
      */
     private fun populateIdMapper() {
+        logger.info("Populating ID mapper from database.")
         resetIdMapper()
         File("$idStorageLocation${File.separator}$idFileName").delete()
         val vCount = g.V().count().next()
@@ -166,7 +173,7 @@ class NeptuneDriver internal constructor() : GremlinDriver() {
             .flatMap { (l, h) -> g.V().order().by(T.id, Order.asc).range(l, h).id().toList().map { it.toString() } }
             .filterNot(loadedIds::contains)
             .forEach { id -> idMapper[inc++] = id }
-        id = idMapper.keys.maxOrNull() ?: 0L
+        id = (idMapper.keys.maxOrNull() ?: -1L) + 1
     }
 
     /**
@@ -179,14 +186,13 @@ class NeptuneDriver internal constructor() : GremlinDriver() {
             require(connected) { "Cannot close a graph that is not already connected!" }
             try {
                 cluster.close()
-                connected = false
+                g.close()
             } catch (e: Exception) {
                 logger.warn("Exception thrown while attempting to close graph.", e)
             } finally {
                 // Have to also clear the cache otherwise the IDs won't be mapped correctly
+                connected = false
                 serializeIds()
-                LocalCache.clear()
-                PlumeStorage.clear()
                 resetIdMapper()
             }
         }
