@@ -730,7 +730,7 @@ class NeptuneDriverIntTest {
             driver.addVertex(methodVertex)
             driver.addVertex(fileVertex)
             driver.close()
-            FileReader("/tmp/plume/neptune_ids").useLines {  ls ->
+            FileReader("/tmp/plume/neptune_ids.txt").useLines {  ls ->
                 ls.forEach (::println)
             }
             connectDriver()

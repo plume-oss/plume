@@ -55,7 +55,7 @@ class NeptuneDriver internal constructor() : GremlinDriver() {
     private val idMapper = mutableMapOf<Long, String>()
     private var id: Long = 0
     private var idStorageLocation = ".${File.separator}"
-    private val idFileName = "neptune_ids"
+    private val idFileName = "neptune_ids.txt"
 
     init {
         builder.port(DEFAULT_PORT).enableSsl(true)
