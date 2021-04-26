@@ -150,6 +150,7 @@ class NeptuneDriver internal constructor() : GremlinDriver() {
                 }
             }
         }
+        id = (idMapper.keys.maxOrNull() ?: -1L) + 1
     }
 
     /**
