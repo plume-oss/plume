@@ -55,7 +55,7 @@ class NeptuneDriver internal constructor() : GremlinDriver() {
     private val idMapper = mutableMapOf<Long, String>()
     private var id: Long = 0
     private var idStorageLocation = ".${File.separator}"
-    private val idFileName = "neptune_ids.txt"
+    private val idFileName = "neptune_ids"
 
     init {
         builder.port(DEFAULT_PORT).enableSsl(true)
@@ -120,7 +120,6 @@ class NeptuneDriver internal constructor() : GremlinDriver() {
     }
 
     private fun resetIdMapper() {
-        File("$idStorageLocation${File.separator}$idFileName").delete()
         idMapper.clear()
         idMapper[-1L] = "null"
         id = 0
@@ -129,9 +128,14 @@ class NeptuneDriver internal constructor() : GremlinDriver() {
     private fun serializeIds() {
         val filePath = "$idStorageLocation$idFileName"
         println("Serializing IDS $idMapper to $filePath")
-        File(filePath).let { f -> if (!f.exists()) f.createNewFile() }
+        File(filePath).let { f ->
+            if (!f.exists())
+                f.createNewFile()
+            else
+                File("$idStorageLocation${File.separator}$idFileName").delete()
+        }
         FileWriter(filePath).use { fw ->
-            idMapper.forEach { (l, s) ->  println("writeing $l $s"); fw.write("$l:$s\n") }
+            idMapper.forEach { (l, s) -> fw.write("$l:$s\n") }
         }
     }
 
@@ -154,6 +158,7 @@ class NeptuneDriver internal constructor() : GremlinDriver() {
      */
     private fun populateIdMapper() {
         resetIdMapper()
+        File("$idStorageLocation${File.separator}$idFileName").delete()
         val vCount = g.V().count().next()
         var inc = 0L
         val loadedIds = idMapper.values.toSet()
