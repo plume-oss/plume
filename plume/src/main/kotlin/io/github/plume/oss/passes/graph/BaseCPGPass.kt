@@ -31,6 +31,7 @@ import io.shiftleft.codepropertygraph.generated.nodes.*
 import org.apache.logging.log4j.LogManager
 import scala.Option
 import soot.Local
+import soot.SootClass
 import soot.Unit
 import soot.Value
 import soot.jimple.*
@@ -787,7 +788,7 @@ class BaseCPGPass(private val g: BriefUnitGraph) {
         when (fieldRef) {
             is StaticFieldRef -> {
                 Pair( // TODO: Making this use an Identifier is a temporary fix for data flow passes to work
-                    createIdentifierVertex(fieldRef, currentLine, currentCol, 1),
+                    createIdentifierVertex(fieldRef.field.declaringClass, currentLine, currentCol, 1),
                     createFieldIdentifierVertex(fieldRef, currentLine, currentCol, 2)
                 )
             }
@@ -877,6 +878,28 @@ class BaseCPGPass(private val g: BriefUnitGraph) {
             .apply {
                 LocalCache.getType(local.type.toQuotedString())?.let { t -> builder.addEdge(this, t, EVAL_TYPE) }
             }
+
+    /**
+     * Creates a [NewIdentifier] from a [SootClass].
+     */
+    private fun createIdentifierVertex(
+        clazz: SootClass,
+        currentLine: Int,
+        currentCol: Int,
+        childIdx: Int = 1
+    ): NewIdentifierBuilder =
+        NewIdentifierBuilder()
+            .code(clazz.toString())
+            .name(clazz.toString())
+            .order(childIdx)
+            .argumentIndex(childIdx)
+            .typeFullName(clazz.type.toQuotedString())
+            .lineNumber(Option.apply(currentLine))
+            .columnNumber(Option.apply(currentCol))
+            .apply {
+//                LocalCache.getType(clazz.type.toQuotedString())?.let { t -> builder.addEdge(this, t, EVAL_TYPE) }
+            }
+
 
     private fun projectInstanceOfExpr(expr: InstanceOfExpr, childIdx: Int): Pair<NewNodeBuilder, NewNodeBuilder> {
         val (instanceOf, op1) = projectUnaryCall(expr, expr.op, childIdx)
