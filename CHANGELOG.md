@@ -7,6 +7,12 @@ and this project adheres to [Semantic Versioning](http://semver.org/).
 
 ## [Unreleased]
 
+## [0.5.9] - 2021-04-27
+
+### Changed
+
+- Downgraded `codepropertygraph` version to 1.3.20.
+
 ### Fixed
 
 - Fixed issue where JAR files were only being identified by their suffix. They are now
