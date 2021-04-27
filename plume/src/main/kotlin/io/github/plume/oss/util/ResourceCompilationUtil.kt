@@ -25,8 +25,7 @@ import org.objectweb.asm.ClassReader
 import org.objectweb.asm.ClassReader.SKIP_CODE
 import org.objectweb.asm.ClassVisitor
 import org.objectweb.asm.Opcodes
-import java.io.File
-import java.io.FileInputStream
+import java.io.*
 import java.nio.file.Files
 import java.nio.file.StandardCopyOption
 import java.util.*
@@ -126,6 +125,23 @@ object ResourceCompilationUtil {
         return javac
     }
 
+    /**
+     * Determine whether a file is a ZIP File.
+     *
+     * @param file The file to check.
+     */
+    fun isZipFile(file: File): Boolean {
+        if (file.isDirectory || !file.canRead() || file.length() < 4) return false
+        DataInputStream(BufferedInputStream(FileInputStream(file))).use { dis ->
+            return dis.readInt() == 0x504b0304
+        }
+    }
+
+    /**
+     * Unzips a ZIP file into a sequence of files.
+     *
+     * @param zf The ZIP file to extract.
+     */
     fun unzipArchive(zf: ZipFile) = sequence {
         zf.use { zip ->
             // Copy zipped files across

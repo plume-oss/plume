@@ -7,6 +7,11 @@ and this project adheres to [Semantic Versioning](http://semver.org/).
 
 ## [Unreleased]
 
+### Fixed
+
+- Fixed issue where JAR files were only being identified by their suffix. They are now
+  checked for being zip files first which will include WARs.
+
 ## [0.5.8] - 2021-04-26
 
 ### Added
