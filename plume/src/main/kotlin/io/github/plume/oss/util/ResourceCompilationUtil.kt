@@ -131,19 +131,10 @@ object ResourceCompilationUtil {
      * @param file The file to check.
      */
     fun isZipFile(file: File): Boolean {
-        if (file.isDirectory) {
-            return false
+        if (file.isDirectory || !file.canRead() || file.length() < 4) return false
+        DataInputStream(BufferedInputStream(FileInputStream(file))).use { dis ->
+            return dis.readInt() == 0x504b0304
         }
-        if (!file.canRead()) {
-            throw IOException("Cannot read file " + file.absolutePath)
-        }
-        if (file.length() < 4) {
-            return false
-        }
-        val `in` = DataInputStream(BufferedInputStream(FileInputStream(file)))
-        val test = `in`.readInt()
-        `in`.close()
-        return test == 0x504b0304
     }
 
     /**
