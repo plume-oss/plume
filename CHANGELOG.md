@@ -7,6 +7,12 @@ and this project adheres to [Semantic Versioning](http://semver.org/).
 
 ## [Unreleased]
 
+## [0.5.10] - 2021-04-27
+
+### Fixed
+
+- Corrected Identifier's code for Static Field Access
+
 ## [0.5.9] - 2021-04-27
 
 ### Changed

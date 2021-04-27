@@ -897,7 +897,7 @@ class BaseCPGPass(private val g: BriefUnitGraph) {
             .lineNumber(Option.apply(currentLine))
             .columnNumber(Option.apply(currentCol))
             .apply {
-//                LocalCache.getType(clazz.type.toQuotedString())?.let { t -> builder.addEdge(this, t, EVAL_TYPE) }
+                LocalCache.getType(clazz.type.toQuotedString())?.let { t -> builder.addEdge(this, t, EVAL_TYPE) }
             }
 
 
