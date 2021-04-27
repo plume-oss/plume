@@ -132,7 +132,7 @@ class Extractor(val driver: IDriver) {
                         .let { loadedFiles.addAll(it) }
                 }
             } else if (f.isFile) {
-                if (f.name.endsWith(".jar")) {
+                if (ResourceCompilationUtil.isZipFile(f)) {
                     ResourceCompilationUtil.unzipArchive(ZipFile(f)).forEach { loadedFiles.add(FileFactory(it)) }
                 } else {
                     loadedFiles.add(FileFactory(f))
