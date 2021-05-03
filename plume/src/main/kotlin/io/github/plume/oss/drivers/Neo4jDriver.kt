@@ -28,14 +28,18 @@ import io.shiftleft.codepropertygraph.generated.NodeTypes.*
 import io.shiftleft.codepropertygraph.generated.nodes.NewMetaDataBuilder
 import io.shiftleft.codepropertygraph.generated.nodes.NewNodeBuilder
 import org.apache.logging.log4j.LogManager
+import org.neo4j.dbms.api.DatabaseManagementService
+import org.neo4j.dbms.api.DatabaseManagementServiceBuilder
 import org.neo4j.driver.AuthTokens
 import org.neo4j.driver.Driver
 import org.neo4j.driver.GraphDatabase
 import org.neo4j.driver.Value
+import org.neo4j.graphdb.GraphDatabaseService
 import overflowdb.Config
 import overflowdb.Graph
 import overflowdb.Node
 import scala.jdk.CollectionConverters
+import java.io.File
 import io.shiftleft.codepropertygraph.generated.edges.Factories as EdgeFactories
 import io.shiftleft.codepropertygraph.generated.nodes.Factories as NodeFactories
 
@@ -46,6 +50,8 @@ class Neo4jDriver internal constructor() : IDriver {
 
     private val logger = LogManager.getLogger(Neo4jDriver::class.java)
     private lateinit var driver: Driver
+    private lateinit var mgmtService: DatabaseManagementService
+    private lateinit var embeddedDb: GraphDatabaseService
 
     /**
      * Indicates whether the driver is connected to the graph database or not.
@@ -89,6 +95,19 @@ class Neo4jDriver internal constructor() : IDriver {
         private set
 
     /**
+     * Whether to run Neo4j in embedded mode or not. Default is false.
+     */
+    var embedded: Boolean = false
+        private set
+
+    /**
+     * The database directory for serialized graphs. Only used when embedded mode used.
+     * @see DEFAULT_DATABASE_DIRECTORY
+     */
+    var databaseDirectory: String = DEFAULT_DATABASE_DIRECTORY
+        private set
+
+    /**
      * Set the database name for the Neo4j server.
      *
      * @param value the database name e.g. "graph.db", "neo4j"
@@ -123,10 +142,30 @@ class Neo4jDriver internal constructor() : IDriver {
      */
     fun port(value: Int) = apply { port = value }
 
+    /**
+     * Sets whether Neo4j will run in embedded mode or not.
+     *
+     * @param value the flag to set embedded mode or not.
+     */
+    fun embedded(value: Boolean) = apply { embedded = value }
+
+    /**
+     * Sets the directory to store serialized embedded graphs. Only used when embedded mode is true.
+     *
+     * @value value the directory to store the graphs.
+     */
+    fun databaseDirectory(value: String) = apply { databaseDirectory = value }
+
     fun connect(): Neo4jDriver = apply {
         PlumeTimer.measure(DriverTimeKey.CONNECT_DESERIALIZE) {
             require(!connected) { "Please close the graph before trying to make another connection." }
-            driver = GraphDatabase.driver("bolt://$hostname:$port", AuthTokens.basic(username, password))
+            if (!embedded) {
+                driver = GraphDatabase.driver("bolt://$hostname:$port", AuthTokens.basic(username, password))
+            } else {
+                mgmtService = DatabaseManagementServiceBuilder(File(databaseDirectory).toPath()).build()
+                embeddedDb = mgmtService.database(database)
+                registerShutdownHook(mgmtService)
+            }
             connected = true
         }
     }
@@ -135,12 +174,25 @@ class Neo4jDriver internal constructor() : IDriver {
         PlumeTimer.measure(DriverTimeKey.DISCONNECT_SERIALIZE) {
             require(connected) { "Cannot close a graph that is not already connected!" }
             try {
-                driver.close()
-                connected = false
+                if (!embedded) driver.close()
+                else mgmtService.shutdown()
             } catch (e: Exception) {
                 logger.warn("Exception thrown while attempting to close graph.", e)
+            } finally {
+                connected = false
             }
         }
+    }
+
+    private fun registerShutdownHook(managementService: DatabaseManagementService) {
+        Runtime.getRuntime().addShutdownHook(object : Thread() {
+            override fun run() {
+                try {
+                    managementService.shutdown()
+                } catch (ignored: Exception) {
+                }
+            }
+        })
     }
 
     private fun extractAttributesFromMap(propertyMap: MutableMap<String, Any>): MutableMap<String, Any> {
@@ -710,5 +762,10 @@ class Neo4jDriver internal constructor() : IDriver {
          * Default port number a remote Bolt server.
          */
         private const val DEFAULT_PORT = 7687
+
+        /**
+         * Default directory for where an embedded database will be serialized to.
+         */
+        private const val DEFAULT_DATABASE_DIRECTORY = "."
     }
 }
