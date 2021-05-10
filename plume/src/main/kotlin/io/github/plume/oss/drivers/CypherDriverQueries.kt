@@ -1,11 +1,32 @@
+/*
+ * Copyright 2021 Plume Authors
+ * <p>
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ * <p>
+ * http://www.apache.org/licenses/LICENSE-2.0
+ * <p>
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
 package io.github.plume.oss.drivers
 
 import io.github.plume.oss.domain.mappers.VertexMapper
 import io.shiftleft.codepropertygraph.generated.EdgeTypes.AST
 import io.shiftleft.codepropertygraph.generated.EdgeTypes.SOURCE_FILE
 import io.shiftleft.codepropertygraph.generated.NodeTypes.*
+import io.shiftleft.codepropertygraph.generated.nodes.Factories
 import io.shiftleft.codepropertygraph.generated.nodes.NewNodeBuilder
+import overflowdb.Config
+import overflowdb.Graph
+import overflowdb.Node
 import scala.jdk.CollectionConverters
+import io.shiftleft.codepropertygraph.generated.edges.Factories as EdgeFactories
+import io.shiftleft.codepropertygraph.generated.nodes.Factories as NodeFactories
 
 abstract class CypherDriverQueries {
 
@@ -178,6 +199,23 @@ abstract class CypherDriverQueries {
         MATCH (n:$label)
         RETURN n
         """.trimIndent()
+
+    fun newOverflowGraph(): Graph = Graph.open(
+        Config.withDefaults(),
+        NodeFactories.allAsJava(),
+        EdgeFactories.allAsJava()
+    )
+
+    fun addNodeToGraph(graph: Graph, v: NewNodeBuilder): Node {
+        val maybeExistingNode = graph.node(v.id())
+        if (maybeExistingNode != null) return maybeExistingNode
+
+        val bNode = v.build()
+        val sNode = graph.addNode(v.id(), bNode.label())
+        bNode.properties().foreachEntry { key, value -> sNode.setProperty(key, value) }
+        return sNode
+    }
+
 
     companion object {
         fun sanitizePayload(p: String): String =
