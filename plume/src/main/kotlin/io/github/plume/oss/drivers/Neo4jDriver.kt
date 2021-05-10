@@ -46,7 +46,7 @@ import io.shiftleft.codepropertygraph.generated.nodes.Factories as NodeFactories
 /**
  * The driver used to connect to a remote Neo4j instance.
  */
-class Neo4jDriver internal constructor() : IDriver {
+class Neo4jDriver internal constructor() : IDriver, CypherDriverQueries() {
 
     private val logger = LogManager.getLogger(Neo4jDriver::class.java)
     private lateinit var driver: Driver
@@ -195,60 +195,16 @@ class Neo4jDriver internal constructor() : IDriver {
         })
     }
 
-    private fun extractAttributesFromMap(propertyMap: MutableMap<String, Any>): MutableMap<String, Any> {
-        val attributes = VertexMapper.prepareListsInMap(propertyMap)
-        propertyMap.forEach { e ->
-            if (attributes[e.key] is Int) attributes[e.key] = (attributes[e.key] as Int).toLong()
-        }
-        return attributes
-    }
-
-    private fun sanitizePayload(p: String): String =
-        p.replace("\\", "\\\\")
-            .replace("\"", "\\\"")
-            .replace("\'", "\\\'")
-            .replace("\n", "\\\n")
-            .replace("\t", "\\\t")
-            .replace("\b", "\\\b")
-            .replace("\r", "\\\r")
-            .replace("\\f", "\\\\f")
-
     override fun addVertex(v: NewNodeBuilder) {
         if (exists(v)) return
         PlumeTimer.measure(DriverTimeKey.DATABASE_WRITE) {
             driver.session().use { session ->
                 session.writeTransaction { tx ->
-                    val idx = 0
-                    val result = tx.run(
-                        """
-                        ${createVertexPayload(v, idx)}
-                        RETURN ID(n$idx) as id$idx
-                    """.trimIndent()
-                    )
-                    v.id(result.next()["id$idx"].toString().toLong())
+                    val result = tx.run(addVertexCypher(v, 0))
+                    v.id(result.next()["id0"].toString().toLong())
                 }
             }
         }
-    }
-
-    private fun createVertexPayload(v: NewNodeBuilder, idx: Int): String {
-        val node = v.build()
-        val propertyMap = VertexMapper.stripUnusedProperties(
-            v.build().label(),
-            CollectionConverters.MapHasAsJava(node.properties()).asJava().toMutableMap()
-        )
-        propertyMap["label"] = node.label()
-        val payload = StringBuilder("{")
-        val attributeList = extractAttributesFromMap(propertyMap).toList()
-        attributeList.forEachIndexed { i: Int, e: Pair<String, Any> ->
-            payload.append("${e.first}:")
-            val p = e.second
-            if (p is String) payload.append("\"${sanitizePayload(p)}\"")
-            else payload.append(p)
-            if (i < attributeList.size - 1) payload.append(",")
-        }
-        payload.append("}")
-        return "CREATE (n$idx:${node.label()} $payload)"
     }
 
     override fun exists(v: NewNodeBuilder): Boolean = checkVertexExist(v.id(), v.build().label())
@@ -258,13 +214,7 @@ class Neo4jDriver internal constructor() : IDriver {
         PlumeTimer.measure(DriverTimeKey.DATABASE_READ) {
             driver.session().use { session ->
                 res = session.writeTransaction { tx ->
-                    val result = tx.run(
-                        """
-                    MATCH (n${if (label != null) ":$label" else ""})
-                    WHERE id(n) = $id
-                    RETURN n
-                    """.trimIndent()
-                    )
+                    val result = tx.run(checkVertexExistCypher(id, label))
                     result.list().isNotEmpty()
                 }
             }
@@ -277,17 +227,9 @@ class Neo4jDriver internal constructor() : IDriver {
         PlumeTimer.measure(DriverTimeKey.DATABASE_READ) { res = exists(src) && exists(tgt) }
         if (!res) return false
         PlumeTimer.measure(DriverTimeKey.DATABASE_READ) {
-            val srcN = src.build()
-            val tgtN = tgt.build()
             driver.session().use { session ->
                 res = session.writeTransaction { tx ->
-                    val result = tx.run(
-                        """
-                    MATCH (a:${srcN.label()}), (b:${tgtN.label()})
-                    WHERE id(a) = ${src.id()} AND id(b) = ${tgt.id()}
-                    RETURN EXISTS ((a)-[:$edge]->(b)) as edge_exists
-                    """.trimIndent()
-                    )
+                    val result = tx.run(checkEdgeExistCypher(src, tgt, edge))
                     result.next()["edge_exists"].toString() == "TRUE"
                 }
             }
@@ -300,18 +242,9 @@ class Neo4jDriver internal constructor() : IDriver {
         if (!exists(src)) addVertex(src)
         if (!exists(tgt)) addVertex(tgt)
         PlumeTimer.measure(DriverTimeKey.DATABASE_WRITE) {
-            val srcN = src.build()
-            val tgtN = tgt.build()
             driver.session().use { session ->
                 session.writeTransaction { tx ->
-                    val result = tx.run(
-                        """
-                    MATCH (a:${srcN.label()}), (b:${tgtN.label()})
-                    WHERE id(a) = ${src.id()} AND id(b) = ${tgt.id()}
-                    CREATE (a)-[r:$edge]->(b)
-                    RETURN r
-                    """.trimIndent()
-                    )
+                    val result = tx.run(addEdgeCypher(src, tgt, edge))
                     result.list().isNotEmpty()
                 }
             }
@@ -407,12 +340,7 @@ class Neo4jDriver internal constructor() : IDriver {
         PlumeTimer.measure(DriverTimeKey.DATABASE_WRITE) {
             driver.session().use { session ->
                 session.writeTransaction { tx ->
-                    tx.run(
-                        """
-                    MATCH (n)
-                    DETACH DELETE n
-                    """.trimIndent()
-                    )
+                    tx.run(clearGraphCypher())
                 }
             }
         }
@@ -423,26 +351,11 @@ class Neo4jDriver internal constructor() : IDriver {
         val graph = newOverflowGraph()
         PlumeTimer.measure(DriverTimeKey.DATABASE_READ) {
             driver.session().use { session ->
-                val orphanVertices = session.writeTransaction { tx ->
-                    tx.run(
-                        """
-                    MATCH (n)
-                    WHERE NOT (n)-[]-()
-                    RETURN n
-                    """.trimIndent()
-                    ).list()
-                }
+                val orphanVertices = session.writeTransaction { tx -> tx.run(getAllVerticesCypher()).list() }
                 orphanVertices.map { it["n"].asNode() }
                     .map { mapToVertex(it.asMap() + mapOf("id" to it.id())) }
                     .forEach { addNodeToGraph(graph, it) }
-                val edgeResult = session.writeTransaction { tx ->
-                    tx.run(
-                        """
-                    MATCH (n)-[r]->(m)
-                    RETURN n AS src, m AS tgt, type(r) AS rel 
-                    """.trimIndent()
-                    ).list()
-                }
+                val edgeResult = session.writeTransaction { tx -> tx.run(getAllEdgesCypher()).list() }
                 edgeResult.map { r -> Triple(r["src"].asNode(), r["tgt"].asNode(), r["rel"].asString()) }
                     .map {
                         Triple(
@@ -471,31 +384,12 @@ class Neo4jDriver internal constructor() : IDriver {
     }
 
     override fun getMethod(fullName: String, includeBody: Boolean): Graph {
-        val queryHead = if (!includeBody) """
-            MATCH (root:$METHOD {FULL_NAME:'$fullName'})-[r1:$AST]->(child)
-                    WITH DISTINCT r1 AS coll
-        """.trimIndent()
-        else
-            """
-            MATCH (root:$METHOD {FULL_NAME:'$fullName'})-[r1:$AST*0..]->(child)-[r2]->(n1) 
-                WHERE NOT (child)-[:$SOURCE_FILE]-(n1)
-            OPTIONAL MATCH (root)-[r3]->(n2) WHERE NOT (root)-[:$SOURCE_FILE]-(n2)  
-            WITH DISTINCT (r1 + r2 + r3) AS coll
-            """.trimIndent()
+        val queryHead = getMethodQueryHead(fullName, includeBody)
         val plumeGraph = newOverflowGraph()
         PlumeTimer.measure(DriverTimeKey.DATABASE_READ) {
             driver.session().use { session ->
                 session.writeTransaction { tx ->
-                    val result = tx.run(
-                        """
-                    $queryHead
-                    UNWIND coll AS e1
-                    WITH DISTINCT e1
-                    WITH [r in collect(e1) | {rel: type(r), src: startNode(r), tgt: endNode(r)} ] as e2
-                    UNWIND e2 as x
-                    RETURN x
-                    """.trimIndent()
-                    ).list().map { it["x"] }
+                    val result = tx.run(getMethodCypher(queryHead)).list().map { it["x"] }
                     neo4jToOverflowGraph(result, plumeGraph)
                 }
             }
@@ -507,28 +401,11 @@ class Neo4jDriver internal constructor() : IDriver {
         val graph = newOverflowGraph()
         driver.session().use { session ->
             val result = session.writeTransaction { tx ->
-                tx.run(
-                    """
-                    MATCH (n:$FILE)-[r1:$AST*0..]->(m)-[r2]->(o) 
-                    WITH DISTINCT (r1 + r2) AS coll
-                    UNWIND coll AS e1
-                    WITH DISTINCT e1
-                    WITH [r in collect(e1) | {rel: type(r), src: startNode(r), tgt: endNode(r)} ] as e2
-                    UNWIND e2 as x
-                    RETURN x
-                    """.trimIndent()
-                ).list().map { it["x"] }
+                tx.run(getProgramStructureCypher1()).list().map { it["x"] }
             }
             neo4jToOverflowGraph(result, graph)
             val typeDecl = session.writeTransaction { tx ->
-                tx.run(
-                    """
-                    MATCH (m:$TYPE_DECL)
-                    MATCH (n:$FILE)
-                    MATCH (o:$NAMESPACE_BLOCK)
-                    RETURN m, n, o
-                    """.trimIndent()
-                ).list()
+                tx.run(getProgramStructureCypher2()).list()
             }
             typeDecl.flatMap { listOf(it["m"].asNode(), it["n"].asNode(), it["o"].asNode()) }
                 .map { mapToVertex(it.asMap() + mapOf("id" to it.id())) }
@@ -543,18 +420,7 @@ class Neo4jDriver internal constructor() : IDriver {
         PlumeTimer.measure(DriverTimeKey.DATABASE_READ) {
             driver.session().use { session ->
                 val result = session.writeTransaction { tx ->
-                    tx.run(
-                        """
-                    MATCH (n:${v.build().label()})-[r1]-(m)
-                    WHERE ID(n) = ${v.id()}
-                    WITH DISTINCT r1 AS coll
-                    UNWIND coll AS e1
-                    WITH DISTINCT e1
-                    WITH [r in collect(e1) | {rel: type(r), src: startNode(r), tgt: endNode(r)} ] as e2
-                    UNWIND e2 as x
-                    RETURN x
-                    """.trimIndent()
-                    ).list().map { it["x"] }
+                    tx.run(getNeighboursCypher(v)).list().map { it["x"] }
                 }
                 neo4jToOverflowGraph(result, graph)
             }
@@ -585,13 +451,7 @@ class Neo4jDriver internal constructor() : IDriver {
         PlumeTimer.measure(DriverTimeKey.DATABASE_WRITE) {
             driver.session().use { session ->
                 session.writeTransaction { tx ->
-                    tx.run(
-                        """
-                    MATCH (n${if (label != null) ":$label" else ""})
-                    WHERE ID(n) = $id
-                    DETACH DELETE n
-                    """.trimIndent()
-                    )
+                    tx.run(deleteVertexCypher(id, label))
                 }
             }
         }
@@ -600,17 +460,9 @@ class Neo4jDriver internal constructor() : IDriver {
     override fun deleteEdge(src: NewNodeBuilder, tgt: NewNodeBuilder, edge: String) {
         if (!exists(src, tgt, edge)) return
         PlumeTimer.measure(DriverTimeKey.DATABASE_WRITE) {
-            val srcN = src.build()
-            val tgtN = tgt.build()
             driver.session().use { session ->
                 session.writeTransaction { tx ->
-                    tx.run(
-                        """
-                    MATCH (s:${srcN.label()})-[r:$edge]->(t:${tgtN.label()})
-                    WHERE ID(s) = ${src.id()} AND ID(t) = ${tgt.id()}  
-                    DELETE r
-                    """.trimIndent()
-                    )
+                    tx.run(deleteEdgeCypher(src, tgt, edge))
                 }
             }
         }
@@ -620,14 +472,7 @@ class Neo4jDriver internal constructor() : IDriver {
         PlumeTimer.measure(DriverTimeKey.DATABASE_WRITE) {
             driver.session().use { session ->
                 session.writeTransaction { tx ->
-                    tx.run(
-                        """
-                    MATCH (a)-[r:${AST}*]->(t)
-                    WHERE a.FULL_NAME = "$fullName"
-                    FOREACH (x IN r | DELETE x)
-                    DETACH DELETE a, t
-                    """.trimIndent()
-                    )
+                    tx.run(deleteMethodCypher(fullName))
                 }
             }
         }
@@ -638,13 +483,7 @@ class Neo4jDriver internal constructor() : IDriver {
         PlumeTimer.measure(DriverTimeKey.DATABASE_WRITE) {
             driver.session().use { session ->
                 session.writeTransaction { tx ->
-                    tx.run(
-                        """
-                    MATCH (n${if (label != null) ":$label" else ""})
-                    WHERE ID(n) = $id
-                    SET n.$key = ${if (value is String) "\"$value\"" else value}
-                    """.trimIndent()
-                    )
+                    tx.run(updateVertexPropertyCypher(id: Long, label: String?, key: String, value: Any))
                 }
             }
         }
@@ -655,13 +494,7 @@ class Neo4jDriver internal constructor() : IDriver {
         PlumeTimer.measure(DriverTimeKey.DATABASE_WRITE) {
             driver.session().use { session ->
                 meta = session.writeTransaction { tx ->
-                    tx.run(
-                        """
-                    MATCH (n:$META_DATA)
-                    RETURN n
-                    LIMIT 1
-                    """.trimIndent()
-                    ).list().map { it["n"].asNode() }
+                    tx.run(getMetaDataCypher()).list().map { it["n"].asNode() }
                         .map { mapToVertex(it.asMap() + mapOf("id" to it.id())) }
                         .firstOrNull() as NewMetaDataBuilder?
                 }
@@ -676,17 +509,12 @@ class Neo4jDriver internal constructor() : IDriver {
         label: String?
     ): List<NewNodeBuilder> {
         val l = mutableListOf<NewNodeBuilder>()
-        if (propertyKey.length != sanitizePayload(propertyKey).length || propertyKey.contains("[<|>]".toRegex())) return emptyList()
+        if (propertyKey.length != CypherDriverQueries.sanitizePayload(propertyKey).length || propertyKey.contains("[<|>]".toRegex())) return emptyList()
         PlumeTimer.measure(DriverTimeKey.DATABASE_READ) {
             driver.session().use { session ->
                 session.writeTransaction { tx ->
-                    tx.run(
-                        """
-                    MATCH (n${if (label != null) ":$label" else ""})
-                    WHERE n.$propertyKey = ${if (propertyValue is String) "\"$propertyValue\"" else propertyValue}
-                    RETURN n
-                    """.trimIndent()
-                    ).list().map { it["n"].asNode() }
+                    tx.run(getVerticesByPropertyCypher(propertyKey, propertyValue, label)).list()
+                        .map { it["n"].asNode() }
                         .map { mapToVertex(it.asMap() + mapOf("id" to it.id())) }
                 }.toCollection(l)
             }
@@ -697,16 +525,11 @@ class Neo4jDriver internal constructor() : IDriver {
     @Suppress("UNCHECKED_CAST")
     override fun <T : Any> getPropertyFromVertices(propertyKey: String, label: String?): List<T> {
         val l = mutableListOf<T>()
-        if (propertyKey.length != sanitizePayload(propertyKey).length || propertyKey.contains("[<|>]".toRegex())) return emptyList()
+        if (propertyKey.length != CypherDriverQueries.sanitizePayload(propertyKey).length || propertyKey.contains("[<|>]".toRegex())) return emptyList()
         PlumeTimer.measure(DriverTimeKey.DATABASE_READ) {
             driver.session().use { session ->
                 session.writeTransaction { tx ->
-                    tx.run(
-                        """
-                    MATCH (n${if (label != null) ":$label" else ""})
-                    RETURN n.$propertyKey AS p
-                    """.trimIndent()
-                    ).list().map { it["p"].asObject() as T }
+                    tx.run(getPropertyFromVerticesCypher(propertyKey, label)).list().map { it["p"].asObject() as T }
                 }.toCollection(l)
             }
         }
@@ -718,12 +541,7 @@ class Neo4jDriver internal constructor() : IDriver {
         PlumeTimer.measure(DriverTimeKey.DATABASE_READ) {
             driver.session().use { session ->
                 session.writeTransaction { tx ->
-                    tx.run(
-                        """
-                    MATCH (n:$label)
-                    RETURN n
-                    """.trimIndent()
-                    ).list().map { it["n"].asNode() }
+                    tx.run(getVerticesOfTypeCypher(label)).list().map { it["n"].asNode() }
                         .map { mapToVertex(it.asMap() + mapOf("id" to it.id())) }
                 }.toCollection(l)
             }
