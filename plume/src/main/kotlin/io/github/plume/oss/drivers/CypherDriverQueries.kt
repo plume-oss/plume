@@ -21,6 +21,7 @@ import io.shiftleft.codepropertygraph.generated.EdgeTypes.SOURCE_FILE
 import io.shiftleft.codepropertygraph.generated.NodeTypes.*
 import io.shiftleft.codepropertygraph.generated.nodes.Factories
 import io.shiftleft.codepropertygraph.generated.nodes.NewNodeBuilder
+import org.neo4j.driver.Value
 import overflowdb.Config
 import overflowdb.Graph
 import overflowdb.Node
@@ -216,6 +217,23 @@ abstract class CypherDriverQueries {
         return sNode
     }
 
+    fun neo4jToOverflowGraph(
+        result: List<Value>,
+        graph: Graph
+    ) {
+        result.map { r -> Triple(r["src"].asNode(), r["tgt"].asNode(), r["rel"].asString()) }
+            .map { p ->
+                Triple(
+                    VertexMapper.mapToVertex(p.first.asMap() + mapOf("id" to p.first.id())),
+                    VertexMapper.mapToVertex(p.second.asMap() + mapOf("id" to p.second.id())),
+                    p.third
+                )
+            }.forEach {
+                val src = addNodeToGraph(graph, it.first)
+                val tgt = addNodeToGraph(graph, it.second)
+                src.addEdge(it.third, tgt)
+            }
+    }
 
     companion object {
         fun sanitizePayload(p: String): String =

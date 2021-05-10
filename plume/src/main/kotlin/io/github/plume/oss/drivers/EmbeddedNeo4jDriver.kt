@@ -21,14 +21,17 @@ import io.github.plume.oss.domain.mappers.VertexMapper.checkSchemaConstraints
 import io.github.plume.oss.domain.model.DeltaGraph
 import io.github.plume.oss.metrics.DriverTimeKey
 import io.github.plume.oss.metrics.PlumeTimer
+import io.shiftleft.codepropertygraph.generated.nodes.NewMetaDataBuilder
 import io.shiftleft.codepropertygraph.generated.nodes.NewNodeBuilder
 import org.apache.logging.log4j.LogManager
 import org.neo4j.dbms.api.DatabaseManagementService
 import org.neo4j.dbms.api.DatabaseManagementServiceBuilder
+import org.neo4j.driver.Value
 import org.neo4j.driver.types.Node
 import org.neo4j.graphdb.GraphDatabaseService
 import overflowdb.Graph
 import java.io.File
+import kotlin.streams.toList
 
 class EmbeddedNeo4jDriver internal constructor() : IDriver, CypherDriverQueries() {
 
@@ -118,6 +121,19 @@ class EmbeddedNeo4jDriver internal constructor() : IDriver, CypherDriverQueries(
             embeddedDb.beginTx().use { tx ->
                 val result = tx.execute(checkVertexExistCypher(id, label))
                 res = !result.hasNext()
+            }
+        }
+        return res
+    }
+
+    override fun exists(src: NewNodeBuilder, tgt: NewNodeBuilder, edge: String): Boolean {
+        var res = false
+        PlumeTimer.measure(DriverTimeKey.DATABASE_READ) { res = exists(src) && exists(tgt) }
+        if (!res) return false
+        PlumeTimer.measure(DriverTimeKey.DATABASE_READ) {
+            res = embeddedDb.beginTx().use { tx ->
+                val result = tx.execute(checkEdgeExistCypher(src, tgt, edge))
+                result.next()["edge_exists"].toString() == "TRUE"
             }
         }
         return res
@@ -246,6 +262,132 @@ class EmbeddedNeo4jDriver internal constructor() : IDriver, CypherDriverQueries(
                 }
         }
         return graph
+    }
+
+    override fun getMethod(fullName: String, includeBody: Boolean): Graph {
+        val queryHead = getMethodQueryHead(fullName, includeBody)
+        val plumeGraph = newOverflowGraph()
+        PlumeTimer.measure(DriverTimeKey.DATABASE_READ) {
+            embeddedDb.beginTx().use { tx ->
+                val result = tx.execute(getMethodCypher(queryHead)).columnAs<Value>("x").asSequence().toList()
+                neo4jToOverflowGraph(result, plumeGraph)
+            }
+        }
+        return plumeGraph
+    }
+
+    override fun getProgramStructure(): Graph {
+        val graph = newOverflowGraph()
+        val result = embeddedDb.beginTx().use { tx ->
+            tx.execute(getProgramStructureCypher1()).columnAs<Value>("x").asSequence().toList()
+        }
+        neo4jToOverflowGraph(result, graph)
+        val typeDecl = embeddedDb.beginTx().use { tx ->
+            tx.execute(getProgramStructureCypher2()).asSequence().toList()
+        }
+        typeDecl.flatMap { listOf(it["m"] as Node, it["n"] as Node, it["o"] as Node) }
+            .map { VertexMapper.mapToVertex(it.asMap() + mapOf("id" to it.id())) }
+            .filter { graph.node(it.id()) == null }
+            .forEach { addNodeToGraph(graph, it) }
+        return graph
+    }
+
+    override fun getNeighbours(v: NewNodeBuilder): Graph {
+        val graph = newOverflowGraph()
+        PlumeTimer.measure(DriverTimeKey.DATABASE_READ) {
+            val result = embeddedDb.beginTx().use { tx ->
+                tx.execute(getNeighboursCypher(v)).columnAs<Value>("x").asSequence().toList()
+            }
+            neo4jToOverflowGraph(result, graph)
+        }
+        return graph
+    }
+
+    override fun deleteVertex(id: Long, label: String?) {
+        if (!checkVertexExist(id, label)) return
+        PlumeTimer.measure(DriverTimeKey.DATABASE_WRITE) {
+            embeddedDb.beginTx().use { tx ->
+                tx.execute(deleteVertexCypher(id, label))
+            }
+        }
+    }
+
+    override fun deleteEdge(src: NewNodeBuilder, tgt: NewNodeBuilder, edge: String) {
+        if (!exists(src, tgt, edge)) return
+        PlumeTimer.measure(DriverTimeKey.DATABASE_WRITE) {
+            embeddedDb.beginTx().use { tx ->
+                tx.execute(deleteEdgeCypher(src, tgt, edge))
+            }
+        }
+    }
+
+    override fun deleteMethod(fullName: String) {
+        PlumeTimer.measure(DriverTimeKey.DATABASE_WRITE) {
+            embeddedDb.beginTx().use { tx ->
+                tx.execute(deleteMethodCypher(fullName))
+            }
+        }
+    }
+
+    override fun updateVertexProperty(id: Long, label: String?, key: String, value: Any) {
+        if (!checkVertexExist(id, label)) return
+        PlumeTimer.measure(DriverTimeKey.DATABASE_WRITE) {
+            embeddedDb.beginTx().use { tx ->
+                tx.execute(updateVertexPropertyCypher(id, label, key, value))
+            }
+        }
+    }
+
+    override fun getMetaData(): NewMetaDataBuilder? {
+        var meta: NewMetaDataBuilder? = null
+        PlumeTimer.measure(DriverTimeKey.DATABASE_WRITE) {
+            meta = embeddedDb.beginTx().use { tx ->
+                tx.execute(getMetaDataCypher()).columnAs<Node>("n")
+                    .map { VertexMapper.mapToVertex(it.asMap() + mapOf("id" to it.id())) }
+                    .stream().toList().firstOrNull() as NewMetaDataBuilder?
+            }
+        }
+        return meta
+    }
+
+    override fun getVerticesByProperty(
+        propertyKey: String,
+        propertyValue: Any,
+        label: String?
+    ): List<NewNodeBuilder> {
+        val l = mutableListOf<NewNodeBuilder>()
+        if (propertyKey.length != sanitizePayload(propertyKey).length || propertyKey.contains("[<|>]".toRegex())) return emptyList()
+        PlumeTimer.measure(DriverTimeKey.DATABASE_READ) {
+            embeddedDb.beginTx().use { tx ->
+                tx.execute(getVerticesByPropertyCypher(propertyKey, propertyValue, label))
+                    .columnAs<Node>("n")
+                    .map { VertexMapper.mapToVertex(it.asMap() + mapOf("id" to it.id())) }
+            }.stream().toList().toCollection(l)
+        }
+        return l
+    }
+
+    @Suppress("UNCHECKED_CAST")
+    override fun <T : Any> getPropertyFromVertices(propertyKey: String, label: String?): List<T> {
+        val l = mutableListOf<T>()
+        if (propertyKey.length != sanitizePayload(propertyKey).length || propertyKey.contains("[<|>]".toRegex())) return emptyList()
+        PlumeTimer.measure(DriverTimeKey.DATABASE_READ) {
+            embeddedDb.beginTx().use { tx ->
+                tx.execute(getPropertyFromVerticesCypher(propertyKey, label)).columnAs<T>("p")
+            }.stream().toList().toCollection(l)
+        }
+        return l.toList()
+    }
+
+    override fun getVerticesOfType(label: String): List<NewNodeBuilder> {
+        val l = mutableListOf<NewNodeBuilder>()
+        PlumeTimer.measure(DriverTimeKey.DATABASE_READ) {
+            embeddedDb.beginTx().use { tx ->
+                tx.execute(getVerticesOfTypeCypher(label)).columnAs<Node>("n")
+                    .map { VertexMapper.mapToVertex(it.asMap() + mapOf("id" to it.id())) }
+            }.stream().toList().toCollection(l)
+        }
+        return l
     }
 
     companion object {

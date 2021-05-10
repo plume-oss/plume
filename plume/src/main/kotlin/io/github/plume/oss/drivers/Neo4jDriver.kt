@@ -28,9 +28,7 @@ import org.neo4j.driver.AuthTokens
 import org.neo4j.driver.Driver
 import org.neo4j.driver.GraphDatabase
 import org.neo4j.driver.Value
-import overflowdb.Config
 import overflowdb.Graph
-import overflowdb.Node
 
 
 /**
@@ -360,24 +358,6 @@ class Neo4jDriver internal constructor() : IDriver, CypherDriverQueries() {
         return graph
     }
 
-    private fun neo4jToOverflowGraph(
-        result: List<Value>,
-        graph: Graph
-    ) {
-        result.map { r -> Triple(r["src"].asNode(), r["tgt"].asNode(), r["rel"].asString()) }
-            .map { p ->
-                Triple(
-                    mapToVertex(p.first.asMap() + mapOf("id" to p.first.id())),
-                    mapToVertex(p.second.asMap() + mapOf("id" to p.second.id())),
-                    p.third
-                )
-            }.forEach {
-                val src = addNodeToGraph(graph, it.first)
-                val tgt = addNodeToGraph(graph, it.second)
-                src.addEdge(it.third, tgt)
-            }
-    }
-
     override fun deleteVertex(id: Long, label: String?) {
         if (!checkVertexExist(id, label)) return
         PlumeTimer.measure(DriverTimeKey.DATABASE_WRITE) {
@@ -441,7 +421,7 @@ class Neo4jDriver internal constructor() : IDriver, CypherDriverQueries() {
         label: String?
     ): List<NewNodeBuilder> {
         val l = mutableListOf<NewNodeBuilder>()
-        if (propertyKey.length != CypherDriverQueries.sanitizePayload(propertyKey).length || propertyKey.contains("[<|>]".toRegex())) return emptyList()
+        if (propertyKey.length != sanitizePayload(propertyKey).length || propertyKey.contains("[<|>]".toRegex())) return emptyList()
         PlumeTimer.measure(DriverTimeKey.DATABASE_READ) {
             driver.session().use { session ->
                 session.writeTransaction { tx ->
