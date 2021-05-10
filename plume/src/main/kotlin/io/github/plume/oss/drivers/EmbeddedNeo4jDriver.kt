@@ -74,7 +74,8 @@ class EmbeddedNeo4jDriver internal constructor() : IDriver, CypherDriverQueries(
     fun databaseDirectory(value: String) = apply { databaseDirectory = value }
 
     fun connect(): EmbeddedNeo4jDriver = apply {
-        mgmtService = DatabaseManagementServiceBuilder(File(databaseDirectory).toPath()).build()
+        mgmtService = DatabaseManagementServiceBuilder(File(databaseDirectory).toPath())
+            .build()
         embeddedDb = mgmtService.database(database)
         registerShutdownHook(mgmtService)
     }

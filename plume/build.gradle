@@ -161,10 +161,17 @@ task neptuneIntTest(type: Test) {
 }
 
 task neo4jIntTest(type: Test) {
-    description = "Execute Neo4j integration tests."
+    description = "Execute Neo4j (remote) integration tests."
     group = "verification"
     include "**/*Neo4j*"
+    exclude "**/*EmbeddNeo4j*"
     doFirst { dockerCompose.exposeAsEnvironment(neo4jIntTest) }
+}
+
+task embeddedNeo4jIntTest(type: Test) {
+    description = "Execute Neo4j (embedded) integration tests."
+    group = "verification"
+    include "**/*EmbeddedNeo4j*"
 }
 
 dockerCompose {

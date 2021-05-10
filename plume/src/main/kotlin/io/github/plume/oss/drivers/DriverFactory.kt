@@ -33,6 +33,7 @@ object DriverFactory {
             GraphDatabase.TIGER_GRAPH -> TigerGraphDriver()
             GraphDatabase.NEPTUNE -> NeptuneDriver()
             GraphDatabase.NEO4J -> Neo4jDriver()
+            GraphDatabase.NEO4J_EMBEDDED -> EmbeddedNeo4jDriver()
             GraphDatabase.OVERFLOWDB -> OverflowDbDriver()
         }
     }
@@ -69,6 +70,11 @@ enum class GraphDatabase {
      * intelligence, fraud detection and recommendations.
      */
     NEO4J,
+
+    /**
+     * The embedded version of Neo4j useful when speed is of utmost importance.
+     */
+    NEO4J_EMBEDDED,
 
     /**
      * ShiftLeft's OverflowDB is an in-memory graph database, which implements a swapping mechanism to deal
