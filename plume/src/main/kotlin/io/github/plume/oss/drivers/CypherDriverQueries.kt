@@ -1,13 +1,16 @@
 package io.github.plume.oss.drivers
 
 import io.github.plume.oss.domain.mappers.VertexMapper
+import io.shiftleft.codepropertygraph.generated.EdgeTypes.AST
+import io.shiftleft.codepropertygraph.generated.EdgeTypes.SOURCE_FILE
+import io.shiftleft.codepropertygraph.generated.NodeTypes.*
 import io.shiftleft.codepropertygraph.generated.nodes.NewNodeBuilder
 import scala.jdk.CollectionConverters
 
 abstract class CypherDriverQueries {
 
     fun addVertexCypher(v: NewNodeBuilder, idx: Int): String =
-         """
+        """
             ${createVertexPayload(v, idx)}
             RETURN ID(n$idx) as id$idx
         """.trimIndent()
@@ -22,7 +25,7 @@ abstract class CypherDriverQueries {
     fun checkEdgeExistCypher(src: NewNodeBuilder, tgt: NewNodeBuilder, edge: String): String {
         val srcN = src.build()
         val tgtN = tgt.build()
-        return  """
+        return """
                 MATCH (a:${srcN.label()}), (b:${tgtN.label()})
                 WHERE id(a) = ${src.id()} AND id(b) = ${tgt.id()}
                 RETURN EXISTS ((a)-[:$edge]->(b)) as edge_exists
@@ -32,7 +35,7 @@ abstract class CypherDriverQueries {
     fun addEdgeCypher(src: NewNodeBuilder, tgt: NewNodeBuilder, edge: String): String {
         val srcN = src.build()
         val tgtN = tgt.build()
-        return  """
+        return """
                 MATCH (a:${srcN.label()}), (b:${tgtN.label()})
                 WHERE id(a) = ${src.id()} AND id(b) = ${tgt.id()}
                 CREATE (a)-[r:$edge]->(b)
@@ -40,7 +43,7 @@ abstract class CypherDriverQueries {
                 """.trimIndent()
     }
 
-    fun clearGraphCypher(): String = 
+    fun clearGraphCypher(): String =
         """
         MATCH (n)
         DETACH DELETE n
@@ -59,8 +62,8 @@ abstract class CypherDriverQueries {
         RETURN n AS src, m AS tgt, type(r) AS rel 
         """.trimIndent()
 
-    fun getMethodQueryHead(fullName: String, includeBody: Boolean): String = 
-        if (!includeBody)   
+    fun getMethodQueryHead(fullName: String, includeBody: Boolean): String =
+        if (!includeBody)
             """
             MATCH (root:$METHOD {FULL_NAME:'$fullName'})-[r1:$AST]->(child)
                     WITH DISTINCT r1 AS coll
@@ -73,7 +76,7 @@ abstract class CypherDriverQueries {
             WITH DISTINCT (r1 + r2 + r3) AS coll
             """.trimIndent()
 
-    fun getMethodCypher(queryHead: string): String = 
+    fun getMethodCypher(queryHead: String): String =
         """
         $queryHead
         UNWIND coll AS e1
@@ -83,7 +86,7 @@ abstract class CypherDriverQueries {
         RETURN x
         """.trimIndent()
 
-    fun getProgramStructureCypher1(): String = 
+    fun getProgramStructureCypher1(): String =
         """
         MATCH (n:$FILE)-[r1:$AST*0..]->(m)-[r2]->(o) 
         WITH DISTINCT (r1 + r2) AS coll
@@ -94,7 +97,7 @@ abstract class CypherDriverQueries {
         RETURN x
         """.trimIndent()
 
-    fun getProgramStructureCypher2(): String = 
+    fun getProgramStructureCypher2(): String =
         """
         MATCH (m:$TYPE_DECL)
         MATCH (n:$FILE)
@@ -114,7 +117,7 @@ abstract class CypherDriverQueries {
         RETURN x
         """.trimIndent()
 
-    fun deleteVertexCypher(id: Long, label: String?): String = 
+    fun deleteVertexCypher(id: Long, label: String?): String =
         """
         MATCH (n${if (label != null) ":$label" else ""})
         WHERE ID(n) = $id
@@ -124,11 +127,11 @@ abstract class CypherDriverQueries {
     fun deleteEdgeCypher(src: NewNodeBuilder, tgt: NewNodeBuilder, edge: String): String {
         val srcN = src.build()
         val tgtN = tgt.build()
-        """
-        MATCH (s:${srcN.label()})-[r:$edge]->(t:${tgtN.label()})
-        WHERE ID(s) = ${src.id()} AND ID(t) = ${tgt.id()}  
-        DELETE r
-        """.trimIndent()
+        return """
+                MATCH (s:${srcN.label()})-[r:$edge]->(t:${tgtN.label()})
+                WHERE ID(s) = ${src.id()} AND ID(t) = ${tgt.id()}  
+                DELETE r
+                """.trimIndent()
     }
 
     fun deleteMethodCypher(fullName: String): String =
@@ -146,7 +149,7 @@ abstract class CypherDriverQueries {
         SET n.$key = ${if (value is String) "\"$value\"" else value}
         """.trimIndent()
 
-    fun getMetaDataCypher(): String = 
+    fun getMetaDataCypher(): String =
         """
         MATCH (n:$META_DATA)
         RETURN n

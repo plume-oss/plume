@@ -483,7 +483,7 @@ class Neo4jDriver internal constructor() : IDriver, CypherDriverQueries() {
         PlumeTimer.measure(DriverTimeKey.DATABASE_WRITE) {
             driver.session().use { session ->
                 session.writeTransaction { tx ->
-                    tx.run(updateVertexPropertyCypher(id: Long, label: String?, key: String, value: Any))
+                    tx.run(updateVertexPropertyCypher(id, label, key, value))
                 }
             }
         }
