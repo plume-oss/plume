@@ -95,71 +95,6 @@ cd plume
 
 This will build `build/libs/plume-X.X.X.jar` which can be imported into your local project.
 
-## Dependencies
-
-### Packages
-
-The following packages used for logging:
-
-```groovy
-implementation 'org.apache.logging.log4j:log4j-core'
-implementation 'org.apache.logging.log4j:log4j-slf4j-impl'
-```
-
-The extractor uses the following dependencies:
-
-```groovy
-implementation 'org.soot-oss:soot'
-implementation 'org.lz4:lz4-java'
-```
-
-Dependencies per graph database technology:
-
-#### _TinkerGraph_
-
-```groovy
-implementation 'org.apache.tinkerpop:gremlin-core'
-implementation 'org.apache.tinkerpop:tinkergraph-gremlin'
-```
-
-#### _OverflowDb_
-
-```groovy
-implementation 'io.shiftleft:codepropertygraph_2.13'
-implementation 'io.shiftleft:semanticcpg_2.13'
-```
-
-#### _JanusGraph_
-
-```groovy
-implementation 'org.apache.tinkerpop:gremlin-core'
-implementation 'org.janusgraph:janusgraph-driver'
-```
-
-#### _TigerGraph_
-
-```groovy
-implementation 'khttp:khttp'
-implementation 'com.fasterxml.jackson.core:jackson-databind'
-implementation 'com.tigergraph.client:gsql_client'
-```
-
-#### _Amazon Neptune_
-
-```groovy
-  implementation 'org.apache.tinkerpop:gremlin-core'
-implementation 'org.apache.tinkerpop:gremlin-driver'
-```
-
-#### _Neo4j_
-
-```groovy
-implementation 'org.neo4j.driver:neo4j-java-driver'
-```
-
-Note that if you are connecting to Neo4j, for example, you would not need the TinkerGraph, TigerGraph, etc.
-dependencies.
-
 ## Logging
 
 Plume uses [SLF4J](http://www.slf4j.org/) as the fascade with
@@ -167,3 +102,7 @@ Plume uses [SLF4J](http://www.slf4j.org/) as the fascade with
 
 Note that due to the size of method related operations, there is a CLI loading bar used to indicate progress. This bar
 is only shown on TRACE, DEBUG, and INFO levels.
+
+## Sponsored by
+
+![Amazon Science](https://assets.amazon.science/dims4/default/ce84994/2147483647/strip/true/crop/1200x630+0+0/resize/1200x630!/quality/90/?url=http%3A%2F%2Famazon-topics-brightspot.s3.amazonaws.com%2Fscience%2F32%2F80%2Fc230480c4f60a534bc077755bae7%2Famazon-science-og-image-squid.png)
