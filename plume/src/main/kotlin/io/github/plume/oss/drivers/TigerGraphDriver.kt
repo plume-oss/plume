@@ -771,19 +771,11 @@ class TigerGraphDriver internal constructor() : IOverridenIdDriver, ISchemaSafeD
 
         private val VERTICES: String by lazy {
             """
-CREATE VERTEX ${ARRAY_INITIALIZER}_VERT (
-    PRIMARY_ID id UINT,
-    _$ORDER INT,
-    _$CODE STRING,
-    _$LINE_NUMBER INT,
-    _$COLUMN_NUMBER INT
-) WITH primary_id_as_attribute="true"
-
 CREATE VERTEX ${BINDING}_VERT (
     PRIMARY_ID id UINT,
     _$NAME STRING,
     _$SIGNATURE STRING
-)
+) WITH primary_id_as_attribute="true"
 
 CREATE VERTEX ${META_DATA}_VERT (
     PRIMARY_ID id UINT,
@@ -918,6 +910,7 @@ CREATE VERTEX ${CALL}_VERT (
     PRIMARY_ID id UINT,
     _$CODE STRING,
     _$NAME STRING,
+    _$TYPE_FULL_NAME STRING,
     _$LINE_NUMBER INT,
     _$COLUMN_NUMBER INT,
     _$ORDER INT,
