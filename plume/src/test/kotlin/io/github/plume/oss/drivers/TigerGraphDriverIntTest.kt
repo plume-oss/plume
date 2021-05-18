@@ -3,7 +3,6 @@ package io.github.plume.oss.drivers
 import io.github.plume.oss.TestDomainResources
 import io.github.plume.oss.TestDomainResources.Companion.BOOL_1
 import io.github.plume.oss.TestDomainResources.Companion.INT_1
-import io.github.plume.oss.TestDomainResources.Companion.INT_2
 import io.github.plume.oss.TestDomainResources.Companion.STRING_1
 import io.github.plume.oss.TestDomainResources.Companion.STRING_2
 import io.github.plume.oss.TestDomainResources.Companion.bindingVertex
@@ -64,7 +63,7 @@ class TigerGraphDriverIntTest {
             assertEquals("127.0.0.1", driver.hostname)
             assertEquals(9000, driver.restPpPort)
             assertEquals(false, driver.secure)
-            driver.buildSchema()
+//            driver.buildSchema()
             testStartTime = System.nanoTime()
         }
 
@@ -79,7 +78,7 @@ class TigerGraphDriverIntTest {
     @AfterEach
     fun tearDown() {
         TestDomainResources.simpleCpgVertices.forEach { it.id(-1) }
-        driver.clearGraph()
+//        driver.clearGraph()
     }
 
     @Nested
