@@ -63,7 +63,7 @@ class TigerGraphDriverIntTest {
             assertEquals("127.0.0.1", driver.hostname)
             assertEquals(9000, driver.restPpPort)
             assertEquals(false, driver.secure)
-//            driver.buildSchema()
+            driver.buildSchema()
             testStartTime = System.nanoTime()
         }
 
@@ -78,7 +78,7 @@ class TigerGraphDriverIntTest {
     @AfterEach
     fun tearDown() {
         TestDomainResources.simpleCpgVertices.forEach { it.id(-1) }
-//        driver.clearGraph()
+        driver.clearGraph()
     }
 
     @Nested
