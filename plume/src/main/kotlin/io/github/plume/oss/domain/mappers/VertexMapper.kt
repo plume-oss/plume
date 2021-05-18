@@ -75,11 +75,6 @@ object VertexMapper {
             }
         }
         return when (map["label"] as String) {
-            ArrayInitializer.Label() -> NewArrayInitializerBuilder()
-                .order(map[ORDER] as Int)
-                .code(map[CODE] as String)
-                .lineNumber(Option.apply(map[LINE_NUMBER] as Int))
-                .columnNumber(Option.apply(map[COLUMN_NUMBER] as Int))
             Binding.Label() -> NewBindingBuilder()
                 .name(map[NAME] as String)
                 .signature(map[SIGNATURE] as String)
@@ -255,7 +250,6 @@ object VertexMapper {
      */
     fun stripUnusedProperties(label: String, map: MutableMap<String, Any>): MutableMap<String, Any> {
         return when (label) {
-            ARRAY_INITIALIZER -> map.apply { remove(ARGUMENT_INDEX) }
             BINDING -> map.apply { remove(IS_METHOD_NEVER_OVERRIDDEN) }
             CONTROL_STRUCTURE ->  map.apply { remove(PARSER_TYPE_NAME) }
             JUMP_TARGET ->  map.apply { remove(PARSER_TYPE_NAME) }
@@ -287,7 +281,6 @@ object VertexMapper {
      */
     fun checkSchemaConstraints(fromLabel: String, toLabel: String, edge: String, silent: Boolean = false): Boolean {
         val outRule = when (fromLabel) {
-            ArrayInitializer.Label() -> ArrayInitializer.`Edges$`.`MODULE$`.Out().contains(edge)
             Binding.Label() -> Binding.`Edges$`.`MODULE$`.Out().contains(edge)
             MetaData.Label() -> MetaData.`Edges$`.`MODULE$`.Out().contains(edge)
             File.Label() -> File.`Edges$`.`MODULE$`.Out().contains(edge)
@@ -320,7 +313,6 @@ object VertexMapper {
             }
         }
         val toRule = when (toLabel) {
-            ArrayInitializer.Label() -> ArrayInitializer.`Edges$`.`MODULE$`.In().contains(edge)
             Binding.Label() -> Binding.`Edges$`.`MODULE$`.In().contains(edge)
             MetaData.Label() -> MetaData.`Edges$`.`MODULE$`.In().contains(edge)
             File.Label() -> File.`Edges$`.`MODULE$`.In().contains(edge)

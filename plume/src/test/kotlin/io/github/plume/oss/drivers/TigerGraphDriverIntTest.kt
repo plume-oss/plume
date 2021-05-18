@@ -85,19 +85,6 @@ class TigerGraphDriverIntTest {
     @Nested
     @DisplayName("Test driver vertex find and exist methods")
     inner class VertexAddAndExistsTests {
-        @Test
-        fun findAstVertex() {
-            val v1 = NewArrayInitializerBuilder().order(INT_1)
-            val v2 = NewArrayInitializerBuilder().order(INT_2)
-            assertFalse(driver.exists(v1))
-            assertFalse(driver.exists(v2))
-            driver.addVertex(v1)
-            assertTrue(driver.exists(v1))
-            assertFalse(driver.exists(v2))
-            driver.addVertex(v2)
-            assertTrue(driver.exists(v1))
-            assertTrue(driver.exists(v2))
-        }
 
         @Test
         fun findBindingVertex() {
@@ -623,14 +610,14 @@ class TigerGraphDriverIntTest {
         fun testGetIdInsideRange() {
             val ids1 = driver.getVertexIds(0, 10)
             assertTrue(ids1.isEmpty())
-            driver.addVertex(NewArrayInitializerBuilder().order(INT_1).id(1L))
+            driver.addVertex(NewBindingBuilder().name(STRING_1).signature(STRING_2).id(1L))
             val ids2 = driver.getVertexIds(0, 10)
             assertEquals(setOf(1L), ids2)
         }
 
         @Test
         fun testGetIdOutsideRange() {
-            driver.addVertex(NewArrayInitializerBuilder().order(INT_1).id(11L))
+            driver.addVertex(NewBindingBuilder().name(STRING_1).signature(STRING_2).id(11L))
             val ids1 = driver.getVertexIds(0, 10)
             assertEquals(emptySet<Long>(), ids1)
         }

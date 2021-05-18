@@ -83,19 +83,6 @@ class Neo4jDriverIntTest {
     @Nested
     @DisplayName("Test driver vertex find and exist methods")
     inner class VertexAddAndExistsTests {
-        @Test
-        fun findAstVertex() {
-            val v1 = NewArrayInitializerBuilder().order(INT_1)
-            val v2 = NewArrayInitializerBuilder().order(INT_2)
-            assertFalse(driver.exists(v1))
-            assertFalse(driver.exists(v2))
-            driver.addVertex(v1)
-            assertTrue(driver.exists(v1))
-            assertFalse(driver.exists(v2))
-            driver.addVertex(v2)
-            assertTrue(driver.exists(v1))
-            assertTrue(driver.exists(v2))
-        }
 
         @Test
         fun findBindingVertex() {
