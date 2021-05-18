@@ -7,6 +7,10 @@ and this project adheres to [Semantic Versioning](http://semver.org/).
 
 ## [Unreleased]
 
+### Changed
+
+- Upgraded `codepropertygraph` version to 1.3.151 and made respective changes.
+
 ## [0.5.10] - 2021-04-27
 
 ### Fixed
@@ -17,7 +21,7 @@ and this project adheres to [Semantic Versioning](http://semver.org/).
 
 ### Changed
 
-- Downgraded `codepropertygraph` version to 1.3.20.
+- Downgraded `codepropertygraph` version to 1.3.120.
 
 ### Fixed
 
