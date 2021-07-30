@@ -542,6 +542,7 @@ class Extractor(val driver: IDriver) {
     private fun configureSoot() {
         // set application mode
         Options.v().set_app(true)
+        Options.v().set_whole_program(true)
         // make sure classpath is configured correctly
         Options.v().set_soot_classpath(COMP_DIR)
         Options.v().set_prepend_classpath(true)
@@ -556,10 +557,10 @@ class Extractor(val driver: IDriver) {
         // keep variable names
         PhaseOptions.v().setPhaseOption("jb", "use-original-names:true")
         // call graph options
-        if (ExtractorOptions.callGraphAlg != ExtractorOptions.CallGraphAlg.NONE)
-            Options.v().set_whole_program(true)
-        if (ExtractorOptions.callGraphAlg == ExtractorOptions.CallGraphAlg.SPARK) {
+        if (ExtractorOptions.callGraphAlg != ExtractorOptions.CallGraphAlg.NONE) {
             Options.v().setPhaseOption("cg", "enabled:true")
+        }
+        if (ExtractorOptions.callGraphAlg == ExtractorOptions.CallGraphAlg.SPARK) {
             Options.v().setPhaseOption("cg.spark", "enabled:true")
         }
     }
@@ -585,8 +586,7 @@ class Extractor(val driver: IDriver) {
         if (classNames.isEmpty()) return emptyList()
         classNames.map(this::getQualifiedClassPath).forEach(Scene.v()::addBasicClass)
         Scene.v().loadBasicClasses()
-        Scene.v().loadDynamicClasses()
-        val cs = classNames.map { Pair(it, getQualifiedClassPath(it)) }
+        val cs = classNames.asSequence().map { Pair(it, getQualifiedClassPath(it)) }
             .map { Pair(it.first, Scene.v().loadClassAndSupport(it.second)) }
             .map { clsPair: Pair<File, SootClass> ->
                 clsPair.second.apply {
@@ -594,7 +594,15 @@ class Extractor(val driver: IDriver) {
                     this.setApplicationClass()
                     PlumeStorage.storeFileHash(this, f.hashCode().toString())
                 }
+            }.toList()
+        if (ExtractorOptions.callGraphAlg != ExtractorOptions.CallGraphAlg.NONE) {
+            Scene.v().classes.filter { it.isApplicationClass }
+                .flatMap { Scene.v().forceResolve(it.name, SootClass.BODIES).methods }
+                .distinct()
+                .toList().let { x ->
+                Scene.v().entryPoints = x
             }
+        }
         when (ExtractorOptions.callGraphAlg) {
             ExtractorOptions.CallGraphAlg.CHA -> CHATransformer.v().transform()
             ExtractorOptions.CallGraphAlg.SPARK -> SparkTransformer.v().transform("", ExtractorOptions.sparkOpts)

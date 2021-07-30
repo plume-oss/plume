@@ -24,7 +24,7 @@ object ExtractorOptions {
      * The call graph algorithm to specify for Soot to make use of during points-to-analysis. Choosing
      * [CallGraphAlg.NONE] will result in a intraprocedural CPG only.
      */
-    var callGraphAlg = CallGraphAlg.CHA
+    var callGraphAlg = CallGraphAlg.SPARK
 
     /**
      * A map to specify configuration options for Soot's SPARK call graph algorithm. An exhaustive list of these options
