@@ -586,6 +586,7 @@ class Extractor(val driver: IDriver) {
         if (classNames.isEmpty()) return emptyList()
         classNames.map(this::getQualifiedClassPath).forEach(Scene.v()::addBasicClass)
         Scene.v().loadBasicClasses()
+        Scene.v().loadDynamicClasses()
         val cs = classNames.asSequence().map { Pair(it, getQualifiedClassPath(it)) }
             .map { Pair(it.first, Scene.v().loadClassAndSupport(it.second)) }
             .map { clsPair: Pair<File, SootClass> ->
