@@ -68,22 +68,9 @@ class CGPass(private val g: BriefUnitGraph, private val driver: IDriver) : IUnit
             else -> null
         }?.let { callV ->
             if (!driver.exists(callV)) return
-            var foundAndConnectedCallTgt = false
             Scene.v().callGraph.edgesOutOf(unit).forEach { e: Edge ->
                 val (fullName, _, _) = SootToPlumeUtil.methodToStrings(e.tgt.method())
-                getMethodHead(fullName)?.let { tgtPlumeVertex ->
-                    builder.addEdge(callV, tgtPlumeVertex, CALL)
-                    foundAndConnectedCallTgt = true
-                }
-            }
-            // If call graph analysis fails because there is no main method, we will need to figure out call edges ourselves
-            // We can do this by looking if our call unit does not have any outgoing CALL edges.
-            // If there is no outgoing call edge from this call, then we should attempt to find it's target method
-            if (!foundAndConnectedCallTgt) {
-                val v = callV.build()
-                if (v.methodFullName().length > 1) {
-                    getMethodHead(v.methodFullName())?.let { mtdV -> builder.addEdge(callV, mtdV, CALL) }
-                }
+                getMethodHead(fullName)?.let { tgtPlumeVertex -> builder.addEdge(callV, tgtPlumeVertex, CALL) }
             }
         }
     }
