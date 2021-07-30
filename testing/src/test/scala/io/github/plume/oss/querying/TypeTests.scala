@@ -1,15 +1,16 @@
 package io.github.plume.oss.querying
 
 import io.github.plume.oss.PlumeCodeToCpgSuite
-import io.shiftleft.semanticcpg.language._
+import org.scalatest.Ignore
 
+@Ignore
 class TypeTests extends PlumeCodeToCpgSuite {
 
   override val code =
     """
       | package foo;
       | class Foo {
-      |  Long x;
+      |   Long x;
       |
       |   Integer myFunc(Object param) {
       |     Double y;

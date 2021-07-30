@@ -11,13 +11,13 @@ class CallTests extends PlumeCodeToCpgSuite {
 
   override val code = """
        class Foo {
-         int add(int x, int y) {
+         static int add(int x, int y) {
             return x + y;
          }
 
-        int main(int argc, char argv) {
-         return add(argc, 3);
-        }
+         static int main(int argc, char argv) {
+            return add(argc, 3);
+         }
        }
     """
 
@@ -33,13 +33,7 @@ class CallTests extends PlumeCodeToCpgSuite {
   }
 
   "should allow traversing from call to arguments" in {
-    cpg.call("add").argument.size shouldBe 3
-    val List(arg0) = cpg.call("add").argument(0).l
-    arg0.isInstanceOf[nodes.Identifier] shouldBe true
-    arg0.asInstanceOf[nodes.Identifier].name shouldBe "this"
-    arg0.code shouldBe "this"
-    arg0.order shouldBe 0
-    arg0.argumentIndex shouldBe 0
+    cpg.call("add").argument.size shouldBe 2
 
     val List(arg1) = cpg.call("add").argument(1).l
     arg1.isInstanceOf[nodes.Identifier] shouldBe true
@@ -56,11 +50,10 @@ class CallTests extends PlumeCodeToCpgSuite {
     arg2.argumentIndex shouldBe 2
   }
 
-  // TODO: This requires contains pass to work
-//  "should allow traversing from call to surrounding method" in {
-//    val List(x) = cpg.call("add").method.l
-//    x.name shouldBe "main"
-//  }
+  "should allow traversing from call to surrounding method" in {
+    val List(x) = cpg.call("add").method.l
+    x.name shouldBe "main"
+  }
 
   "should allow traversing from call to callee method" in {
     val List(x) = cpg.call("add").callee.l
