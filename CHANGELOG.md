@@ -7,6 +7,11 @@ and this project adheres to [Semantic Versioning](http://semver.org/).
 
 ## [Unreleased]
 
+### Changed
+
+- Upgrade ShiftLeft dependencies to 1.3.205
+- Removed `Binding` vertices
+
 ## [0.5.12] - 2021-07-30
 
 ### Changed

@@ -2,7 +2,8 @@ package io.github.plume.oss.querying
 
 import io.github.plume.oss.PlumeCodeToCpgSuite
 import io.shiftleft.semanticcpg.language._
-import io.shiftleft.semanticcpg.language.types.structure.File
+import io.shiftleft.semanticcpg.language.types.structure.FileTraversal
+
 import java.io.{File => JFile}
 
 class TypeDeclTests extends PlumeCodeToCpgSuite {
@@ -38,7 +39,7 @@ class TypeDeclTests extends PlumeCodeToCpgSuite {
 //    x.inheritsFromTypeFullName shouldBe List()
     x.aliasTypeFullName shouldBe None
     x.order shouldBe -1
-    x.filename shouldBe File.UNKNOWN
+    x.filename shouldBe FileTraversal.UNKNOWN
   }
 
 

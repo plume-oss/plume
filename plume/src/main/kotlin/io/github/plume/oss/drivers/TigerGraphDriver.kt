@@ -771,12 +771,6 @@ class TigerGraphDriver internal constructor() : IOverridenIdDriver, ISchemaSafeD
 
         private val VERTICES: String by lazy {
             """
-CREATE VERTEX ${BINDING}_VERT (
-    PRIMARY_ID id UINT,
-    _$NAME STRING,
-    _$SIGNATURE STRING
-) WITH primary_id_as_attribute="true"
-
 CREATE VERTEX ${META_DATA}_VERT (
     PRIMARY_ID id UINT,
     _$LANGUAGE STRING DEFAULT "${ExtractorConst.LANGUAGE_FRONTEND}",

@@ -24,7 +24,6 @@ object ExtractorConst {
     const val UNKNOWN = "<unknown>"
     const val GLOBAL = "<global>"
     val BOOLEAN_TYPES = setOf(
-        IS_METHOD_NEVER_OVERRIDDEN,
         IS_EXTERNAL
     )
     val INT_TYPES = setOf(
