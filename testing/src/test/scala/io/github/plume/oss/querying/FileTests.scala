@@ -2,7 +2,7 @@ package io.github.plume.oss.querying
 
 import io.github.plume.oss.PlumeCodeToCpgSuite
 import io.shiftleft.semanticcpg.language._
-import io.shiftleft.semanticcpg.language.types.structure.File
+import io.shiftleft.semanticcpg.language.types.structure.{FileTraversal => File}
 import java.io.{File => JFile}
 
 class FileTests extends PlumeCodeToCpgSuite {

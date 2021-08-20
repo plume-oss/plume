@@ -2,7 +2,6 @@ package io.github.plume.oss.querying
 
 import io.github.plume.oss.PlumeCodeToCpgSuite
 import io.shiftleft.semanticcpg.language._
-import io.shiftleft.semanticcpg.language.types.structure.File
 import java.io.{File => JFile}
 
 class NamespaceBlockTests extends PlumeCodeToCpgSuite {

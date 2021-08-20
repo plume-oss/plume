@@ -3,10 +3,8 @@ package io.github.plume.oss.drivers
 import io.github.plume.oss.TestDomainResources
 import io.github.plume.oss.TestDomainResources.Companion.BOOL_1
 import io.github.plume.oss.TestDomainResources.Companion.INT_1
-import io.github.plume.oss.TestDomainResources.Companion.INT_2
 import io.github.plume.oss.TestDomainResources.Companion.STRING_1
 import io.github.plume.oss.TestDomainResources.Companion.STRING_2
-import io.github.plume.oss.TestDomainResources.Companion.bindingVertex
 import io.github.plume.oss.TestDomainResources.Companion.blockVertex
 import io.github.plume.oss.TestDomainResources.Companion.callVertex
 import io.github.plume.oss.TestDomainResources.Companion.controlStructureVertex
@@ -83,20 +81,6 @@ class Neo4jDriverIntTest {
     @Nested
     @DisplayName("Test driver vertex find and exist methods")
     inner class VertexAddAndExistsTests {
-
-        @Test
-        fun findBindingVertex() {
-            val v1 = NewBindingBuilder().name(STRING_1).signature(STRING_2)
-            val v2 = NewBindingBuilder().name(STRING_2).signature(STRING_1)
-            assertFalse(driver.exists(v1))
-            assertFalse(driver.exists(v2))
-            driver.addVertex(v1)
-            assertTrue(driver.exists(v1))
-            assertFalse(driver.exists(v2))
-            driver.addVertex(v2)
-            assertTrue(driver.exists(v1))
-            assertTrue(driver.exists(v2))
-        }
 
         @Test
         fun findFieldIdentifierVertex() {
@@ -291,15 +275,6 @@ class Neo4jDriverIntTest {
         }
 
         @Test
-        fun testRefEdgeCreation() {
-            assertFalse(driver.exists(bindingVertex, methodVertex, REF))
-            driver.addEdge(bindingVertex, methodVertex, REF)
-            assertTrue(driver.exists(bindingVertex))
-            assertTrue(driver.exists(methodVertex))
-            assertTrue(driver.exists(bindingVertex, methodVertex, REF))
-        }
-
-        @Test
         fun testReceiverEdgeCreation() {
             assertFalse(driver.exists(callVertex, identifierVertex, RECEIVER))
             driver.addEdge(callVertex, identifierVertex, RECEIVER)
@@ -319,11 +294,11 @@ class Neo4jDriverIntTest {
 
         @Test
         fun testBindsEdgeCreation() {
-            assertFalse(driver.exists(typeDeclVertex, bindingVertex, BINDS))
-            driver.addEdge(typeDeclVertex, bindingVertex, BINDS)
+            assertFalse(driver.exists(typeDeclVertex, methodVertex, AST))
+            driver.addEdge(typeDeclVertex, methodVertex, AST)
             assertTrue(driver.exists(typeDeclVertex))
-            assertTrue(driver.exists(bindingVertex))
-            assertTrue(driver.exists(typeDeclVertex, bindingVertex, BINDS))
+            assertTrue(driver.exists(methodVertex))
+            assertTrue(driver.exists(typeDeclVertex, methodVertex, AST))
         }
 
         @Test
@@ -514,7 +489,7 @@ class Neo4jDriverIntTest {
 
         @Test
         fun testGetProgramStructure() {
-            val unknown = io.shiftleft.semanticcpg.language.types.structure.File.UNKNOWN()
+            val unknown = io.shiftleft.semanticcpg.language.types.structure.FileTraversal.UNKNOWN()
             driver.addVertex(NewFileBuilder().name(unknown).order(0).hash(Option.apply(unknown)))
             g = driver.getProgramStructure()
             val ns = g.nodes().asSequence().toList()

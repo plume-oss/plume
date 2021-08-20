@@ -49,7 +49,7 @@ object SootToPlumeUtil {
         return if (packageName != null) {
             File.separator + cls.name.replace(".", File.separator) + ".class"
         } else {
-            io.shiftleft.semanticcpg.language.types.structure.File.UNKNOWN()
+            io.shiftleft.semanticcpg.language.types.structure.FileTraversal.UNKNOWN()
         }
     }
 

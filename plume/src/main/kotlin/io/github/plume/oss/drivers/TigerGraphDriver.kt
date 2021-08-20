@@ -771,12 +771,6 @@ class TigerGraphDriver internal constructor() : IOverridenIdDriver, ISchemaSafeD
 
         private val VERTICES: String by lazy {
             """
-CREATE VERTEX ${BINDING}_VERT (
-    PRIMARY_ID id UINT,
-    _$NAME STRING,
-    _$SIGNATURE STRING
-) WITH primary_id_as_attribute="true"
-
 CREATE VERTEX ${META_DATA}_VERT (
     PRIMARY_ID id UINT,
     _$LANGUAGE STRING DEFAULT "${ExtractorConst.LANGUAGE_FRONTEND}",
@@ -786,6 +780,7 @@ CREATE VERTEX ${META_DATA}_VERT (
 
 CREATE VERTEX ${FILE}_VERT (
     PRIMARY_ID id UINT,
+    _$CODE STRING,
     _$NAME STRING,
     _$HASH STRING,
     _$ORDER INT
@@ -841,6 +836,7 @@ CREATE VERTEX ${METHOD_RETURN}_VERT (
 
 CREATE VERTEX ${MODIFIER}_VERT (
     PRIMARY_ID id UINT,
+    _$CODE STRING,
     _$MODIFIER_TYPE STRING,
     _$ORDER INT
 ) WITH primary_id_as_attribute="true"
@@ -856,6 +852,7 @@ CREATE VERTEX ${TYPE_DECL}_VERT (
     PRIMARY_ID id UINT,
     _$AST_PARENT_FULL_NAME STRING,
     _$AST_PARENT_TYPE STRING,
+    _$CODE STRING,
     _$NAME STRING,
     _$FULL_NAME STRING,
     _$FILENAME STRING,
@@ -865,12 +862,14 @@ CREATE VERTEX ${TYPE_DECL}_VERT (
 
 CREATE VERTEX ${TYPE_PARAMETER}_VERT (
     PRIMARY_ID id UINT,
+    _$CODE STRING,
     _$NAME STRING,
     _$ORDER INT
 ) WITH primary_id_as_attribute="true"
 
 CREATE VERTEX ${TYPE_ARGUMENT}_VERT (
     PRIMARY_ID id UINT,
+    _$CODE STRING,
     _$ORDER INT
 ) WITH primary_id_as_attribute="true"
 
@@ -884,12 +883,14 @@ CREATE VERTEX ${MEMBER}_VERT (
 
 CREATE VERTEX ${NAMESPACE}_VERT (
     PRIMARY_ID id UINT,
+    _$CODE STRING,
     _$NAME STRING,
     _$ORDER INT
 ) WITH primary_id_as_attribute="true"
 
 CREATE VERTEX ${NAMESPACE_BLOCK}_VERT (
     PRIMARY_ID id UINT,
+    _$CODE STRING,
     _$FULL_NAME STRING,
     _$FILENAME STRING,
     _$NAME STRING,
@@ -1129,7 +1130,7 @@ CREATE QUERY deleteMethod(STRING FULL_NAME) FOR GRAPH <GRAPH_NAME> SYNTAX v2 {
   allVert = start;
   # Get method's body vertices
   start = SELECT t
-          FROM start:s -((_AST>|_CONTAINS>|_REF>|_CFG>|_ARGUMENT>|_BINDS_TO>|_RECEIVER>|_CONDITION>|_BINDS>)*) - :t;
+          FROM start:s -((_AST>|_CONTAINS>|_REF>|_CFG>|_ARGUMENT>|_BINDS_TO>|_RECEIVER>|_CONDITION>)*) - :t;
   allVert = allVert UNION start;
 
   DELETE s FROM allVert:s;

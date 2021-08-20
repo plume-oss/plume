@@ -26,7 +26,6 @@ class TestDomainResources {
         val BOOL_1 = false
 
         val vertices = listOf<NewNodeBuilder>(
-            NewBindingBuilder().name(STRING_1).signature(STRING_2),
             NewBlockBuilder().typeFullName(STRING_1).code(STRING_1).order(INT_1).argumentIndex(INT_1)
                 .lineNumber(Option.apply(INT_1)).columnNumber(Option.apply(INT_1)),
             NewCallBuilder().methodFullName(STRING_1).argumentIndex(INT_1).dispatchType(DISPATCH_1)
@@ -116,7 +115,6 @@ class TestDomainResources {
         val jumpTargetVertex: NewJumpTargetBuilder =
             NewJumpTargetBuilder().name(STRING_1).argumentIndex(INT_1).code(STRING_1).order(INT_1)
                 .lineNumber(Option.apply(INT_1)).columnNumber(Option.apply(INT_1))
-        val bindingVertex: NewBindingBuilder = NewBindingBuilder().name(STRING_1).signature(STRING_2)
         val typeArgumentVertex: NewTypeArgumentBuilder = NewTypeArgumentBuilder().order(INT_1)
         val typeParameterVertex: NewTypeParameterBuilder = NewTypeParameterBuilder().name(STRING_1).order(INT_1)
         val fldIdentVertex: NewFieldIdentifierBuilder =
@@ -131,7 +129,7 @@ class TestDomainResources {
         val unknownVertex: NewUnknownBuilder =
             NewUnknownBuilder().typeFullName(STRING_1).code(STRING_1).order(INT_1).argumentIndex(INT_1)
                 .lineNumber(Option.apply(INT_1)).columnNumber(Option.apply(INT_1))
-        val modifierVertex: NewModifierBuilder = NewModifierBuilder().modifierType(MOD_1).order(INT_1)
+        val modifierVertex: NewModifierBuilder = NewModifierBuilder().modifierType(MOD_1).order(INT_1).code(STRING_2)
 
         val simpleCpgVertices = listOf(
             methodVertex,
@@ -150,7 +148,6 @@ class TestDomainResources {
             metaDataVertex,
             controlStructureVertex,
             jumpTargetVertex,
-            bindingVertex,
             typeArgumentVertex,
             typeParameterVertex,
             fldIdentVertex,
