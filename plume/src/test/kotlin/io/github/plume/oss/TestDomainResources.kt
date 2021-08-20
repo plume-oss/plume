@@ -129,7 +129,7 @@ class TestDomainResources {
         val unknownVertex: NewUnknownBuilder =
             NewUnknownBuilder().typeFullName(STRING_1).code(STRING_1).order(INT_1).argumentIndex(INT_1)
                 .lineNumber(Option.apply(INT_1)).columnNumber(Option.apply(INT_1))
-        val modifierVertex: NewModifierBuilder = NewModifierBuilder().modifierType(MOD_1).order(INT_1)
+        val modifierVertex: NewModifierBuilder = NewModifierBuilder().modifierType(MOD_1).order(INT_1).code(STRING_2)
 
         val simpleCpgVertices = listOf(
             methodVertex,

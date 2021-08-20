@@ -296,11 +296,11 @@ class TigerGraphDriverIntTest {
 
         @Test
         fun testBindsEdgeCreation() {
-            assertFalse(JanusGraphDriverIntTest.driver.exists(typeDeclVertex, methodVertex, AST))
-            JanusGraphDriverIntTest.driver.addEdge(typeDeclVertex, methodVertex, AST)
-            assertTrue(JanusGraphDriverIntTest.driver.exists(typeDeclVertex))
-            assertTrue(JanusGraphDriverIntTest.driver.exists(methodVertex))
-            assertTrue(JanusGraphDriverIntTest.driver.exists(typeDeclVertex, methodVertex, AST))
+            assertFalse(driver.exists(typeDeclVertex, methodVertex, AST))
+            driver.addEdge(typeDeclVertex, methodVertex, AST)
+            assertTrue(driver.exists(typeDeclVertex))
+            assertTrue(driver.exists(methodVertex))
+            assertTrue(driver.exists(typeDeclVertex, methodVertex, AST))
         }
 
         @Test

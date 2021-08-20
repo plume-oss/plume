@@ -118,7 +118,7 @@ tasks.withType(Test) {
 }
 
 test {
-    exclude "**/*IntTest*", "**/extractor/**"
+//    exclude "**/*IntTest*", "**/extractor/**"
 }
 
 task extractorTest(type: Test) {
