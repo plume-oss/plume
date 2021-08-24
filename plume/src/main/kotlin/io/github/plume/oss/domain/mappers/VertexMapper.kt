@@ -250,6 +250,8 @@ object VertexMapper {
             JUMP_TARGET ->  map.apply { remove(PARSER_TYPE_NAME) }
             METHOD_REF -> map.apply { remove(TYPE_FULL_NAME) }
             METHOD -> map.apply { remove(IS_VARIADIC) }
+            METHOD_PARAMETER_IN -> map.apply { remove(IS_VARIADIC) }
+            METHOD_PARAMETER_OUT -> map.apply { remove(IS_VARIADIC) }
             NodeTypes.UNKNOWN ->  map.apply { remove(CONTAINED_REF); remove(PARSER_TYPE_NAME) }
             else -> map
         }
