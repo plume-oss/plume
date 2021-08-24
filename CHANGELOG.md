@@ -9,8 +9,9 @@ and this project adheres to [Semantic Versioning](http://semver.org/).
 
 ### Changed
 
-- Upgrade ShiftLeft dependencies to 1.3.205
+- Upgrade ShiftLeft dependencies to 1.3.236
 - Removed `Binding` vertices
+- Can now handle new type arguments API of domain classes
 
 ## [0.5.12] - 2021-07-30
 
