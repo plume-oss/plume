@@ -24,10 +24,7 @@ import io.github.plume.oss.util.ExtractorConst.UNKNOWN
 import io.shiftleft.codepropertygraph.generated.EdgeTypes.*
 import io.shiftleft.codepropertygraph.generated.PropertyNames.NAME
 import io.shiftleft.codepropertygraph.generated.NodeTypes.NAMESPACE
-import io.shiftleft.codepropertygraph.generated.nodes.NewFileBuilder
-import io.shiftleft.codepropertygraph.generated.nodes.NewNamespaceBlockBuilder
-import io.shiftleft.codepropertygraph.generated.nodes.NewNamespaceBuilder
-import io.shiftleft.codepropertygraph.generated.nodes.NewNodeBuilder
+import io.shiftleft.codepropertygraph.generated.nodes.*
 import scala.Option
 import soot.SootClass
 
@@ -52,7 +49,7 @@ class FileAndPackagePass(private val driver: IDriver) : IProgramStructurePass {
         return cs.map { c -> buildFileAndPackage(c, ns) }.toList()
     }
 
-    private fun buildFileAndPackage(c: SootClass, ns: List<NewNodeBuilder>): SootClass {
+    private fun buildFileAndPackage(c: SootClass, ns: List<NewNodeBuilder<out NewNode>>): SootClass {
         val nb = cache.getOrMakeNamespaceBlock(c)
         val f = cache.getOrMakeFile(c)
         // (NAMESPACE_BLOCK) -REF-> (NAMESPACE)

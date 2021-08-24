@@ -18,8 +18,10 @@ package io.github.plume.oss.drivers
 import io.github.plume.oss.domain.exceptions.PlumeSchemaViolationException
 import io.github.plume.oss.domain.model.DeltaGraph
 import io.shiftleft.codepropertygraph.generated.nodes.NewMetaDataBuilder
+import io.shiftleft.codepropertygraph.generated.nodes.NewNode
 import io.shiftleft.codepropertygraph.generated.nodes.NewNodeBuilder
 import overflowdb.Graph
+import polyglot.ast.New
 
 /**
  * The minimal interface for all graph drivers.
@@ -33,7 +35,7 @@ interface IDriver : AutoCloseable {
      *
      * @param v the [NewNodeBuilder] to insert.
      */
-    fun addVertex(v: NewNodeBuilder)
+    fun addVertex(v: NewNodeBuilder<out NewNode>)
 
     /**
      * Checks if the given [NewNodeBuilder] exists in the database.
@@ -41,7 +43,7 @@ interface IDriver : AutoCloseable {
      * @param v the [NewNodeBuilder] to check existence of.
      * @return true if the vertex exists, false if otherwise.
      */
-    fun exists(v: NewNodeBuilder): Boolean
+    fun exists(v: NewNodeBuilder<out NewNode>): Boolean
 
     /**
      * Checks if there exists a directed edge of the given label between two [NewNodeBuilder] vertices.
@@ -51,7 +53,7 @@ interface IDriver : AutoCloseable {
      * @param edge the edge label.
      * @return true if the edge exists, false if otherwise.
      */
-    fun exists(src: NewNodeBuilder, tgt: NewNodeBuilder, edge: String): Boolean
+    fun exists(src: NewNodeBuilder<out NewNode>, tgt: NewNodeBuilder<out NewNode>, edge: String): Boolean
 
     /**
      * Creates an edge with the given label between two [NewNodeBuilder] vertices in the graph database.
@@ -63,7 +65,7 @@ interface IDriver : AutoCloseable {
      * @param edge the edge label.
      * @throws PlumeSchemaViolationException if the edge is illegal according to the CPG schema
      */
-    fun addEdge(src: NewNodeBuilder, tgt: NewNodeBuilder, edge: String)
+    fun addEdge(src: NewNodeBuilder<out NewNode>, tgt: NewNodeBuilder<out NewNode>, edge: String)
 
     /**
      * Adds all the operations contained within the delta graph in one or multiple bulk transactions. This will make
@@ -113,7 +115,7 @@ interface IDriver : AutoCloseable {
      * @param v The source vertex.
      * @return The [Graph] representation of the source vertex and its neighbouring vertices.
      */
-    fun getNeighbours(v: NewNodeBuilder): Graph
+    fun getNeighbours(v: NewNodeBuilder<out NewNode>): Graph
 
     /**
      * Given a vertex, will remove it from the graph if present.
@@ -137,7 +139,7 @@ interface IDriver : AutoCloseable {
      * @param tgt Incoming vertex.
      * @param edge The edge label of the edge to remove.
      */
-    fun deleteEdge(src: NewNodeBuilder, tgt: NewNodeBuilder, edge: String)
+    fun deleteEdge(src: NewNodeBuilder<out NewNode>, tgt: NewNodeBuilder<out NewNode>, edge: String)
 
     /**
      * Updates a vertex's property if the node exists.
@@ -164,7 +166,7 @@ interface IDriver : AutoCloseable {
      * @param label An optional vertex label if known to further filter results by.
      * @return A list of all vertices which match the predicates.
      */
-    fun getVerticesByProperty(propertyKey: String, propertyValue: Any, label: String? = null): List<NewNodeBuilder>
+    fun getVerticesByProperty(propertyKey: String, propertyValue: Any, label: String? = null): List<NewNodeBuilder<out NewNode>>
 
     /**
      * Get a list of the results from a given property in vertices.
@@ -180,7 +182,7 @@ interface IDriver : AutoCloseable {
      *
      * @param label The type of the vertex to obtain.
      */
-    fun getVerticesOfType(label: String): List<NewNodeBuilder>
+    fun getVerticesOfType(label: String): List<NewNodeBuilder<out NewNode>>
 
 }
 

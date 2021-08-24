@@ -24,7 +24,6 @@ import io.shiftleft.passes.DiffGraph
 import org.apache.logging.log4j.LogManager
 import org.apache.logging.log4j.Logger
 import overflowdb.Node
-import kotlin.math.log
 
 /**
  * Utility class to process [DiffGraph] changes.
@@ -58,8 +57,8 @@ object DiffGraphUtil {
                     )
                 }
                 is io.shiftleft.passes.`DiffGraph$Change$CreateEdge` -> {
-                    val src: NewNodeBuilder? = convertNode(change.src())
-                    val dst: NewNodeBuilder? = convertNode(change.dst())
+                    val src: NewNodeBuilder<out NewNode>? = convertNode(change.src())
+                    val dst: NewNodeBuilder<out NewNode>? = convertNode(change.dst())
                     if (src == null) logger.warn("Could not convert ${change.src()} from $change.")
                     if (dst == null) logger.warn("Could not convert ${change.dst()} from $change.")
                     if (src != null && dst != null) driver.addEdge(src, dst, change.label())
@@ -91,8 +90,8 @@ object DiffGraphUtil {
                     )
                 }
                 is io.shiftleft.passes.`DiffGraph$Change$CreateEdge` -> {
-                    val src: NewNodeBuilder? = convertNode(change.src())
-                    val dst: NewNodeBuilder? = convertNode(change.dst())
+                    val src: NewNodeBuilder<out NewNode>? = convertNode(change.src())
+                    val dst: NewNodeBuilder<out NewNode>? = convertNode(change.dst())
                     if (src == null) logger.warn("Could not convert ${change.src()} from $change.")
                     if (dst == null) logger.warn("Could not convert ${change.dst()} from $change.")
                     if (src != null && dst != null) builder.addEdge(src, dst, change.label())
@@ -104,7 +103,7 @@ object DiffGraphUtil {
         return builder.build()
     }
 
-    private fun convertNode(n: Any): NewNodeBuilder? =
+    private fun convertNode(n: Any): NewNodeBuilder<out NewNode>? =
         when (n) {
         is NewNode -> VertexMapper.mapToVertex(n)
         is Node -> VertexMapper.mapToVertex(n)

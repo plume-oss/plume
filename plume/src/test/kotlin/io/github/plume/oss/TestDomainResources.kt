@@ -25,7 +25,7 @@ class TestDomainResources {
         val MOD_2 = CONSTRUCTOR
         val BOOL_1 = false
 
-        val vertices = listOf<NewNodeBuilder>(
+        val vertices = listOf<NewNodeBuilder<out NewNode>>(
             NewBlockBuilder().typeFullName(STRING_1).code(STRING_1).order(INT_1).argumentIndex(INT_1)
                 .lineNumber(Option.apply(INT_1)).columnNumber(Option.apply(INT_1)),
             NewCallBuilder().methodFullName(STRING_1).argumentIndex(INT_1).dispatchType(DISPATCH_1)

@@ -114,12 +114,12 @@ class OverflowDbDriver internal constructor() : IDriver {
         }
     }
 
-    override fun addVertex(v: NewNodeBuilder) {
+    override fun addVertex(v: NewNodeBuilder<out NewNode>) {
         if (exists(v)) return
         PlumeTimer.measure(DriverTimeKey.DATABASE_WRITE) { createVertex(v) }
     }
 
-    private fun createVertex(v: NewNodeBuilder) {
+    private fun createVertex(v: NewNodeBuilder<out NewNode>) {
         val newNode = v.build()
         val node = graph.addNode(newNode.label())
         VertexMapper.stripUnusedProperties(
@@ -129,7 +129,7 @@ class OverflowDbDriver internal constructor() : IDriver {
         v.id(node.id())
     }
 
-    override fun exists(v: NewNodeBuilder): Boolean {
+    override fun exists(v: NewNodeBuilder<out NewNode>): Boolean {
         var res = false
         PlumeTimer.measure(DriverTimeKey.DATABASE_READ) {
             val maybeN = graph.node(v.id())
@@ -138,7 +138,7 @@ class OverflowDbDriver internal constructor() : IDriver {
         return res
     }
 
-    override fun exists(src: NewNodeBuilder, tgt: NewNodeBuilder, edge: String): Boolean {
+    override fun exists(src: NewNodeBuilder<out NewNode>, tgt: NewNodeBuilder<out NewNode>, edge: String): Boolean {
         var res = false
         PlumeTimer.measure(DriverTimeKey.DATABASE_READ) {
             if (exists(src) && exists(tgt)) {
@@ -151,14 +151,14 @@ class OverflowDbDriver internal constructor() : IDriver {
         return res
     }
 
-    override fun addEdge(src: NewNodeBuilder, tgt: NewNodeBuilder, edge: String) {
+    override fun addEdge(src: NewNodeBuilder<out NewNode>, tgt: NewNodeBuilder<out NewNode>, edge: String) {
         if (!checkSchemaConstraints(src, tgt, edge)) throw PlumeSchemaViolationException(src, tgt, edge)
         if (!exists(src)) addVertex(src)
         if (!exists(tgt)) addVertex(tgt)
         PlumeTimer.measure(DriverTimeKey.DATABASE_WRITE) { createEdge(src, tgt, edge) }
     }
 
-    private fun createEdge(src: NewNodeBuilder, tgt: NewNodeBuilder, edge: String) {
+    private fun createEdge(src: NewNodeBuilder<out NewNode>, tgt: NewNodeBuilder<out NewNode>, edge: String) {
         val srcNode = graph.node(src.id())
         val dstNode = graph.node(tgt.id())
         try {
@@ -234,7 +234,7 @@ class OverflowDbDriver internal constructor() : IDriver {
         return g
     }
 
-    override fun getNeighbours(v: NewNodeBuilder): Graph = deepCopyGraph(Traversals.getNeighbours(graph, v.id()))
+    override fun getNeighbours(v: NewNodeBuilder<out NewNode>): Graph = deepCopyGraph(Traversals.getNeighbours(graph, v.id()))
 
     override fun deleteVertex(id: Long, label: String?) {
         PlumeTimer.measure(DriverTimeKey.DATABASE_WRITE) {
@@ -242,14 +242,14 @@ class OverflowDbDriver internal constructor() : IDriver {
         }
     }
 
-    override fun deleteEdge(src: NewNodeBuilder, tgt: NewNodeBuilder, edge: String) {
+    override fun deleteEdge(src: NewNodeBuilder<out NewNode>, tgt: NewNodeBuilder<out NewNode>, edge: String) {
         if (!exists(src, tgt, edge)) return
         PlumeTimer.measure(DriverTimeKey.DATABASE_WRITE) {
             removeEdge(src, tgt, edge)
         }
     }
 
-    private fun removeEdge(src: NewNodeBuilder, tgt: NewNodeBuilder, edge: String) {
+    private fun removeEdge(src: NewNodeBuilder<out NewNode>, tgt: NewNodeBuilder<out NewNode>, edge: String) {
         val e = graph.node(src.id())?.outE(edge)?.next()
         if (e?.inNode()?.id() == tgt.id()) e.remove()
     }
@@ -283,8 +283,8 @@ class OverflowDbDriver internal constructor() : IDriver {
         propertyKey: String,
         propertyValue: Any,
         label: String?
-    ): List<NewNodeBuilder> {
-        val l = mutableListOf<NewNodeBuilder>()
+    ): List<NewNodeBuilder<out NewNode>> {
+        val l = mutableListOf<NewNodeBuilder<out NewNode>>()
         PlumeTimer.measure(DriverTimeKey.DATABASE_READ) {
             (if (label != null) graph.nodes(label) else graph.nodes()).asSequence()
                 .filter { it.property(propertyKey) == propertyValue }
@@ -308,8 +308,8 @@ class OverflowDbDriver internal constructor() : IDriver {
         return l
     }
 
-    override fun getVerticesOfType(label: String): List<NewNodeBuilder> {
-        val l = mutableListOf<NewNodeBuilder>()
+    override fun getVerticesOfType(label: String): List<NewNodeBuilder <out NewNode>> {
+        val l = mutableListOf<NewNodeBuilder<out NewNode>>()
         PlumeTimer.measure(DriverTimeKey.DATABASE_READ) {
             graph.nodes(label).asSequence()
                 .map(VertexMapper::mapToVertex)

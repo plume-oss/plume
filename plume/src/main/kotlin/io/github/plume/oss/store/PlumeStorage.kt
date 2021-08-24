@@ -16,10 +16,7 @@
 package io.github.plume.oss.store
 
 import io.github.plume.oss.domain.model.DeltaGraph
-import io.shiftleft.codepropertygraph.generated.nodes.NewCallBuilder
-import io.shiftleft.codepropertygraph.generated.nodes.NewMethod
-import io.shiftleft.codepropertygraph.generated.nodes.NewMethodBuilder
-import io.shiftleft.codepropertygraph.generated.nodes.NewNodeBuilder
+import io.shiftleft.codepropertygraph.generated.nodes.*
 import soot.SootClass
 import soot.SootMethod
 import soot.jimple.InvokeExpr
@@ -31,7 +28,7 @@ import java.util.concurrent.ConcurrentHashMap
  */
 object PlumeStorage {
 
-    private val methodBodyNodes = ConcurrentHashMap<SootMethod, MutableList<NewNodeBuilder>>()
+    private val methodBodyNodes = ConcurrentHashMap<SootMethod, MutableList<NewNodeBuilder<out NewNode>>>()
     private val savedCallGraphEdges = ConcurrentHashMap<String, MutableList<NewCallBuilder>>()
     private val methods = ConcurrentHashMap<String, NewMethodBuilder>()
     private val fileHashes = ConcurrentHashMap<SootClass, String>()
@@ -51,7 +48,7 @@ object PlumeStorage {
      *
      * @param sootMtd The method from Soot to cache for.
      */
-    fun getMethodStore(sootMtd: SootMethod): List<NewNodeBuilder> = methodBodyNodes[sootMtd] ?: emptyList()
+    fun getMethodStore(sootMtd: SootMethod): List<NewNodeBuilder<out NewNode>> = methodBodyNodes[sootMtd] ?: emptyList()
 
     /**
      * Caches the given Soot method to the given [NewNodeBuilder].
@@ -60,7 +57,7 @@ object PlumeStorage {
      * @param node The [NewNodeBuilder] to associate to.
      * @param index The index to place the associated [NewNodeBuilder] at.
      */
-    fun storeMethodNode(sootMtd: SootMethod, node: NewNodeBuilder, index: Int = -1) {
+    fun storeMethodNode(sootMtd: SootMethod, node: NewNodeBuilder<out NewNode>, index: Int = -1) {
         if (!methodBodyNodes.containsKey(sootMtd)) methodBodyNodes[sootMtd] = mutableListOf(node)
         else if (index <= -1) methodBodyNodes[sootMtd]?.add(node)
         else methodBodyNodes[sootMtd]?.add(index, node)
@@ -73,7 +70,7 @@ object PlumeStorage {
      * @param nodes The list of [NewNodeBuilder]s to associate to.
      * @param index The index to place the associated [NewNodeBuilder](s) at.
      */
-    fun storeMethodNode(sootMtd: SootMethod, nodes: List<NewNodeBuilder>, index: Int = -1) {
+    fun storeMethodNode(sootMtd: SootMethod, nodes: List<NewNodeBuilder<out NewNode>>, index: Int = -1) {
         if (!methodBodyNodes.containsKey(sootMtd)) methodBodyNodes[sootMtd] = nodes.toMutableList()
         else if (index <= -1) methodBodyNodes[sootMtd]?.addAll(nodes)
         else methodBodyNodes[sootMtd]?.addAll(index, nodes)

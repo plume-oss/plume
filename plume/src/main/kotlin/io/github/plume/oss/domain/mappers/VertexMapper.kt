@@ -20,7 +20,6 @@ import io.shiftleft.codepropertygraph.generated.NodeTypes
 import io.shiftleft.codepropertygraph.generated.NodeTypes.*
 import io.shiftleft.codepropertygraph.generated.PropertyNames.*
 import io.shiftleft.codepropertygraph.generated.nodes.*
-import io.shiftleft.proto.cpg.Cpg
 import org.apache.logging.log4j.LogManager
 import org.apache.logging.log4j.Logger
 import overflowdb.Node
@@ -42,7 +41,7 @@ object VertexMapper {
      * @param v The [Node] to deserialize.
      * @return a [NewNodeBuilder] represented by the information in the givennode.
      */
-    fun mapToVertex(v: Node): NewNodeBuilder {
+    fun mapToVertex(v: Node): NewNodeBuilder<out NewNode> {
         val map = prepareListsInMap(v.propertyMap()) + mapOf<String, Any>("id" to v.id(), "label" to v.label())
         return mapToVertex(map)
     }
@@ -53,7 +52,7 @@ object VertexMapper {
      * @param v The [NewNode] to deserialize.
      * @return a [NewNodeBuilder] represented by the information in the givennode.
      */
-    fun mapToVertex(v: NewNode): NewNodeBuilder {
+    fun mapToVertex(v: NewNode): NewNodeBuilder<out NewNode> {
         val map = prepareListsInMap(CollectionConverters.MapHasAsJava(v.properties()).asJava()) +
                 mapOf<String, Any>("label" to v.label())
         return mapToVertex(map)
@@ -65,7 +64,7 @@ object VertexMapper {
      * @param mapToConvert The [Map] to deserialize.
      * @return a [NewNodeBuilder] represented by the information in the given map.
      */
-    fun mapToVertex(mapToConvert: Map<String, Any>): NewNodeBuilder {
+    fun mapToVertex(mapToConvert: Map<String, Any>): NewNodeBuilder<out NewNode> {
         val map = HashMap<String, Any>()
         // Only ID should be left as Long
         mapToConvert.keys.forEach {
@@ -250,6 +249,9 @@ object VertexMapper {
             CONTROL_STRUCTURE ->  map.apply { remove(PARSER_TYPE_NAME) }
             JUMP_TARGET ->  map.apply { remove(PARSER_TYPE_NAME) }
             METHOD_REF -> map.apply { remove(TYPE_FULL_NAME) }
+            METHOD -> map.apply { remove(IS_VARIADIC) }
+            METHOD_PARAMETER_IN -> map.apply { remove(IS_VARIADIC) }
+            METHOD_PARAMETER_OUT -> map.apply { remove(IS_VARIADIC) }
             NodeTypes.UNKNOWN ->  map.apply { remove(CONTAINED_REF); remove(PARSER_TYPE_NAME) }
             else -> map
         }
@@ -263,7 +265,7 @@ object VertexMapper {
      * @param edge the edge label between the two vertices.
      * @return true if the edge complies with the CPG schema, false if otherwise.
      */
-    fun checkSchemaConstraints(fromV: NewNodeBuilder, toV: NewNodeBuilder, edge: String) =
+    fun checkSchemaConstraints(fromV: NewNodeBuilder<out NewNode>, toV: NewNodeBuilder<out NewNode>, edge: String) =
         checkSchemaConstraints(fromV.build().label(), toV.build().label(), edge)
 
     /**
