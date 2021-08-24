@@ -19,6 +19,7 @@ import io.github.plume.oss.domain.mappers.VertexMapper
 import io.github.plume.oss.domain.model.DeltaGraph
 import io.github.plume.oss.metrics.DriverTimeKey
 import io.github.plume.oss.metrics.PlumeTimer
+import io.shiftleft.codepropertygraph.generated.nodes.NewNode
 import io.shiftleft.codepropertygraph.generated.nodes.NewNodeBuilder
 import org.apache.logging.log4j.LogManager
 import org.apache.tinkerpop.gremlin.driver.Cluster
@@ -195,7 +196,7 @@ class NeptuneDriver internal constructor() : GremlinDriver() {
         }
     }
 
-    override fun findVertexTraversal(v: NewNodeBuilder): GraphTraversal<Vertex, Vertex> {
+    override fun findVertexTraversal(v: NewNodeBuilder<out NewNode>): GraphTraversal<Vertex, Vertex> {
         var result: GraphTraversal<Vertex, Vertex>? = null
         PlumeTimer.measure(DriverTimeKey.DATABASE_READ) {
             val strId = idMapper[v.id()]
@@ -206,13 +207,13 @@ class NeptuneDriver internal constructor() : GremlinDriver() {
     }
 
     /**
-     * Given a [NewNodeBuilder], creates a [Vertex] and translates the object's field properties to key-value
+     * Given a [NewNodeBuilder<out NewNode>], creates a [Vertex] and translates the object's field properties to key-value
      * pairs on the [Vertex] object. This is then added to this driver's [Graph].
      *
-     * @param v the [NewNodeBuilder] to translate into a [Vertex].
+     * @param v the [NewNodeBuilder<out NewNode>] to translate into a [Vertex].
      * @return the newly created [Vertex].
      */
-    override fun createVertex(v: NewNodeBuilder): Vertex {
+    override fun createVertex(v: NewNodeBuilder<out NewNode>): Vertex {
         val propertyMap = prepareVertexProperties(v)
         var traversalPointer = g.addV(v.build().label())
         for ((key, value) in propertyMap) traversalPointer = traversalPointer.property(key, value)
@@ -234,7 +235,7 @@ class NeptuneDriver internal constructor() : GremlinDriver() {
         idMapper.remove(id)
     }
 
-    override fun deleteEdge(src: NewNodeBuilder, tgt: NewNodeBuilder, edge: String) {
+    override fun deleteEdge(src: NewNodeBuilder<out NewNode>, tgt: NewNodeBuilder<out NewNode>, edge: String) {
         if (!exists(src, tgt, edge)) return
         PlumeTimer.measure(DriverTimeKey.DATABASE_WRITE) {
             val srcId = idMapper[src.id()]
@@ -253,7 +254,7 @@ class NeptuneDriver internal constructor() : GremlinDriver() {
     }
 
     // This handles ODB -> Neptune
-    override fun prepareVertexProperties(v: NewNodeBuilder): Map<String, Any> {
+    override fun prepareVertexProperties(v: NewNodeBuilder<out NewNode>): Map<String, Any> {
         val outMap = VertexMapper.prepareListsInMap(
             VertexMapper.stripUnusedProperties(
                 v.build().label(),
@@ -266,12 +267,12 @@ class NeptuneDriver internal constructor() : GremlinDriver() {
         return outMap
     }
 
-    override fun assignId(n: NewNodeBuilder, v: Vertex) = n.apply {
+    override fun assignId(n: NewNodeBuilder<out NewNode>, v: Vertex) = n.apply {
         idMapper[++id] = v.id().toString()
         this.id(id)
     }
 
-    override fun bulkAddNodes(vs: List<NewNodeBuilder>) {
+    override fun bulkAddNodes(vs: List<NewNodeBuilder<out NewNode>>) {
         if (vs.isEmpty()) return
         var gPtr: GraphTraversal<*, *>? = null
         vs.forEach { v ->
@@ -301,12 +302,12 @@ class NeptuneDriver internal constructor() : GremlinDriver() {
 
     override fun bulkTxReads(
         dg: DeltaGraph,
-        vAdds: MutableList<NewNodeBuilder>,
+        vAdds: MutableList<NewNodeBuilder<out NewNode>>,
         eAdds: MutableList<DeltaGraph.EdgeAdd>,
         vDels: MutableList<DeltaGraph.VertexDelete>,
         eDels: MutableList<DeltaGraph.EdgeDelete>,
     ) {
-        val temp = mutableListOf<NewNodeBuilder>()
+        val temp = mutableListOf<NewNodeBuilder<out NewNode>>()
         dg.changes.filterIsInstance<DeltaGraph.VertexAdd>().map { it.n }
             .filterNot(::exists)
             .forEachIndexed { i, va ->

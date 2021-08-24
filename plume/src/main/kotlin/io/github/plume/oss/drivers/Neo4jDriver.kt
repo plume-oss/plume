@@ -26,6 +26,7 @@ import io.shiftleft.codepropertygraph.generated.EdgeTypes.AST
 import io.shiftleft.codepropertygraph.generated.EdgeTypes.SOURCE_FILE
 import io.shiftleft.codepropertygraph.generated.NodeTypes.*
 import io.shiftleft.codepropertygraph.generated.nodes.NewMetaDataBuilder
+import io.shiftleft.codepropertygraph.generated.nodes.NewNode
 import io.shiftleft.codepropertygraph.generated.nodes.NewNodeBuilder
 import org.apache.logging.log4j.LogManager
 import org.neo4j.driver.AuthTokens
@@ -161,7 +162,7 @@ class Neo4jDriver internal constructor() : IDriver {
             .replace("\r", "\\\r")
             .replace("\\f", "\\\\f")
 
-    override fun addVertex(v: NewNodeBuilder) {
+    override fun addVertex(v: NewNodeBuilder<out NewNode>) {
         if (exists(v)) return
         PlumeTimer.measure(DriverTimeKey.DATABASE_WRITE) {
             driver.session().use { session ->
@@ -179,7 +180,7 @@ class Neo4jDriver internal constructor() : IDriver {
         }
     }
 
-    private fun createVertexPayload(v: NewNodeBuilder, idx: Int): String {
+    private fun createVertexPayload(v: NewNodeBuilder<out NewNode>, idx: Int): String {
         val node = v.build()
         val propertyMap = VertexMapper.stripUnusedProperties(
             v.build().label(),
@@ -199,7 +200,7 @@ class Neo4jDriver internal constructor() : IDriver {
         return "CREATE (n$idx:${node.label()} $payload)"
     }
 
-    override fun exists(v: NewNodeBuilder): Boolean = checkVertexExist(v.id(), v.build().label())
+    override fun exists(v: NewNodeBuilder<out NewNode>): Boolean = checkVertexExist(v.id(), v.build().label())
 
     private fun checkVertexExist(id: Long, label: String? = null): Boolean {
         var res = false
@@ -220,7 +221,7 @@ class Neo4jDriver internal constructor() : IDriver {
         return res
     }
 
-    override fun exists(src: NewNodeBuilder, tgt: NewNodeBuilder, edge: String): Boolean {
+    override fun exists(src: NewNodeBuilder<out NewNode>, tgt: NewNodeBuilder<out NewNode>, edge: String): Boolean {
         var res = false
         PlumeTimer.measure(DriverTimeKey.DATABASE_READ) { res = exists(src) && exists(tgt) }
         if (!res) return false
@@ -243,7 +244,7 @@ class Neo4jDriver internal constructor() : IDriver {
         return res
     }
 
-    override fun addEdge(src: NewNodeBuilder, tgt: NewNodeBuilder, edge: String) {
+    override fun addEdge(src: NewNodeBuilder<out NewNode>, tgt: NewNodeBuilder<out NewNode>, edge: String) {
         if (!checkSchemaConstraints(src, tgt, edge)) throw PlumeSchemaViolationException(src, tgt, edge)
         if (!exists(src)) addVertex(src)
         if (!exists(tgt)) addVertex(tgt)
@@ -267,7 +268,7 @@ class Neo4jDriver internal constructor() : IDriver {
     }
 
     override fun bulkTransaction(dg: DeltaGraph) {
-        val vAdds = mutableListOf<NewNodeBuilder>()
+        val vAdds = mutableListOf<NewNodeBuilder<out NewNode>>()
         val eAdds = mutableListOf<DeltaGraph.EdgeAdd>()
         val vDels = mutableListOf<DeltaGraph.VertexDelete>()
         val eDels = mutableListOf<DeltaGraph.EdgeDelete>()
@@ -282,8 +283,8 @@ class Neo4jDriver internal constructor() : IDriver {
                 .toCollection(eDels)
         }
         PlumeTimer.measure(DriverTimeKey.DATABASE_WRITE) {
-            val idToAlias = mutableMapOf<NewNodeBuilder, String>()
-            val vPayloads = mutableMapOf<NewNodeBuilder, String>()
+            val idToAlias = mutableMapOf<NewNodeBuilder<out NewNode>, String>()
+            val vPayloads = mutableMapOf<NewNodeBuilder<out NewNode>, String>()
             if (vAdds.isNotEmpty()) {
                 vAdds.distinctBy { it.id() }.chunked(50).forEach { vs ->
                     idToAlias.clear()
@@ -408,7 +409,7 @@ class Neo4jDriver internal constructor() : IDriver {
         return graph
     }
 
-    private fun addNodeToGraph(graph: Graph, v: NewNodeBuilder): Node {
+    private fun addNodeToGraph(graph: Graph, v: NewNodeBuilder<out NewNode>): Node {
         val maybeExistingNode = graph.node(v.id())
         if (maybeExistingNode != null) return maybeExistingNode
 
@@ -486,7 +487,7 @@ class Neo4jDriver internal constructor() : IDriver {
         return graph
     }
 
-    override fun getNeighbours(v: NewNodeBuilder): Graph {
+    override fun getNeighbours(v: NewNodeBuilder<out NewNode>): Graph {
         val graph = newOverflowGraph()
         PlumeTimer.measure(DriverTimeKey.DATABASE_READ) {
             driver.session().use { session ->
@@ -545,7 +546,7 @@ class Neo4jDriver internal constructor() : IDriver {
         }
     }
 
-    override fun deleteEdge(src: NewNodeBuilder, tgt: NewNodeBuilder, edge: String) {
+    override fun deleteEdge(src: NewNodeBuilder<out NewNode>, tgt: NewNodeBuilder<out NewNode>, edge: String) {
         if (!exists(src, tgt, edge)) return
         PlumeTimer.measure(DriverTimeKey.DATABASE_WRITE) {
             val srcN = src.build()
@@ -622,8 +623,8 @@ class Neo4jDriver internal constructor() : IDriver {
         propertyKey: String,
         propertyValue: Any,
         label: String?
-    ): List<NewNodeBuilder> {
-        val l = mutableListOf<NewNodeBuilder>()
+    ): List<NewNodeBuilder<out NewNode>> {
+        val l = mutableListOf<NewNodeBuilder<out NewNode>>()
         if (propertyKey.length != sanitizePayload(propertyKey).length || propertyKey.contains("[<|>]".toRegex())) return emptyList()
         PlumeTimer.measure(DriverTimeKey.DATABASE_READ) {
             driver.session().use { session ->
@@ -661,8 +662,8 @@ class Neo4jDriver internal constructor() : IDriver {
         return l
     }
 
-    override fun getVerticesOfType(label: String): List<NewNodeBuilder> {
-        val l = mutableListOf<NewNodeBuilder>()
+    override fun getVerticesOfType(label: String): List<NewNodeBuilder<out NewNode>> {
+        val l = mutableListOf<NewNodeBuilder<out NewNode>>()
         PlumeTimer.measure(DriverTimeKey.DATABASE_READ) {
             driver.session().use { session ->
                 session.writeTransaction { tx ->

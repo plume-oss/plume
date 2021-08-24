@@ -17,6 +17,7 @@ package io.github.plume.oss.domain.model
 
 import io.github.plume.oss.drivers.IDriver
 import io.github.plume.oss.drivers.TigerGraphDriver
+import io.shiftleft.codepropertygraph.generated.nodes.NewNode
 import io.shiftleft.codepropertygraph.generated.nodes.NewNodeBuilder
 import org.apache.logging.log4j.LogManager
 import overflowdb.Graph
@@ -47,7 +48,7 @@ class DeltaGraph private constructor(val changes: List<Delta>) {
         }
 
         fun d2g(g: Graph) {
-            fun addNode(n: NewNodeBuilder): Node {
+            fun addNode(n: NewNodeBuilder<out NewNode>): Node {
                 val b = n.build()
                 val v = g.addNode(n.id(), b.label())
                 b.properties().foreachEntry { key, value -> v.setProperty(key, value) }
@@ -87,19 +88,19 @@ class DeltaGraph private constructor(val changes: List<Delta>) {
          */
         fun getChanges() = changes.toList()
 
-        fun addVertex(n: NewNodeBuilder) = apply { changes.add(VertexAdd(n)) }
+        fun addVertex(n: NewNodeBuilder<out NewNode>) = apply { changes.add(VertexAdd(n)) }
 
-        fun deleteVertex(n: NewNodeBuilder) = apply { changes.add(VertexDelete(n.id(), n.build().label())) }
+        fun deleteVertex(n: NewNodeBuilder<out NewNode>) = apply { changes.add(VertexDelete(n.id(), n.build().label())) }
 
         fun deleteVertex(id: Long, label: String) = apply { changes.add(VertexDelete(id, label)) }
 
-        fun addEdge(src: NewNodeBuilder, tgt: NewNodeBuilder, e: String) = apply {
+        fun addEdge(src: NewNodeBuilder<out NewNode>, tgt: NewNodeBuilder<out NewNode>, e: String) = apply {
             changes.add(VertexAdd(src))
             changes.add(VertexAdd(tgt))
             changes.add(EdgeAdd(src, tgt, e))
         }
 
-        fun deleteEdge(src: NewNodeBuilder, tgt: NewNodeBuilder, e: String) =
+        fun deleteEdge(src: NewNodeBuilder<out NewNode>, tgt: NewNodeBuilder<out NewNode>, e: String) =
             apply { changes.add(EdgeDelete(src, tgt, e)) }
 
         fun addAll(otherChanges: List<Delta>) = apply { changes.addAll(otherChanges) }
@@ -108,9 +109,9 @@ class DeltaGraph private constructor(val changes: List<Delta>) {
     }
 
     abstract class Delta
-    data class VertexAdd(val n: NewNodeBuilder) : Delta()
+    data class VertexAdd(val n: NewNodeBuilder<out NewNode>) : Delta()
     data class VertexDelete(val id: Long, val label: String) : Delta()
-    data class EdgeAdd(val src: NewNodeBuilder, val dst: NewNodeBuilder, val e: String) : Delta()
-    data class EdgeDelete(val src: NewNodeBuilder, val dst: NewNodeBuilder, val e: String) : Delta()
+    data class EdgeAdd(val src: NewNodeBuilder<out NewNode>, val dst: NewNodeBuilder<out NewNode>, val e: String) : Delta()
+    data class EdgeDelete(val src: NewNodeBuilder<out NewNode>, val dst: NewNodeBuilder<out NewNode>, val e: String) : Delta()
 
 }

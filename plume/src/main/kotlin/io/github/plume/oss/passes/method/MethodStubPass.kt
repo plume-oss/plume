@@ -142,7 +142,7 @@ class MethodStubPass(private val m: SootMethod) : IMethodPass {
      *
      * @return a list of the METHOD_PARAMETER_* nodes.
      */
-    private fun projectBytecodeParams(rawParams: String): List<NewNodeBuilder> {
+    private fun projectBytecodeParams(rawParams: String): List<NewNodeBuilder<out NewNode>> {
         if (rawParams.isBlank()) return emptyList()
         return SootParserUtil.obtainParameters(rawParams).mapIndexed { i, p ->
             sequence {

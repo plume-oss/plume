@@ -32,6 +32,7 @@ import io.shiftleft.codepropertygraph.generated.NodeTypes
 import io.shiftleft.codepropertygraph.generated.NodeTypes.*
 import io.shiftleft.codepropertygraph.generated.PropertyNames.*
 import io.shiftleft.codepropertygraph.generated.nodes.NewMetaDataBuilder
+import io.shiftleft.codepropertygraph.generated.nodes.NewNode
 import io.shiftleft.codepropertygraph.generated.nodes.NewNodeBuilder
 import khttp.responses.Response
 import org.apache.logging.log4j.LogManager
@@ -180,14 +181,14 @@ class TigerGraphDriver internal constructor() : IOverridenIdDriver, ISchemaSafeD
      */
     fun timeout(value: Int): TigerGraphDriver = apply { timeout = value }
 
-    override fun addVertex(v: NewNodeBuilder) {
+    override fun addVertex(v: NewNodeBuilder<out NewNode>) {
         val payload = mutableMapOf<String, Any>(
             "vertices" to createVertexPayload(v)
         )
         post("graph/$GRAPH_NAME", payload)
     }
 
-    override fun exists(v: NewNodeBuilder): Boolean = checkVertexExists(v.id(), v.build().label())
+    override fun exists(v: NewNodeBuilder<out NewNode>): Boolean = checkVertexExists(v.id(), v.build().label())
 
     private fun checkVertexExists(id: Long, label: String?): Boolean {
         val route = "graph/$GRAPH_NAME/vertices/${label}_VERT"
@@ -199,7 +200,7 @@ class TigerGraphDriver internal constructor() : IOverridenIdDriver, ISchemaSafeD
         }
     }
 
-    override fun exists(src: NewNodeBuilder, tgt: NewNodeBuilder, edge: String): Boolean {
+    override fun exists(src: NewNodeBuilder<out NewNode>, tgt: NewNodeBuilder<out NewNode>, edge: String): Boolean {
         // No edge can be connected to a MetaDataVertex
         if (src is NewMetaDataBuilder || tgt is NewMetaDataBuilder) return false
         return try {
@@ -228,7 +229,7 @@ class TigerGraphDriver internal constructor() : IOverridenIdDriver, ISchemaSafeD
         }
     }
 
-    override fun addEdge(src: NewNodeBuilder, tgt: NewNodeBuilder, edge: String) {
+    override fun addEdge(src: NewNodeBuilder<out NewNode>, tgt: NewNodeBuilder<out NewNode>, edge: String) {
         if (!checkSchemaConstraints(src, tgt, edge)) throw PlumeSchemaViolationException(src, tgt, edge)
         if (exists(src, tgt, edge)) return
         val fromPayload = createVertexPayload(src)
@@ -252,7 +253,7 @@ class TigerGraphDriver internal constructor() : IOverridenIdDriver, ISchemaSafeD
 
     @Suppress("UNCHECKED_CAST")
     override fun bulkTransaction(dg: DeltaGraph) {
-        val vAdds = mutableListOf<NewNodeBuilder>()
+        val vAdds = mutableListOf<NewNodeBuilder<out NewNode>>()
         val eAdds = mutableListOf<DeltaGraph.EdgeAdd>()
         val vDels = mutableListOf<DeltaGraph.VertexDelete>()
         val eDels = mutableListOf<DeltaGraph.EdgeDelete>()
@@ -326,7 +327,7 @@ class TigerGraphDriver internal constructor() : IOverridenIdDriver, ISchemaSafeD
         return list1
     }
 
-    private fun createVertexPayload(v: NewNodeBuilder): MutableMap<String, MutableMap<String, Any>> {
+    private fun createVertexPayload(v: NewNodeBuilder<out NewNode>): MutableMap<String, MutableMap<String, Any>> {
         val node = v.build()
         val propertyMap = VertexMapper.stripUnusedProperties(
             v.build().label(),
@@ -348,8 +349,8 @@ class TigerGraphDriver internal constructor() : IOverridenIdDriver, ISchemaSafeD
             .toMutableMap()
 
     private fun createEdgePayload(
-        from: NewNodeBuilder,
-        to: NewNodeBuilder,
+        from: NewNodeBuilder<out NewNode>,
+        to: NewNodeBuilder<out NewNode>,
         edge: String
     ): MutableMap<String, MutableMap<String, MutableMap<String, Any>>> {
         val fromLabel = "${from.build().label()}_VERT"
@@ -388,7 +389,7 @@ class TigerGraphDriver internal constructor() : IOverridenIdDriver, ISchemaSafeD
         return payloadToGraph(result)
     }
 
-    override fun getNeighbours(v: NewNodeBuilder): Graph {
+    override fun getNeighbours(v: NewNodeBuilder<out NewNode>): Graph {
         val n = v.build()
         if (v is NewMetaDataBuilder) return newOverflowGraph().apply {
             val newNode = this.addNode(n.label())
@@ -409,7 +410,7 @@ class TigerGraphDriver internal constructor() : IOverridenIdDriver, ISchemaSafeD
         delete("graph/$GRAPH_NAME/vertices/${label}_VERT/$id")
     }
 
-    override fun deleteEdge(src: NewNodeBuilder, tgt: NewNodeBuilder, edge: String) {
+    override fun deleteEdge(src: NewNodeBuilder<out NewNode>, tgt: NewNodeBuilder<out NewNode>, edge: String) {
         if (!exists(src, tgt, edge)) return
         delete(
             "graph/$GRAPH_NAME/edges/${src.build().label()}_VERT/${src.id()}/_$edge/${
@@ -443,7 +444,7 @@ class TigerGraphDriver internal constructor() : IOverridenIdDriver, ISchemaSafeD
         propertyKey: String,
         propertyValue: Any,
         label: String?
-    ): List<NewNodeBuilder> {
+    ): List<NewNodeBuilder<out NewNode>> {
         val path = when {
             BOOLEAN_TYPES.contains(propertyKey) -> "getVerticesByBProperty"
             INT_TYPES.contains(propertyKey) -> "getVerticesByIProperty"
@@ -480,7 +481,7 @@ class TigerGraphDriver internal constructor() : IOverridenIdDriver, ISchemaSafeD
         return result.map { it as T }
     }
 
-    override fun getVerticesOfType(label: String): List<NewNodeBuilder> {
+    override fun getVerticesOfType(label: String): List<NewNodeBuilder<out NewNode>> {
         val result = (get(
             endpoint = "query/$GRAPH_NAME/getVerticesOfType",
             params = mapOf("LABEL" to "${label}_VERT")
@@ -528,7 +529,7 @@ class TigerGraphDriver internal constructor() : IOverridenIdDriver, ISchemaSafeD
         if (src != null && tgt != null) src.addEdge(edge, tgt)
     }
 
-    private fun vertexPayloadToNode(o: JSONObject): NewNodeBuilder {
+    private fun vertexPayloadToNode(o: JSONObject): NewNodeBuilder<out NewNode> {
         val attributes = o["attributes"] as JSONObject
         val vertexMap = mutableMapOf<String, Any>("label" to o["v_type"].toString().removeSuffix("_VERT"))
         attributes.keySet()

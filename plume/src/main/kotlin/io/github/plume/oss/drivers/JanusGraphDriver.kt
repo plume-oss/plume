@@ -23,6 +23,7 @@ import io.shiftleft.codepropertygraph.generated.NodeTypes
 import io.shiftleft.codepropertygraph.generated.PropertyNames
 import io.shiftleft.codepropertygraph.generated.PropertyNames.FULL_NAME
 import io.shiftleft.codepropertygraph.generated.PropertyNames.NAME
+import io.shiftleft.codepropertygraph.generated.nodes.NewNode
 import io.shiftleft.codepropertygraph.generated.nodes.NewNodeBuilder
 import org.apache.commons.configuration.PropertiesConfiguration
 import org.apache.logging.log4j.LogManager
@@ -96,7 +97,7 @@ class JanusGraphDriver internal constructor() : GremlinDriver(), ISchemaSafeDriv
         }
     }
 
-    override fun prepareVertexProperties(v: NewNodeBuilder): Map<String, Any> =
+    override fun prepareVertexProperties(v: NewNodeBuilder<out NewNode>): Map<String, Any> =
         super.prepareVertexProperties(v).mapKeys { "_${it.key}" }.toMap()
 
     override fun mapVertexKeys(props: Map<Any, Any>) = props.mapKeys { it.key.toString().removePrefix("_") }

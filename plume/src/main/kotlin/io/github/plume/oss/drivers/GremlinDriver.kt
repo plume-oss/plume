@@ -103,19 +103,19 @@ abstract class GremlinDriver : IDriver {
         }
     }
 
-    override fun addVertex(v: NewNodeBuilder) {
+    override fun addVertex(v: NewNodeBuilder<out NewNode>) {
         if (!exists(v)) createVertex(v)
     }
 
-    override fun exists(v: NewNodeBuilder): Boolean = findVertexTraversal(v).hasNext()
+    override fun exists(v: NewNodeBuilder<out NewNode>): Boolean = findVertexTraversal(v).hasNext()
 
-    protected open fun findVertexTraversal(v: NewNodeBuilder): GraphTraversal<Vertex, Vertex> {
+    protected open fun findVertexTraversal(v: NewNodeBuilder<out NewNode>): GraphTraversal<Vertex, Vertex> {
         var result: GraphTraversal<Vertex, Vertex>? = null
         PlumeTimer.measure(DriverTimeKey.DATABASE_READ) { result = g.V(v.id()) }
         return result!!
     }
 
-    override fun exists(src: NewNodeBuilder, tgt: NewNodeBuilder, edge: String): Boolean {
+    override fun exists(src: NewNodeBuilder<out NewNode>, tgt: NewNodeBuilder<out NewNode>, edge: String): Boolean {
         if (!findVertexTraversal(src).hasNext() || !findVertexTraversal(tgt).hasNext()) return false
         val a = findVertexTraversal(src).next()
         val b = findVertexTraversal(tgt).next()
@@ -126,7 +126,7 @@ abstract class GremlinDriver : IDriver {
         return res
     }
 
-    override fun addEdge(src: NewNodeBuilder, tgt: NewNodeBuilder, edge: String) {
+    override fun addEdge(src: NewNodeBuilder<out NewNode>, tgt: NewNodeBuilder<out NewNode>, edge: String) {
         if (!checkSchemaConstraints(src, tgt, edge)) throw PlumeSchemaViolationException(src, tgt, edge)
         if (exists(src, tgt, edge)) return
         val source = if (findVertexTraversal(src).hasNext()) findVertexTraversal(src).next()
@@ -137,7 +137,7 @@ abstract class GremlinDriver : IDriver {
     }
 
     override fun bulkTransaction(dg: DeltaGraph) {
-        val vAdds = mutableListOf<NewNodeBuilder>()
+        val vAdds = mutableListOf<NewNodeBuilder<out NewNode>>()
         val eAdds = mutableListOf<DeltaGraph.EdgeAdd>()
         val vDels = mutableListOf<DeltaGraph.VertexDelete>()
         val eDels = mutableListOf<DeltaGraph.EdgeDelete>()
@@ -147,7 +147,7 @@ abstract class GremlinDriver : IDriver {
 
     protected open fun bulkTxReads(
         dg: DeltaGraph,
-        vAdds: MutableList<NewNodeBuilder>,
+        vAdds: MutableList<NewNodeBuilder<out NewNode>>,
         eAdds: MutableList<DeltaGraph.EdgeAdd>,
         vDels: MutableList<DeltaGraph.VertexDelete>,
         eDels: MutableList<DeltaGraph.EdgeDelete>,
@@ -164,7 +164,7 @@ abstract class GremlinDriver : IDriver {
     }
 
     protected open fun bulkTxWrites(
-        vAdds: MutableList<NewNodeBuilder>,
+        vAdds: MutableList<NewNodeBuilder<out NewNode>>,
         eAdds: MutableList<DeltaGraph.EdgeAdd>,
         vDels: MutableList<DeltaGraph.VertexDelete>,
         eDels: MutableList<DeltaGraph.EdgeDelete>,
@@ -177,10 +177,10 @@ abstract class GremlinDriver : IDriver {
         }
     }
 
-    protected open fun bulkAddNodes(vs: List<NewNodeBuilder>) {
+    protected open fun bulkAddNodes(vs: List<NewNodeBuilder<out NewNode>>) {
         if (vs.isEmpty()) return
         var gPtr: GraphTraversal<*, *>? = null
-        val addedVs = mutableMapOf<String, NewNodeBuilder>()
+        val addedVs = mutableMapOf<String, NewNodeBuilder<out NewNode>>()
         vs.forEachIndexed { i, v ->
             if (!exists(v)) {
                 PlumeTimer.measure(DriverTimeKey.DATABASE_WRITE) {
@@ -214,7 +214,7 @@ abstract class GremlinDriver : IDriver {
         }
     }
 
-    protected open fun assignId(n: NewNodeBuilder, v: Vertex): NewNodeBuilder = n.id(v.id() as Long)
+    protected open fun assignId(n: NewNodeBuilder<out NewNode>, v: Vertex): NewNodeBuilder<out NewNode> = n.id(v.id() as Long)
 
     protected open fun bulkAddEdges(es: List<DeltaGraph.EdgeAdd>) {
         if (es.isEmpty()) return
@@ -239,7 +239,7 @@ abstract class GremlinDriver : IDriver {
      * @param v The [NewNode] to translate into a [Vertex].
      * @return The newly created [Vertex].
      */
-    protected open fun createVertex(v: NewNodeBuilder): Vertex {
+    protected open fun createVertex(v: NewNodeBuilder<out NewNode>): Vertex {
         var newVertex: Vertex? = null
         PlumeTimer.measure(DriverTimeKey.DATABASE_WRITE) {
             val newVertexTraversal = g.addV(v.build().label())
@@ -250,7 +250,7 @@ abstract class GremlinDriver : IDriver {
         return newVertex!!
     }
 
-    protected open fun prepareVertexProperties(v: NewNodeBuilder): Map<String, Any> =
+    protected open fun prepareVertexProperties(v: NewNodeBuilder<out NewNode>): Map<String, Any> =
         VertexMapper.prepareListsInMap(
             VertexMapper.stripUnusedProperties(
                 v.build().label(), CollectionConverters.MapHasAsJava(v.build().properties()).asJava().toMutableMap()
@@ -347,7 +347,7 @@ abstract class GremlinDriver : IDriver {
         return graph
     }
 
-    override fun getNeighbours(v: NewNodeBuilder): overflowdb.Graph {
+    override fun getNeighbours(v: NewNodeBuilder<out NewNode>): overflowdb.Graph {
         val n = v.build()
         val neighbourSubgraph: MutableList<Edge> = mutableListOf()
         if (v is NewMetaDataBuilder) return newOverflowGraph().apply {
@@ -372,7 +372,7 @@ abstract class GremlinDriver : IDriver {
         PlumeTimer.measure(DriverTimeKey.DATABASE_WRITE) { g.V(id).drop().iterate() }
     }
 
-    override fun deleteEdge(src: NewNodeBuilder, tgt: NewNodeBuilder, edge: String) {
+    override fun deleteEdge(src: NewNodeBuilder<out NewNode>, tgt: NewNodeBuilder<out NewNode>, edge: String) {
         if (!exists(src, tgt, edge)) return
         PlumeTimer.measure(DriverTimeKey.DATABASE_WRITE) {
             g.V(src.id()).outE(edge).where(un.otherV().hasId(tgt.id())).drop().iterate()
@@ -432,8 +432,8 @@ abstract class GremlinDriver : IDriver {
         propertyKey: String,
         propertyValue: Any,
         label: String?
-    ): List<NewNodeBuilder> {
-        val l = mutableListOf<NewNodeBuilder>()
+    ): List<NewNodeBuilder<out NewNode>> {
+        val l = mutableListOf<NewNodeBuilder<out NewNode>>()
         PlumeTimer.measure(DriverTimeKey.DATABASE_READ) {
             (if (label != null) g.V().hasLabel(label) else g.V())
                 .has("${if (this is JanusGraphDriver) "_" else ""}$propertyKey", propertyValue)
@@ -459,8 +459,8 @@ abstract class GremlinDriver : IDriver {
         return l
     }
 
-    override fun getVerticesOfType(label: String): List<NewNodeBuilder> {
-        val l = mutableListOf<NewNodeBuilder>()
+    override fun getVerticesOfType(label: String): List<NewNodeBuilder<out NewNode>> {
+        val l = mutableListOf<NewNodeBuilder<out NewNode>>()
         PlumeTimer.measure(DriverTimeKey.DATABASE_READ) {
             g.V().hasLabel(label)
                 .valueMap<Any>()
@@ -486,6 +486,7 @@ abstract class GremlinDriver : IDriver {
                     it.label()
                 )
             }.map { (src, dst, e) ->
+                val srcBuilder: NewNodeBuilder<out NewNode> = VertexMapper.mapToVertex(mapVertexKeys(src))
                 Triple(
                     addNodeToODB(overflowGraph, VertexMapper.mapToVertex(mapVertexKeys(src))),
                     addNodeToODB(overflowGraph, VertexMapper.mapToVertex(mapVertexKeys(dst))),
@@ -496,7 +497,7 @@ abstract class GremlinDriver : IDriver {
         return overflowGraph
     }
 
-    protected fun addNodeToODB(graph: overflowdb.Graph, nBuilder: NewNodeBuilder): Node? {
+    protected fun addNodeToODB(graph: overflowdb.Graph, nBuilder: NewNodeBuilder<out NewNode>): Node? {
         val n = nBuilder.build()
         val maybeNode = graph.node(nBuilder.id())
         return if (maybeNode != null) return maybeNode

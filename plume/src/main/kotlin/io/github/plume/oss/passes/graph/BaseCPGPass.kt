@@ -45,22 +45,22 @@ class BaseCPGPass(private val g: BriefUnitGraph) {
 
     private val logger = LogManager.getLogger(BaseCPGPass::javaClass)
     private val builder = DeltaGraph.Builder()
-    private val methodStore = mutableMapOf<Any, List<NewNodeBuilder>>()
+    private val methodStore = mutableMapOf<Any, List<NewNodeBuilder<out NewNode>>>()
     private val methodLocals = mutableMapOf<Value, NewLocalBuilder>()
     private lateinit var methodVertex: NewMethodBuilder
     private var currentLine = -1
     private var currentCol = -1
 
-    private fun addToStore(e: Any, vararg ns: NewNodeBuilder, index: Int = -1) {
+    private fun addToStore(e: Any, vararg ns: NewNodeBuilder<out NewNode>, index: Int = -1) {
         if (index == -1)
-            methodStore.computeIfPresent(e) { _: Any, u: List<NewNodeBuilder> -> u + ns.toList() }
-        else methodStore.computeIfPresent(e) { _: Any, u: List<NewNodeBuilder> ->
+            methodStore.computeIfPresent(e) { _: Any, u: List<NewNodeBuilder<out NewNode>> -> u + ns.toList() }
+        else methodStore.computeIfPresent(e) { _: Any, u: List<NewNodeBuilder<out NewNode>> ->
             u.subList(0, index) + ns.toList() + u.subList(index, u.size)
         }
         methodStore.computeIfAbsent(e) { ns.toList() }
     }
 
-    private fun getFromStore(e: Any): List<NewNodeBuilder> = methodStore[e] ?: emptyList()
+    private fun getFromStore(e: Any): List<NewNodeBuilder<out NewNode>> = methodStore[e] ?: emptyList()
 
     /**
      * Constructs a AST, CFG, PDG pass on the [BriefUnitGraph] constructed with this object. Returns the result as a
@@ -163,7 +163,7 @@ class BaseCPGPass(private val g: BriefUnitGraph) {
      *
      * @param unit The [Unit] from which AST vertices and edges will be constructed.
      */
-    private fun projectUnitAsAst(unit: Unit, childIdx: Int): NewNodeBuilder? {
+    private fun projectUnitAsAst(unit: Unit, childIdx: Int): NewNodeBuilder<out NewNode>? {
         currentLine = unit.javaSourceStartLineNumber
         currentCol = unit.javaSourceStartColumnNumber
 
@@ -221,7 +221,7 @@ class BaseCPGPass(private val g: BriefUnitGraph) {
         }
     }
 
-    private fun projectUnknownUnit(unit: Stmt, op: Value, childIdx: Int): NewNodeBuilder {
+    private fun projectUnknownUnit(unit: Stmt, op: Value, childIdx: Int): NewNodeBuilder<out NewNode> {
         val (opVertex, _) = projectOp(op, 1)
         val throwVertex = NewUnknownBuilder()
             .order(childIdx)
@@ -264,9 +264,9 @@ class BaseCPGPass(private val g: BriefUnitGraph) {
     }
 
     private fun projectSwitchTarget(
-        lookupVertices: List<NewNodeBuilder>,
+        lookupVertices: List<NewNodeBuilder<out NewNode>>,
         lookupValue: Int,
-        conditionVertex: NewNodeBuilder,
+        conditionVertex: NewNodeBuilder<out NewNode>,
         tgt: Unit
     ) {
         val tgtV = lookupVertices.first { it is NewJumpTargetBuilder && it.build().argumentIndex() == lookupValue }
@@ -275,8 +275,8 @@ class BaseCPGPass(private val g: BriefUnitGraph) {
 
     private fun projectDefaultAndCondition(
         unit: SwitchStmt,
-        switchVertices: List<NewNodeBuilder>,
-        conditionalVertex: NewNodeBuilder
+        switchVertices: List<NewNodeBuilder<out NewNode>>,
+        conditionalVertex: NewNodeBuilder<out NewNode>
     ) {
         unit.defaultTarget.let { defaultUnit ->
             val tgtV = switchVertices.first { it is NewJumpTargetBuilder && it.build().name() == "default" }
@@ -285,8 +285,8 @@ class BaseCPGPass(private val g: BriefUnitGraph) {
     }
 
     private fun projectTargetPath(
-        lookupVertex: NewNodeBuilder,
-        tgtV: NewNodeBuilder,
+        lookupVertex: NewNodeBuilder<out NewNode>,
+        tgtV: NewNodeBuilder<out NewNode>,
         tgt: Unit
     ) {
         builder.addEdge(lookupVertex, tgtV, CFG)
@@ -306,8 +306,8 @@ class BaseCPGPass(private val g: BriefUnitGraph) {
      * METHOD_PARAMETER_OUT -EVAL_TYPE-> TYPE
      * METHOD_PARAMETER_IN -PARAMETER_LINK-> METHOD_PARAMETER_OUT
      */
-    private fun buildParameters(graph: BriefUnitGraph): List<NewNodeBuilder> {
-        val params = mutableListOf<NewNodeBuilder>()
+    private fun buildParameters(graph: BriefUnitGraph): List<NewNodeBuilder<out NewNode>> {
+        val params = mutableListOf<NewNodeBuilder<out NewNode>>()
         graph.body.parameterLocals
             .forEachIndexed { i, local ->
                 projectMethodParameterIn(local, currentLine, currentCol, i + 1)
@@ -403,7 +403,7 @@ class BaseCPGPass(private val g: BriefUnitGraph) {
      * @param unit The [InvokeExpr] from which a [NewCall] will be constructed.
      * @return the [NewCall] constructed.
      */
-    private fun projectCallVertex(unit: InvokeExpr, childIdx: Int): NewNodeBuilder {
+    private fun projectCallVertex(unit: InvokeExpr, childIdx: Int): NewNodeBuilder<out NewNode> {
         val args = unit.args + if (unit is DynamicInvokeExpr) unit.bootstrapArgs else listOf()
         val signature = "${unit.type}(${unit.methodRef.parameterTypes.joinToString(separator = ",")})"
         val code = "${unit.methodRef.name}(${args.joinToString(separator = ", ")})"
@@ -418,7 +418,7 @@ class BaseCPGPass(private val g: BriefUnitGraph) {
             .columnNumber(Option.apply(currentCol))
             .argumentIndex(childIdx)
             .dispatchType(if (unit.methodRef.isStatic) DispatchTypes.STATIC_DISPATCH else DispatchTypes.DYNAMIC_DISPATCH)
-        val argVertices = mutableListOf<NewNodeBuilder>(callVertex)
+        val argVertices = mutableListOf<NewNodeBuilder<out NewNode>>(callVertex)
         PlumeStorage.addCall(unit, callVertex)
         // Create vertices for arguments
         args.forEachIndexed { i, arg ->
@@ -664,7 +664,7 @@ class BaseCPGPass(private val g: BriefUnitGraph) {
         currentLine: Int,
         currentCol: Int,
         childIdx: Int = 1,
-    ): Pair<NewNodeBuilder, NewNodeBuilder> {
+    ): Pair<NewNodeBuilder<out NewNode>, NewNodeBuilder<out NewNode>> {
         val indexAccess = NewCallBuilder()
             .name(Operators.indexAccess)
             .code(arrRef.toString())
@@ -687,7 +687,7 @@ class BaseCPGPass(private val g: BriefUnitGraph) {
      * @param expr The [BinopExpr] from which a [NewCallBuilder] and its children vertices will be constructed.
      * @return the [NewCallBuilder] constructed as the first and the CFG start node as the second.
      */
-    private fun projectBinopExpr(expr: BinopExpr, childIdx: Int): Pair<NewCallBuilder, NewNodeBuilder> {
+    private fun projectBinopExpr(expr: BinopExpr, childIdx: Int): Pair<NewCallBuilder, NewNodeBuilder<out NewNode>> {
         val binOpExpr = SootToPlumeUtil.parseBinopExpr(expr)
         val binOpCall = NewCallBuilder()
             .name(binOpExpr)
@@ -709,8 +709,8 @@ class BaseCPGPass(private val g: BriefUnitGraph) {
     private fun handleAssignmentOps(
         left: Value,
         right: Value,
-        rootVertex: NewNodeBuilder
-    ): Pair<NewNodeBuilder, NewNodeBuilder> {
+        rootVertex: NewNodeBuilder<out NewNode>
+    ): Pair<NewNodeBuilder<out NewNode>, NewNodeBuilder<out NewNode>> {
         val (op1Vert, _) = projectOp(left, 1)
         builder.addEdge(rootVertex, op1Vert, AST)
         builder.addEdge(rootVertex, op1Vert, ARGUMENT)
@@ -732,7 +732,7 @@ class BaseCPGPass(private val g: BriefUnitGraph) {
      * Projects an operand. Sometimes these operands are nested and so the return is a pair. The pair is:
      * (Main Vertex, CFG Start Vertex)
      */
-    private fun projectOp(expr: Value, childIdx: Int): Pair<NewNodeBuilder, NewNodeBuilder> {
+    private fun projectOp(expr: Value, childIdx: Int): Pair<NewNodeBuilder<out NewNode>, NewNodeBuilder<out NewNode>> {
         val singleNode = when (expr) {
             is Local -> createIdentifierVertex(expr, currentLine, currentCol, childIdx)
             is IdentityRef -> projectIdentityRef(expr, currentLine, currentCol, childIdx)
@@ -771,7 +771,7 @@ class BaseCPGPass(private val g: BriefUnitGraph) {
     }
 
     private fun projectFieldAccess(fieldRef: FieldRef, childIdx: Int): NewCallBuilder {
-        val fieldAccessVars = mutableListOf<NewNodeBuilder>()
+        val fieldAccessVars = mutableListOf<NewNodeBuilder<out NewNode>>()
         val leftOp = when (fieldRef) {
             is StaticFieldRef -> fieldRef.fieldRef.declaringClass().type
             is InstanceFieldRef -> fieldRef.base.type
@@ -906,28 +906,28 @@ class BaseCPGPass(private val g: BriefUnitGraph) {
             }
 
 
-    private fun projectInstanceOfExpr(expr: InstanceOfExpr, childIdx: Int): Pair<NewNodeBuilder, NewNodeBuilder> {
+    private fun projectInstanceOfExpr(expr: InstanceOfExpr, childIdx: Int): Pair<NewNodeBuilder<out NewNode>, NewNodeBuilder<out NewNode>> {
         val (instanceOf, op1) = projectUnaryCall(expr, expr.op, childIdx)
         instanceOf.name(Operators.instanceOf)
             .methodFullName(Operators.instanceOf)
         return Pair(instanceOf, op1)
     }
 
-    private fun projectLengthExpr(expr: LengthExpr, childIdx: Int): Pair<NewNodeBuilder, NewNodeBuilder> {
+    private fun projectLengthExpr(expr: LengthExpr, childIdx: Int): Pair<NewNodeBuilder<out NewNode>, NewNodeBuilder<out NewNode>> {
         val (lengthOf, op1) = projectUnaryCall(expr, expr.op, childIdx)
         lengthOf.name("<operator>.lengthOf")
             .methodFullName("<operator>.lengthOf")
         return Pair(lengthOf, op1)
     }
 
-    private fun projectNegExpr(expr: NegExpr, childIdx: Int): Pair<NewNodeBuilder, NewNodeBuilder> {
+    private fun projectNegExpr(expr: NegExpr, childIdx: Int): Pair<NewNodeBuilder<out NewNode>, NewNodeBuilder<out NewNode>> {
         val (negExpr, op1) = projectUnaryCall(expr, expr.op, childIdx)
         negExpr.name(Operators.minus)
             .methodFullName(Operators.minus)
         return Pair(negExpr, op1)
     }
 
-    private fun projectCastExpr(expr: CastExpr, childIdx: Int): Pair<NewCallBuilder, NewNodeBuilder> {
+    private fun projectCastExpr(expr: CastExpr, childIdx: Int): Pair<NewCallBuilder, NewNodeBuilder<out NewNode>> {
         val (castBlock, op1) = projectUnaryCall(expr, expr.op, childIdx)
         castBlock.name(Operators.cast)
             .methodFullName(Operators.cast)
@@ -939,7 +939,7 @@ class BaseCPGPass(private val g: BriefUnitGraph) {
      * Lays out the basic generation of unary calls. The actual call requires NAME and METHOD_FULL_NAME to
      * be specified before it is ready.
      */
-    private fun projectUnaryCall(expr: Expr, op: Value, childIdx: Int): Pair<NewCallBuilder, NewNodeBuilder> {
+    private fun projectUnaryCall(expr: Expr, op: Value, childIdx: Int): Pair<NewCallBuilder, NewNodeBuilder<out NewNode>> {
         val callBlock = NewCallBuilder()
             .code(expr.toString())
             .dispatchType(DispatchTypes.STATIC_DISPATCH)
