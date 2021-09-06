@@ -63,7 +63,8 @@ class BasicExtractorTest {
     @Test
     fun validSourceFileTest() {
         extractor.load(validSourceFile)
-        extractor.project()
+        extractor.project(false)
+        extractor.projectReachingDefs()
         g = driver.getWholeGraph()
         val ns = g.nodes().asSequence().toList()
         assertNotNull(ns.filterIsInstance<NamespaceBlock>().find { it.name() == "extractor_tests" })
