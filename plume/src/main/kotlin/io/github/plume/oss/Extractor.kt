@@ -180,6 +180,9 @@ class Extractor(val driver: IDriver) {
     /**
      * Projects all loaded classes to the graph database. This expects that all application files part of the artifact
      * are loaded.
+     *
+     * @param includeReachingDefs if true, will include calculating REACHING_DEF chains. If false, will keep method CPGs
+     * in memory storage.
      */
     fun project(includeReachingDefs: Boolean = true): Extractor {
         /*
@@ -347,7 +350,8 @@ class Extractor(val driver: IDriver) {
     }
 
     /**
-     * Runs reaching defs analysis - necessary for data-flow analysis queries i.e. reachableBy()
+     * Runs reaching defs analysis - necessary for data-flow analysis queries i.e. reachableBy(). Will not make changes
+     * if [project] ran in default mode i.e. project(includeReachingDefs = true).
      */
     fun projectReachingDefs() {
         logger.info("Running data flow passes")
