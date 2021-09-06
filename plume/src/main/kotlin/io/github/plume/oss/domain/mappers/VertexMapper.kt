@@ -20,10 +20,8 @@ import io.shiftleft.codepropertygraph.generated.NodeTypes
 import io.shiftleft.codepropertygraph.generated.NodeTypes.*
 import io.shiftleft.codepropertygraph.generated.PropertyNames.*
 import io.shiftleft.codepropertygraph.generated.nodes.*
-import io.shiftleft.proto.cpg.Cpg
 import org.apache.logging.log4j.LogManager
 import org.apache.logging.log4j.Logger
-import overflowdb.Element
 import overflowdb.Node
 import scala.Option
 import scala.collection.immutable.`$colon$colon`
@@ -85,13 +83,13 @@ object VertexMapper {
                 .hash(Option.apply(map.getOrDefault(HASH, UNKNOWN) as String))
                 .order(map.getOrDefault(ORDER, -1) as Int)
             Method.Label() -> NewMethodBuilder()
-                .astParentFullName(map[AST_PARENT_FULL_NAME] as String)
-                .astParentType(map[AST_PARENT_TYPE] as String)
+                .astParentFullName(map.getOrDefault(AST_PARENT_FULL_NAME, "<empty>") as String)
+                .astParentType(map.getOrDefault(AST_PARENT_TYPE, "<empty>") as String)
                 .name(map.getOrDefault(NAME, "<empty>") as String)
                 .code(map.getOrDefault(CODE, "<empty>") as String)
                 .isExternal(map.getOrDefault(IS_EXTERNAL, false) as Boolean)
                 .fullName(map.getOrDefault(FULL_NAME, "<empty>") as String)
-                .filename(map[FILENAME] as String)
+                .filename(map.getOrDefault(FILENAME, "<empty>") as String)
                 .signature(map.getOrDefault(SIGNATURE, "") as String)
                 .lineNumber(Option.apply(map[LINE_NUMBER] as Int))
                 .columnNumber(Option.apply(map[COLUMN_NUMBER] as Int))
@@ -128,10 +126,10 @@ object VertexMapper {
                 .fullName(map.getOrDefault(FULL_NAME, "<empty>") as String)
                 .typeDeclFullName(map[TYPE_DECL_FULL_NAME] as String)
             TypeDecl.Label() -> NewTypeDeclBuilder()
-                .astParentFullName(map[AST_PARENT_FULL_NAME] as String)
-                .astParentType(map[AST_PARENT_TYPE] as String)
+                .astParentFullName(map.getOrDefault(AST_PARENT_FULL_NAME, "<empty>") as String)
+                .astParentType(map.getOrDefault(AST_PARENT_TYPE, "<empty>") as String)
                 .name(map.getOrDefault(NAME, "<empty>") as String)
-                .filename(map[FILENAME] as String)
+                .filename(map.getOrDefault(FILENAME, "<empty>") as String)
                 .fullName(map.getOrDefault(FULL_NAME, "<empty>") as String)
                 .order(map.getOrDefault(ORDER, -1) as Int)
                 .isExternal(map.getOrDefault(IS_EXTERNAL, false) as Boolean)
@@ -150,7 +148,7 @@ object VertexMapper {
                 .name(map.getOrDefault(NAME, "<empty>") as String)
             NamespaceBlock.Label() -> NewNamespaceBlockBuilder()
                 .fullName(map.getOrDefault(FULL_NAME, "<empty>") as String)
-                .filename(map[FILENAME] as String)
+                .filename(map.getOrDefault(FILENAME, "<empty>") as String)
                 .name(map.getOrDefault(NAME, "<empty>") as String)
                 .order(map.getOrDefault(ORDER, -1) as Int)
             Literal.Label() -> NewLiteralBuilder()
