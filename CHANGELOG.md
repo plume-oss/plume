@@ -12,6 +12,8 @@ and this project adheres to [Semantic Versioning](http://semver.org/).
 - Upgrade ShiftLeft dependencies to 1.3.236
 - Removed `Binding` vertices
 - Can now handle new type arguments API of domain classes
+- `Extractor::project` now takes an optional boolean to disable reaching defs calculation
+- `Extractor::projectReachingDefs` now calculates reaching defs separately
 
 ## [0.5.12] - 2021-07-30
 

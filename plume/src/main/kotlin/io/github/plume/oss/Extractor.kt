@@ -180,8 +180,11 @@ class Extractor(val driver: IDriver) {
     /**
      * Projects all loaded classes to the graph database. This expects that all application files part of the artifact
      * are loaded.
+     *
+     * @param includeReachingDefs if true, will include calculating REACHING_DEF chains. If false, will keep method CPGs
+     * in memory storage.
      */
-    fun project(): Extractor {
+    fun project(includeReachingDefs: Boolean = true): Extractor {
         /*
             Load and compile files then feed them into Soot
          */
@@ -335,13 +338,25 @@ class Extractor(val driver: IDriver) {
             PlumeTimer.measure(ExtractorTimeKey.BASE_CPG_BUILDING) { buildMethods(methodsToBuild, sootUnitGraphs) }
         // Clear all Soot resources and storage
         this.clear()
-        /*
-            Method body level analysis - only done on new/updated methods
-         */
+        if (includeReachingDefs) {
+            /*
+                Method body level analysis - only done on new/updated methods
+             */
+            logger.info("Running data flow passes")
+            PlumeTimer.measure(ExtractorTimeKey.DATA_FLOW_PASS) { DataFlowPass(driver).runPass() }
+            PlumeStorage.methodCpgs.clear()
+        }
+        return this
+    }
+
+    /**
+     * Runs reaching defs analysis - necessary for data-flow analysis queries i.e. reachableBy(). Will not make changes
+     * if [project] ran in default mode i.e. project(includeReachingDefs = true).
+     */
+    fun projectReachingDefs() {
         logger.info("Running data flow passes")
         PlumeTimer.measure(ExtractorTimeKey.DATA_FLOW_PASS) { DataFlowPass(driver).runPass() }
         PlumeStorage.methodCpgs.clear()
-        return this
     }
 
     private fun earlyStopCleanUp() {
