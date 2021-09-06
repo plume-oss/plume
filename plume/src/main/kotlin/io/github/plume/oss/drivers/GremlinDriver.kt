@@ -25,6 +25,7 @@ import io.shiftleft.codepropertygraph.generated.EdgeTypes.AST
 import io.shiftleft.codepropertygraph.generated.NodeTypes.*
 import io.shiftleft.codepropertygraph.generated.PropertyNames.FULL_NAME
 import io.shiftleft.codepropertygraph.generated.nodes.NewMetaDataBuilder
+import io.shiftleft.codepropertygraph.generated.nodes.NewMethodBuilder
 import io.shiftleft.codepropertygraph.generated.nodes.NewNode
 import io.shiftleft.codepropertygraph.generated.nodes.NewNodeBuilder
 import org.apache.commons.configuration.BaseConfiguration
@@ -323,30 +324,6 @@ abstract class GremlinDriver : IDriver {
         return gremlinToPlume(methodSubgraph)
     }
 
-    override fun getProgramStructure(): overflowdb.Graph {
-        val fes: MutableList<Edge> = mutableListOf()
-        PlumeTimer.measure(DriverTimeKey.DATABASE_READ) {
-            g.V().hasLabel(FILE)
-                .repeat(un.outE(AST).inV()).emit()
-                .inE()
-                .toList()
-                .toCollection(fes)
-        }
-        val graph = gremlinToPlume(fes)
-        PlumeTimer.measure(DriverTimeKey.DATABASE_READ) {
-            // Transfer type decl vertices to the result, this needs to be done with the tokens step to get all properties
-            // from the remote server
-            g.V().hasLabel(TYPE_DECL, FILE, NAMESPACE_BLOCK)
-                .unfold<Vertex>()
-                .valueMap<String>()
-                .with(WithOptions.tokens)
-                .by(un.unfold<Any>())
-                .toList()
-                .forEach { addNodeToODB(graph, VertexMapper.mapToVertex(mapVertexKeys(it))) }
-        }
-        return graph
-    }
-
     override fun getNeighbours(v: NewNodeBuilder<out NewNode>): overflowdb.Graph {
         val n = v.build()
         val neighbourSubgraph: MutableList<Edge> = mutableListOf()
@@ -486,7 +463,6 @@ abstract class GremlinDriver : IDriver {
                     it.label()
                 )
             }.map { (src, dst, e) ->
-                val srcBuilder: NewNodeBuilder<out NewNode> = VertexMapper.mapToVertex(mapVertexKeys(src))
                 Triple(
                     addNodeToODB(overflowGraph, VertexMapper.mapToVertex(mapVertexKeys(src))),
                     addNodeToODB(overflowGraph, VertexMapper.mapToVertex(mapVertexKeys(dst))),

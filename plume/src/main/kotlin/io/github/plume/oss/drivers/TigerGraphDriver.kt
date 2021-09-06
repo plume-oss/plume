@@ -384,11 +384,6 @@ class TigerGraphDriver internal constructor() : IOverridenIdDriver, ISchemaSafeD
         }
     }
 
-    override fun getProgramStructure(): Graph {
-        val result = get("query/$GRAPH_NAME/getProgramStructure")
-        return payloadToGraph(result)
-    }
-
     override fun getNeighbours(v: NewNodeBuilder<out NewNode>): Graph {
         val n = v.build()
         if (v is NewMetaDataBuilder) return newOverflowGraph().apply {
@@ -1081,29 +1076,6 @@ CREATE QUERY getMethod(STRING FULL_NAME) FOR GRAPH <GRAPH_NAME> SYNTAX v2 {
   finalEdges = SELECT t
                FROM allVert -(:e)-:t
                ACCUM @@edges += e;
-  PRINT allVert;
-  PRINT @@edges;
-}
-
-CREATE QUERY getProgramStructure() FOR GRAPH <GRAPH_NAME> SYNTAX v2 {
-  SetAccum<EDGE> @@edges;
-
-  start = {FILE_VERT.*, TYPE_DECL_VERT.*, NAMESPACE_BLOCK_VERT.*};
-  namespaceBlockSeed = {NAMESPACE_BLOCK_VERT.*};
-  
-  start = SELECT s
-          FROM start:s;
-  allVert = start;
-  
-  start = SELECT t
-          FROM namespaceBlockSeed:s -(_AST>*)- :t;
-  allVert = allVert UNION start;
-
-  finalEdges = SELECT t
-               FROM allVert -(_AST>:e)- :t
-               WHERE t.type == "NAMESPACE_BLOCK_VERT"
-               ACCUM @@edges += e;
-
   PRINT allVert;
   PRINT @@edges;
 }

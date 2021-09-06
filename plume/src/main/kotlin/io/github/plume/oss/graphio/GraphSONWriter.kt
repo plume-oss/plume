@@ -52,7 +52,7 @@ object GraphSONWriter {
 
     private fun vertexToJSON(v: Node, graph: Graph): String {
         val sb = StringBuilder()
-        val properties = prepareListsInMap(v.propertyMap())
+        val properties = prepareListsInMap(v.propertiesMap())
         sb.append("{")
         sb.append("\"id\":{\"@type\":\"g:Int64\",\"@value\":${v.id()}},")
         sb.append("\"label\":\"${v.label()}\",")

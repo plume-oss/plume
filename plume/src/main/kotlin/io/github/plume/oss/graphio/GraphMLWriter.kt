@@ -65,7 +65,7 @@ object GraphMLWriter {
     private fun writeKeys(fw: OutputStreamWriter, vertices: MutableIterator<Node>) {
         val keySet = HashMap<String, String>()
         vertices.forEach { v ->
-            v.propertyMap().forEach { (t, u) ->
+            v.propertiesMap().forEach { (t, u) ->
                 when (u) {
                     is String -> keySet[t] = "string"
                     is Int -> keySet[t] = "int"
@@ -90,7 +90,7 @@ object GraphMLWriter {
     private fun writeVertices(fw: OutputStreamWriter, vertices: MutableIterator<Node>) {
         vertices.forEach { v ->
             fw.write("<node id=\"${v.id()}\">")
-            VertexMapper.prepareListsInMap(v.propertyMap())
+            VertexMapper.prepareListsInMap(v.propertiesMap())
                 .apply { fw.write("<data key=\"labelV\">${v.label()}</data>") }
                 .forEach { (t, u) -> fw.write("<data key=\"$t\">${escape(u)}</data>") }
             fw.write("</node>")

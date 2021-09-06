@@ -205,7 +205,7 @@ class OverflowDbDriver internal constructor() : IDriver {
             .distinct()
             .onEach { n ->
                 val node = graph.addNode(n.id(), n.label())
-                n.propertyMap().forEach { (key, value) -> node.setProperty(key as String?, value) }
+                n.propertiesMap().forEach { (key, value) -> node.setProperty(key as String?, value) }
             }
     }
 
@@ -217,21 +217,6 @@ class OverflowDbDriver internal constructor() : IDriver {
                 srcNode.addEdge(edge.label(), dstNode)
             }
         }
-    }
-
-    override fun getProgramStructure(): Graph {
-        val g = deepCopyGraph(Traversals.getProgramStructure(graph))
-        PlumeTimer.measure(DriverTimeKey.DATABASE_READ) {
-            val ns = Traversals.getFiles(graph).toMutableList<StoredNode>()
-                .toCollection(Traversals.getTypeDecls(graph).toMutableList<StoredNode>())
-                .toCollection(Traversals.getNamespaceBlocks(graph).toMutableList<StoredNode>())
-            ns.filter { g.node(it.id()) == null }
-                .forEach { t ->
-                    val node = g.addNode(t.id(), t.label())
-                    t.propertyMap().forEach { (key, value) -> node.setProperty(key, value) }
-                }
-        }
-        return g
     }
 
     override fun getNeighbours(v: NewNodeBuilder<out NewNode>): Graph = deepCopyGraph(Traversals.getNeighbours(graph, v.id()))

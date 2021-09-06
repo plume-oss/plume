@@ -3,7 +3,8 @@ package io.github.plume.oss
 import java.util
 import io.shiftleft.codepropertygraph.Cpg
 import io.shiftleft.codepropertygraph.generated.{EdgeTypes, nodes}
-import io.shiftleft.codepropertygraph.generated.nodes.{AstNode, File, MetaData, NamespaceBlock, StoredNode, TypeDecl}
+import io.shiftleft.codepropertygraph.generated.nodes.{AstNode, File, MetaData, Method, NamespaceBlock, StoredNode, TypeDecl}
+import io.shiftleft.dataflowengineoss.passes.reachingdef.{ReachingDefProblem, ReachingDefTransferFunction}
 import io.shiftleft.semanticcpg.language._
 import overflowdb.{Edge, Graph}
 
@@ -74,6 +75,15 @@ object Traversals {
   def clearGraph(graph: Graph): Unit = {
     val nodesToDelete = Cpg(graph).all.l
     nodesToDelete.foreach(v => graph.remove(v))
+  }
+
+  def maxNumberOfDefsFromAMethod(graph: Graph): Int = {
+    Cpg(graph).method.map(ReachingDefProblem.create)
+      .map(_.transferFunction.asInstanceOf[ReachingDefTransferFunction].gen.foldLeft(0)(_ + _._2.size))
+      .maxOption match {
+      case Some(value) => value
+      case None => 0
+    }
   }
 
 }

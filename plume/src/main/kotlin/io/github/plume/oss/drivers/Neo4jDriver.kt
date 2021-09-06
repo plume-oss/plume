@@ -452,41 +452,6 @@ class Neo4jDriver internal constructor() : IDriver {
         return plumeGraph
     }
 
-    override fun getProgramStructure(): Graph {
-        val graph = newOverflowGraph()
-        driver.session().use { session ->
-            val result = session.writeTransaction { tx ->
-                tx.run(
-                    """
-                    MATCH (n:$FILE)-[r1:$AST*0..]->(m)-[r2]->(o) 
-                    WITH DISTINCT (r1 + r2) AS coll
-                    UNWIND coll AS e1
-                    WITH DISTINCT e1
-                    WITH [r in collect(e1) | {rel: type(r), src: startNode(r), tgt: endNode(r)} ] as e2
-                    UNWIND e2 as x
-                    RETURN x
-                    """.trimIndent()
-                ).list().map { it["x"] }
-            }
-            neo4jToOverflowGraph(result, graph)
-            val typeDecl = session.writeTransaction { tx ->
-                tx.run(
-                    """
-                    MATCH (m:$TYPE_DECL)
-                    MATCH (n:$FILE)
-                    MATCH (o:$NAMESPACE_BLOCK)
-                    RETURN m, n, o
-                    """.trimIndent()
-                ).list()
-            }
-            typeDecl.flatMap { listOf(it["m"].asNode(), it["n"].asNode(), it["o"].asNode()) }
-                .map { mapToVertex(it.asMap() + mapOf("id" to it.id())) }
-                .filter { graph.node(it.id()) == null }
-                .forEach { addNodeToGraph(graph, it) }
-        }
-        return graph
-    }
-
     override fun getNeighbours(v: NewNodeBuilder<out NewNode>): Graph {
         val graph = newOverflowGraph()
         PlumeTimer.measure(DriverTimeKey.DATABASE_READ) {
