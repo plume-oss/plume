@@ -10,6 +10,7 @@ and this project adheres to [Semantic Versioning](http://semver.org/).
 ### Changed
 
 - Upgrade ShiftLeft dependencies to 1.3.314
+- Upgrade Gradle to 7.2  
 - Removed `Binding` vertices
 - Can now handle new type arguments API of domain classes
 - `Extractor::project` now takes an optional boolean to disable reaching defs calculation
