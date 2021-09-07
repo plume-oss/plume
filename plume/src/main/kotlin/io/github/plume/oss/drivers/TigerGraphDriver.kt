@@ -276,7 +276,7 @@ class TigerGraphDriver internal constructor() : IOverridenIdDriver, ISchemaSafeD
                 payloadByType["${type}_VERT"] = ns.map {
                     Pair(
                         it.id(PlumeKeyProvider.getNewId(this)).id().toString(),
-                        VertexMapper.stripUnusedProperties(
+                        VertexMapper.handleProperties(
                             type,
                             CollectionConverters.MapHasAsJava(it.build().properties()).asJava().toMutableMap()
                         )
@@ -329,7 +329,7 @@ class TigerGraphDriver internal constructor() : IOverridenIdDriver, ISchemaSafeD
 
     private fun createVertexPayload(v: NewNodeBuilder<out NewNode>): MutableMap<String, MutableMap<String, Any>> {
         val node = v.build()
-        val propertyMap = VertexMapper.stripUnusedProperties(
+        val propertyMap = VertexMapper.handleProperties(
             v.build().label(),
             CollectionConverters.MapHasAsJava(node.properties()).asJava().toMutableMap()
         )

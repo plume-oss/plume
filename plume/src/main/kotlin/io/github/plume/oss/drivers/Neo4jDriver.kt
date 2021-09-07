@@ -182,7 +182,7 @@ class Neo4jDriver internal constructor() : IDriver {
 
     private fun createVertexPayload(v: NewNodeBuilder<out NewNode>, idx: Int): String {
         val node = v.build()
-        val propertyMap = VertexMapper.stripUnusedProperties(
+        val propertyMap = VertexMapper.handleProperties(
             v.build().label(),
             CollectionConverters.MapHasAsJava(node.properties()).asJava().toMutableMap()
         )

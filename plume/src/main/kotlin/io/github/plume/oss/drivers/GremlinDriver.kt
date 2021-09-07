@@ -25,7 +25,6 @@ import io.shiftleft.codepropertygraph.generated.EdgeTypes.AST
 import io.shiftleft.codepropertygraph.generated.NodeTypes.*
 import io.shiftleft.codepropertygraph.generated.PropertyNames.FULL_NAME
 import io.shiftleft.codepropertygraph.generated.nodes.NewMetaDataBuilder
-import io.shiftleft.codepropertygraph.generated.nodes.NewMethodBuilder
 import io.shiftleft.codepropertygraph.generated.nodes.NewNode
 import io.shiftleft.codepropertygraph.generated.nodes.NewNodeBuilder
 import org.apache.commons.configuration.BaseConfiguration
@@ -253,7 +252,7 @@ abstract class GremlinDriver : IDriver {
 
     protected open fun prepareVertexProperties(v: NewNodeBuilder<out NewNode>): Map<String, Any> =
         VertexMapper.prepareListsInMap(
-            VertexMapper.stripUnusedProperties(
+            VertexMapper.handleProperties(
                 v.build().label(), CollectionConverters.MapHasAsJava(v.build().properties()).asJava().toMutableMap()
             )
         ).toMap()

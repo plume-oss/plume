@@ -99,7 +99,7 @@ object VertexMapper {
                 .code(map.getOrDefault(CODE, "<empty>") as String)
                 .name(map.getOrDefault(NAME, "<empty>") as String)
                 .evaluationStrategy(map[EVALUATION_STRATEGY] as String)
-                .typeFullName(map[TYPE_FULL_NAME] as String)
+                .typeFullName(map.getOrDefault(TYPE_FULL_NAME, "<empty>") as String)
                 .lineNumber(Option.apply(map[LINE_NUMBER] as Int))
                 .columnNumber(Option.apply(map[COLUMN_NUMBER] as Int))
                 .order(map.getOrDefault(ORDER, -1) as Int)
@@ -107,14 +107,14 @@ object VertexMapper {
                 .code(map.getOrDefault(CODE, "<empty>") as String)
                 .name(map.getOrDefault(NAME, "<empty>") as String)
                 .evaluationStrategy(map[EVALUATION_STRATEGY] as String)
-                .typeFullName(map[TYPE_FULL_NAME] as String)
+                .typeFullName(map.getOrDefault(TYPE_FULL_NAME, "<empty>") as String)
                 .lineNumber(Option.apply(map[LINE_NUMBER] as Int))
                 .columnNumber(Option.apply(map[COLUMN_NUMBER] as Int))
                 .order(map.getOrDefault(ORDER, -1) as Int)
             MethodReturn.Label() -> NewMethodReturnBuilder()
                 .code(map.getOrDefault(CODE, "<empty>") as String)
                 .evaluationStrategy(map[EVALUATION_STRATEGY] as String)
-                .typeFullName(map[TYPE_FULL_NAME] as String)
+                .typeFullName(map.getOrDefault(TYPE_FULL_NAME, "<empty>") as String)
                 .lineNumber(Option.apply(map[LINE_NUMBER] as Int))
                 .columnNumber(Option.apply(map[COLUMN_NUMBER] as Int))
                 .order(map.getOrDefault(ORDER, -1) as Int)
@@ -241,18 +241,170 @@ object VertexMapper {
         }.apply { if (map.containsKey("id")) this.id(map["id"] as Long) }
     }
 
+    private fun getPropertyDefault(prop: String): Comparable<*> {
+        val strDefault = "<empty>"
+        val intDefault = -1
+        val boolDefault = false
+        return when (prop) {
+            AST_PARENT_TYPE -> strDefault
+            AST_PARENT_FULL_NAME -> strDefault
+            NAME -> strDefault
+            CODE -> strDefault
+            ORDER -> intDefault
+            ARGUMENT_INDEX -> intDefault
+            FULL_NAME -> strDefault
+            TYPE_FULL_NAME -> strDefault
+            TYPE_DECL_FULL_NAME -> strDefault
+            TYPE_DECL -> strDefault
+            IS_EXTERNAL -> boolDefault
+            DISPATCH_TYPE -> strDefault
+            else -> strDefault
+        }
+    }
+
     /**
-     * Removes properties not used by Plume.
+     * Removes properties not used by Plume and explicitly adds defaults.
      */
-    fun stripUnusedProperties(label: String, map: MutableMap<String, Any>): MutableMap<String, Any> {
+    fun handleProperties(label: String, map: MutableMap<String, Any>): MutableMap<String, Any> {
         return when (label) {
-            CONTROL_STRUCTURE -> map.apply { remove(PARSER_TYPE_NAME) }
-            JUMP_TARGET -> map.apply { remove(PARSER_TYPE_NAME) }
-            METHOD_REF -> map.apply { remove(TYPE_FULL_NAME) }
-            METHOD -> map.apply { remove(IS_VARIADIC) }
-            METHOD_PARAMETER_IN -> map.apply { remove(IS_VARIADIC) }
-            METHOD_PARAMETER_OUT -> map.apply { remove(IS_VARIADIC) }
-            NodeTypes.UNKNOWN -> map.apply { remove(CONTAINED_REF); remove(PARSER_TYPE_NAME) }
+            META_DATA -> map.apply {
+                MetaData.`PropertyNames$`.`MODULE$`.allAsJava().forEach { prop ->
+                    if (!this.containsKey(prop)) this[prop] = getPropertyDefault(prop)
+                }
+            }
+            FILE -> map.apply {
+                File.`PropertyNames$`.`MODULE$`.allAsJava().forEach { prop ->
+                    if (!this.containsKey(prop)) this[prop] = getPropertyDefault(prop)
+                }
+            }
+            METHOD -> map.apply {
+                Method.`PropertyNames$`.`MODULE$`.allAsJava().forEach { prop ->
+                    if (!this.containsKey(prop)) this[prop] = getPropertyDefault(prop)
+                }
+                remove(IS_VARIADIC)
+            }
+            METHOD_PARAMETER_IN -> map.apply {
+                MethodParameterIn.`PropertyNames$`.`MODULE$`.allAsJava().forEach { prop ->
+                    if (!this.containsKey(prop)) this[prop] = getPropertyDefault(prop)
+                }
+                remove(IS_VARIADIC)
+            }
+            METHOD_PARAMETER_OUT -> map.apply {
+                MethodParameterOut.`PropertyNames$`.`MODULE$`.allAsJava().forEach { prop ->
+                    if (!this.containsKey(prop)) this[prop] = getPropertyDefault(prop)
+                }
+                remove(IS_VARIADIC)
+            }
+            METHOD_RETURN -> map.apply {
+                MethodReturn.`PropertyNames$`.`MODULE$`.allAsJava().forEach { prop ->
+                    if (!this.containsKey(prop)) this[prop] = getPropertyDefault(prop)
+                }
+            }
+            MODIFIER -> map.apply {
+                Modifier.`PropertyNames$`.`MODULE$`.allAsJava().forEach { prop ->
+                    if (!this.containsKey(prop)) this[prop] = getPropertyDefault(prop)
+                }
+            }
+            TYPE -> map.apply {
+                Type.`PropertyNames$`.`MODULE$`.allAsJava().forEach { prop ->
+                    if (!this.containsKey(prop)) this[prop] = getPropertyDefault(prop)
+                }
+            }
+            TYPE_DECL -> map.apply {
+                TypeDecl.`PropertyNames$`.`MODULE$`.allAsJava().forEach { prop ->
+                    if (!this.containsKey(prop)) this[prop] = getPropertyDefault(prop)
+                }
+            }
+            TYPE_PARAMETER -> map.apply {
+                TypeParameter.`PropertyNames$`.`MODULE$`.allAsJava().forEach { prop ->
+                    if (!this.containsKey(prop)) this[prop] = getPropertyDefault(prop)
+                }
+            }
+            TYPE_ARGUMENT -> map.apply {
+                TypeArgument.`PropertyNames$`.`MODULE$`.allAsJava().forEach { prop ->
+                    if (!this.containsKey(prop)) this[prop] = getPropertyDefault(prop)
+                }
+            }
+            MEMBER -> map.apply {
+                Member.`PropertyNames$`.`MODULE$`.allAsJava().forEach { prop ->
+                    if (!this.containsKey(prop)) this[prop] = getPropertyDefault(prop)
+                }
+            }
+            NAMESPACE -> map.apply {
+                Namespace.`PropertyNames$`.`MODULE$`.allAsJava().forEach { prop ->
+                    if (!this.containsKey(prop)) this[prop] = getPropertyDefault(prop)
+                }
+            }
+            NAMESPACE_BLOCK -> map.apply {
+                NamespaceBlock.`PropertyNames$`.`MODULE$`.allAsJava().forEach { prop ->
+                    if (!this.containsKey(prop)) this[prop] = getPropertyDefault(prop)
+                }
+            }
+            LITERAL -> map.apply {
+                Literal.`PropertyNames$`.`MODULE$`.allAsJava().forEach { prop ->
+                    if (!this.containsKey(prop)) this[prop] = getPropertyDefault(prop)
+                }
+            }
+            CALL -> map.apply {
+                Call.`PropertyNames$`.`MODULE$`.allAsJava().forEach { prop ->
+                    if (!this.containsKey(prop)) this[prop] = getPropertyDefault(prop)
+                }
+            }
+            LOCAL -> map.apply {
+                Local.`PropertyNames$`.`MODULE$`.allAsJava().forEach { prop ->
+                    if (!this.containsKey(prop)) this[prop] = getPropertyDefault(prop)
+                }
+            }
+            IDENTIFIER -> map.apply {
+                Identifier.`PropertyNames$`.`MODULE$`.allAsJava().forEach { prop ->
+                    if (!this.containsKey(prop)) this[prop] = getPropertyDefault(prop)
+                }
+            }
+            FIELD_IDENTIFIER -> map.apply {
+                FieldIdentifier.`PropertyNames$`.`MODULE$`.allAsJava().forEach { prop ->
+                    if (!this.containsKey(prop)) this[prop] = getPropertyDefault(prop)
+                }
+            }
+            RETURN -> map.apply {
+                Return.`PropertyNames$`.`MODULE$`.allAsJava().forEach { prop ->
+                    if (!this.containsKey(prop)) this[prop] = getPropertyDefault(prop)
+                }
+            }
+            BLOCK -> map.apply {
+                Block.`PropertyNames$`.`MODULE$`.allAsJava().forEach { prop ->
+                    if (!this.containsKey(prop)) this[prop] = getPropertyDefault(prop)
+                }
+            }
+            METHOD_REF -> map.apply {
+                MethodRef.`PropertyNames$`.`MODULE$`.allAsJava().forEach { prop ->
+                    if (!this.containsKey(prop)) this[prop] = getPropertyDefault(prop)
+                }
+                remove(TYPE_FULL_NAME)
+            }
+            TYPE_REF -> map.apply {
+                TypeRef.`PropertyNames$`.`MODULE$`.allAsJava().forEach { prop ->
+                    if (!this.containsKey(prop)) this[prop] = getPropertyDefault(prop)
+                }
+            }
+            JUMP_TARGET -> map.apply {
+                JumpTarget.`PropertyNames$`.`MODULE$`.allAsJava().forEach { prop ->
+                    if (!this.containsKey(prop)) this[prop] = getPropertyDefault(prop)
+                }
+                remove(PARSER_TYPE_NAME)
+            }
+            CONTROL_STRUCTURE -> map.apply {
+                ControlStructure.`PropertyNames$`.`MODULE$`.allAsJava().forEach { prop ->
+                    if (!this.containsKey(prop)) this[prop] = getPropertyDefault(prop)
+                }
+                remove(PARSER_TYPE_NAME)
+            }
+            NodeTypes.UNKNOWN -> map.apply {
+                Unknown.`PropertyNames$`.`MODULE$`.allAsJava().forEach { prop ->
+                    if (!this.containsKey(prop)) this[prop] = getPropertyDefault(prop)
+                }
+                remove(CONTAINED_REF)
+                remove(PARSER_TYPE_NAME)
+            }
             else -> map
         }
     }

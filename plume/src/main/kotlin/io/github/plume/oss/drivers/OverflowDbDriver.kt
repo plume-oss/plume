@@ -26,7 +26,6 @@ import io.shiftleft.codepropertygraph.generated.nodes.*
 import org.apache.logging.log4j.LogManager
 import overflowdb.*
 import scala.jdk.CollectionConverters
-import java.util.*
 import io.shiftleft.codepropertygraph.generated.edges.Factories as EdgeFactories
 import io.shiftleft.codepropertygraph.generated.nodes.Factories as NodeFactories
 
@@ -122,7 +121,7 @@ class OverflowDbDriver internal constructor() : IDriver {
     private fun createVertex(v: NewNodeBuilder<out NewNode>) {
         val newNode = v.build()
         val node = graph.addNode(newNode.label())
-        VertexMapper.stripUnusedProperties(
+        VertexMapper.handleProperties(
             v.build().label(),
             CollectionConverters.MapHasAsJava(newNode.properties()).asJava().toMutableMap()
         ).forEach { (key, value) -> node.setProperty(key, value) }
