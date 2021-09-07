@@ -437,6 +437,8 @@ object VertexMapper {
             remove(DYNAMIC_TYPE_HINT_FULL_NAME)
             remove(INHERITS_FROM_TYPE_FULL_NAME)
             remove(ALIAS_TYPE_FULL_NAME)
+            remove(ARGUMENT_NAME)
+            remove(CLOSURE_BINDING_ID)
         }
     }
 
