@@ -318,7 +318,7 @@ object VertexMapper {
                     if (!this.containsKey(prop)) this[prop] = getPropertyDefault(prop)
                 }
                 remove(LINE_NUMBER)
-                remove(LINE_NUMBER)
+                remove(COLUMN_NUMBER)
             }
             TYPE -> map.apply {
                 Type.`PropertyNames$`.`MODULE$`.allAsJava().forEach { prop ->

@@ -455,7 +455,6 @@ class TigerGraphDriver internal constructor() : IOverridenIdDriver, ISchemaSafeD
             )
         ).first() as JSONObject)["result"] as JSONArray
         return result.map { vertexPayloadToNode(it as JSONObject) }
-            .filter { it.build().properties().keySet().contains(propertyKey) }
     }
 
     @Suppress("UNCHECKED_CAST")
@@ -503,7 +502,9 @@ class TigerGraphDriver internal constructor() : IOverridenIdDriver, ISchemaSafeD
                     val n = it.build()
                     if (!vs.containsKey(it.id())) {
                         val node = graph.addNode(it.id(), n.label())
-                        n.properties().foreachEntry { key, value -> node.setProperty(key, value) }
+                        VertexMapper
+                            .handleProperties(n.label(), CollectionConverters.MapHasAsJava(n.properties()).asJava().toMutableMap())
+                            .forEach { (key, value) -> node.setProperty(key, value) }
                         vs[it.id()] = node
                     }
                 }
@@ -533,7 +534,7 @@ class TigerGraphDriver internal constructor() : IOverridenIdDriver, ISchemaSafeD
                 else Pair(it.removePrefix("_"), attributes[it])
             }
             .forEach { vertexMap[it.first] = it.second }
-        return VertexMapper.mapToVertex(vertexMap)
+        return VertexMapper.mapToVertex(VertexMapper.handleProperties(vertexMap["label"] as String, vertexMap))
     }
 
     override fun close() {
