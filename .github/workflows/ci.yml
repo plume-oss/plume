@@ -35,7 +35,7 @@ jobs:
       - name: Run extractor tests
         run: ./gradlew extractorTest
       - name: Run scalatest
-        run: ./gradlew scalatest
+        run: ./gradlew scalatest --stacktrace
 
       - name: Run TinkerGaph integration tests
         run: ./gradlew tinkerGraphIntTest
