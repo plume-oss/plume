@@ -12,6 +12,7 @@ plugins {
     id "com.eden.orchidPlugin" version "$orchidVersion"
     id "com.avast.gradle.docker-compose" version "$avastDockerVersion"
     id "org.jetbrains.kotlin.jvm" version "$kotlinVersion"
+    id "com.github.ManifestClasspath" version "0.1.0-RELEASE"
 }
 
 repositories {
