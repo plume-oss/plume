@@ -200,11 +200,11 @@ jacoco { toolVersion = "$jacocoVersion" }
 
 jacocoTestReport {
     reports {
-        xml.enabled true
+        xml.required.set(true)
         xml.destination file("${buildDir}/reports/jacoco/report.xml")
-        html.enabled true
+        html.required.set(true)
         html.destination file("${buildDir}/reports/jacoco")
-        csv.enabled false
+        csv.required.set(false)
     }
     executionData test, extractorTest, tinkerGraphIntTest, overflowDbIntTest, janusGraphIntTest, tigerGraphIntTest,
             neo4jIntTest, neptuneIntTest

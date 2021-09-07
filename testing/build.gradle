@@ -3,6 +3,7 @@ plugins {
     id 'java'
     id 'cz.alenkacz.gradle.scalafmt' version '1.14.0'
     id "com.github.maiflai.scalatest" version "0.31"
+    id "com.virgo47.ClasspathJar" version "1.0.0"
 }
 
 repositories {
