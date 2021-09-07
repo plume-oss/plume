@@ -7,6 +7,8 @@ and this project adheres to [Semantic Versioning](http://semver.org/).
 
 ## [Unreleased]
 
+## [0.5.13] - 2021-09-07
+
 ### Changed
 
 - Upgrade ShiftLeft dependencies to 1.3.314

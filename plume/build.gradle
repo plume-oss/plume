@@ -224,8 +224,8 @@ task dokkaJar(type: Jar) {
     group = JavaBasePlugin.DOCUMENTATION_GROUP
     description = "Assembles Kotlin docs with Dokka"
     archiveClassifier.set("javadoc")
-    from(tasks.dokka)
-    dependsOn(tasks.dokka)
+    from(tasks.dokkaJavadoc)
+    dependsOn(tasks.dokkaJavadoc)
 }
 
 // Binds the main project and Scala layer into one Jar
