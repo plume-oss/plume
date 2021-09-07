@@ -105,5 +105,7 @@ class MemberPass(private val driver: IDriver) {
             .code(field.declaration)
             .typeFullName(field.type.toQuotedString())
             .order(childIdx)
+            .lineNumber(field.javaSourceStartLineNumber)
+            .columnNumber(field.javaSourceStartColumnNumber)
 
 }

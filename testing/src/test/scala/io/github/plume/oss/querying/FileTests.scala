@@ -24,7 +24,7 @@ class FileTests extends PlumeCodeToCpgSuite {
     u.name should startWith(JFile.separator)
     u.hash.isDefined shouldBe true
     v.name should startWith(JFile.separator)
-    v.hash.isDefined shouldBe false
+    v.hash.isDefined shouldBe true
   }
 
   "should allow traversing from file to its namespace blocks" in {

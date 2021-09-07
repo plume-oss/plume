@@ -124,8 +124,7 @@ class OverflowDbDriver internal constructor() : IDriver {
         VertexMapper.handleProperties(
             v.build().label(),
             CollectionConverters.MapHasAsJava(newNode.properties()).asJava().toMutableMap()
-        ).forEach { (key, value) ->
-            node.setProperty(key, value) }
+        ).forEach { (key, value) -> node.setProperty(key, value) }
         v.id(node.id())
     }
 
@@ -219,7 +218,8 @@ class OverflowDbDriver internal constructor() : IDriver {
         }
     }
 
-    override fun getNeighbours(v: NewNodeBuilder<out NewNode>): Graph = deepCopyGraph(Traversals.getNeighbours(graph, v.id()))
+    override fun getNeighbours(v: NewNodeBuilder<out NewNode>): Graph =
+        deepCopyGraph(Traversals.getNeighbours(graph, v.id()))
 
     override fun deleteVertex(id: Long, label: String?) {
         PlumeTimer.measure(DriverTimeKey.DATABASE_WRITE) {
@@ -293,7 +293,7 @@ class OverflowDbDriver internal constructor() : IDriver {
         return l
     }
 
-    override fun getVerticesOfType(label: String): List<NewNodeBuilder <out NewNode>> {
+    override fun getVerticesOfType(label: String): List<NewNodeBuilder<out NewNode>> {
         val l = mutableListOf<NewNodeBuilder<out NewNode>>()
         PlumeTimer.measure(DriverTimeKey.DATABASE_READ) {
             graph.nodes(label).asSequence()

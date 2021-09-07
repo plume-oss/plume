@@ -279,6 +279,7 @@ object VertexMapper {
                 MetaData.`PropertyNames$`.`MODULE$`.allAsJava().forEach { prop ->
                     if (!this.containsKey(prop)) this[prop] = getPropertyDefault(prop)
                 }
+                remove(OVERLAYS)
             }
             FILE -> map.apply {
                 File.`PropertyNames$`.`MODULE$`.allAsJava().forEach { prop ->
@@ -414,6 +415,12 @@ object VertexMapper {
                 remove(PARSER_TYPE_NAME)
             }
             else -> map
+        }.apply {
+            remove(LINE_NUMBER_END)
+            remove(COLUMN_NUMBER_END)
+            remove(DYNAMIC_TYPE_HINT_FULL_NAME)
+            remove(INHERITS_FROM_TYPE_FULL_NAME)
+            remove(ALIAS_TYPE_FULL_NAME)
         }
     }
 
