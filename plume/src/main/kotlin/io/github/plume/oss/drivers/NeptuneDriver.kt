@@ -256,7 +256,7 @@ class NeptuneDriver internal constructor() : GremlinDriver() {
     // This handles ODB -> Neptune
     override fun prepareVertexProperties(v: NewNodeBuilder<out NewNode>): Map<String, Any> {
         val outMap = VertexMapper.prepareListsInMap(
-            VertexMapper.stripUnusedProperties(
+            VertexMapper.handleProperties(
                 v.build().label(),
                 CollectionConverters.MapHasAsJava(v.build().properties()).asJava().toMutableMap()
             )

@@ -15,6 +15,7 @@
  */
 package io.github.plume.oss.passes
 
+import io.github.plume.oss.Traversals
 import io.github.plume.oss.domain.model.DeltaGraph
 import io.github.plume.oss.drivers.IDriver
 import io.github.plume.oss.store.PlumeStorage
@@ -62,7 +63,8 @@ class DataFlowPass(private val driver: IDriver) {
             launch {
                 Cpg.apply(g).use { cpg ->
                     val methods = g.nodes(NodeTypes.METHOD).asSequence().toList()
-                    runParallelPass(methods.filterIsInstance<Method>(), ReachingDefPass(cpg))
+                    val maxDefinitions = Traversals.maxNumberOfDefsFromAMethod(g)
+                    runParallelPass(methods.filterIsInstance<Method>(), ReachingDefPass(cpg, maxDefinitions))
                 }
             }
         }

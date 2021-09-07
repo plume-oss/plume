@@ -276,7 +276,7 @@ class TigerGraphDriver internal constructor() : IOverridenIdDriver, ISchemaSafeD
                 payloadByType["${type}_VERT"] = ns.map {
                     Pair(
                         it.id(PlumeKeyProvider.getNewId(this)).id().toString(),
-                        VertexMapper.stripUnusedProperties(
+                        VertexMapper.handleProperties(
                             type,
                             CollectionConverters.MapHasAsJava(it.build().properties()).asJava().toMutableMap()
                         )
@@ -329,7 +329,7 @@ class TigerGraphDriver internal constructor() : IOverridenIdDriver, ISchemaSafeD
 
     private fun createVertexPayload(v: NewNodeBuilder<out NewNode>): MutableMap<String, MutableMap<String, Any>> {
         val node = v.build()
-        val propertyMap = VertexMapper.stripUnusedProperties(
+        val propertyMap = VertexMapper.handleProperties(
             v.build().label(),
             CollectionConverters.MapHasAsJava(node.properties()).asJava().toMutableMap()
         )
@@ -382,11 +382,6 @@ class TigerGraphDriver internal constructor() : IOverridenIdDriver, ISchemaSafeD
             logger.warn("${e.message}. This may be a result of the method not being present in the graph.")
             newOverflowGraph()
         }
-    }
-
-    override fun getProgramStructure(): Graph {
-        val result = get("query/$GRAPH_NAME/getProgramStructure")
-        return payloadToGraph(result)
     }
 
     override fun getNeighbours(v: NewNodeBuilder<out NewNode>): Graph {
@@ -460,7 +455,6 @@ class TigerGraphDriver internal constructor() : IOverridenIdDriver, ISchemaSafeD
             )
         ).first() as JSONObject)["result"] as JSONArray
         return result.map { vertexPayloadToNode(it as JSONObject) }
-            .filter { it.build().properties().keySet().contains(propertyKey) }
     }
 
     @Suppress("UNCHECKED_CAST")
@@ -508,7 +502,9 @@ class TigerGraphDriver internal constructor() : IOverridenIdDriver, ISchemaSafeD
                     val n = it.build()
                     if (!vs.containsKey(it.id())) {
                         val node = graph.addNode(it.id(), n.label())
-                        n.properties().foreachEntry { key, value -> node.setProperty(key, value) }
+                        VertexMapper
+                            .handleProperties(n.label(), CollectionConverters.MapHasAsJava(n.properties()).asJava().toMutableMap())
+                            .forEach { (key, value) -> node.setProperty(key, value) }
                         vs[it.id()] = node
                     }
                 }
@@ -538,7 +534,7 @@ class TigerGraphDriver internal constructor() : IOverridenIdDriver, ISchemaSafeD
                 else Pair(it.removePrefix("_"), attributes[it])
             }
             .forEach { vertexMap[it.first] = it.second }
-        return VertexMapper.mapToVertex(vertexMap)
+        return VertexMapper.mapToVertex(VertexMapper.handleProperties(vertexMap["label"] as String, vertexMap))
     }
 
     override fun close() {
@@ -879,7 +875,9 @@ CREATE VERTEX ${MEMBER}_VERT (
     _$NAME STRING,
     _$CODE STRING,
     _$TYPE_FULL_NAME STRING,
-    _$ORDER INT
+    _$ORDER INT,
+    _$COLUMN_NUMBER INT,
+    _$LINE_NUMBER INT
 ) WITH primary_id_as_attribute="true"
 
 CREATE VERTEX ${NAMESPACE}_VERT (
@@ -1081,29 +1079,6 @@ CREATE QUERY getMethod(STRING FULL_NAME) FOR GRAPH <GRAPH_NAME> SYNTAX v2 {
   finalEdges = SELECT t
                FROM allVert -(:e)-:t
                ACCUM @@edges += e;
-  PRINT allVert;
-  PRINT @@edges;
-}
-
-CREATE QUERY getProgramStructure() FOR GRAPH <GRAPH_NAME> SYNTAX v2 {
-  SetAccum<EDGE> @@edges;
-
-  start = {FILE_VERT.*, TYPE_DECL_VERT.*, NAMESPACE_BLOCK_VERT.*};
-  namespaceBlockSeed = {NAMESPACE_BLOCK_VERT.*};
-  
-  start = SELECT s
-          FROM start:s;
-  allVert = start;
-  
-  start = SELECT t
-          FROM namespaceBlockSeed:s -(_AST>*)- :t;
-  allVert = allVert UNION start;
-
-  finalEdges = SELECT t
-               FROM allVert -(_AST>:e)- :t
-               WHERE t.type == "NAMESPACE_BLOCK_VERT"
-               ACCUM @@edges += e;
-
   PRINT allVert;
   PRINT @@edges;
 }

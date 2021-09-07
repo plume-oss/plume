@@ -42,7 +42,7 @@ object VertexMapper {
      * @return a [NewNodeBuilder] represented by the information in the givennode.
      */
     fun mapToVertex(v: Node): NewNodeBuilder<out NewNode> {
-        val map = prepareListsInMap(v.propertyMap()) + mapOf<String, Any>("id" to v.id(), "label" to v.label())
+        val map = prepareListsInMap(v.propertiesMap()) + mapOf<String, Any>("id" to v.id(), "label" to v.label())
         return mapToVertex(map)
     }
 
@@ -79,181 +79,366 @@ object VertexMapper {
                 .version(map[VERSION] as String)
                 .hash(Option.apply(map.getOrDefault(HASH, UNKNOWN) as String))
             File.Label() -> NewFileBuilder()
-                .name(map[NAME] as String)
+                .name(map.getOrDefault(NAME, getPropertyDefault(NAME)) as String)
                 .hash(Option.apply(map.getOrDefault(HASH, UNKNOWN) as String))
-                .order(map[ORDER] as Int)
+                .order(map.getOrDefault(ORDER, getPropertyDefault(ORDER)) as Int)
             Method.Label() -> NewMethodBuilder()
-                .astParentFullName(map[AST_PARENT_FULL_NAME] as String)
-                .astParentType(map[AST_PARENT_TYPE] as String)
-                .name(map[NAME] as String)
-                .code(map[CODE] as String)
-                .isExternal(map[IS_EXTERNAL] as Boolean)
-                .fullName(map[FULL_NAME] as String)
-                .filename(map[FILENAME] as String)
-                .signature(map[SIGNATURE] as String)
+                .astParentFullName(map.getOrDefault(AST_PARENT_FULL_NAME, getPropertyDefault(AST_PARENT_FULL_NAME)) as String)
+                .astParentType(map.getOrDefault(AST_PARENT_TYPE, getPropertyDefault(AST_PARENT_TYPE)) as String)
+                .name(map.getOrDefault(NAME, getPropertyDefault(NAME)) as String)
+                .code(map.getOrDefault(CODE, getPropertyDefault(CODE)) as String)
+                .isExternal(map.getOrDefault(IS_EXTERNAL, getPropertyDefault(IS_EXTERNAL)) as Boolean)
+                .fullName(map.getOrDefault(FULL_NAME, getPropertyDefault(NAME)) as String)
+                .filename(map.getOrDefault(FILENAME, getPropertyDefault(NAME)) as String)
+                .signature(map.getOrDefault(SIGNATURE, "") as String)
                 .lineNumber(Option.apply(map[LINE_NUMBER] as Int))
                 .columnNumber(Option.apply(map[COLUMN_NUMBER] as Int))
-                .order(map[ORDER] as Int)
+                .order(map.getOrDefault(ORDER, getPropertyDefault(ORDER)) as Int)
                 .hash(Option.apply(map[HASH] as String))
             MethodParameterIn.Label() -> NewMethodParameterInBuilder()
-                .code(map[CODE] as String)
-                .name(map[NAME] as String)
+                .code(map.getOrDefault(CODE, getPropertyDefault(CODE)) as String)
+                .name(map.getOrDefault(NAME, getPropertyDefault(NAME)) as String)
                 .evaluationStrategy(map[EVALUATION_STRATEGY] as String)
-                .typeFullName(map[TYPE_FULL_NAME] as String)
+                .typeFullName(map.getOrDefault(TYPE_FULL_NAME, getPropertyDefault(TYPE_FULL_NAME)) as String)
                 .lineNumber(Option.apply(map[LINE_NUMBER] as Int))
                 .columnNumber(Option.apply(map[COLUMN_NUMBER] as Int))
-                .order(map[ORDER] as Int)
+                .order(map.getOrDefault(ORDER, getPropertyDefault(ORDER)) as Int)
             MethodParameterOut.Label() -> NewMethodParameterOutBuilder()
-                .code(map[CODE] as String)
-                .name(map[NAME] as String)
+                .code(map.getOrDefault(CODE, getPropertyDefault(CODE)) as String)
+                .name(map.getOrDefault(NAME, getPropertyDefault(NAME)) as String)
                 .evaluationStrategy(map[EVALUATION_STRATEGY] as String)
-                .typeFullName(map[TYPE_FULL_NAME] as String)
+                .typeFullName(map.getOrDefault(TYPE_FULL_NAME, getPropertyDefault(TYPE_FULL_NAME)) as String)
                 .lineNumber(Option.apply(map[LINE_NUMBER] as Int))
                 .columnNumber(Option.apply(map[COLUMN_NUMBER] as Int))
-                .order(map[ORDER] as Int)
+                .order(map.getOrDefault(ORDER, getPropertyDefault(ORDER)) as Int)
             MethodReturn.Label() -> NewMethodReturnBuilder()
-                .code(map[CODE] as String)
+                .code(map.getOrDefault(CODE, getPropertyDefault(CODE)) as String)
                 .evaluationStrategy(map[EVALUATION_STRATEGY] as String)
-                .typeFullName(map[TYPE_FULL_NAME] as String)
+                .typeFullName(map.getOrDefault(TYPE_FULL_NAME, getPropertyDefault(TYPE_FULL_NAME)) as String)
                 .lineNumber(Option.apply(map[LINE_NUMBER] as Int))
                 .columnNumber(Option.apply(map[COLUMN_NUMBER] as Int))
-                .order(map[ORDER] as Int)
+                .order(map.getOrDefault(ORDER, getPropertyDefault(ORDER)) as Int)
             Modifier.Label() -> NewModifierBuilder()
                 .modifierType(map[MODIFIER_TYPE] as String)
-                .order(map[ORDER] as Int)
+                .order(map.getOrDefault(ORDER, getPropertyDefault(ORDER)) as Int)
             Type.Label() -> NewTypeBuilder()
-                .name(map[NAME] as String)
-                .fullName(map[FULL_NAME] as String)
-                .typeDeclFullName(map[TYPE_DECL_FULL_NAME] as String)
+                .name(map.getOrDefault(NAME, getPropertyDefault(NAME)) as String)
+                .fullName(map.getOrDefault(FULL_NAME, getPropertyDefault(FULL_NAME)) as String)
+                .typeDeclFullName(map.getOrDefault(TYPE_DECL_FULL_NAME, getPropertyDefault(TYPE_DECL_FULL_NAME)) as String)
             TypeDecl.Label() -> NewTypeDeclBuilder()
-                .astParentFullName(map[AST_PARENT_FULL_NAME] as String)
-                .astParentType(map[AST_PARENT_TYPE] as String)
-                .name(map[NAME] as String)
-                .filename(map[FILENAME] as String)
-                .fullName(map[FULL_NAME] as String)
-                .order(map[ORDER] as Int)
-                .isExternal(map[IS_EXTERNAL] as Boolean)
+                .astParentFullName(map.getOrDefault(AST_PARENT_FULL_NAME, getPropertyDefault(AST_PARENT_FULL_NAME)) as String)
+                .astParentType(map.getOrDefault(AST_PARENT_TYPE, getPropertyDefault(AST_PARENT_TYPE)) as String)
+                .name(map.getOrDefault(NAME, getPropertyDefault(NAME)) as String)
+                .filename(map.getOrDefault(FILENAME, getPropertyDefault(FILENAME)) as String)
+                .fullName(map.getOrDefault(FULL_NAME, getPropertyDefault(FULL_NAME)) as String)
+                .order(map.getOrDefault(ORDER, getPropertyDefault(ORDER)) as Int)
+                .isExternal(map.getOrDefault(IS_EXTERNAL, getPropertyDefault(IS_EXTERNAL)) as Boolean)
             TypeParameter.Label() -> NewTypeParameterBuilder()
-                .name(map[NAME] as String)
-                .order(map[ORDER] as Int)
+                .name(map.getOrDefault(NAME, getPropertyDefault(NAME)) as String)
+                .order(map.getOrDefault(ORDER, getPropertyDefault(ORDER)) as Int)
             TypeArgument.Label() -> NewTypeArgumentBuilder()
-                .order(map[ORDER] as Int)
+                .order(map.getOrDefault(ORDER, getPropertyDefault(ORDER)) as Int)
             Member.Label() -> NewMemberBuilder()
-                .typeFullName(map[TYPE_FULL_NAME] as String)
-                .code(map[CODE] as String)
-                .name(map[NAME] as String)
-                .order(map[ORDER] as Int)
+                .typeFullName(map.getOrDefault(TYPE_FULL_NAME, getPropertyDefault(TYPE_FULL_NAME)) as String)
+                .code(map.getOrDefault(CODE, getPropertyDefault(CODE)) as String)
+                .name(map.getOrDefault(NAME, getPropertyDefault(NAME)) as String)
+                .order(map.getOrDefault(ORDER, getPropertyDefault(ORDER)) as Int)
+                .lineNumber(Option.apply(map.getOrDefault(LINE_NUMBER, getPropertyDefault(LINE_NUMBER)) as Int))
+                .columnNumber(Option.apply(map.getOrDefault(COLUMN_NUMBER, getPropertyDefault(COLUMN_NUMBER)) as Int))
             Namespace.Label() -> NewNamespaceBuilder()
-                .order(map[ORDER] as Int)
-                .name(map[NAME] as String)
+                .order(map.getOrDefault(ORDER, getPropertyDefault(ORDER)) as Int)
+                .name(map.getOrDefault(NAME, getPropertyDefault(NAME)) as String)
             NamespaceBlock.Label() -> NewNamespaceBlockBuilder()
-                .fullName(map[FULL_NAME] as String)
-                .filename(map[FILENAME] as String)
-                .name(map[NAME] as String)
-                .order(map[ORDER] as Int)
+                .fullName(map.getOrDefault(FULL_NAME, getPropertyDefault(FULL_NAME)) as String)
+                .filename(map.getOrDefault(FILENAME, getPropertyDefault(FILENAME)) as String)
+                .name(map.getOrDefault(NAME, getPropertyDefault(NAME)) as String)
+                .order(map.getOrDefault(ORDER, getPropertyDefault(ORDER)) as Int)
             Literal.Label() -> NewLiteralBuilder()
-                .typeFullName(map[TYPE_FULL_NAME] as String)
-                .code(map[CODE] as String)
-                .order(map[ORDER] as Int)
+                .typeFullName(map.getOrDefault(TYPE_FULL_NAME, getPropertyDefault(TYPE_FULL_NAME)) as String)
+                .code(map.getOrDefault(CODE, getPropertyDefault(CODE)) as String)
+                .order(map.getOrDefault(ORDER, getPropertyDefault(ORDER)) as Int)
                 .lineNumber(Option.apply(map[LINE_NUMBER] as Int))
                 .columnNumber(Option.apply(map[COLUMN_NUMBER] as Int))
-                .argumentIndex(map[ARGUMENT_INDEX] as Int)
+                .argumentIndex(map.getOrDefault(ARGUMENT_INDEX, getPropertyDefault(ARGUMENT_INDEX)) as Int)
             Call.Label() -> NewCallBuilder()
-                .code(map[CODE] as String)
-                .name(map[NAME] as String)
-                .order(map[ORDER] as Int)
+                .code(map.getOrDefault(CODE, getPropertyDefault(CODE)) as String)
+                .name(map.getOrDefault(NAME, getPropertyDefault(NAME)) as String)
+                .order(map.getOrDefault(ORDER, getPropertyDefault(ORDER)) as Int)
                 .lineNumber(Option.apply(map[LINE_NUMBER] as Int))
                 .columnNumber(Option.apply(map[COLUMN_NUMBER] as Int))
-                .argumentIndex(map[ARGUMENT_INDEX] as Int)
-                .signature(map[SIGNATURE] as String)
-                .dispatchType(map[DISPATCH_TYPE] as String)
-                .methodFullName(map[METHOD_FULL_NAME] as String)
+                .argumentIndex(map.getOrDefault(ARGUMENT_INDEX, getPropertyDefault(ARGUMENT_INDEX)) as Int)
+                .signature(map.getOrDefault(SIGNATURE, "") as String)
+                .dispatchType(map.getOrDefault(DISPATCH_TYPE, getPropertyDefault(DISPATCH_TYPE)) as String)
+                .methodFullName(map.getOrDefault(METHOD_FULL_NAME, getPropertyDefault(METHOD_FULL_NAME)) as String)
             Local.Label() -> NewLocalBuilder()
-                .typeFullName(map[TYPE_FULL_NAME] as String)
-                .code(map[CODE] as String)
-                .name(map[NAME] as String)
-                .order(map[ORDER] as Int)
+                .typeFullName(map.getOrDefault(TYPE_FULL_NAME, getPropertyDefault(TYPE_FULL_NAME)) as String)
+                .code(map.getOrDefault(CODE, getPropertyDefault(CODE)) as String)
+                .name(map.getOrDefault(NAME, getPropertyDefault(NAME)) as String)
+                .order(map.getOrDefault(ORDER, getPropertyDefault(ORDER)) as Int)
                 .lineNumber(Option.apply(map[LINE_NUMBER] as Int))
                 .columnNumber(Option.apply(map[COLUMN_NUMBER] as Int))
             Identifier.Label() -> NewIdentifierBuilder()
-                .typeFullName(map[TYPE_FULL_NAME] as String)
-                .code(map[CODE] as String)
-                .name(map[NAME] as String)
-                .order(map[ORDER] as Int)
+                .typeFullName(map.getOrDefault(TYPE_FULL_NAME, getPropertyDefault(TYPE_FULL_NAME)) as String)
+                .code(map.getOrDefault(CODE, getPropertyDefault(CODE)) as String)
+                .name(map.getOrDefault(NAME, getPropertyDefault(NAME)) as String)
+                .order(map.getOrDefault(ORDER, getPropertyDefault(ORDER)) as Int)
                 .lineNumber(Option.apply(map[LINE_NUMBER] as Int))
                 .columnNumber(Option.apply(map[COLUMN_NUMBER] as Int))
-                .argumentIndex(map[ARGUMENT_INDEX] as Int)
+                .argumentIndex(map.getOrDefault(ARGUMENT_INDEX, getPropertyDefault(ARGUMENT_INDEX)) as Int)
             FieldIdentifier.Label() -> NewFieldIdentifierBuilder()
                 .canonicalName(map[CANONICAL_NAME] as String)
-                .code(map[CODE] as String)
-                .order(map[ORDER] as Int)
+                .code(map.getOrDefault(CODE, getPropertyDefault(CODE)) as String)
+                .order(map.getOrDefault(ORDER, getPropertyDefault(ORDER)) as Int)
                 .lineNumber(Option.apply(map[LINE_NUMBER] as Int))
                 .columnNumber(Option.apply(map[COLUMN_NUMBER] as Int))
-                .argumentIndex(map[ARGUMENT_INDEX] as Int)
+                .argumentIndex(map.getOrDefault(ARGUMENT_INDEX, getPropertyDefault(ARGUMENT_INDEX)) as Int)
             Return.Label() -> NewReturnBuilder()
-                .code(map[CODE] as String)
-                .order(map[ORDER] as Int)
+                .code(map.getOrDefault(CODE, getPropertyDefault(CODE)) as String)
+                .order(map.getOrDefault(ORDER, getPropertyDefault(ORDER)) as Int)
                 .lineNumber(Option.apply(map[LINE_NUMBER] as Int))
                 .columnNumber(Option.apply(map[COLUMN_NUMBER] as Int))
-                .argumentIndex(map[ARGUMENT_INDEX] as Int)
+                .argumentIndex(map.getOrDefault(ARGUMENT_INDEX, getPropertyDefault(ARGUMENT_INDEX)) as Int)
             Block.Label() -> NewBlockBuilder()
-                .typeFullName(map[TYPE_FULL_NAME] as String)
-                .code(map[CODE] as String)
-                .order(map[ORDER] as Int)
+                .typeFullName(map.getOrDefault(TYPE_FULL_NAME, getPropertyDefault(TYPE_FULL_NAME)) as String)
+                .code(map.getOrDefault(CODE, getPropertyDefault(CODE)) as String)
+                .order(map.getOrDefault(ORDER, getPropertyDefault(ORDER)) as Int)
                 .lineNumber(Option.apply(map[LINE_NUMBER] as Int))
                 .columnNumber(Option.apply(map[COLUMN_NUMBER] as Int))
-                .argumentIndex(map[ARGUMENT_INDEX] as Int)
+                .argumentIndex(map.getOrDefault(ARGUMENT_INDEX, getPropertyDefault(ARGUMENT_INDEX)) as Int)
             MethodRef.Label() -> NewMethodRefBuilder()
-                .code(map[CODE] as String)
-                .order(map[ORDER] as Int)
-                .methodFullName(map[METHOD_FULL_NAME] as String)
+                .code(map.getOrDefault(CODE, getPropertyDefault(CODE)) as String)
+                .order(map.getOrDefault(ORDER, getPropertyDefault(ORDER)) as Int)
+                .methodFullName(map.getOrDefault(METHOD_FULL_NAME, getPropertyDefault(METHOD_FULL_NAME)) as String)
                 .lineNumber(Option.apply(map[LINE_NUMBER] as Int))
                 .columnNumber(Option.apply(map[COLUMN_NUMBER] as Int))
-                .argumentIndex(map[ARGUMENT_INDEX] as Int)
+                .argumentIndex(map.getOrDefault(ARGUMENT_INDEX, getPropertyDefault(ARGUMENT_INDEX)) as Int)
             TypeRef.Label() -> NewTypeRefBuilder()
-                .typeFullName(map[TYPE_FULL_NAME] as String)
-                .code(map[CODE] as String)
-                .order(map[ORDER] as Int)
+                .typeFullName(map.getOrDefault(TYPE_FULL_NAME, getPropertyDefault(TYPE_FULL_NAME)) as String)
+                .code(map.getOrDefault(CODE, getPropertyDefault(CODE)) as String)
+                .order(map.getOrDefault(ORDER, getPropertyDefault(ORDER)) as Int)
                 .lineNumber(Option.apply(map[LINE_NUMBER] as Int))
                 .columnNumber(Option.apply(map[COLUMN_NUMBER] as Int))
-                .argumentIndex(map[ARGUMENT_INDEX] as Int)
+                .argumentIndex(map.getOrDefault(ARGUMENT_INDEX, getPropertyDefault(ARGUMENT_INDEX)) as Int)
             JumpTarget.Label() -> NewJumpTargetBuilder()
-                .code(map[CODE] as String)
-                .order(map[ORDER] as Int)
+                .code(map.getOrDefault(CODE, getPropertyDefault(CODE)) as String)
+                .order(map.getOrDefault(ORDER, getPropertyDefault(ORDER)) as Int)
                 .lineNumber(Option.apply(map[LINE_NUMBER] as Int))
                 .columnNumber(Option.apply(map[COLUMN_NUMBER] as Int))
-                .argumentIndex(map[ARGUMENT_INDEX] as Int)
-                .name(map[NAME] as String)
+                .argumentIndex(map.getOrDefault(ARGUMENT_INDEX, getPropertyDefault(ARGUMENT_INDEX)) as Int)
+                .name(map.getOrDefault(NAME, getPropertyDefault(NAME)) as String)
             ControlStructure.Label() -> NewControlStructureBuilder()
                 .controlStructureType(map[CONTROL_STRUCTURE_TYPE] as String)
-                .code(map[CODE] as String)
-                .order(map[ORDER] as Int)
+                .code(map.getOrDefault(CODE, getPropertyDefault(CODE)) as String)
+                .order(map.getOrDefault(ORDER, getPropertyDefault(ORDER)) as Int)
                 .lineNumber(Option.apply(map[LINE_NUMBER] as Int))
                 .columnNumber(Option.apply(map[COLUMN_NUMBER] as Int))
-                .argumentIndex(map[ARGUMENT_INDEX] as Int)
+                .argumentIndex(map.getOrDefault(ARGUMENT_INDEX, getPropertyDefault(ARGUMENT_INDEX)) as Int)
             else -> NewUnknownBuilder()
-                .code(map[CODE] as String)
-                .order(map[ORDER] as Int)
-                .argumentIndex(map[ARGUMENT_INDEX] as Int)
-                .typeFullName(map[TYPE_FULL_NAME] as String)
+                .code(map.getOrDefault(CODE, getPropertyDefault(CODE)) as String)
+                .order(map.getOrDefault(ORDER, getPropertyDefault(ORDER)) as Int)
+                .argumentIndex(map.getOrDefault(ARGUMENT_INDEX, getPropertyDefault(ARGUMENT_INDEX)) as Int)
+                .typeFullName(map.getOrDefault(TYPE_FULL_NAME, getPropertyDefault(TYPE_FULL_NAME)) as String)
                 .lineNumber(Option.apply(map[LINE_NUMBER] as Int))
                 .columnNumber(Option.apply(map[COLUMN_NUMBER] as Int))
         }.apply { if (map.containsKey("id")) this.id(map["id"] as Long) }
     }
 
     /**
-     * Removes properties not used by Plume.
+     * Given a property, returns its known default.
      */
-    fun stripUnusedProperties(label: String, map: MutableMap<String, Any>): MutableMap<String, Any> {
+    private fun getPropertyDefault(prop: String): Comparable<*> {
+        val strDefault = "<empty>"
+        val intDefault = -1
+        val boolDefault = false
+        return when (prop) {
+            AST_PARENT_TYPE -> strDefault
+            AST_PARENT_FULL_NAME -> strDefault
+            NAME -> strDefault
+            CODE -> strDefault
+            ORDER -> intDefault
+            SIGNATURE -> ""
+            ARGUMENT_INDEX -> intDefault
+            FULL_NAME -> strDefault
+            TYPE_FULL_NAME -> strDefault
+            TYPE_DECL_FULL_NAME -> strDefault
+            TYPE_DECL -> strDefault
+            IS_EXTERNAL -> boolDefault
+            DISPATCH_TYPE -> strDefault
+            LINE_NUMBER -> intDefault
+            COLUMN_NUMBER -> intDefault
+            LINE_NUMBER_END -> intDefault
+            COLUMN_NUMBER_END -> intDefault
+            else -> strDefault
+        }
+    }
+
+    /**
+     * Removes properties not used by Plume and explicitly adds defaults.
+     */
+    fun handleProperties(label: String, map: MutableMap<String, Any>): MutableMap<String, Any> {
         return when (label) {
-            CONTROL_STRUCTURE ->  map.apply { remove(PARSER_TYPE_NAME) }
-            JUMP_TARGET ->  map.apply { remove(PARSER_TYPE_NAME) }
-            METHOD_REF -> map.apply { remove(TYPE_FULL_NAME) }
-            METHOD -> map.apply { remove(IS_VARIADIC) }
-            METHOD_PARAMETER_IN -> map.apply { remove(IS_VARIADIC) }
-            METHOD_PARAMETER_OUT -> map.apply { remove(IS_VARIADIC) }
-            NodeTypes.UNKNOWN ->  map.apply { remove(CONTAINED_REF); remove(PARSER_TYPE_NAME) }
+            META_DATA -> map.apply {
+                MetaData.`PropertyNames$`.`MODULE$`.allAsJava().forEach { prop ->
+                    if (!this.containsKey(prop)) this[prop] = getPropertyDefault(prop)
+                }
+                remove(OVERLAYS)
+            }
+            FILE -> map.apply {
+                File.`PropertyNames$`.`MODULE$`.allAsJava().forEach { prop ->
+                    if (!this.containsKey(prop)) this[prop] = getPropertyDefault(prop)
+                }
+                remove(LINE_NUMBER)
+                remove(COLUMN_NUMBER)
+            }
+            METHOD -> map.apply {
+                Method.`PropertyNames$`.`MODULE$`.allAsJava().forEach { prop ->
+                    if (!this.containsKey(prop)) this[prop] = getPropertyDefault(prop)
+                }
+                remove(IS_VARIADIC)
+            }
+            METHOD_PARAMETER_IN -> map.apply {
+                MethodParameterIn.`PropertyNames$`.`MODULE$`.allAsJava().forEach { prop ->
+                    if (!this.containsKey(prop)) this[prop] = getPropertyDefault(prop)
+                }
+                remove(IS_VARIADIC)
+            }
+            METHOD_PARAMETER_OUT -> map.apply {
+                MethodParameterOut.`PropertyNames$`.`MODULE$`.allAsJava().forEach { prop ->
+                    if (!this.containsKey(prop)) this[prop] = getPropertyDefault(prop)
+                }
+                remove(IS_VARIADIC)
+            }
+            METHOD_RETURN -> map.apply {
+                MethodReturn.`PropertyNames$`.`MODULE$`.allAsJava().forEach { prop ->
+                    if (!this.containsKey(prop)) this[prop] = getPropertyDefault(prop)
+                }
+            }
+            MODIFIER -> map.apply {
+                Modifier.`PropertyNames$`.`MODULE$`.allAsJava().forEach { prop ->
+                    if (!this.containsKey(prop)) this[prop] = getPropertyDefault(prop)
+                }
+                remove(LINE_NUMBER)
+                remove(COLUMN_NUMBER)
+            }
+            TYPE -> map.apply {
+                Type.`PropertyNames$`.`MODULE$`.allAsJava().forEach { prop ->
+                    if (!this.containsKey(prop)) this[prop] = getPropertyDefault(prop)
+                }
+            }
+            TYPE_DECL -> map.apply {
+                TypeDecl.`PropertyNames$`.`MODULE$`.allAsJava().forEach { prop ->
+                    if (!this.containsKey(prop)) this[prop] = getPropertyDefault(prop)
+                }
+                remove(LINE_NUMBER)
+                remove(COLUMN_NUMBER)
+            }
+            TYPE_PARAMETER -> map.apply {
+                TypeParameter.`PropertyNames$`.`MODULE$`.allAsJava().forEach { prop ->
+                    if (!this.containsKey(prop)) this[prop] = getPropertyDefault(prop)
+                }
+                remove(LINE_NUMBER)
+                remove(COLUMN_NUMBER)
+            }
+            TYPE_ARGUMENT -> map.apply {
+                TypeArgument.`PropertyNames$`.`MODULE$`.allAsJava().forEach { prop ->
+                    if (!this.containsKey(prop)) this[prop] = getPropertyDefault(prop)
+                }
+                remove(LINE_NUMBER)
+                remove(COLUMN_NUMBER)
+            }
+            MEMBER -> map.apply {
+                Member.`PropertyNames$`.`MODULE$`.allAsJava().forEach { prop ->
+                    if (!this.containsKey(prop)) this[prop] = getPropertyDefault(prop)
+                }
+            }
+            NAMESPACE -> map.apply {
+                Namespace.`PropertyNames$`.`MODULE$`.allAsJava().forEach { prop ->
+                    if (!this.containsKey(prop)) this[prop] = getPropertyDefault(prop)
+                }
+                remove(LINE_NUMBER)
+                remove(COLUMN_NUMBER)
+            }
+            NAMESPACE_BLOCK -> map.apply {
+                NamespaceBlock.`PropertyNames$`.`MODULE$`.allAsJava().forEach { prop ->
+                    if (!this.containsKey(prop)) this[prop] = getPropertyDefault(prop)
+                }
+                remove(LINE_NUMBER)
+                remove(COLUMN_NUMBER)
+            }
+            LITERAL -> map.apply {
+                Literal.`PropertyNames$`.`MODULE$`.allAsJava().forEach { prop ->
+                    if (!this.containsKey(prop)) this[prop] = getPropertyDefault(prop)
+                }
+            }
+            CALL -> map.apply {
+                Call.`PropertyNames$`.`MODULE$`.allAsJava().forEach { prop ->
+                    if (!this.containsKey(prop)) this[prop] = getPropertyDefault(prop)
+                }
+            }
+            LOCAL -> map.apply {
+                Local.`PropertyNames$`.`MODULE$`.allAsJava().forEach { prop ->
+                    if (!this.containsKey(prop)) this[prop] = getPropertyDefault(prop)
+                }
+            }
+            IDENTIFIER -> map.apply {
+                Identifier.`PropertyNames$`.`MODULE$`.allAsJava().forEach { prop ->
+                    if (!this.containsKey(prop)) this[prop] = getPropertyDefault(prop)
+                }
+            }
+            FIELD_IDENTIFIER -> map.apply {
+                FieldIdentifier.`PropertyNames$`.`MODULE$`.allAsJava().forEach { prop ->
+                    if (!this.containsKey(prop)) this[prop] = getPropertyDefault(prop)
+                }
+            }
+            RETURN -> map.apply {
+                Return.`PropertyNames$`.`MODULE$`.allAsJava().forEach { prop ->
+                    if (!this.containsKey(prop)) this[prop] = getPropertyDefault(prop)
+                }
+            }
+            BLOCK -> map.apply {
+                Block.`PropertyNames$`.`MODULE$`.allAsJava().forEach { prop ->
+                    if (!this.containsKey(prop)) this[prop] = getPropertyDefault(prop)
+                }
+            }
+            METHOD_REF -> map.apply {
+                MethodRef.`PropertyNames$`.`MODULE$`.allAsJava().forEach { prop ->
+                    if (!this.containsKey(prop)) this[prop] = getPropertyDefault(prop)
+                }
+                remove(TYPE_FULL_NAME)
+            }
+            TYPE_REF -> map.apply {
+                TypeRef.`PropertyNames$`.`MODULE$`.allAsJava().forEach { prop ->
+                    if (!this.containsKey(prop)) this[prop] = getPropertyDefault(prop)
+                }
+            }
+            JUMP_TARGET -> map.apply {
+                JumpTarget.`PropertyNames$`.`MODULE$`.allAsJava().forEach { prop ->
+                    if (!this.containsKey(prop)) this[prop] = getPropertyDefault(prop)
+                }
+                remove(PARSER_TYPE_NAME)
+            }
+            CONTROL_STRUCTURE -> map.apply {
+                ControlStructure.`PropertyNames$`.`MODULE$`.allAsJava().forEach { prop ->
+                    if (!this.containsKey(prop)) this[prop] = getPropertyDefault(prop)
+                }
+                remove(PARSER_TYPE_NAME)
+            }
+            NodeTypes.UNKNOWN -> map.apply {
+                Unknown.`PropertyNames$`.`MODULE$`.allAsJava().forEach { prop ->
+                    if (!this.containsKey(prop)) this[prop] = getPropertyDefault(prop)
+                }
+                remove(CONTAINED_REF)
+                remove(PARSER_TYPE_NAME)
+            }
             else -> map
+        }.apply {
+            remove(LINE_NUMBER_END)
+            remove(COLUMN_NUMBER_END)
+            remove(DYNAMIC_TYPE_HINT_FULL_NAME)
+            remove(INHERITS_FROM_TYPE_FULL_NAME)
+            remove(ALIAS_TYPE_FULL_NAME)
+            remove(ARGUMENT_NAME)
+            remove(CLOSURE_BINDING_ID)
         }
     }
 

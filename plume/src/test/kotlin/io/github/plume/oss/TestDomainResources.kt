@@ -44,7 +44,7 @@ class TestDomainResources {
                 .lineNumber(Option.apply(INT_1)).columnNumber(Option.apply(INT_1)),
             NewLocalBuilder().code(STRING_1).typeFullName(STRING_1).name(STRING_1).order(INT_1)
                 .lineNumber(Option.apply(INT_1)).columnNumber(Option.apply(INT_1)),
-            NewMemberBuilder().code(STRING_1).name(STRING_1).typeFullName(STRING_1).order(INT_1),
+            NewMemberBuilder().code(STRING_1).name(STRING_1).typeFullName(STRING_1).order(INT_1).lineNumber(INT_1).columnNumber(INT_2),
             NewMetaDataBuilder().language(STRING_1).version(STRING_1).hash(Option.apply(STRING_2)),
             NewMethodParameterInBuilder().code(STRING_1).evaluationStrategy(EVAL_1).typeFullName(STRING_1)
                 .name(STRING_1).order(INT_1).lineNumber(Option.apply(INT_1)).columnNumber(Option.apply(INT_1)),

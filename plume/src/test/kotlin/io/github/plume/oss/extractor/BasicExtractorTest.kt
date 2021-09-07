@@ -104,7 +104,7 @@ class BasicExtractorTest {
     fun validDirectoryTest() {
         extractor.load(validDirectory)
         extractor.project()
-        g = driver.getProgramStructure()
+        g = driver.getWholeGraph()
         val ns = g.nodes().asSequence().toList()
         ns.filterIsInstance<ODBFile>().let { fileList ->
             assertNotNull(fileList.firstOrNull { it.name() == "/extractor_tests/dir_test/Dir1.class".replace("/", sep) })
@@ -119,7 +119,6 @@ class BasicExtractorTest {
         extractor.load(validJarFile)
         extractor.project()
         g = driver.getWholeGraph()
-        g = driver.getProgramStructure()
         val ns = g.nodes().asSequence().toList()
         ns.filterIsInstance<ODBFile>().let { fileList ->
             assertNotNull(fileList.firstOrNull { it.name() == "/intraprocedural/basic/Basic6.class".replace("/", sep) })

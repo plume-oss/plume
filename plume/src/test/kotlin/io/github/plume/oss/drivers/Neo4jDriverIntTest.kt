@@ -488,28 +488,6 @@ class Neo4jDriverIntTest {
         }
 
         @Test
-        fun testGetProgramStructure() {
-            val unknown = io.shiftleft.semanticcpg.language.types.structure.FileTraversal.UNKNOWN()
-            driver.addVertex(NewFileBuilder().name(unknown).order(0).hash(Option.apply(unknown)))
-            g = driver.getProgramStructure()
-            val ns = g.nodes().asSequence().toList()
-            val es = g.edges().asSequence().toList()
-            assertEquals(5, ns.size)
-            assertEquals(2, es.size)
-
-            val file = g.V(fileVertex.id()).next()
-            val ns1 = g.V(namespaceBlockVertex1.id()).next()
-            // Assert program structure vertices are present
-            assertTrue(ns.any { it.id() == namespaceBlockVertex2.id() })
-            assertTrue(ns.any { it.id() == namespaceBlockVertex1.id() })
-            assertTrue(ns.any { it.id() == fileVertex.id() })
-            assertTrue(ns.any { it.id() == typeDeclVertex.id() })
-            // Check that vertices are connected by AST edges
-            assertTrue(file.out(AST).asSequence().any { it.id() == namespaceBlockVertex1.id() })
-            assertTrue(ns1.out(AST).asSequence().any { it.id() == namespaceBlockVertex2.id() })
-        }
-
-        @Test
         fun testGetNeighbours() {
             g = driver.getNeighbours(fileVertex)
             val ns = g.nodes().asSequence().toList()

@@ -5,7 +5,7 @@ import io.github.plume.oss.util.ExtractorConst
 import io.shiftleft.semanticcpg.language._
 
 class MetaDataTests extends PlumeCodeToCpgSuite {
-  override val code =
+  override val code: String =
     """
       |class Foo {}
       |""".stripMargin

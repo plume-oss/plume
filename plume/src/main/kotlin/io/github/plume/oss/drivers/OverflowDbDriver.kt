@@ -26,7 +26,6 @@ import io.shiftleft.codepropertygraph.generated.nodes.*
 import org.apache.logging.log4j.LogManager
 import overflowdb.*
 import scala.jdk.CollectionConverters
-import java.util.*
 import io.shiftleft.codepropertygraph.generated.edges.Factories as EdgeFactories
 import io.shiftleft.codepropertygraph.generated.nodes.Factories as NodeFactories
 
@@ -122,7 +121,7 @@ class OverflowDbDriver internal constructor() : IDriver {
     private fun createVertex(v: NewNodeBuilder<out NewNode>) {
         val newNode = v.build()
         val node = graph.addNode(newNode.label())
-        VertexMapper.stripUnusedProperties(
+        VertexMapper.handleProperties(
             v.build().label(),
             CollectionConverters.MapHasAsJava(newNode.properties()).asJava().toMutableMap()
         ).forEach { (key, value) -> node.setProperty(key, value) }
@@ -205,7 +204,7 @@ class OverflowDbDriver internal constructor() : IDriver {
             .distinct()
             .onEach { n ->
                 val node = graph.addNode(n.id(), n.label())
-                n.propertyMap().forEach { (key, value) -> node.setProperty(key as String?, value) }
+                n.propertiesMap().forEach { (key, value) -> node.setProperty(key as String?, value) }
             }
     }
 
@@ -219,22 +218,8 @@ class OverflowDbDriver internal constructor() : IDriver {
         }
     }
 
-    override fun getProgramStructure(): Graph {
-        val g = deepCopyGraph(Traversals.getProgramStructure(graph))
-        PlumeTimer.measure(DriverTimeKey.DATABASE_READ) {
-            val ns = Traversals.getFiles(graph).toMutableList<StoredNode>()
-                .toCollection(Traversals.getTypeDecls(graph).toMutableList<StoredNode>())
-                .toCollection(Traversals.getNamespaceBlocks(graph).toMutableList<StoredNode>())
-            ns.filter { g.node(it.id()) == null }
-                .forEach { t ->
-                    val node = g.addNode(t.id(), t.label())
-                    t.propertyMap().forEach { (key, value) -> node.setProperty(key, value) }
-                }
-        }
-        return g
-    }
-
-    override fun getNeighbours(v: NewNodeBuilder<out NewNode>): Graph = deepCopyGraph(Traversals.getNeighbours(graph, v.id()))
+    override fun getNeighbours(v: NewNodeBuilder<out NewNode>): Graph =
+        deepCopyGraph(Traversals.getNeighbours(graph, v.id()))
 
     override fun deleteVertex(id: Long, label: String?) {
         PlumeTimer.measure(DriverTimeKey.DATABASE_WRITE) {
@@ -308,7 +293,7 @@ class OverflowDbDriver internal constructor() : IDriver {
         return l
     }
 
-    override fun getVerticesOfType(label: String): List<NewNodeBuilder <out NewNode>> {
+    override fun getVerticesOfType(label: String): List<NewNodeBuilder<out NewNode>> {
         val l = mutableListOf<NewNodeBuilder<out NewNode>>()
         PlumeTimer.measure(DriverTimeKey.DATABASE_READ) {
             graph.nodes(label).asSequence()

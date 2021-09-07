@@ -5,7 +5,7 @@ import io.shiftleft.semanticcpg.language._
 
 class MemberTests extends PlumeCodeToCpgSuite {
 
-  override val code =
+  override val code: String =
     """
       |class Foo {
       |  int x;
