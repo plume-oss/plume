@@ -35,13 +35,13 @@ dependencies {
     implementation "org.jetbrains.kotlinx:kotlinx-coroutines-core:$kotlinxVersion"
 
     // Logging
-    compile "org.apache.logging.log4j:log4j-api:$log4jVersion"
-    compile "org.apache.logging.log4j:log4j-core:$log4jVersion"
-    compile "org.apache.logging.log4j:log4j-slf4j-impl:$log4jVersion"
-    compile "org.slf4j:jul-to-slf4j:$slf4jVersion" // JUL bridge
-    compile "org.slf4j:jcl-over-slf4j:$slf4jVersion" // Apache Commons Logging (JCL) bridge
-    compile "org.slf4j:log4j-over-slf4j:$slf4jVersion" // log4j1.2 bridge
-    compile "me.tongfei:progressbar:$progressBarVersion" // simple progress bar
+    implementation "org.apache.logging.log4j:log4j-api:$log4jVersion"
+    implementation "org.apache.logging.log4j:log4j-core:$log4jVersion"
+    implementation "org.apache.logging.log4j:log4j-slf4j-impl:$log4jVersion"
+    implementation "org.slf4j:jul-to-slf4j:$slf4jVersion" // JUL bridge
+    implementation "org.slf4j:jcl-over-slf4j:$slf4jVersion" // Apache Commons Logging (JCL) bridge
+    implementation "org.slf4j:log4j-over-slf4j:$slf4jVersion" // log4j1.2 bridge
+    implementation "me.tongfei:progressbar:$progressBarVersion" // simple progress bar
 
     // Core dependencies
     implementation "org.apache.tinkerpop:gremlin-core:$gremlinVersion"
@@ -64,10 +64,10 @@ dependencies {
     subProject project(":cpgconv")
 
     // Orchid Docs
-    orchidRuntime "io.github.javaeden.orchid:OrchidDocs:$orchidVersion"
-    orchidRuntime "io.github.javaeden.orchid:OrchidKotlindoc:$orchidVersion"
-    orchidRuntime "io.github.javaeden.orchid:OrchidPluginDocs:$orchidVersion"
-    orchidRuntime "io.github.javaeden.orchid:OrchidGithub:$orchidVersion"
+    orchidRuntimeOnly "io.github.javaeden.orchid:OrchidDocs:$orchidVersion"
+    orchidRuntimeOnly "io.github.javaeden.orchid:OrchidKotlindoc:$orchidVersion"
+    orchidRuntimeOnly "io.github.javaeden.orchid:OrchidPluginDocs:$orchidVersion"
+    orchidRuntimeOnly "io.github.javaeden.orchid:OrchidGithub:$orchidVersion"
 
     // Testing
     testImplementation "org.junit.jupiter:junit-jupiter-engine:$junitVersion"
