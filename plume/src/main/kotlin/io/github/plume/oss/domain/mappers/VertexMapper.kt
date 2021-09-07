@@ -143,6 +143,8 @@ object VertexMapper {
                 .code(map.getOrDefault(CODE, getPropertyDefault(CODE)) as String)
                 .name(map.getOrDefault(NAME, getPropertyDefault(NAME)) as String)
                 .order(map.getOrDefault(ORDER, getPropertyDefault(ORDER)) as Int)
+                .lineNumber(Option.apply(map[LINE_NUMBER] as Int))
+                .columnNumber(Option.apply(map[COLUMN_NUMBER] as Int))
             Namespace.Label() -> NewNamespaceBuilder()
                 .order(map.getOrDefault(ORDER, getPropertyDefault(ORDER)) as Int)
                 .name(map.getOrDefault(NAME, getPropertyDefault(NAME)) as String)
@@ -285,6 +287,8 @@ object VertexMapper {
                 File.`PropertyNames$`.`MODULE$`.allAsJava().forEach { prop ->
                     if (!this.containsKey(prop)) this[prop] = getPropertyDefault(prop)
                 }
+                remove(LINE_NUMBER)
+                remove(COLUMN_NUMBER)
             }
             METHOD -> map.apply {
                 Method.`PropertyNames$`.`MODULE$`.allAsJava().forEach { prop ->
@@ -313,6 +317,8 @@ object VertexMapper {
                 Modifier.`PropertyNames$`.`MODULE$`.allAsJava().forEach { prop ->
                     if (!this.containsKey(prop)) this[prop] = getPropertyDefault(prop)
                 }
+                remove(LINE_NUMBER)
+                remove(LINE_NUMBER)
             }
             TYPE -> map.apply {
                 Type.`PropertyNames$`.`MODULE$`.allAsJava().forEach { prop ->
@@ -323,16 +329,22 @@ object VertexMapper {
                 TypeDecl.`PropertyNames$`.`MODULE$`.allAsJava().forEach { prop ->
                     if (!this.containsKey(prop)) this[prop] = getPropertyDefault(prop)
                 }
+                remove(LINE_NUMBER)
+                remove(COLUMN_NUMBER)
             }
             TYPE_PARAMETER -> map.apply {
                 TypeParameter.`PropertyNames$`.`MODULE$`.allAsJava().forEach { prop ->
                     if (!this.containsKey(prop)) this[prop] = getPropertyDefault(prop)
                 }
+                remove(LINE_NUMBER)
+                remove(COLUMN_NUMBER)
             }
             TYPE_ARGUMENT -> map.apply {
                 TypeArgument.`PropertyNames$`.`MODULE$`.allAsJava().forEach { prop ->
                     if (!this.containsKey(prop)) this[prop] = getPropertyDefault(prop)
                 }
+                remove(LINE_NUMBER)
+                remove(COLUMN_NUMBER)
             }
             MEMBER -> map.apply {
                 Member.`PropertyNames$`.`MODULE$`.allAsJava().forEach { prop ->
@@ -343,11 +355,15 @@ object VertexMapper {
                 Namespace.`PropertyNames$`.`MODULE$`.allAsJava().forEach { prop ->
                     if (!this.containsKey(prop)) this[prop] = getPropertyDefault(prop)
                 }
+                remove(LINE_NUMBER)
+                remove(COLUMN_NUMBER)
             }
             NAMESPACE_BLOCK -> map.apply {
                 NamespaceBlock.`PropertyNames$`.`MODULE$`.allAsJava().forEach { prop ->
                     if (!this.containsKey(prop)) this[prop] = getPropertyDefault(prop)
                 }
+                remove(LINE_NUMBER)
+                remove(COLUMN_NUMBER)
             }
             LITERAL -> map.apply {
                 Literal.`PropertyNames$`.`MODULE$`.allAsJava().forEach { prop ->
