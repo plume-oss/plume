@@ -262,6 +262,10 @@ object VertexMapper {
             TYPE_DECL -> strDefault
             IS_EXTERNAL -> boolDefault
             DISPATCH_TYPE -> strDefault
+            LINE_NUMBER -> intDefault
+            COLUMN_NUMBER -> intDefault
+            LINE_NUMBER_END -> intDefault
+            COLUMN_NUMBER_END -> intDefault
             else -> strDefault
         }
     }

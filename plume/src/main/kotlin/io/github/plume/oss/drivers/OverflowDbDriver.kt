@@ -124,7 +124,8 @@ class OverflowDbDriver internal constructor() : IDriver {
         VertexMapper.handleProperties(
             v.build().label(),
             CollectionConverters.MapHasAsJava(newNode.properties()).asJava().toMutableMap()
-        ).forEach { (key, value) -> node.setProperty(key, value) }
+        ).forEach { (key, value) ->
+            node.setProperty(key, value) }
         v.id(node.id())
     }
 
