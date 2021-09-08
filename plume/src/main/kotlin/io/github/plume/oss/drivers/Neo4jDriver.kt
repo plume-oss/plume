@@ -22,6 +22,7 @@ import io.github.plume.oss.domain.mappers.VertexMapper.mapToVertex
 import io.github.plume.oss.domain.model.DeltaGraph
 import io.github.plume.oss.metrics.DriverTimeKey
 import io.github.plume.oss.metrics.PlumeTimer
+import io.shiftleft.codepropertygraph.generated.Cpg
 import io.shiftleft.codepropertygraph.generated.EdgeTypes.AST
 import io.shiftleft.codepropertygraph.generated.EdgeTypes.SOURCE_FILE
 import io.shiftleft.codepropertygraph.generated.NodeTypes.*
@@ -645,11 +646,7 @@ class Neo4jDriver internal constructor() : IDriver {
         return l
     }
 
-    private fun newOverflowGraph(): Graph = Graph.open(
-        Config.withDefaults(),
-        NodeFactories.allAsJava(),
-        EdgeFactories.allAsJava()
-    )
+    private fun newOverflowGraph(): Graph = Cpg.emptyGraph()
 
     companion object {
         /**

@@ -184,6 +184,7 @@ class Extractor(val driver: IDriver) {
      * @param includeReachingDefs if true, will include calculating REACHING_DEF chains. If false, will keep method CPGs
      * in memory storage.
      */
+    @JvmOverloads
     fun project(includeReachingDefs: Boolean = true): Extractor {
         /*
             Load and compile files then feed them into Soot

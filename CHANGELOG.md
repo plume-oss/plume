@@ -7,6 +7,14 @@ and this project adheres to [Semantic Versioning](http://semver.org/).
 
 ## [Unreleased]
 
+### Added
+
+- `Extractor::project` now generated overloaded methods for Java
+
+### Changed
+
+- OverflowDB graphs now generated from `io.shiftleft.codepropertygraph.generated.Cpg`
+
 ## [0.5.13] - 2021-09-07
 
 ### Changed
