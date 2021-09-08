@@ -27,6 +27,7 @@ import io.github.plume.oss.util.ExtractorConst
 import io.github.plume.oss.util.ExtractorConst.BOOLEAN_TYPES
 import io.github.plume.oss.util.ExtractorConst.INT_TYPES
 import io.github.plume.oss.util.PlumeKeyProvider
+import io.shiftleft.codepropertygraph.generated.Cpg
 import io.shiftleft.codepropertygraph.generated.EdgeTypes
 import io.shiftleft.codepropertygraph.generated.NodeTypes
 import io.shiftleft.codepropertygraph.generated.NodeTypes.*
@@ -686,11 +687,7 @@ class TigerGraphDriver internal constructor() : IOverridenIdDriver, ISchemaSafeD
         return out.toString()
     }
 
-    private fun newOverflowGraph(): Graph = Graph.open(
-        Config.withDefaults(),
-        NodeFactories.allAsJava(),
-        EdgeFactories.allAsJava()
-    )
+    private fun newOverflowGraph(): Graph = Cpg.emptyGraph()
 
     /**
      * Uses the generated schema from [TigerGraphDriver.buildSchemaPayload] and remotely executes it on the database.

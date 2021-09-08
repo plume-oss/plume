@@ -21,6 +21,7 @@ import io.github.plume.oss.domain.mappers.VertexMapper.checkSchemaConstraints
 import io.github.plume.oss.domain.model.DeltaGraph
 import io.github.plume.oss.metrics.DriverTimeKey
 import io.github.plume.oss.metrics.PlumeTimer
+import io.shiftleft.codepropertygraph.generated.Cpg
 import io.shiftleft.codepropertygraph.generated.EdgeTypes.AST
 import io.shiftleft.codepropertygraph.generated.NodeTypes.*
 import io.shiftleft.codepropertygraph.generated.PropertyNames.FULL_NAME
@@ -481,10 +482,6 @@ abstract class GremlinDriver : IDriver {
         }
     }
 
-    protected fun newOverflowGraph(): overflowdb.Graph = overflowdb.Graph.open(
-        Config.withDefaults(),
-        NodeFactories.allAsJava(),
-        EdgeFactories.allAsJava()
-    )
+    protected fun newOverflowGraph(): overflowdb.Graph = Cpg.emptyGraph()
 
 }

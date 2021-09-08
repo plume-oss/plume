@@ -22,6 +22,7 @@ import io.github.plume.oss.domain.mappers.VertexMapper.checkSchemaConstraints
 import io.github.plume.oss.domain.model.DeltaGraph
 import io.github.plume.oss.metrics.DriverTimeKey
 import io.github.plume.oss.metrics.PlumeTimer
+import io.shiftleft.codepropertygraph.generated.Cpg
 import io.shiftleft.codepropertygraph.generated.nodes.*
 import org.apache.logging.log4j.LogManager
 import overflowdb.*
@@ -317,10 +318,6 @@ class OverflowDbDriver internal constructor() : IDriver {
         }
     }
 
-    private fun newOverflowGraph(odbConfig: Config = Config.withDefaults()): Graph = Graph.open(
-        odbConfig,
-        NodeFactories.allAsJava(),
-        EdgeFactories.allAsJava()
-    )
+    private fun newOverflowGraph(odbConfig: Config = Config.withDefaults()): Graph = Cpg.withConfig(odbConfig).graph()
 
 }
