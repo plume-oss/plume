@@ -7,6 +7,8 @@ and this project adheres to [Semantic Versioning](http://semver.org/).
 
 ## [Unreleased]
 
+## [0.5.14] - 2021-09-08
+
 ### Added
 
 - `Extractor::project` now generated overloaded methods for Java
