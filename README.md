@@ -14,6 +14,12 @@ database agnosic and can store code-property graphs to multiple graph databases.
 [![codecov](https://codecov.io/gh/plume-oss/plume/branch/master/graph/badge.svg?token=4WY0U6QCU6)](https://codecov.io/gh/plume-oss/plume)
 [![](https://jitpack.io/v/plume-oss/plume.svg)](https://jitpack.io/#plume-oss/plume)
 
+## Important
+
+Plume is going into maintenance mode. [jimple2cpg](https://github.com/joernio/jimple2cpg) is the new JVM bytecode to CPG
+project that is optimized around OverflowDB and is much more lightweight. Future development will take place on 
+[jimple2cpg](https://github.com/joernio/jimple2cpg).
+
 ## Learn More
 
 For more documentation and basic guides, check out the [project homepage](https://plume-oss.github.io/plume-docs/).
