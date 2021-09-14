@@ -15,7 +15,6 @@
  */
 package io.github.plume.oss.passes.graph
 
-import io.github.plume.oss.domain.mappers.ListMapper
 import io.github.plume.oss.domain.model.DeltaGraph
 import io.github.plume.oss.store.LocalCache
 import io.github.plume.oss.store.PlumeStorage
@@ -472,7 +471,7 @@ class BaseCPGPass(private val g: BriefUnitGraph) {
                     .argumentIndex(i)
                     .lineNumber(Option.apply(tgt.javaSourceStartLineNumber))
                     .columnNumber(Option.apply(tgt.javaSourceStartColumnNumber))
-                    .order(childIdx)
+                    .order(i)
                 builder.addEdge(switchVertex, tgtV, AST)
                 addToStore(unit, tgtV)
             }
@@ -507,7 +506,7 @@ class BaseCPGPass(private val g: BriefUnitGraph) {
                     .argumentIndex(lookupValue)
                     .lineNumber(Option.apply(tgt.javaSourceStartLineNumber))
                     .columnNumber(Option.apply(tgt.javaSourceStartColumnNumber))
-                    .order(childIdx)
+                    .order(lookupValue)
                 builder.addEdge(switchVertex, tgtV, AST)
                 addToStore(unit, tgtV)
             }

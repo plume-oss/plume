@@ -7,6 +7,10 @@ and this project adheres to [Semantic Versioning](http://semver.org/).
 
 ## [Unreleased]
 
+### Fixed
+
+- `TableSwitchStmt` jump targets now have the correct order
+
 ## [0.5.14] - 2021-09-08
 
 ### Added
