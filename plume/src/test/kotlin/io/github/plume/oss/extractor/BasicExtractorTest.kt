@@ -131,6 +131,15 @@ class BasicExtractorTest {
     }
 
     @Test
+    fun sootOnlyTest() {
+        extractor.load(validJarFile)
+        extractor.project(sootOnly = true)
+        g = driver.getWholeGraph()
+        // Only metadata will be inserted
+        assertEquals(1, g.nodeCount())
+    }
+
+    @Test
     fun loadFileThatDoesNotExistTest() {
         assertThrows(NullPointerException::class.java) { extractor.load(File("dne.class")) }
     }

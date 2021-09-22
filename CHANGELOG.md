@@ -7,6 +7,9 @@ and this project adheres to [Semantic Versioning](http://semver.org/).
 
 ## [Unreleased]
 
+### Added
+- Soot only configuration for the metrics
+
 ### Changed
 
 - Upgraded CPG to latest version before IDs were removed again
