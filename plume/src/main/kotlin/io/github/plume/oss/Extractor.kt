@@ -182,10 +182,12 @@ class Extractor(val driver: IDriver) {
      * are loaded.
      *
      * @param includeReachingDefs if true, will include calculating REACHING_DEF chains. If false, will keep method CPGs
-     * in memory storage.
+     * in memory storage. Default is true.
+     * @param sootOnly if true, will only load files into Soot and clear - this is mostly used for benchmarking. Default
+     * false.
      */
     @JvmOverloads
-    fun project(includeReachingDefs: Boolean = true): Extractor {
+    fun project(includeReachingDefs: Boolean = true, sootOnly: Boolean = false): Extractor {
         /*
             Load and compile files then feed them into Soot
          */
@@ -210,6 +212,11 @@ class Extractor(val driver: IDriver) {
             ms.map { it.declaringClass }.distinct().forEach(cs::add) // Make sure to build types of called types
         }
         compiledFiles.clear() // Done using compiledFiles
+        if (sootOnly) return apply {
+            FastHierarchy() // Run this here for completeness
+            logger.info("Early stopping due to Soot only flag set.")
+            earlyStopCleanUp()
+        }
         /*
             Build program structure and remove sub-graphs which need to be rebuilt
          */

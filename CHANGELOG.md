@@ -5,6 +5,16 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](http://keepachangelog.com/)
 and this project adheres to [Semantic Versioning](http://semver.org/).
 
+## [Unreleased]
+
+### Added
+- Soot only configuration for the metrics
+
+### Changed
+
+- Upgraded CPG to latest version before IDs were removed again
+- Removed unused methods in ODB `Traversals`
+
 ## [0.6.0] - 2021-09-14
 
 ### Changed

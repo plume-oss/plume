@@ -1,13 +1,13 @@
 package io.github.plume.oss
 
-import java.util
 import io.shiftleft.codepropertygraph.Cpg
-import io.shiftleft.codepropertygraph.generated.{EdgeTypes, nodes}
-import io.shiftleft.codepropertygraph.generated.nodes.{AstNode, File, MetaData, Method, NamespaceBlock, StoredNode, TypeDecl}
+import io.shiftleft.codepropertygraph.generated.EdgeTypes
+import io.shiftleft.codepropertygraph.generated.nodes.{AstNode, MetaData, StoredNode}
 import io.shiftleft.dataflowengineoss.passes.reachingdef.{ReachingDefProblem, ReachingDefTransferFunction}
 import io.shiftleft.semanticcpg.language._
 import overflowdb.{Edge, Graph}
 
+import java.util
 import scala.jdk.CollectionConverters._
 
 object Traversals {
@@ -33,30 +33,6 @@ object Traversals {
       .l
       .asJava
   }
-
-  import overflowdb.traversal._
-  def getProgramStructure(graph: Graph): util.List[Edge] = {
-    val edgesFromFile: List[Edge] = Cpg(graph).file
-      .outE(EdgeTypes.AST)
-      .filter(_.inNode().isInstanceOf[nodes.NamespaceBlock])
-      .l
-    val edgesFromNamespaceBlock: List[Edge] = edgesFromFile
-      .to(Traversal)
-      .inV
-      .collect {
-        case x: nodes.NamespaceBlock =>
-          x.outE(EdgeTypes.AST).filter(_.inNode().isInstanceOf[nodes.NamespaceBlock]).l
-      }
-      .l
-      .flatten
-    (edgesFromFile ++ edgesFromNamespaceBlock).asJava
-  }
-
-  def getTypeDecls(graph: Graph):util.List[TypeDecl] = Cpg(graph).typeDecl.l.asJava
-
-  def getFiles(graph: Graph):util.List[File] = Cpg(graph).file.l.asJava
-
-  def getNamespaceBlocks(graph: Graph):util.List[NamespaceBlock] = Cpg(graph).namespaceBlock.l.asJava
 
   def getMetaData(graph: Graph):Option[MetaData] = Cpg(graph).metaData.nextOption()
 
