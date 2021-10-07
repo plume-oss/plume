@@ -632,7 +632,7 @@ class Extractor(val driver: IDriver) {
             Scene.v().classes.asSequence().filter { it.isApplicationClass }
                 .map { sootClass ->
                     runCatching { Scene.v().forceResolve(sootClass.name, SootClass.BODIES).methods }
-                        .onFailure { e -> logger.warn("Unable to resolve methods for ${sootClass.name}", e) }
+                        .onFailure { e -> logger.error("Unable to resolve methods for ${sootClass.name}", e) }
                         .getOrNull() ?: emptyList()
                 }
                 .flatten()
