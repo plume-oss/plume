@@ -79,6 +79,7 @@ import java.util.concurrent.Executors
 import java.util.stream.Collectors
 import java.util.zip.ZipFile
 import kotlin.collections.HashSet
+import kotlin.math.log
 
 /**
  * The main entrypoint of the extractor from which the CPG will be created.
@@ -205,153 +206,161 @@ class Extractor(val driver: IDriver) {
         if (!artifactChanged) return apply { logger.info("No change in the artifact detected."); earlyStopCleanUp() }
         if (compiledFiles.isEmpty()) return apply { logger.info("No supported files detected."); earlyStopCleanUp() }
         logger.info("Loading all classes into Soot")
-        PlumeTimer.measure(ExtractorTimeKey.SOOT) {
-            configureSoot()
-            loadClassesIntoSoot(compiledFiles).toCollection(cs)
-            getMethodsAndBuildBodies(cs).toCollection(ms)
-            ms.map { it.declaringClass }.distinct().forEach(cs::add) // Make sure to build types of called types
-        }
-        compiledFiles.clear() // Done using compiledFiles
-        if (sootOnly) return apply {
-            FastHierarchy() // Run this here for completeness
-            logger.info("Early stopping due to Soot only flag set.")
-            earlyStopCleanUp()
-        }
-        /*
-            Build program structure and remove sub-graphs which need to be rebuilt
-         */
-        logger.info("Checking any classes already in the database require updates")
-        val csToBuild = mutableListOf<Pair<SootClass, FileChange>>()
-        PlumeTimer.measure(ExtractorTimeKey.PROGRAM_STRUCTURE_BUILDING) {
-            // Remove classes no longer in the graph
-            MarkClassForRemoval(driver).runPass(cs)
-            // Only add classes which need to be updated or built new
-            MarkClassForRebuild(driver).runPass(cs).toCollection(csToBuild)
-        }
-        cs.clear() // Done using cs
-        if (csToBuild.isEmpty()) return apply { logger.info("No new or changed files detected."); earlyStopCleanUp() }
-        logger.info("Building internal program structure and type information")
-        PlumeTimer.measure(ExtractorTimeKey.PROGRAM_STRUCTURE_BUILDING) {
-            pipeline(
-                FileAndPackagePass(driver)::runPass,
-                TypePass(driver)::runPass,
-            ).invoke(csToBuild.filter { it.second == FileChange.NEW }.map { it.first })
-        }
-        val methodsToBuild = mutableListOf<SootMethod>()
-        PlumeTimer.measure(ExtractorTimeKey.BASE_CPG_BUILDING) {
-            val csToUpdate = csToBuild.filter { it.second == FileChange.UPDATE }
-            if (csToUpdate.isNotEmpty()) {
-                logger.info("Determining if any existing methods require an update")
-                MarkMethodForRebuild(driver)
-                    .runPass(csToUpdate.map { it.first }.toSet())
+        try {
+            PlumeTimer.measure(ExtractorTimeKey.SOOT) {
+                configureSoot()
+                loadClassesIntoSoot(compiledFiles).toCollection(cs)
+                getMethodsAndBuildBodies(cs).toCollection(ms)
+                ms.map { it.declaringClass }.distinct().forEach(cs::add) // Make sure to build types of called types
+            }
+            compiledFiles.clear() // Done using compiledFiles
+            if (sootOnly) return apply {
+                FastHierarchy() // Run this here for completeness
+                logger.info("Early stopping due to Soot only flag set.")
+                earlyStopCleanUp()
+            }
+            /*
+                Build program structure and remove sub-graphs which need to be rebuilt
+             */
+            logger.info("Checking any classes already in the database require updates")
+            val csToBuild = mutableListOf<Pair<SootClass, FileChange>>()
+            PlumeTimer.measure(ExtractorTimeKey.PROGRAM_STRUCTURE_BUILDING) {
+                // Remove classes no longer in the graph
+                MarkClassForRemoval(driver).runPass(cs)
+                // Only add classes which need to be updated or built new
+                MarkClassForRebuild(driver).runPass(cs).toCollection(csToBuild)
+            }
+            cs.clear() // Done using cs
+            if (csToBuild.isEmpty()) return apply { logger.info("No new or changed files detected."); earlyStopCleanUp() }
+            logger.info("Building internal program structure and type information")
+            PlumeTimer.measure(ExtractorTimeKey.PROGRAM_STRUCTURE_BUILDING) {
+                pipeline(
+                    FileAndPackagePass(driver)::runPass,
+                    TypePass(driver)::runPass,
+                ).invoke(csToBuild.filter { it.second == FileChange.NEW }.map { it.first })
+            }
+            val methodsToBuild = mutableListOf<SootMethod>()
+            PlumeTimer.measure(ExtractorTimeKey.BASE_CPG_BUILDING) {
+                val csToUpdate = csToBuild.filter { it.second == FileChange.UPDATE }
+                if (csToUpdate.isNotEmpty()) {
+                    logger.info("Determining if any existing methods require an update")
+                    MarkMethodForRebuild(driver)
+                        .runPass(csToUpdate.map { it.first }.toSet())
+                        .toCollection(methodsToBuild)
+                }
+                csToBuild.filter { it.second == FileChange.NEW }.flatMap { it.first.methods }
                     .toCollection(methodsToBuild)
             }
-            csToBuild.filter { it.second == FileChange.NEW }.flatMap { it.first.methods }.toCollection(methodsToBuild)
-        }
-        /*
-            Build Soot Unit graphs and extract types
-         */
-        logger.info("Building UnitGraphs")
-        val sootUnitGraphs = mutableListOf<BriefUnitGraph>()
-        PlumeTimer.measure(ExtractorTimeKey.SOOT) {
-            constructUnitGraphs(methodsToBuild.filter { it.declaringClass.isApplicationClass })
-                .toCollection(sootUnitGraphs)
-        }
-        /*
-            Obtain inheritance information
-        */
-        logger.info("Obtaining class hierarchy")
-        val parentToChildCs: MutableList<Pair<SootClass, Set<SootClass>>> = mutableListOf()
-        PlumeTimer.measure(ExtractorTimeKey.SOOT) {
-            val fh = FastHierarchy()
-            Scene.v().classes.asSequence()
-                .map { Pair(it, fh.getSubclassesOf(it)) }
-                .map { Pair(it.first, csToBuild.map { c -> c.first }.intersect(it.second)) }
-                .filter { it.second.isNotEmpty() }.toCollection(parentToChildCs)
-        }
-        /*
-            Obtain all referenced types from fields, returns, and locals
-         */
-        val ts = mutableSetOf<Type>()
-        PlumeTimer.measure(ExtractorTimeKey.PROGRAM_STRUCTURE_BUILDING) {
-            val fieldsAndRets = parentToChildCs.map { it.first }
-                .map { c -> c.fields.map { it.type } + c.methods.map { it.returnType } }
-                .flatten().toSet()
-            val locals = sootUnitGraphs.map { it.body.locals + it.body.parameterLocals }
-                .flatten().map { it.type }.toSet()
-            val returns = sootUnitGraphs.map { it.body.method.returnType }.toSet()
-            (fieldsAndRets + locals + returns).distinct().toCollection(ts)
-        }
-        logger.debug("All referenced types: ${ts.groupBy { it.javaClass }.mapValues { it.value.size }}}")
-        /*
-            Build primitive type information
-         */
-        logger.info("Building primitive type information")
-        PlumeTimer.measure(ExtractorTimeKey.PROGRAM_STRUCTURE_BUILDING) {
-            pipeline(
-                GlobalTypePass(driver)::runPass
-            ).invoke(ts.toList())
-        }
-        /*
-            Build fields for TYPE_DECL
-         */
-        PlumeTimer.measure(ExtractorTimeKey.PROGRAM_STRUCTURE_BUILDING) {
-            val csToUpdate = csToBuild.filter { it.second == FileChange.UPDATE }
-            val fieldsToCreate = mutableListOf<SootField>()
-            if (csToUpdate.isNotEmpty()) {
-                logger.info("Determining if any existing fields require an update")
-                MarkFieldForRebuild(driver).runPass(csToBuild.filter { it.second == FileChange.UPDATE }
-                    .map { it.first })
-                    .toCollection(fieldsToCreate)
+            /*
+                Build Soot Unit graphs and extract types
+             */
+            logger.info("Building UnitGraphs")
+            val sootUnitGraphs = mutableListOf<BriefUnitGraph>()
+            PlumeTimer.measure(ExtractorTimeKey.SOOT) {
+                constructUnitGraphs(methodsToBuild.filter { it.declaringClass.isApplicationClass })
+                    .toCollection(sootUnitGraphs)
             }
-            csToBuild.filter { it.second == FileChange.NEW }.flatMap { it.first.fields }.toCollection(fieldsToCreate)
-            val internalFields = fieldsToCreate.filter { it.declaringClass.isApplicationClass }.size
-            val externalFields = fieldsToCreate.filterNot { it.declaringClass.isApplicationClass }.size
-            logger.info("Building $internalFields internal $externalFields external and fields and attaching them to type declarations")
-            MemberPass(driver).runPass(fieldsToCreate)
-        }
-        /*
-            Build external types
-         */
-        PlumeTimer.measure(ExtractorTimeKey.BASE_CPG_BUILDING) {
-            val referencedTypes = ts.filterNot { it is PrimType }
-                .map { if (it is ArrayType) it.baseType else it } + parentToChildCs.map { it.first.type }
-            val filteredExtTypes =
-                referencedTypes.minus(csToBuild.map { it.first.type }).filterIsInstance<RefType>().toList()
-            val externalClasses = filteredExtTypes.filter { it.hasSootClass() }.map { it.sootClass }.distinct().size
-            logger.info("Building external program structure and type information for $externalClasses external classes.")
-            pipeline(
-                FileAndPackagePass(driver)::runPass,
-                ExternalTypePass(driver)::runPass,
-            ).invoke(filteredExtTypes.map { it.sootClass })
-        }
-        /*
-            Build inheritance edges, i.e.
-            TYPE_DECL -INHERITS_FROM-> TYPE
-        */
-        PlumeTimer.measure(ExtractorTimeKey.PROGRAM_STRUCTURE_BUILDING) {
-            parentToChildCs.forEach { (c, children) ->
-                cache.tryGetType(c.type.toQuotedString())?.let { t ->
-                    children.intersect(csToBuild.map { it.first })
-                        .mapNotNull { child -> cache.tryGetTypeDecl(child.type.toQuotedString()) }
-                        .forEach { td -> driver.addEdge(td, t, INHERITS_FROM) }
+            /*
+                Obtain inheritance information
+            */
+            logger.info("Obtaining class hierarchy")
+            val parentToChildCs: MutableList<Pair<SootClass, Set<SootClass>>> = mutableListOf()
+            PlumeTimer.measure(ExtractorTimeKey.SOOT) {
+                val fh = FastHierarchy()
+                Scene.v().classes.asSequence()
+                    .map { Pair(it, fh.getSubclassesOf(it)) }
+                    .map { Pair(it.first, csToBuild.map { c -> c.first }.intersect(it.second)) }
+                    .filter { it.second.isNotEmpty() }.toCollection(parentToChildCs)
+            }
+            /*
+                Obtain all referenced types from fields, returns, and locals
+             */
+            val ts = mutableSetOf<Type>()
+            PlumeTimer.measure(ExtractorTimeKey.PROGRAM_STRUCTURE_BUILDING) {
+                val fieldsAndRets = parentToChildCs.map { it.first }
+                    .map { c -> c.fields.map { it.type } + c.methods.map { it.returnType } }
+                    .flatten().toSet()
+                val locals = sootUnitGraphs.map { it.body.locals + it.body.parameterLocals }
+                    .flatten().map { it.type }.toSet()
+                val returns = sootUnitGraphs.map { it.body.method.returnType }.toSet()
+                (fieldsAndRets + locals + returns).distinct().toCollection(ts)
+            }
+            logger.debug("All referenced types: ${ts.groupBy { it.javaClass }.mapValues { it.value.size }}}")
+            /*
+                Build primitive type information
+             */
+            logger.info("Building primitive type information")
+            PlumeTimer.measure(ExtractorTimeKey.PROGRAM_STRUCTURE_BUILDING) {
+                pipeline(
+                    GlobalTypePass(driver)::runPass
+                ).invoke(ts.toList())
+            }
+            /*
+                Build fields for TYPE_DECL
+             */
+            PlumeTimer.measure(ExtractorTimeKey.PROGRAM_STRUCTURE_BUILDING) {
+                val csToUpdate = csToBuild.filter { it.second == FileChange.UPDATE }
+                val fieldsToCreate = mutableListOf<SootField>()
+                if (csToUpdate.isNotEmpty()) {
+                    logger.info("Determining if any existing fields require an update")
+                    MarkFieldForRebuild(driver).runPass(csToBuild.filter { it.second == FileChange.UPDATE }
+                        .map { it.first })
+                        .toCollection(fieldsToCreate)
+                }
+                csToBuild.filter { it.second == FileChange.NEW }.flatMap { it.first.fields }
+                    .toCollection(fieldsToCreate)
+                val internalFields = fieldsToCreate.filter { it.declaringClass.isApplicationClass }.size
+                val externalFields = fieldsToCreate.filterNot { it.declaringClass.isApplicationClass }.size
+                logger.info("Building $internalFields internal $externalFields external and fields and attaching them to type declarations")
+                MemberPass(driver).runPass(fieldsToCreate)
+            }
+            /*
+                Build external types
+             */
+            PlumeTimer.measure(ExtractorTimeKey.BASE_CPG_BUILDING) {
+                val referencedTypes = ts.filterNot { it is PrimType }
+                    .map { if (it is ArrayType) it.baseType else it } + parentToChildCs.map { it.first.type }
+                val filteredExtTypes =
+                    referencedTypes.minus(csToBuild.map { it.first.type }).filterIsInstance<RefType>().toList()
+                val externalClasses = filteredExtTypes.filter { it.hasSootClass() }.map { it.sootClass }.distinct().size
+                logger.info("Building external program structure and type information for $externalClasses external classes.")
+                pipeline(
+                    FileAndPackagePass(driver)::runPass,
+                    ExternalTypePass(driver)::runPass,
+                ).invoke(filteredExtTypes.map { it.sootClass })
+            }
+            /*
+                Build inheritance edges, i.e.
+                TYPE_DECL -INHERITS_FROM-> TYPE
+            */
+            PlumeTimer.measure(ExtractorTimeKey.PROGRAM_STRUCTURE_BUILDING) {
+                parentToChildCs.forEach { (c, children) ->
+                    cache.tryGetType(c.type.toQuotedString())?.let { t ->
+                        children.intersect(csToBuild.map { it.first })
+                            .mapNotNull { child -> cache.tryGetTypeDecl(child.type.toQuotedString()) }
+                            .forEach { td -> driver.addEdge(td, t, INHERITS_FROM) }
+                    }
                 }
             }
-        }
-        csToBuild.clear() // Done using csToBuild
-        /*
-            Construct the CPGs for methods
-         */
-        if (methodsToBuild.size > 0)
-            PlumeTimer.measure(ExtractorTimeKey.BASE_CPG_BUILDING) { buildMethods(methodsToBuild, sootUnitGraphs) }
-        // Clear all Soot resources and storage
-        this.clear()
-        if (includeReachingDefs) {
+            csToBuild.clear() // Done using csToBuild
             /*
+                Construct the CPGs for methods
+            */
+            if (methodsToBuild.size > 0)
+                PlumeTimer.measure(ExtractorTimeKey.BASE_CPG_BUILDING) { buildMethods(methodsToBuild, sootUnitGraphs) }
+            // Clear all Soot resources and storage
+            this.clear()
+            if (includeReachingDefs) {
+                /*
                 Method body level analysis - only done on new/updated methods
              */
-            logger.info("Running data flow passes")
-            PlumeTimer.measure(ExtractorTimeKey.DATA_FLOW_PASS) { DataFlowPass(driver).runPass() }
+                logger.info("Running data flow passes")
+                PlumeTimer.measure(ExtractorTimeKey.DATA_FLOW_PASS) { DataFlowPass(driver).runPass() }
+                PlumeStorage.methodCpgs.clear()
+            }
+        } finally {
+            // In-case there is an exception early to avoid memory/reference leaks
+            this.clear()
             PlumeStorage.methodCpgs.clear()
         }
         return this
@@ -620,12 +629,17 @@ class Extractor(val driver: IDriver) {
                 }
             }.toList()
         if (ExtractorOptions.callGraphAlg != ExtractorOptions.CallGraphAlg.NONE) {
-            Scene.v().classes.filter { it.isApplicationClass }
-                .flatMap { Scene.v().forceResolve(it.name, SootClass.BODIES).methods }
+            Scene.v().classes.asSequence().filter { it.isApplicationClass }
+                .map { sootClass ->
+                    runCatching { Scene.v().forceResolve(sootClass.name, SootClass.BODIES).methods }
+                        .onFailure { e -> logger.warn("Unable to resolve methods for ${sootClass.name}", e) }
+                        .getOrNull() ?: emptyList()
+                }
+                .flatten()
                 .distinct()
                 .toList().let { x ->
-                Scene.v().entryPoints = x
-            }
+                    Scene.v().entryPoints = x
+                }
         }
         when (ExtractorOptions.callGraphAlg) {
             ExtractorOptions.CallGraphAlg.CHA -> CHATransformer.v().transform()
