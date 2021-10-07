@@ -63,8 +63,7 @@ class DataFlowPass(private val driver: IDriver) {
             launch {
                 Cpg.apply(g).use { cpg ->
                     val methods = g.nodes(NodeTypes.METHOD).asSequence().toList()
-                    val maxDefinitions = Traversals.maxNumberOfDefsFromAMethod(g)
-                    runParallelPass(methods.filterIsInstance<Method>(), ReachingDefPass(cpg, maxDefinitions))
+                    runParallelPass(methods.filterIsInstance<Method>(), ReachingDefPass(cpg, 4000))
                 }
             }
         }
