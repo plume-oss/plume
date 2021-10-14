@@ -25,3 +25,6 @@ gradle-app.setting
 /sootOutput/
 /plume/sootOutput/
 /testing/build/
+/.bsp/
+target
+/project/target/
