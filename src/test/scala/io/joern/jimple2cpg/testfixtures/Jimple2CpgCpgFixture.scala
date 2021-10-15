@@ -1,6 +1,6 @@
 package io.joern.jimple2cpg.testfixtures
 
-import io.github.plume.oss.Plume
+import io.github.plume.oss.Jimple2Cpg
 import io.shiftleft.codepropertygraph.Cpg
 import io.shiftleft.semanticcpg.testfixtures.{CodeToCpgFixture, LanguageFrontend}
 
@@ -15,11 +15,11 @@ class PlumeFrontend extends LanguageFrontend {
   override val fileSuffix: String = ".java"
 
   override def execute(sourceCodeFile: File): Cpg = {
-    new Plume().createCpg(sourceCodeFile.getAbsolutePath)
+    new Jimple2Cpg().createCpg(sourceCodeFile.getAbsolutePath)
   }
 }
 
-class PlumeCpgFixture extends CodeToCpgFixture(new PlumeFrontend) {
+class Jimple2CpgCpgFixture extends CodeToCpgFixture(new PlumeFrontend) {
 
   override def writeCodeToFile(sourceCode: String): File = {
     val tmpDir = Files.createTempDirectory("semanticcpgtest").toFile

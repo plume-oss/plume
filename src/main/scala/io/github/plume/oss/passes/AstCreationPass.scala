@@ -1,7 +1,7 @@
 package io.github.plume.oss.passes
 
 import io.shiftleft.codepropertygraph.Cpg
-import io.shiftleft.passes.{DiffGraph, IntervalKeyPool, ParallelCpgPass}
+import io.shiftleft.passes.DiffGraph
 import org.slf4j.LoggerFactory
 import soot.Scene
 
@@ -13,8 +13,12 @@ case class Global(
     usedTypes: ConcurrentHashMap[String, Boolean] = new ConcurrentHashMap[String, Boolean]()
 )
 
-class AstCreationPass(codePath: String, filenames: List[String], cpg: Cpg, keyPool: IntervalKeyPool)
-    extends ParallelCpgPass[String](cpg, keyPools = Some(keyPool.split(filenames.size))) {
+class AstCreationPass(
+    codePath: String,
+    filenames: List[String],
+    cpg: Cpg,
+    keyPool: IncrementalKeyPool
+) extends PlumeParallelCpgPass[String](cpg, keyPools = Some(keyPool.split(filenames.size))) {
 
   val global: Global = Global()
   private val logger = LoggerFactory.getLogger(classOf[AstCreationPass])
@@ -47,7 +51,7 @@ class AstCreationPass(codePath: String, filenames: List[String], cpg: Cpg, keyPo
     * @param filename the file name to transform.
     * @return the correctly formatted class path.
     */
-  def getQualifiedClassPath(filename: String): String = {
+  private def getQualifiedClassPath(filename: String): String = {
     filename
       .replace(codeDir + nsc.io.File.separator, "")
       .replace(".class", "")

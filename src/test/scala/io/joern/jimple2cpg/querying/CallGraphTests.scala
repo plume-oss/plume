@@ -1,9 +1,9 @@
 package io.joern.jimple2cpg.querying
 
-import io.joern.jimple2cpg.testfixtures.PlumeCpgFixture
+import io.joern.jimple2cpg.testfixtures.Jimple2CpgCpgFixture
 import io.shiftleft.semanticcpg.language.{NoResolve, _}
 
-class CallGraphTests extends PlumeCpgFixture {
+class CallGraphTests extends Jimple2CpgCpgFixture {
 
   implicit val resolver: NoResolve.type = NoResolve
 

@@ -1,11 +1,11 @@
 package io.joern.jimple2cpg.querying
 
-import io.joern.jimple2cpg.testfixtures.PlumeCpgFixture
+import io.joern.jimple2cpg.testfixtures.Jimple2CpgCpgFixture
 import io.shiftleft.codepropertygraph.generated.Operators
 import io.shiftleft.codepropertygraph.generated.nodes.Identifier
 import io.shiftleft.semanticcpg.language.{ICallResolver, NoResolve, toNodeTypeStarters, _}
 
-class ArithmeticOperationsTests extends PlumeCpgFixture {
+class ArithmeticOperationsTests extends Jimple2CpgCpgFixture {
 
   implicit val resolver: ICallResolver = NoResolve
 

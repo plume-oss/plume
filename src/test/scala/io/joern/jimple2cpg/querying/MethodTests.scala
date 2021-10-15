@@ -1,11 +1,11 @@
 package io.joern.jimple2cpg.querying
 
-import io.joern.jimple2cpg.testfixtures.PlumeCpgFixture
+import io.joern.jimple2cpg.testfixtures.Jimple2CpgCpgFixture
 import io.shiftleft.semanticcpg.language._
 
 import java.io.File
 
-class MethodTests extends PlumeCpgFixture {
+class MethodTests extends Jimple2CpgCpgFixture {
 
   override val code: String =
     """ class Foo {

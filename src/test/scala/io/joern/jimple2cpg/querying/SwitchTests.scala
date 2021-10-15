@@ -1,10 +1,10 @@
 package io.joern.jimple2cpg.querying
 
-import io.joern.jimple2cpg.testfixtures.PlumeCpgFixture
+import io.joern.jimple2cpg.testfixtures.Jimple2CpgCpgFixture
 import io.shiftleft.codepropertygraph.generated.nodes.JumpTarget
 import io.shiftleft.semanticcpg.language._
 
-class SwitchTests extends PlumeCpgFixture {
+class SwitchTests extends Jimple2CpgCpgFixture {
 
   override val code: String =
     """

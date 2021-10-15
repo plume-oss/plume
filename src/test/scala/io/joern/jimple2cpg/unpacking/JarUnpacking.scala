@@ -1,6 +1,6 @@
 package io.joern.jimple2cpg.unpacking
 
-import io.github.plume.oss.Plume
+import io.github.plume.oss.Jimple2Cpg
 import io.shiftleft.codepropertygraph.Cpg
 import io.shiftleft.semanticcpg.language.{toMethodTraversalExtGen, toNodeTypeStarters}
 import org.scalatest.BeforeAndAfterAll
@@ -19,7 +19,7 @@ class JarUnpacking extends AnyWordSpec with Matchers with BeforeAndAfterAll {
     super.beforeAll()
     Try(getClass.getResource("/unpacking")) match {
       case Success(x) =>
-        cpg = new Plume().createCpg(x.getPath)
+        cpg = new Jimple2Cpg().createCpg(x.getPath)
       case Failure(x: Throwable) =>
         fail("Unable to obtain test resources.", x)
     }
