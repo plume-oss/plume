@@ -1,12 +1,7 @@
-package io.github.plume.oss.passes
+package io.github.plume.oss.passes.parallel
 
 import io.shiftleft.codepropertygraph.generated.nodes._
-import io.shiftleft.codepropertygraph.generated.{
-  ControlStructureTypes,
-  DispatchTypes,
-  EdgeTypes,
-  Operators
-}
+import io.shiftleft.codepropertygraph.generated.{ControlStructureTypes, DispatchTypes, EdgeTypes, Operators}
 import io.shiftleft.passes.DiffGraph
 import io.shiftleft.x2cpg.Ast
 import org.slf4j.LoggerFactory
@@ -18,9 +13,9 @@ import java.io.File
 import scala.collection.mutable
 import scala.jdk.CollectionConverters.CollectionHasAsScala
 
-class AstCreator(filename: String, global: Global) {
+class PlumeAstCreator(filename: String, global: Global) {
 
-  import AstCreator._
+  import PlumeAstCreator._
 
   private val logger               = LoggerFactory.getLogger(classOf[AstCreationPass])
   private val unitToAsts           = mutable.HashMap[soot.Unit, Seq[Ast]]()
@@ -759,7 +754,7 @@ class AstCreator(filename: String, global: Global) {
   }
 }
 
-object AstCreator {
+object PlumeAstCreator {
   def line(node: Host): Option[Integer] = {
     Option(node.getJavaSourceStartLineNumber)
   }

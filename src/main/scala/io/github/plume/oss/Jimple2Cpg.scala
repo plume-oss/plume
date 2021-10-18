@@ -1,7 +1,9 @@
 package io.github.plume.oss
 
 import io.github.plume.oss.drivers.{IDriver, OverflowDbDriver}
-import io.github.plume.oss.passes.{AstCreationPass, IncrementalKeyPool, PlumeCfgCreationPass, PlumeFileCreationPass, PlumeMetaDataPass, PlumeNamespaceCreator}
+import io.github.plume.oss.passes.concurrent.PlumeCfgCreationPass
+import io.github.plume.oss.passes.parallel.{AstCreationPass, PlumeMethodStubCreator}
+import io.github.plume.oss.passes.{IncrementalKeyPool, PlumeFileCreationPass, PlumeMetaDataPass, PlumeMethodDecoratorPass, PlumeNamespaceCreator, PlumeTypeDeclStubCreator, PlumeTypeNodePass}
 import io.shiftleft.codepropertygraph.Cpg
 import io.shiftleft.passes.IntervalKeyPool
 import io.shiftleft.semanticcpg.passes.CfgCreationPass
@@ -55,17 +57,27 @@ class Jimple2Cpg {
       if (!d.isConnected) d.connect()
 
       val metaDataKeyPool = new IncrementalKeyPool(1, 100, driver.getVertexIds(1, 100))
-      val typesKeyPool = new IncrementalKeyPool(101, 1000100, driver.getVertexIds(101, 1000100))
+      val typesKeyPool    = new IncrementalKeyPool(101, 1000100, driver.getVertexIds(101, 1000100))
       val namespaceKeyPool =
         new IncrementalKeyPool(1000101, 2000200, driver.getVertexIds(1000101, 2000200))
       val filesKeyPool =
-        new IncrementalKeyPool(2000201, 3000200, driver.getVertexIds(1000101, 3000200))
+        new IncrementalKeyPool(2000201, 3000200, driver.getVertexIds(2000201, 3000200))
+      val typeDeclKeyPool =
+        new IncrementalKeyPool(3000201, 4000200, driver.getVertexIds(3000201, 4000200))
+      val methodStubKeyPool =
+        new IncrementalKeyPool(1000101, 10001000, driver.getVertexIds(1000101, 10001000))
+      val methodDecoratorKeyPool =
+        new IncrementalKeyPool(10001001, 20001000, driver.getVertexIds(10001001, 20001000))
       val methodKeyPool =
-        new IncrementalKeyPool(1000101, Long.MaxValue, driver.getVertexIds(1000101, Long.MaxValue))
+        new IncrementalKeyPool(
+          20001001,
+          Long.MaxValue,
+          driver.getVertexIds(20001001, Long.MaxValue)
+        )
 
       new PlumeMetaDataPass(cpg, language, Some(metaDataKeyPool)).createAndApply(driver)
 
-      val sourceFileExtensions = Set(".class", ".jimple")
+      val sourceFileExtensions  = Set(".class", ".jimple")
       val archiveFileExtensions = Set(".jar", ".war")
       // Unpack any archives on the path onto the source code path as project root
       val archives = SourceFiles.determine(Set(sourceCodePath), archiveFileExtensions)
@@ -91,11 +103,15 @@ class Jimple2Cpg {
       new PlumeNamespaceCreator(cpg, Some(namespaceKeyPool)).createAndApply()
       new PlumeFileCreationPass(cpg, Some(filesKeyPool)).createAndApply(driver)
 
-      new TypeNodePass(astCreator.global.usedTypes.keys().asScala.toList, cpg, Some(typesKeyPool))
-        .createAndApply()
-      new TypeDeclStubCreator(cpg).createAndApply()
-      new MethodStubCreator(cpg).createAndApply()
-      new MethodDecoratorPass(cpg).createAndApply()
+      new PlumeTypeNodePass(
+        astCreator.global.usedTypes.keys().asScala.toList,
+        cpg,
+        Some(typesKeyPool)
+      )
+        .createAndApply(driver)
+      new PlumeTypeDeclStubCreator(cpg, Some(typeDeclKeyPool)).createAndApply(driver)
+      new PlumeMethodStubCreator(cpg, Some(methodStubKeyPool)).createAndApply(driver)
+      new PlumeMethodDecoratorPass(cpg, Some(methodDecoratorKeyPool)).createAndApply()
 
       new ContainsEdgePass(cpg).createAndApply()
       new CfgDominatorPass(cpg).createAndApply()

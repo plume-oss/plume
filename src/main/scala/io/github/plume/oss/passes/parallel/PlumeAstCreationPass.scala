@@ -1,5 +1,6 @@
-package io.github.plume.oss.passes
+package io.github.plume.oss.passes.parallel
 
+import io.github.plume.oss.passes.IncrementalKeyPool
 import io.shiftleft.codepropertygraph.Cpg
 import io.shiftleft.passes.DiffGraph
 import org.slf4j.LoggerFactory
@@ -36,7 +37,7 @@ class AstCreationPass(
   override def runOnPart(filename: String): Iterator[DiffGraph] = {
     val qualifiedClassName = getQualifiedClassPath(filename)
     try {
-      new AstCreator(filename, global)
+      new PlumeAstCreator(filename, global)
         .createAst(Scene.v().loadClassAndSupport(qualifiedClassName))
     } catch {
       case e: Exception =>
