@@ -4,7 +4,7 @@ import io.github.plume.oss.passes.IncrementalKeyPool
 import io.shiftleft.codepropertygraph.Cpg
 import io.shiftleft.passes.DiffGraph
 import org.slf4j.LoggerFactory
-import soot.Scene
+import soot.{Scene, SootClass}
 
 import java.io.{File => JFile}
 import java.util.concurrent.ConcurrentHashMap
@@ -36,13 +36,22 @@ class AstCreationPass(
 
   override def runOnPart(filename: String): Iterator[DiffGraph] = {
     val qualifiedClassName = getQualifiedClassPath(filename)
+    var sootClass: Option[SootClass] = None
     try {
-      new PlumeAstCreator(filename, global)
-        .createAst(Scene.v().loadClassAndSupport(qualifiedClassName))
+      sootClass = Option(Scene.v().loadClassAndSupport(qualifiedClassName))
+      sootClass match {
+        case Some(clazz) => new PlumeAstCreator(filename, global).createAst(clazz)
+        case None => null
+      }
     } catch {
       case e: Exception =>
         logger.warn(s"Cannot parse: $filename ($qualifiedClassName)", e)
         Iterator()
+    } finally {
+      sootClass match {
+        case Some(clazz) => Scene.v().removeClass(clazz)
+        case None =>
+      }
     }
   }
 
