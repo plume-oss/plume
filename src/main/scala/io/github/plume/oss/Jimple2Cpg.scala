@@ -1,8 +1,8 @@
 package io.github.plume.oss
 
 import io.github.plume.oss.drivers.{IDriver, OverflowDbDriver}
-import io.github.plume.oss.passes.concurrent.PlumeCfgCreationPass
-import io.github.plume.oss.passes.parallel.{AstCreationPass, PlumeMethodStubCreator}
+import io.github.plume.oss.passes.concurrent.{PlumeCfgCreationPass, PlumeContainsEdgePass}
+import io.github.plume.oss.passes.parallel.{AstCreationPass, PlumeCdgPass, PlumeCfgDominatorPass, PlumeMethodStubCreator}
 import io.github.plume.oss.passes.{IncrementalKeyPool, PlumeFileCreationPass, PlumeMetaDataPass, PlumeMethodDecoratorPass, PlumeNamespaceCreator, PlumeTypeDeclStubCreator, PlumeTypeNodePass}
 import io.shiftleft.codepropertygraph.Cpg
 import io.shiftleft.passes.IntervalKeyPool
@@ -111,11 +111,11 @@ class Jimple2Cpg {
         .createAndApply(driver)
       new PlumeTypeDeclStubCreator(cpg, Some(typeDeclKeyPool)).createAndApply(driver)
       new PlumeMethodStubCreator(cpg, Some(methodStubKeyPool)).createAndApply(driver)
-      new PlumeMethodDecoratorPass(cpg, Some(methodDecoratorKeyPool)).createAndApply()
+      new PlumeMethodDecoratorPass(cpg, Some(methodDecoratorKeyPool)).createAndApply(driver)
 
-      new ContainsEdgePass(cpg).createAndApply()
-      new CfgDominatorPass(cpg).createAndApply()
-      new CdgPass(cpg).createAndApply()
+      new PlumeContainsEdgePass(cpg).createAndApply(driver)
+      new PlumeCfgDominatorPass(cpg).createAndApply(driver)
+      new PlumeCdgPass(cpg).createAndApply(driver)
 
       new Linker(cpg).createAndApply()
       new StaticCallLinker(cpg).createAndApply()
