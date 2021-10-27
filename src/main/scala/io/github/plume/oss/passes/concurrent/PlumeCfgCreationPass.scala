@@ -1,6 +1,7 @@
 package io.github.plume.oss.passes.concurrent
 
 import io.github.plume.oss.drivers.IDriver
+import io.github.plume.oss.passes.PlumeCpgPassBase
 import io.shiftleft.codepropertygraph.Cpg
 import io.shiftleft.passes.DiffGraph
 import io.shiftleft.semanticcpg.passes.CfgCreationPass
@@ -14,9 +15,9 @@ object PlumeCfgCreationPass {
   private val producerQueueCapacity = 2 + 4 * Runtime.getRuntime.availableProcessors()
 }
 
-class PlumeCfgCreationPass(cpg: Cpg) extends CfgCreationPass(cpg) {
+class PlumeCfgCreationPass(cpg: Cpg) extends CfgCreationPass(cpg) with PlumeCpgPassBase {
 
-  def createAndApply(driver: IDriver): Unit = {
+  override def createAndApply(driver: IDriver): Unit = {
     createApplySerializeAndStore(driver) // Apply to driver
   }
 
@@ -24,16 +25,16 @@ class PlumeCfgCreationPass(cpg: Cpg) extends CfgCreationPass(cpg) {
     import PlumeCfgCreationPass.producerQueueCapacity
     baseLogger.info(s"Start of enhancement: $name")
     val nanosStart = System.nanoTime()
-    var nParts = 0
-    var nDiff = 0
+    var nParts     = 0
+    var nDiff      = 0
 
     init()
     val parts = generateParts()
     nParts = parts.length
-    val partIter = parts.iterator
+    val partIter        = parts.iterator
     val completionQueue = mutable.ArrayDeque[Future[DiffGraph]]()
-    val writer = new PlumeConcurrentWriter(driver, cpg)
-    val writerThread = new Thread(writer)
+    val writer          = new PlumeConcurrentWriter(driver, cpg)
+    val writerThread    = new Thread(writer)
     writerThread.setName("Writer")
     writerThread.start()
     try {
@@ -49,7 +50,7 @@ class PlumeCfgCreationPass(cpg: Cpg) extends CfgCreationPass(cpg) {
             })
           } else if (completionQueue.nonEmpty) {
             val future = completionQueue.removeHead()
-            val res = Await.result(future, Duration.Inf)
+            val res    = Await.result(future, Duration.Inf)
             nDiff += res.size
             writer.queue.put(Some(res))
           } else {
@@ -67,7 +68,8 @@ class PlumeCfgCreationPass(cpg: Cpg) extends CfgCreationPass(cpg) {
     } finally {
       val nanosStop = System.nanoTime()
       baseLogger.info(
-        f"Enhancement $name completed in ${(nanosStop - nanosStart) * 1e-6}%.0f ms. ${nDiff}%d changes commited from ${nParts}%d parts.")
+        f"Enhancement $name completed in ${(nanosStop - nanosStart) * 1e-6}%.0f ms. ${nDiff}%d changes commited from ${nParts}%d parts."
+      )
     }
   }
 

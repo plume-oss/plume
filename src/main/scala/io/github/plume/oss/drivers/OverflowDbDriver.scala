@@ -14,14 +14,14 @@ import scala.jdk.CollectionConverters.IteratorHasAsScala
 import scala.util.{Failure, Success, Try}
 
 case class OverflowDbDriver(
-                             storageLocation: Option[String] = Option(
-                               JFile.createTempFile("plume-", ".odb").getAbsolutePath
-                             ),
-                             heapPercentageThreshold: Int = 80,
-                             serializationStatsEnabled: Boolean = false
-                           ) extends IDriver {
+    storageLocation: Option[String] = Option(
+      JFile.createTempFile("plume-", ".odb").getAbsolutePath
+    ),
+    heapPercentageThreshold: Int = 80,
+    serializationStatsEnabled: Boolean = false
+) extends IDriver {
 
-  private val logger = LoggerFactory.getLogger(classOf[OverflowDbDriver])
+  private val logger           = LoggerFactory.getLogger(classOf[OverflowDbDriver])
   private var cpg: Option[Cpg] = None
 
   override def isConnected: Boolean = cpg.isDefined
@@ -35,7 +35,7 @@ case class OverflowDbDriver(
           .withHeapPercentageThreshold(heapPercentageThreshold)
         storageLocation match {
           case Some(path) => odbConfig.withStorageLocation(path)
-          case None => odbConfig.disableOverflow()
+          case None       => odbConfig.disableOverflow()
         }
         if (serializationStatsEnabled) odbConfig.withSerializationStatsEnabled()
         cpg = Option(newOverflowGraph(odbConfig))
@@ -69,13 +69,19 @@ case class OverflowDbDriver(
         // Now that all nodes are in, connect/remove edges
         dg.diffGraph.iterator.foreach {
           case Change.RemoveEdge(edge) =>
-            cpg.graph.nodes(edge.outNode().id()).next().outE(edge.label())
+            cpg.graph
+              .nodes(edge.outNode().id())
+              .next()
+              .outE(edge.label())
               .forEachRemaining(e => if (e.inNode().id() == edge.inNode().id()) e.remove())
           case Change.CreateEdge(src, dst, label, packedProperties) =>
             val srcId: Long = id(src, dg)
             val dstId: Long = id(dst, dg)
-            val e: overflowdb.Edge = cpg.graph.nodes(srcId).next().addEdge(label, cpg.graph.nodes(dstId).next())
-            PackedProperties.unpack(packedProperties).foreach { case (k: String, v: Any) => e.setProperty(k, v) }
+            val e: overflowdb.Edge =
+              cpg.graph.nodes(srcId).next().addEdge(label, cpg.graph.nodes(dstId).next())
+            PackedProperties.unpack(packedProperties).foreach { case (k: String, v: Any) =>
+              e.setProperty(k, v)
+            }
           case _ => // do nothing
         }
       case None =>
@@ -84,9 +90,9 @@ case class OverflowDbDriver(
 
   private def id(node: AbstractNode, dg: AppliedDiffGraph): Long = {
     node match {
-      case n: NewNode => dg.nodeToGraphId(n)
+      case n: NewNode    => dg.nodeToGraphId(n)
       case n: StoredNode => n.id()
-      case _ => throw new RuntimeException(s"Unable to obtain ID for $node")
+      case _             => throw new RuntimeException(s"Unable to obtain ID for $node")
     }
   }
 

@@ -35,12 +35,14 @@ class AstCreationPass(
   override def partIterator: Iterator[String] = filenames.iterator
 
   override def runOnPart(filename: String): Iterator[DiffGraph] = {
-    val qualifiedClassName = getQualifiedClassPath(filename)
+    val qualifiedClassName           = getQualifiedClassPath(filename)
     var sootClass: Option[SootClass] = None
     try {
       sootClass = Option(Scene.v().loadClassAndSupport(qualifiedClassName))
       sootClass match {
-        case Some(clazz) => new PlumeAstCreator(filename, global).createAst(clazz)
+        case Some(clazz) =>
+          clazz.setApplicationClass()
+          new PlumeAstCreator(filename, global).createAst(clazz)
         case None => null
       }
     } catch {
@@ -50,7 +52,7 @@ class AstCreationPass(
     } finally {
       sootClass match {
         case Some(clazz) => Scene.v().removeClass(clazz)
-        case None =>
+        case None        =>
       }
     }
   }

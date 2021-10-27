@@ -1,6 +1,7 @@
 package io.github.plume.oss.passes.concurrent
 
 import io.github.plume.oss.drivers.IDriver
+import io.github.plume.oss.passes.PlumeCpgPassBase
 import io.shiftleft.codepropertygraph.Cpg
 import io.shiftleft.passes.DiffGraph
 import io.shiftleft.semanticcpg.passes.containsedges.ContainsEdgePass
@@ -14,8 +15,9 @@ object PlumeContainsEdgePass {
   private val producerQueueCapacity = 2 + 4 * Runtime.getRuntime.availableProcessors()
 }
 
-class PlumeContainsEdgePass(cpg: Cpg) extends ContainsEdgePass(cpg) {
-  def createAndApply(driver: IDriver): Unit = {
+class PlumeContainsEdgePass(cpg: Cpg) extends ContainsEdgePass(cpg) with PlumeCpgPassBase {
+
+  override def createAndApply(driver: IDriver): Unit = {
     createApplySerializeAndStore(driver) // Apply to driver
   }
 
@@ -23,16 +25,16 @@ class PlumeContainsEdgePass(cpg: Cpg) extends ContainsEdgePass(cpg) {
     import PlumeContainsEdgePass.producerQueueCapacity
     baseLogger.info(s"Start of enhancement: $name")
     val nanosStart = System.nanoTime()
-    var nParts = 0
-    var nDiff = 0
+    var nParts     = 0
+    var nDiff      = 0
 
     init()
     val parts = generateParts()
     nParts = parts.length
-    val partIter = parts.iterator
+    val partIter        = parts.iterator
     val completionQueue = mutable.ArrayDeque[Future[DiffGraph]]()
-    val writer = new PlumeConcurrentWriter(driver, cpg)
-    val writerThread = new Thread(writer)
+    val writer          = new PlumeConcurrentWriter(driver, cpg)
+    val writerThread    = new Thread(writer)
     writerThread.setName("Writer")
     writerThread.start()
     try {
@@ -48,7 +50,7 @@ class PlumeContainsEdgePass(cpg: Cpg) extends ContainsEdgePass(cpg) {
             })
           } else if (completionQueue.nonEmpty) {
             val future = completionQueue.removeHead()
-            val res = Await.result(future, Duration.Inf)
+            val res    = Await.result(future, Duration.Inf)
             nDiff += res.size
             writer.queue.put(Some(res))
           } else {
@@ -66,7 +68,8 @@ class PlumeContainsEdgePass(cpg: Cpg) extends ContainsEdgePass(cpg) {
     } finally {
       val nanosStop = System.nanoTime()
       baseLogger.info(
-        f"Enhancement $name completed in ${(nanosStop - nanosStart) * 1e-6}%.0f ms. ${nDiff}%d changes commited from ${nParts}%d parts.")
+        f"Enhancement $name completed in ${(nanosStop - nanosStart) * 1e-6}%.0f ms. ${nDiff}%d changes commited from ${nParts}%d parts."
+      )
     }
   }
 }

@@ -1,7 +1,12 @@
 package io.github.plume.oss.passes.parallel
 
 import io.shiftleft.codepropertygraph.generated.nodes._
-import io.shiftleft.codepropertygraph.generated.{ControlStructureTypes, DispatchTypes, EdgeTypes, Operators}
+import io.shiftleft.codepropertygraph.generated.{
+  ControlStructureTypes,
+  DispatchTypes,
+  EdgeTypes,
+  Operators
+}
 import io.shiftleft.passes.DiffGraph
 import io.shiftleft.x2cpg.Ast
 import org.slf4j.LoggerFactory
@@ -283,18 +288,27 @@ class PlumeAstCreator(filename: String, global: Global) {
     }
   }
 
-  private def astForLocal(local: soot.Local, order: Int, parentUnit: soot.Unit): Ast = {
+  private def astForLocal(
+      local: soot.Local,
+      order: Int,
+      parentUnit: soot.Unit,
+      dynamicTypeHintFullName: Option[String] = None
+  ): Ast = {
     val name         = local.getName
     val typeFullName = registerType(local.getType.toQuotedString)
+    val identifier = NewIdentifier()
+      .name(name)
+      .lineNumber(line(parentUnit))
+      .columnNumber(column(parentUnit))
+      .order(order)
+      .argumentIndex(order)
+      .code(name)
+      .typeFullName(typeFullName)
     Ast(
-      NewIdentifier()
-        .name(name)
-        .lineNumber(line(parentUnit))
-        .columnNumber(column(parentUnit))
-        .order(order)
-        .argumentIndex(order)
-        .code(name)
-        .typeFullName(typeFullName)
+      dynamicTypeHintFullName match {
+        case Some(dynamicTypeHint) => identifier.dynamicTypeHintFullName(Seq(dynamicTypeHint))
+        case None                  => identifier
+      }
     )
   }
 
@@ -313,8 +327,9 @@ class PlumeAstCreator(filename: String, global: Global) {
 
   private def astForInvokeExpr(invokeExpr: InvokeExpr, order: Int, parentUnit: soot.Unit): Ast = {
     val dispatchType = invokeExpr match {
-      case _: DynamicInvokeExpr => DispatchTypes.DYNAMIC_DISPATCH
-      case _                    => DispatchTypes.STATIC_DISPATCH
+      case _: DynamicInvokeExpr  => DispatchTypes.DYNAMIC_DISPATCH
+      case _: InstanceInvokeExpr => DispatchTypes.DYNAMIC_DISPATCH
+      case _                     => DispatchTypes.STATIC_DISPATCH
     }
     val method = invokeExpr.getMethod
     val signature =
@@ -430,13 +445,14 @@ class PlumeAstCreator(filename: String, global: Global) {
     val code         = leftOp.getType.toQuotedString + " " + leftOp.getName
     val typeFullName = registerType(leftOp.getType.toQuotedString)
 
-    val identifier = astForLocal(leftOp, 1, assignStmt)
+    val identifier = astForLocal(leftOp, 1, assignStmt, Option(initializer.getType.toQuotedString))
     val assignment = NewCall()
       .name(Operators.assignment)
       .code(s"$name = ${initializer.toString()}")
       .dispatchType(DispatchTypes.STATIC_DISPATCH)
       .order(order)
       .argumentIndex(order)
+      .dynamicTypeHintFullName(Seq(initializer.getType.toQuotedString))
       .typeFullName(registerType(assignStmt.getLeftOp.getType.toQuotedString))
 
     val initAsts       = astsForValue(initializer, 2, assignStmt)

@@ -3,17 +3,16 @@ package io.joern.jimple2cpg.querying
 import io.joern.jimple2cpg.testfixtures.Jimple2CpgCpgFixture
 import io.shiftleft.semanticcpg.language.{NoResolve, _}
 
-class CallGraphTests extends Jimple2CpgCpgFixture {
+class StaticCallGraphTests extends Jimple2CpgCpgFixture {
 
   implicit val resolver: NoResolve.type = NoResolve
 
-  override val code =
-    """
+  override val code = """
        class Foo {
-        int add(int x, int y) {
+        static int add(int x, int y) {
          return x + y;
         }
-        int main(int argc, char argv) {
+        static int main(int argc, char argv) {
          System.out.println(add(1+2, 3));
          return 0;
         }
@@ -25,24 +24,22 @@ class CallGraphTests extends Jimple2CpgCpgFixture {
   }
 
   "should find that main calls add and others" in {
-    // The addition here is solved already by the compiler
+    // out is a static field but it represents an object whose println call is dynamic
     cpg.method.name("main").callee.name.filterNot(_.startsWith("<operator>")).toSet shouldBe Set(
-      "add",
-      "println"
+      "add"
     )
   }
 
   "should find a set of outgoing calls for main" in {
     cpg.method.name("main").call.code.toSet shouldBe
       Set(
+        "println($stack3)",
         "add(3, 3)",
-        "println($stack4)",
-        "$stack3 = <java.lang.System: java.io.PrintStream out>",
+        "$stack2 = <java.lang.System: java.io.PrintStream out>",
         "argc = @parameter0: int",
+        "$stack3 = staticinvoke <Foo: int add(int,int)>(3, 3)",
         "argv = @parameter1: char",
-        "this = @this: Foo",
-        "java.lang.System.out",
-        "$stack4 = virtualinvoke this.<Foo: int add(int,int)>(3, 3)"
+        "java.lang.System.out"
       )
   }
 
@@ -59,7 +56,7 @@ class CallGraphTests extends Jimple2CpgCpgFixture {
   }
 
   "should allow traversing from argument to call" in {
-    cpg.method.name("println").callIn.argument.inCall.name.toSet shouldBe Set("println")
+    cpg.method.name("add").callIn.argument.inCall.name.toSet shouldBe Set("add")
   }
 
 }

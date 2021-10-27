@@ -1,15 +1,16 @@
 package io.github.plume.oss.passes.parallel
 
 import io.github.plume.oss.drivers.IDriver
-import io.github.plume.oss.passes.IncrementalKeyPool
+import io.github.plume.oss.passes.{IncrementalKeyPool, PlumeCpgPassBase}
 import io.shiftleft.codepropertygraph.Cpg
-import io.shiftleft.passes.{KeyPool, ParallelIteratorExecutor}
+import io.shiftleft.passes.{DiffGraph, KeyPool, ParallelIteratorExecutor}
 import io.shiftleft.semanticcpg.passes.languagespecific.fuzzyc.{MethodStubCreator, NameAndSignature}
 
 class PlumeMethodStubCreator(
     cpg: Cpg,
-    keyPool: Option[IncrementalKeyPool]
-) extends MethodStubCreator(cpg) {
+    keyPool: Option[IncrementalKeyPool],
+    blacklist: Set[NameAndSignature] = Set()
+) extends MethodStubCreator(cpg) with PlumeCpgPassBase {
 
   var keyPools: Option[Iterator[KeyPool]] = None
 
@@ -17,11 +18,20 @@ class PlumeMethodStubCreator(
     super.init()
     keyPool match {
       case Some(value) => keyPools = Option(value.split(partIterator.size))
-      case None =>
+      case None        =>
     }
   }
 
-  def createAndApply(driver: IDriver): Unit = {
+  // Do not create stubs for methods that exist
+  override def runOnPart(part: (NameAndSignature, Int)): Iterator[DiffGraph] = {
+    if (blacklist.contains(part._1)) {
+      Iterator()
+    } else {
+      super.runOnPart(part)
+    }
+  }
+
+  override def createAndApply(driver: IDriver): Unit = {
     withWriter(driver) { writer =>
       enqueueInParallel(writer)
     }

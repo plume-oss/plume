@@ -10,7 +10,11 @@ import java.util.concurrent.LinkedBlockingQueue
 object PlumeConcurrentWriter {
   private val writerQueueCapacity = 4
 }
-class PlumeConcurrentWriter(driver: IDriver, cpg: Cpg, baseLogger: Logger = LoggerFactory.getLogger(classOf[CpgPass])) extends Runnable {
+class PlumeConcurrentWriter(
+    driver: IDriver,
+    cpg: Cpg,
+    baseLogger: Logger = LoggerFactory.getLogger(classOf[CpgPass])
+) extends Runnable {
 
   val queue = new LinkedBlockingQueue[Option[DiffGraph]](PlumeConcurrentWriter.writerQueueCapacity)
 
@@ -23,7 +27,8 @@ class PlumeConcurrentWriter(driver: IDriver, cpg: Cpg, baseLogger: Logger = Logg
             baseLogger.debug("Shutting down WriterThread")
             terminate = true
           case Some(diffGraph) =>
-            val appliedDiffGraph = DiffGraph.Applier.applyDiff(diffGraph, cpg, undoable = false, None)
+            val appliedDiffGraph =
+              DiffGraph.Applier.applyDiff(diffGraph, cpg, undoable = false, None)
             driver.bulkTx(appliedDiffGraph)
         }
       }

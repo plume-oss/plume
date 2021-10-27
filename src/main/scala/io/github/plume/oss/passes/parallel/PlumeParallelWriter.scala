@@ -7,7 +7,11 @@ import org.slf4j.{Logger, LoggerFactory}
 
 import java.util.concurrent.LinkedBlockingQueue
 
-private class PlumeParallelWriter(driver: IDriver, cpg: Cpg, baseLogger: Logger = LoggerFactory.getLogger(classOf[CpgPass])) extends Runnable {
+private class PlumeParallelWriter(
+    driver: IDriver,
+    cpg: Cpg,
+    baseLogger: Logger = LoggerFactory.getLogger(classOf[CpgPass])
+) extends Runnable {
 
   case class DiffGraphAndKeyPool(diffGraph: Option[DiffGraph], keyPool: Option[KeyPool])
 
@@ -19,7 +23,7 @@ private class PlumeParallelWriter(driver: IDriver, cpg: Cpg, baseLogger: Logger 
 
   override def run(): Unit = {
     try {
-      var terminate  = false
+      var terminate = false
       while (!terminate) {
         queue.take() match {
           case DiffGraphAndKeyPool(Some(diffGraph), keyPool) =>

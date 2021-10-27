@@ -1,15 +1,17 @@
 package io.github.plume.oss.passes.parallel
 
 import io.github.plume.oss.drivers.IDriver
+import io.github.plume.oss.passes.PlumeCpgPassBase
 import io.shiftleft.codepropertygraph.Cpg
 import io.shiftleft.codepropertygraph.generated.nodes.Method
 import io.shiftleft.passes.{KeyPool, ParallelIteratorExecutor}
 import io.shiftleft.semanticcpg.passes.cfgdominator.CfgDominatorPass
 
 class PlumeCfgDominatorPass(cpg: Cpg, keyPools: Option[Iterator[KeyPool]] = None)
-    extends CfgDominatorPass(cpg) {
+    extends CfgDominatorPass(cpg)
+    with PlumeCpgPassBase {
 
-  def createAndApply(driver: IDriver): Unit = {
+  override def createAndApply(driver: IDriver): Unit = {
     withWriter(driver) { writer =>
       enqueueInParallel(writer)
     }

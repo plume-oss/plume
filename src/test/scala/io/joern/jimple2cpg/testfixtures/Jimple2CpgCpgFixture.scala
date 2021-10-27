@@ -9,6 +9,7 @@ import java.nio.file.Files
 import java.util.Collections
 import javax.tools.{JavaCompiler, JavaFileObject, StandardLocation, ToolProvider}
 import scala.jdk.CollectionConverters
+import scala.util.Using
 
 class PlumeFrontend extends LanguageFrontend {
 
@@ -25,42 +26,49 @@ class Jimple2CpgCpgFixture extends CodeToCpgFixture(new PlumeFrontend) {
     val tmpDir = Files.createTempDirectory("semanticcpgtest").toFile
     tmpDir.deleteOnExit()
     val codeFile = File.createTempFile("Test", frontend.fileSuffix, tmpDir)
-    codeFile.deleteOnExit()
-    new PrintWriter(codeFile) { write(sourceCode); close() }
-    compileJava(codeFile)
+    Using.resource(new PrintWriter(codeFile)) { pw => pw.write(sourceCode) }
+    try {
+      compileJava(codeFile)
+    } finally {
+      codeFile.delete()
+    }
     tmpDir
   }
 
-  /**
-    * Compiles the source code with debugging info.
+  /** Compiles the source code with debugging info.
     */
   def compileJava(sourceCodeFile: File): Unit = {
-    val javac = getJavaCompiler
+    val javac       = getJavaCompiler
     val fileManager = javac.getStandardFileManager(null, null, null)
-    javac.getTask(
-      null,
-      fileManager,
-      null,
-      CollectionConverters.SeqHasAsJava(Seq("-g", "-d", sourceCodeFile.getParent)).asJava,
-      null,
-      fileManager.getJavaFileObjectsFromFiles(
-        CollectionConverters.SeqHasAsJava(Seq(sourceCodeFile)).asJava)
-    ).call()
+    javac
+      .getTask(
+        null,
+        fileManager,
+        null,
+        CollectionConverters.SeqHasAsJava(Seq("-g", "-d", sourceCodeFile.getParent)).asJava,
+        null,
+        fileManager.getJavaFileObjectsFromFiles(
+          CollectionConverters.SeqHasAsJava(Seq(sourceCodeFile)).asJava
+        )
+      )
+      .call()
 
-    fileManager.list(
-      StandardLocation.CLASS_OUTPUT,
-      "",
-      Collections.singleton(JavaFileObject.Kind.CLASS),
-      false).forEach(x => new File(x.toUri).deleteOnExit())
+    fileManager
+      .list(
+        StandardLocation.CLASS_OUTPUT,
+        "",
+        Collections.singleton(JavaFileObject.Kind.CLASS),
+        false
+      )
+      .forEach(x => new File(x.toUri).deleteOnExit())
   }
 
-  /**
-    * Programmatically obtains the system Java compiler.
+  /** Programmatically obtains the system Java compiler.
     */
   def getJavaCompiler: JavaCompiler = {
     Option(ToolProvider.getSystemJavaCompiler) match {
       case Some(javac) => javac
-      case None => throw new RuntimeException("Unable to find a Java compiler on the system!")
+      case None        => throw new RuntimeException("Unable to find a Java compiler on the system!")
     }
   }
 

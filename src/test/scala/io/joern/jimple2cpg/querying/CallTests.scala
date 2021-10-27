@@ -11,11 +11,11 @@ class CallTests extends Jimple2CpgCpgFixture {
   override val code: String =
     """
       | class Foo {
-      |   int add(int x, int y) {
+      |   static int add(int x, int y) {
       |     return x + y;
       |   }
       |
-      |   int main(int argc, char argv) {
+      |   static int main(int argc, char argv) {
       |     return add(argc, 3);
       |   }
       | }
@@ -33,13 +33,7 @@ class CallTests extends Jimple2CpgCpgFixture {
   }
 
   "should allow traversing from call to arguments" in {
-    cpg.call("add").argument.size shouldBe 3
-    val List(arg0) = cpg.call("add").argument(0).l
-    arg0.isInstanceOf[nodes.Identifier] shouldBe true
-    arg0.asInstanceOf[nodes.Identifier].name shouldBe "this"
-    arg0.code shouldBe "this"
-    arg0.order shouldBe 0
-    arg0.argumentIndex shouldBe 0
+    cpg.call("add").argument.size shouldBe 2
 
     val List(arg1) = cpg.call("add").argument(1).l
     arg1.isInstanceOf[nodes.Identifier] shouldBe true
@@ -57,7 +51,7 @@ class CallTests extends Jimple2CpgCpgFixture {
   }
 
   "should allow traversing from call to surrounding method" in {
-    val List(x) = cpg.call("add").method.l
+    val List(x) = cpg.call.nameExact("add").method.l
     x.name shouldBe "main"
   }
 
