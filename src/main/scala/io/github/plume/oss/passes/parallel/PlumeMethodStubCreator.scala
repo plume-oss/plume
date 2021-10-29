@@ -10,7 +10,8 @@ class PlumeMethodStubCreator(
     cpg: Cpg,
     keyPool: Option[IncrementalKeyPool],
     blacklist: Set[NameAndSignature] = Set()
-) extends MethodStubCreator(cpg) with PlumeCpgPassBase {
+) extends MethodStubCreator(cpg)
+    with PlumeCpgPassBase {
 
   var keyPools: Option[Iterator[KeyPool]] = None
 

@@ -7,7 +7,9 @@ import io.shiftleft.codepropertygraph.generated.nodes.Method
 import io.shiftleft.passes.{KeyPool, ParallelIteratorExecutor}
 import io.shiftleft.semanticcpg.passes.codepencegraph.CdgPass
 
-class PlumeCdgPass(cpg: Cpg, keyPools: Option[Iterator[KeyPool]] = None) extends CdgPass(cpg) with PlumeCpgPassBase {
+class PlumeCdgPass(cpg: Cpg, keyPools: Option[Iterator[KeyPool]] = None)
+    extends CdgPass(cpg)
+    with PlumeCpgPassBase {
 
   override def createAndApply(driver: IDriver): Unit = {
     withWriter(driver) { writer =>

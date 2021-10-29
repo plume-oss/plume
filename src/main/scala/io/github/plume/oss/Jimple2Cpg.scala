@@ -3,7 +3,12 @@ package io.github.plume.oss
 import io.github.plume.oss.drivers.{IDriver, OverflowDbDriver}
 import io.github.plume.oss.passes._
 import io.github.plume.oss.passes.concurrent.{PlumeCfgCreationPass, PlumeContainsEdgePass}
-import io.github.plume.oss.passes.parallel.{AstCreationPass, PlumeCdgPass, PlumeCfgDominatorPass, PlumeMethodStubCreator}
+import io.github.plume.oss.passes.parallel.{
+  AstCreationPass,
+  PlumeCdgPass,
+  PlumeCfgDominatorPass,
+  PlumeMethodStubCreator
+}
 import io.shiftleft.codepropertygraph.Cpg
 import io.shiftleft.passes.CpgPassBase
 import io.shiftleft.semanticcpg.passes.linking.calllinker.StaticCallLinker
@@ -117,14 +122,14 @@ class Jimple2Cpg {
       new PlumeTypeDeclStubCreator(cpg, Some(typeDeclKeyPool)),
       new PlumeMethodStubCreator(cpg, Some(methodStubKeyPool)),
       new PlumeMethodDecoratorPass(cpg, Some(methodDecoratorKeyPool)),
-      new PlumeContainsEdgePass(cpg),
+      new PlumeContainsEdgePass(cpg)
     ).collect { case pass: Any with PlumeCpgPassBase => pass }
   }
 
   private def controlFlowPasses(cpg: Cpg): Seq[CpgPassBase with PlumeCpgPassBase] = Seq(
     new PlumeCfgCreationPass(cpg),
     new PlumeCfgDominatorPass(cpg),
-    new PlumeCdgPass(cpg),
+    new PlumeCdgPass(cpg)
   ).collect { case pass: CpgPassBase with PlumeCpgPassBase => pass }
 
   private def configureSoot(sourceCodePath: String): Unit = {
