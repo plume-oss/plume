@@ -1,10 +1,10 @@
 package io.joern.jimple2cpg.querying
 
-import io.joern.jimple2cpg.testfixtures.Jimple2CpgCpgFixture
+import io.joern.jimple2cpg.testfixtures.Jimple2CpgFixture
 import io.shiftleft.codepropertygraph.generated.nodes.Local
 import io.shiftleft.semanticcpg.language._
 
-class LocalTests extends Jimple2CpgCpgFixture {
+class LocalTests extends Jimple2CpgFixture {
 
   override val code: String =
     """

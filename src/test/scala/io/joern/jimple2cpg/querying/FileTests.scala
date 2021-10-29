@@ -1,12 +1,12 @@
 package io.joern.jimple2cpg.querying
 
-import io.joern.jimple2cpg.testfixtures.Jimple2CpgCpgFixture
+import io.joern.jimple2cpg.testfixtures.Jimple2CpgFixture
 import io.shiftleft.semanticcpg.language._
 import io.shiftleft.semanticcpg.language.types.structure.FileTraversal
 
 import java.io.{File => JFile}
 
-class FileTests extends Jimple2CpgCpgFixture {
+class FileTests extends Jimple2CpgFixture {
 
   override val code: String =
     """

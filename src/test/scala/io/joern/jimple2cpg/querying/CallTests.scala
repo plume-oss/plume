@@ -1,10 +1,10 @@
 package io.joern.jimple2cpg.querying
 
-import io.joern.jimple2cpg.testfixtures.Jimple2CpgCpgFixture
+import io.joern.jimple2cpg.testfixtures.Jimple2CpgFixture
 import io.shiftleft.codepropertygraph.generated.nodes
 import io.shiftleft.semanticcpg.language.{NoResolve, _}
 
-class CallTests extends Jimple2CpgCpgFixture {
+class CallTests extends Jimple2CpgFixture {
 
   implicit val resolver: ICallResolver = NoResolve
 

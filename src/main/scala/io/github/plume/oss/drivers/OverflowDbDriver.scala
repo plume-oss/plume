@@ -2,14 +2,16 @@ package io.github.plume.oss.drivers
 
 import io.github.plume.oss.drivers.OverflowDbDriver.newOverflowGraph
 import io.shiftleft.codepropertygraph.generated.Cpg
-import io.shiftleft.codepropertygraph.generated.nodes.{AbstractNode, NewNode, StoredNode}
+import io.shiftleft.codepropertygraph.generated.nodes.{AbstractNode, NewMethod, NewNode, StoredNode}
 import io.shiftleft.passes.DiffGraph.{Change, PackedProperties}
 import io.shiftleft.passes.{AppliedDiffGraph, DiffGraph}
 import io.shiftleft.proto.cpg.Cpg.CpgStruct.Edge
 import org.slf4j.LoggerFactory
-import overflowdb.Config
+import overflowdb.{Config, Node}
 
 import java.io.{File => JFile}
+import scala.Option
+import scala.collection.convert.ImplicitConversions.`collection asJava`
 import scala.jdk.CollectionConverters.IteratorHasAsScala
 import scala.util.{Failure, Success, Try}
 
@@ -42,9 +44,9 @@ case class OverflowDbDriver(
     }
   }
 
-  override def addNode(v: NewNode): Unit = ???
+  override def addNode(v: Node): Unit = ???
 
-  override def addEdge(src: NewNode, dst: NewNode, edge: String): Unit = ???
+  override def addEdge(src: Node, dst: Node, edge: String): Unit = ???
 
   override def exists(nodeId: Long): Boolean = ???
 
@@ -61,7 +63,7 @@ case class OverflowDbDriver(
             cpg.graph.nodes(nodeId).next().removeProperty(propertyKey)
           case Change.CreateNode(node) =>
             val newNode = cpg.graph.addNode(dg.nodeToGraphId(node), node.label)
-            newNode.propertiesMap().forEach { case (k, v) => newNode.setProperty(k, v) }
+            node.properties.forEach { case (k, v) => newNode.setProperty(k, v) }
           case Change.SetNodeProperty(node, key, value) =>
             cpg.graph.nodes(node.id()).next().setProperty(key, value)
           case _ => // do nothing
@@ -98,9 +100,27 @@ case class OverflowDbDriver(
 
   override def deleteMethod(fullName: String): Unit = ???
 
-  override def getNodeByLabel(label: String): List[NewNode] = ???
+  override def nodesByLabel(label: String): List[Node] = {
+    cpg match {
+      case Some(cpg) => cpg.graph.nodes(label).asScala.toList
+      case None      => List()
+    }
+  }
 
-  override def getPropertyFromVertices(key: String, value: Any, label: String): List[NewNode] = ???
+  override def nodesByProperty(key: String, value: Any, label: String): List[Node] = {
+    cpg match {
+      case Some(cpg) =>
+        (if (label != null) cpg.graph.nodes(label) else cpg.graph.nodes()).asScala
+          .filter(p =>
+            Option(p.property(key, null)) match {
+              case Some(v) => v == value
+              case None    => false
+            }
+          )
+          .toList
+      case None => List()
+    }
+  }
 
   override def close(): Unit = {
     cpg match {

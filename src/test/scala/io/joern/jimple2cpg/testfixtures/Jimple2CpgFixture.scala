@@ -20,7 +20,7 @@ class PlumeFrontend extends LanguageFrontend {
   }
 }
 
-class Jimple2CpgCpgFixture extends CodeToCpgFixture(new PlumeFrontend) {
+class Jimple2CpgFixture extends CodeToCpgFixture(new PlumeFrontend) {
 
   override def writeCodeToFile(sourceCode: String): File = {
     val tmpDir = Files.createTempDirectory("semanticcpgtest").toFile

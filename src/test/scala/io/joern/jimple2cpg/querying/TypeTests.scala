@@ -1,9 +1,9 @@
 package io.joern.jimple2cpg.querying
 
-import io.joern.jimple2cpg.testfixtures.Jimple2CpgCpgFixture
+import io.joern.jimple2cpg.testfixtures.Jimple2CpgFixture
 import io.shiftleft.semanticcpg.language._
 
-class TypeTests extends Jimple2CpgCpgFixture {
+class TypeTests extends Jimple2CpgFixture {
 
   override val code: String =
     """

@@ -1,7 +1,7 @@
 package io.github.plume.oss.drivers
 
-import io.shiftleft.codepropertygraph.generated.nodes.NewNode
-import io.shiftleft.passes.{AppliedDiffGraph, DiffGraph}
+import io.shiftleft.passes.AppliedDiffGraph
+import overflowdb.Node
 
 trait IDriver extends AutoCloseable {
 
@@ -9,9 +9,9 @@ trait IDriver extends AutoCloseable {
 
   def connect(): Unit
 
-  def addNode(v: NewNode): Unit
+  def addNode(v: Node): Unit
 
-  def addEdge(src: NewNode, dst: NewNode, edge: String): Unit
+  def addEdge(src: Node, dst: Node, edge: String): Unit
 
   def exists(nodeId: Long): Boolean
 
@@ -21,9 +21,9 @@ trait IDriver extends AutoCloseable {
 
   def deleteMethod(fullName: String): Unit
 
-  def getNodeByLabel(label: String): List[NewNode]
+  def nodesByLabel(label: String): List[Node]
 
-  def getPropertyFromVertices(key: String, value: Any, label: String = null): List[NewNode]
+  def nodesByProperty(key: String, value: Any, label: String = null): List[Node]
 
   def getVertexIds(lower: Long, upper: Long): Set[Long]
 
