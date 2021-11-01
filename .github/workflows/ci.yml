@@ -22,11 +22,13 @@ jobs:
         with:
           java-version: 11
 
-      - name: Check styling
-        run: sbt scalafmtCheck
+      - name: Check styling and begin coverage instrumentation
+        run: sbt scalafmtCheck coverage
 
-      - name: Run tests
-        run: sbt coverage test
+      - name: Run unit tests
+        run: sbt test
+      - name: Run OverflowDB integration tests
+        run: sbt "odbTest:test"
 
       - name: Compile coverage report
         run: sbt coverageReport
