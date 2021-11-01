@@ -6,7 +6,7 @@ on:
 
 jobs:
   publish:
-    name: Publish release and Scala doc
+    name: Publish release
     runs-on: ubuntu-latest
 
     steps:
@@ -34,5 +34,3 @@ jobs:
           release_name: ${{ github.ref }}
           draft: false
           prerelease: false
-      - name: Build and deploy Scala documentation
-        run: sbt makeSite ghpagesPushSite
