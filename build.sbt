@@ -7,7 +7,7 @@ scalaVersion := "2.13.6"
 val cpgVersion       = "1.3.384"
 val sootVersion      = "4.2.1"
 val slf4jVersion     = "1.7.32"
-val scalatestVersion = "3.1.1"
+val scalatestVersion = "3.2.9"
 
 Test / fork := true
 resolvers ++= Seq(
@@ -29,10 +29,10 @@ libraryDependencies ++= Seq(
 )
 
 scmInfo := Some(
-  ScmInfo(url("https://github.com/joernio/jimple2cpg"), "scm:git@github.com:joernio/jimple2cpg.git")
+  ScmInfo(url("https://github.com/plume-oss/plume"), "scm:git@github.com:/plume-oss/plume.git")
 )
-homepage := Some(url("https://github.com/joernio/jimple2cpg/"))
-licenses := List("Apache-2.0" -> url("http://www.apache.org/licenses/LICENSE-2.0"))
+homepage := Some(url("https://github.com/plume-oss/plume/"))
+licenses := List("Apache-2.0" -> url("https://www.apache.org/licenses/LICENSE-2.0"))
 developers := List(
   Developer(
     "DavidBakerEffendi",
@@ -48,6 +48,14 @@ developers := List(
   )
 )
 
-enablePlugins(JavaAppPackaging, GitVersioning, BuildInfoPlugin)
+enablePlugins(
+  JavaAppPackaging,
+  GitVersioning,
+  BuildInfoPlugin,
+  GhpagesPlugin,
+  SiteScaladocPlugin,
+)
+
+git.remoteRepo := "git@github.com:plume-oss/plume.git"
 
 Global / onChangedBuildSource := ReloadOnSourceChanges
