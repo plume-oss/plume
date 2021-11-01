@@ -27,20 +27,18 @@ case class OverflowDbDriver(
 
   override def isConnected: Boolean = cpg.isDefined
 
-  override def connect(): Unit = {
-    cpg match {
-      case Some(_) => logger.warn("OverflowDB driver is already connected.")
-      case None =>
-        val odbConfig = Config
-          .withDefaults()
-          .withHeapPercentageThreshold(heapPercentageThreshold)
-        storageLocation match {
-          case Some(path) => odbConfig.withStorageLocation(path)
-          case None       => odbConfig.disableOverflow()
-        }
-        if (serializationStatsEnabled) odbConfig.withSerializationStatsEnabled()
-        cpg = Option(newOverflowGraph(odbConfig))
-    }
+  override def connect(): Unit = cpg match {
+    case Some(_) => logger.warn("OverflowDB driver is already connected.")
+    case None =>
+      val odbConfig = Config
+        .withDefaults()
+        .withHeapPercentageThreshold(heapPercentageThreshold)
+      storageLocation match {
+        case Some(path) => odbConfig.withStorageLocation(path)
+        case None       => odbConfig.disableOverflow()
+      }
+      if (serializationStatsEnabled) odbConfig.withSerializationStatsEnabled()
+      cpg = Option(newOverflowGraph(odbConfig))
   }
 
   override def clear(): Unit = cpg match {
@@ -59,51 +57,48 @@ case class OverflowDbDriver(
       case None      => false
     }
 
-  override def bulkTx(dg: AppliedDiffGraph): Unit = {
-    cpg match {
-      case Some(cpg) =>
-        // Do node operations first
-        dg.diffGraph.iterator.foreach {
-          case Change.RemoveNode(nodeId) =>
-            cpg.graph.node(nodeId).remove()
-          case Change.RemoveNodeProperty(nodeId, propertyKey) =>
-            cpg.graph.nodes(nodeId).next().removeProperty(propertyKey)
-          case Change.CreateNode(node) =>
-            val newNode = cpg.graph.addNode(dg.nodeToGraphId(node), node.label)
-            node.properties.foreach { case (k, v) => newNode.setProperty(k, v) }
-          case Change.SetNodeProperty(node, key, value) =>
-            cpg.graph.nodes(node.id()).next().setProperty(key, value)
-          case _ => // do nothing
-        }
-        // Now that all nodes are in, connect/remove edges
-        dg.diffGraph.iterator.foreach {
-          case Change.RemoveEdge(edge) =>
-            cpg.graph
-              .nodes(edge.outNode().id())
-              .next()
-              .outE(edge.label())
-              .forEachRemaining(e => if (e.inNode().id() == edge.inNode().id()) e.remove())
-          case Change.CreateEdge(src, dst, label, packedProperties) =>
-            val srcId: Long = id(src, dg)
-            val dstId: Long = id(dst, dg)
-            val e: overflowdb.Edge =
-              cpg.graph.nodes(srcId).next().addEdge(label, cpg.graph.nodes(dstId).next())
-            PackedProperties.unpack(packedProperties).foreach { case (k: String, v: Any) =>
-              e.setProperty(k, v)
-            }
-          case _ => // do nothing
-        }
-      case None =>
-    }
+  override def bulkTx(dg: AppliedDiffGraph): Unit = cpg match {
+    case Some(cpg) =>
+      // Do node operations first
+      dg.diffGraph.iterator.foreach {
+        case Change.RemoveNode(nodeId) =>
+          cpg.graph.node(nodeId).remove()
+        case Change.RemoveNodeProperty(nodeId, propertyKey) =>
+          cpg.graph.nodes(nodeId).next().removeProperty(propertyKey)
+        case Change.CreateNode(node) =>
+          val newNode = cpg.graph.addNode(dg.nodeToGraphId(node), node.label)
+          node.properties.foreach { case (k, v) => newNode.setProperty(k, v) }
+        case Change.SetNodeProperty(node, key, value) =>
+          cpg.graph.nodes(node.id()).next().setProperty(key, value)
+        case _ => // do nothing
+      }
+      // Now that all nodes are in, connect/remove edges
+      dg.diffGraph.iterator.foreach {
+        case Change.RemoveEdge(edge) =>
+          cpg.graph
+            .nodes(edge.outNode().id())
+            .next()
+            .outE(edge.label())
+            .forEachRemaining(e => if (e.inNode().id() == edge.inNode().id()) e.remove())
+        case Change.CreateEdge(src, dst, label, packedProperties) =>
+          val srcId: Long = id(src, dg)
+          val dstId: Long = id(dst, dg)
+          val e: overflowdb.Edge =
+            cpg.graph.nodes(srcId).next().addEdge(label, cpg.graph.nodes(dstId).next())
+          PackedProperties.unpack(packedProperties).foreach { case (k: String, v: Any) =>
+            e.setProperty(k, v)
+          }
+        case _ => // do nothing
+      }
+    case None =>
   }
 
-  private def id(node: AbstractNode, dg: AppliedDiffGraph): Long = {
+  private def id(node: AbstractNode, dg: AppliedDiffGraph): Long =
     node match {
       case n: NewNode    => dg.nodeToGraphId(n)
       case n: StoredNode => n.id()
       case _             => throw new RuntimeException(s"Unable to obtain ID for $node")
     }
-  }
 
   override def deleteNodeWithChildren(
       nodeType: String,
@@ -134,47 +129,41 @@ case class OverflowDbDriver(
     }
   }
 
-  override def propertyFromNodes(nodeType: String, keys: String*): List[Seq[String]] = {
-    cpg match {
-      case Some(cpg) =>
-        cpg.graph
-          .nodes(nodeType)
-          .asScala
-          .map { n =>
-            keys.map { k =>
-              if (k.toLowerCase == "id") {
-                n.id().toString
-              } else {
-                n.propertiesMap().getOrDefault(k, null).toString
-              }
+  override def propertyFromNodes(nodeType: String, keys: String*): List[Seq[String]] = cpg match {
+    case Some(cpg) =>
+      cpg.graph
+        .nodes(nodeType)
+        .asScala
+        .map { n =>
+          keys.map { k =>
+            if (k.toLowerCase == "id") {
+              n.id().toString
+            } else {
+              n.propertiesMap().getOrDefault(k, null).toString
             }
           }
-          .toList
-      case None => List()
-    }
-  }
-
-  override def close(): Unit = {
-    cpg match {
-      case Some(g) =>
-        Try(g.close()) match {
-          case Success(_) => cpg = None
-          case Failure(e) =>
-            logger.warn("Exception thrown while attempting to close graph.", e); cpg = None
         }
-      case None => logger.warn("OverflowDB driver is already disconnected.")
-    }
+        .toList
+    case None => List()
   }
 
-  override def idInterval(lower: Long, upper: Long): Set[Long] = {
-    cpg match {
-      case Some(value) =>
-        value.graph.nodes.asScala
-          .filter(n => n.id() >= lower && n.id() <= upper)
-          .map(_.id())
-          .toSet
-      case None => Set()
-    }
+  override def close(): Unit = cpg match {
+    case Some(g) =>
+      Try(g.close()) match {
+        case Success(_) => cpg = None
+        case Failure(e) =>
+          logger.warn("Exception thrown while attempting to close graph.", e); cpg = None
+      }
+    case None => logger.warn("OverflowDB driver is already disconnected.")
+  }
+
+  override def idInterval(lower: Long, upper: Long): Set[Long] = cpg match {
+    case Some(value) =>
+      value.graph.nodes.asScala
+        .filter(n => n.id() >= lower && n.id() <= upper)
+        .map(_.id())
+        .toSet
+    case None => Set()
   }
 }
 
