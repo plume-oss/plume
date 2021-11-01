@@ -38,7 +38,7 @@ class PlumeDynamicCallLinker(cpg: Cpg) extends CpgPass(cpg) {
   }.toMap
 
   /** Main method of enhancement - to be implemented by child class
-   */
+    */
   override def run(): Iterator[DiffGraph] = {
     val dstGraph = DiffGraph.newBuilder
 
@@ -70,7 +70,7 @@ class PlumeDynamicCallLinker(cpg: Cpg) extends CpgPass(cpg) {
   }
 
   /** Recursively returns all the sub-types of the given type declaration. Does not account for circular hierarchies.
-   */
+    */
   def allSubclasses(typDeclFullName: String): mutable.LinkedHashSet[String] = {
     subclassCache.get(typDeclFullName) match {
       case Some(value) => value
@@ -79,9 +79,8 @@ class PlumeDynamicCallLinker(cpg: Cpg) extends CpgPass(cpg) {
           cpg.typ
             .nameExact(typDeclFullName)
             .flatMap(_.in(EdgeTypes.INHERITS_FROM))
-            .collect {
-              case x: TypeDecl =>
-                x.fullName
+            .collect { case x: TypeDecl =>
+              x.fullName
             }
             .to(mutable.LinkedHashSet)
         // The second check makes sure that set is changing which wouldn't be the case in circular hierarchies
@@ -96,7 +95,7 @@ class PlumeDynamicCallLinker(cpg: Cpg) extends CpgPass(cpg) {
   }
 
   /** Returns the method from a sub-class implementing a method for the given subclass.
-   */
+    */
   private def staticLookup(subclass: String, method: Method): Option[String] = {
     typeMap.get(subclass) match {
       case Some(sc) =>

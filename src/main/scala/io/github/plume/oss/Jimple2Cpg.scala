@@ -53,13 +53,13 @@ class Jimple2Cpg {
       Using(driver) { d =>
         if (!d.isConnected) d.connect()
 
-        val metaDataKeyPool = new IncrementalKeyPool(1, 100, driver.getVertexIds(1, 100))
-        val typesKeyPool    = new IncrementalKeyPool(101, 1000100, driver.getVertexIds(101, 1000100))
+        val metaDataKeyPool = new IncrementalKeyPool(1, 100, driver.idInterval(1, 100))
+        val typesKeyPool    = new IncrementalKeyPool(101, 1000100, driver.idInterval(101, 1000100))
         val methodKeyPool =
           new IncrementalKeyPool(
             20001001,
             Long.MaxValue,
-            driver.getVertexIds(20001001, Long.MaxValue)
+            driver.idInterval(20001001, Long.MaxValue)
           )
 
         new PlumeMetaDataPass(cpg, language, Some(metaDataKeyPool)).createAndApply(driver)
@@ -107,15 +107,15 @@ class Jimple2Cpg {
 
   private def basePasses(cpg: Cpg, driver: IDriver): Seq[CpgPassBase with PlumeCpgPassBase] = {
     val namespaceKeyPool =
-      new IncrementalKeyPool(1000101, 2000200, driver.getVertexIds(1000101, 2000200))
+      new IncrementalKeyPool(1000101, 2000200, driver.idInterval(1000101, 2000200))
     val filesKeyPool =
-      new IncrementalKeyPool(2000201, 3000200, driver.getVertexIds(2000201, 3000200))
+      new IncrementalKeyPool(2000201, 3000200, driver.idInterval(2000201, 3000200))
     val typeDeclKeyPool =
-      new IncrementalKeyPool(3000201, 4000200, driver.getVertexIds(3000201, 4000200))
+      new IncrementalKeyPool(3000201, 4000200, driver.idInterval(3000201, 4000200))
     val methodStubKeyPool =
-      new IncrementalKeyPool(4000101, 10001000, driver.getVertexIds(4000101, 10001000))
+      new IncrementalKeyPool(4000101, 10001000, driver.idInterval(4000101, 10001000))
     val methodDecoratorKeyPool =
-      new IncrementalKeyPool(10001001, 20001000, driver.getVertexIds(10001001, 20001000))
+      new IncrementalKeyPool(10001001, 20001000, driver.idInterval(10001001, 20001000))
     Seq(
       new PlumeFileCreationPass(cpg, Some(filesKeyPool)),
       new PlumeNamespaceCreator(cpg, Some(namespaceKeyPool)),

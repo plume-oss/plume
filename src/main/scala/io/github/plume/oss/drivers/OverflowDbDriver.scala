@@ -2,16 +2,15 @@ package io.github.plume.oss.drivers
 
 import io.github.plume.oss.drivers.OverflowDbDriver.newOverflowGraph
 import io.shiftleft.codepropertygraph.generated.Cpg
-import io.shiftleft.codepropertygraph.generated.nodes.{AbstractNode, NewMethod, NewNode, StoredNode}
+import io.shiftleft.codepropertygraph.generated.nodes.{AbstractNode, NewNode, StoredNode}
+import io.shiftleft.passes.AppliedDiffGraph
 import io.shiftleft.passes.DiffGraph.{Change, PackedProperties}
-import io.shiftleft.passes.{AppliedDiffGraph, DiffGraph}
-import io.shiftleft.proto.cpg.Cpg.CpgStruct.Edge
 import org.slf4j.LoggerFactory
 import overflowdb.{Config, Node}
 
 import java.io.{File => JFile}
-import scala.Option
-import scala.collection.convert.ImplicitConversions.`collection asJava`
+import scala.collection.mutable
+import scala.jdk.CollectionConverters
 import scala.jdk.CollectionConverters.IteratorHasAsScala
 import scala.util.{Failure, Success, Try}
 
@@ -46,21 +45,19 @@ case class OverflowDbDriver(
 
   override def clear(): Unit = cpg match {
     case Some(cpg) => cpg.graph.nodes.asScala.foreach(_.remove())
-    case None =>
+    case None      =>
   }
 
-  override def addNode(v: Node): Unit = ???
+  override def exists(nodeId: Long): Boolean = cpg match {
+    case Some(cpg) => cpg.graph.node(nodeId) != null
+    case None      => false
+  }
 
-  override def addEdge(src: Node, dst: Node, edge: String): Unit = ???
-
-  override def exists(nodeId: Long): Boolean = ???
-
-  override def exists(srcId: Long, dstId: Long, edge: String): Boolean = {
+  override def exists(srcId: Long, dstId: Long, edge: String): Boolean =
     cpg match {
       case Some(cpg) => cpg.graph.node(srcId).out(edge).asScala.exists { dst => dst.id() == dstId }
       case None      => false
     }
-  }
 
   override def bulkTx(dg: AppliedDiffGraph): Unit = {
     cpg match {
@@ -73,7 +70,7 @@ case class OverflowDbDriver(
             cpg.graph.nodes(nodeId).next().removeProperty(propertyKey)
           case Change.CreateNode(node) =>
             val newNode = cpg.graph.addNode(dg.nodeToGraphId(node), node.label)
-            node.properties.forEach { case (k, v) => newNode.setProperty(k, v) }
+            node.properties.foreach { case (k, v) => newNode.setProperty(k, v) }
           case Change.SetNodeProperty(node, key, value) =>
             cpg.graph.nodes(node.id()).next().setProperty(key, value)
           case _ => // do nothing
@@ -108,7 +105,34 @@ case class OverflowDbDriver(
     }
   }
 
-  override def deleteMethod(fullName: String): Unit = ???
+  override def deleteNodeWithChildren(
+      nodeType: String,
+      edgeToFollow: String,
+      propertyKey: String,
+      propertyValue: Any
+  ): Unit = {
+    val visitedNodes = mutable.Set[Node]()
+    def dfsDelete(n: Node): Unit = {
+      if (!visitedNodes.contains(n)) {
+        visitedNodes.add(n)
+        n.out(edgeToFollow).forEachRemaining(dfsDelete(_))
+      }
+      n.remove()
+    }
+    cpg match {
+      case Some(cpg) =>
+        cpg.graph
+          .nodes(nodeType)
+          .asScala
+          .filter(n => n.property(propertyKey, null) == propertyValue)
+          .toList
+          .headOption match {
+          case Some(headNode) => dfsDelete(headNode)
+          case None           =>
+        }
+      case None =>
+    }
+  }
 
   override def propertyFromNodes(nodeType: String, keys: String*): List[Seq[String]] = {
     cpg match {
@@ -142,7 +166,7 @@ case class OverflowDbDriver(
     }
   }
 
-  override def getVertexIds(lower: Long, upper: Long): Set[Long] = {
+  override def idInterval(lower: Long, upper: Long): Set[Long] = {
     cpg match {
       case Some(value) =>
         value.graph.nodes.asScala
