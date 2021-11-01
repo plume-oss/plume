@@ -102,7 +102,12 @@ class PlumeAstCreator(filename: String, global: Global) {
       .order(1) // Jimple always has 1 class per file
       .filename(filename)
       .code(shortName)
-      .inheritsFromTypeFullName(List(typ.getSootClass.getSuperclass.toString))
+      .inheritsFromTypeFullName(
+        if (typ.getSootClass.hasSuperclass)
+          List(typ.getSootClass.getSuperclass.toString)
+        else
+          List()
+      )
       .astParentType("NAMESPACE_BLOCK")
       .astParentFullName(namespaceBlockFullName)
     val methodAsts = withOrder(

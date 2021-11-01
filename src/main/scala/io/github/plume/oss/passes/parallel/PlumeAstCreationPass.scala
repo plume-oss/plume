@@ -7,11 +7,12 @@ import org.slf4j.LoggerFactory
 import soot.{Scene, SootClass}
 
 import java.io.{File => JFile}
-import java.util.concurrent.ConcurrentHashMap
+import java.util.concurrent.{ConcurrentHashMap, Semaphore}
 import scala.tools.nsc
 
 case class Global(
-    usedTypes: ConcurrentHashMap[String, Boolean] = new ConcurrentHashMap[String, Boolean]()
+    usedTypes: ConcurrentHashMap[String, Boolean] = new ConcurrentHashMap[String, Boolean](),
+    sootLock: Semaphore = new Semaphore(1)
 )
 
 class AstCreationPass(
@@ -38,10 +39,14 @@ class AstCreationPass(
     val qualifiedClassName           = getQualifiedClassPath(filename)
     var sootClass: Option[SootClass] = None
     try {
-      sootClass = Option(Scene.v().loadClassAndSupport(qualifiedClassName))
+      try {
+        global.sootLock.acquire()
+        sootClass = Option(Scene.v().loadClassAndSupport(qualifiedClassName))
+      } finally {
+        global.sootLock.release()
+      }
       sootClass match {
         case Some(clazz) =>
-          clazz.setApplicationClass()
           new PlumeAstCreator(filename, global).createAst(clazz)
         case None => null
       }
