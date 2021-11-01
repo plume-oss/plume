@@ -9,7 +9,11 @@ val sootVersion      = "4.2.1"
 val slf4jVersion     = "1.7.32"
 val scalatestVersion = "3.2.9"
 
-Test / fork := true
+lazy val scalatest = "org.scalatest" %% "scalatest" % scalatestVersion
+lazy val OdbIntTest = config("odbTest") extend Test
+
+fork := true
+
 resolvers ++= Seq(
   Resolver.mavenLocal,
   Resolver.mavenCentral
@@ -26,6 +30,15 @@ libraryDependencies ++= Seq(
   "org.slf4j"      % "slf4j-api"         % slf4jVersion,
   "org.slf4j"      % "slf4j-simple"      % slf4jVersion,
   "org.scalatest" %% "scalatest"         % scalatestVersion % Test
+)
+
+enablePlugins(
+  JavaAppPackaging,
+  GitVersioning,
+  BuildInfoPlugin,
+  DockerComposePlugin,
+  GhpagesPlugin,
+  SiteScaladocPlugin,
 )
 
 scmInfo := Some(
@@ -48,14 +61,15 @@ developers := List(
   )
 )
 
-enablePlugins(
-  JavaAppPackaging,
-  GitVersioning,
-  BuildInfoPlugin,
-  GhpagesPlugin,
-  SiteScaladocPlugin,
-)
-
 git.remoteRepo := "git@github.com:plume-oss/plume.git"
 
 Global / onChangedBuildSource := ReloadOnSourceChanges
+
+lazy val root = (project in file("."))
+  .configs(OdbIntTest)
+  .settings(
+    inConfig(OdbIntTest)(Defaults.testSettings),
+    libraryDependencies += scalatest % OdbIntTest,
+    Test / testOptions  := Seq(Tests.Filter(s => !s.endsWith("IntTests"))),
+    OdbIntTest / testOptions := Seq(Tests.Filter(s => s.contains("OverflowDb"))),
+  )

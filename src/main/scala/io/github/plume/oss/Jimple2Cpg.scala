@@ -3,12 +3,7 @@ package io.github.plume.oss
 import io.github.plume.oss.drivers.{IDriver, OverflowDbDriver}
 import io.github.plume.oss.passes._
 import io.github.plume.oss.passes.concurrent.{PlumeCfgCreationPass, PlumeContainsEdgePass}
-import io.github.plume.oss.passes.parallel.{
-  AstCreationPass,
-  PlumeCdgPass,
-  PlumeCfgDominatorPass,
-  PlumeMethodStubCreator
-}
+import io.github.plume.oss.passes.parallel.{AstCreationPass, PlumeCdgPass, PlumeCfgDominatorPass, PlumeMethodStubCreator}
 import io.shiftleft.codepropertygraph.Cpg
 import io.shiftleft.passes.CpgPassBase
 import io.shiftleft.semanticcpg.passes.linking.calllinker.StaticCallLinker
@@ -17,7 +12,7 @@ import io.shiftleft.x2cpg.SourceFiles
 import io.shiftleft.x2cpg.X2Cpg.newEmptyCpg
 import org.slf4j.LoggerFactory
 import soot.options.Options
-import soot.{G, PhaseOptions, Scene}
+import soot.{G, PhaseOptions, Scene, SootClass}
 
 import java.io.{File => JFile}
 import java.nio.file.Files
@@ -144,7 +139,7 @@ class Jimple2Cpg {
     Options.v().set_keep_offset(true)
     // ignore library code
     Options.v().set_no_bodies_for_excluded(true)
-    Options.v().set_allow_phantom_refs(false)
+    Options.v().set_allow_phantom_refs(true)
     // keep variable names
     PhaseOptions.v().setPhaseOption("jb", "use-original-names:true")
     Scene.v().loadBasicClasses()

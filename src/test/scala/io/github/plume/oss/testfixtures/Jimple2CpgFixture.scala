@@ -1,4 +1,4 @@
-package io.joern.jimple2cpg.testfixtures
+package io.github.plume.oss.testfixtures
 
 import io.github.plume.oss.Jimple2Cpg
 import io.shiftleft.codepropertygraph.Cpg

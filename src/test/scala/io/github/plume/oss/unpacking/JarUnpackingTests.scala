@@ -1,4 +1,4 @@
-package io.joern.jimple2cpg.unpacking
+package io.github.plume.oss.unpacking
 
 import io.github.plume.oss.Jimple2Cpg
 import io.shiftleft.codepropertygraph.Cpg
@@ -11,7 +11,7 @@ import org.scalatest.wordspec.AnyWordSpec
 import scala.reflect.io.File
 import scala.util.{Failure, Success, Try}
 
-class JarUnpacking extends AnyWordSpec with Matchers with BeforeAndAfterAll {
+class JarUnpackingTests extends AnyWordSpec with Matchers with BeforeAndAfterAll {
 
   var cpg: Cpg = _
 

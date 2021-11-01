@@ -1,4 +1,4 @@
-package io.joern.jimple2cpg.testfixtures
+package io.github.plume.oss.testfixtures
 
 import io.github.plume.oss.drivers.IDriver
 import io.shiftleft.codepropertygraph.generated.NodeTypes._
@@ -18,7 +18,7 @@ class PlumeDriverFixture(val driver: IDriver)
     with BeforeAndAfterAll
     with BeforeAndAfter {
 
-  import io.joern.jimple2cpg.testfixtures.PlumeDriverFixture._
+  import io.github.plume.oss.testfixtures.PlumeDriverFixture._
 
   override protected def beforeAll(): Unit = {
     if (!driver.isConnected) driver.connect()
