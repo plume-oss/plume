@@ -44,13 +44,23 @@ case class OverflowDbDriver(
     }
   }
 
+  override def clear(): Unit = cpg match {
+    case Some(cpg) => cpg.graph.nodes.asScala.foreach(_.remove())
+    case None =>
+  }
+
   override def addNode(v: Node): Unit = ???
 
   override def addEdge(src: Node, dst: Node, edge: String): Unit = ???
 
   override def exists(nodeId: Long): Boolean = ???
 
-  override def exists(srcId: Long, dstId: Long, edge: String): Boolean = ???
+  override def exists(srcId: Long, dstId: Long, edge: String): Boolean = {
+    cpg match {
+      case Some(cpg) => cpg.graph.node(srcId).out(edge).asScala.exists { dst => dst.id() == dstId }
+      case None      => false
+    }
+  }
 
   override def bulkTx(dg: AppliedDiffGraph): Unit = {
     cpg match {
@@ -58,7 +68,7 @@ case class OverflowDbDriver(
         // Do node operations first
         dg.diffGraph.iterator.foreach {
           case Change.RemoveNode(nodeId) =>
-            cpg.graph.nodes(nodeId).remove()
+            cpg.graph.node(nodeId).remove()
           case Change.RemoveNodeProperty(nodeId, propertyKey) =>
             cpg.graph.nodes(nodeId).next().removeProperty(propertyKey)
           case Change.CreateNode(node) =>
@@ -100,23 +110,21 @@ case class OverflowDbDriver(
 
   override def deleteMethod(fullName: String): Unit = ???
 
-  override def nodesByLabel(label: String): List[Node] = {
-    cpg match {
-      case Some(cpg) => cpg.graph.nodes(label).asScala.toList
-      case None      => List()
-    }
-  }
-
-  override def nodesByProperty(key: String, value: Any, label: String): List[Node] = {
+  override def propertyFromNodes(nodeType: String, keys: String*): List[Seq[String]] = {
     cpg match {
       case Some(cpg) =>
-        (if (label != null) cpg.graph.nodes(label) else cpg.graph.nodes()).asScala
-          .filter(p =>
-            Option(p.property(key, null)) match {
-              case Some(v) => v == value
-              case None    => false
+        cpg.graph
+          .nodes(nodeType)
+          .asScala
+          .map { n =>
+            keys.map { k =>
+              if (k.toLowerCase == "id") {
+                n.id().toString
+              } else {
+                n.propertiesMap().getOrDefault(k, null).toString
+              }
             }
-          )
+          }
           .toList
       case None => List()
     }
