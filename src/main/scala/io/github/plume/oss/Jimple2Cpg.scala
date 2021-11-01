@@ -134,7 +134,7 @@ class Jimple2Cpg {
 
   private def configureSoot(sourceCodePath: String): Unit = {
     // set application mode
-    Options.v().set_app(false)
+    Options.v().set_app(true)
     Options.v().set_whole_program(false)
     // make sure classpath is configured correctly
     Options.v().set_soot_classpath(sourceCodePath)
@@ -144,7 +144,7 @@ class Jimple2Cpg {
     Options.v().set_keep_offset(true)
     // ignore library code
     Options.v().set_no_bodies_for_excluded(true)
-    Options.v().set_allow_phantom_refs(true)
+    Options.v().set_allow_phantom_refs(false)
     // keep variable names
     PhaseOptions.v().setPhaseOption("jb", "use-original-names:true")
     Scene.v().loadBasicClasses()
