@@ -3,9 +3,8 @@ package io.github.plume.oss.drivers
 import scala.tools.nsc.io.File
 import scala.util.Using
 
-/**
- * The driver used to connect to an in-memory TinkerGraph instance.
- */
+/** The driver used to connect to an in-memory TinkerGraph instance.
+  */
 class TinkerGraphDriver extends GremlinDriver {
 
   /** Add or update a [[org.apache.commons.configuration2.BaseConfiguration]] key-value pair.

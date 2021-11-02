@@ -41,7 +41,7 @@ class PlumeDriverFixture(val driver: IDriver)
     m.get(NAME.name()) shouldBe Some("foo")
     m.get(ORDER.name()) shouldBe Some(1)
     val List(b: Map[String, Any]) = driver.propertyFromNodes(BLOCK, ORDER.name())
-    m.get(ORDER.name()) shouldBe Some(1)
+    b.get(ORDER.name()) shouldBe Some(1)
   }
 
   "should reflect node subtractions in bulk transactions" in {
@@ -59,7 +59,7 @@ class PlumeDriverFixture(val driver: IDriver)
     m.get(NAME.name()) shouldBe Some("foo")
     m.get(ORDER.name()) shouldBe Some(1)
     val List(b: Map[String, Any]) = driver.propertyFromNodes(BLOCK, ORDER.name())
-    m.get(ORDER.name()) shouldBe Some(1)
+    b.get(ORDER.name()) shouldBe Some(1)
 
     // Remove one node
     diffGraph2.removeNode(m.getOrElse("id", -1L).toString.toLong)
@@ -85,7 +85,7 @@ class PlumeDriverFixture(val driver: IDriver)
     m.get(NAME.name()) shouldBe Some("foo")
     m.get(ORDER.name()) shouldBe Some(1)
     val List(b: Map[String, Any]) = driver.propertyFromNodes(BLOCK, ORDER.name())
-    m.get(ORDER.name()) shouldBe Some(1)
+    b.get(ORDER.name()) shouldBe Some(1)
 
     // Add an edge
     diffGraph2.addEdge(
@@ -124,7 +124,7 @@ class PlumeDriverFixture(val driver: IDriver)
     m.get(NAME.name()) shouldBe Some("foo")
     m.get(ORDER.name()) shouldBe Some(1)
     val List(b: Map[String, Any]) = driver.propertyFromNodes(BLOCK, ORDER.name())
-    m.get(ORDER.name()) shouldBe Some(1)
+    b.get(ORDER.name()) shouldBe Some(1)
 
     driver.exists(
       m.getOrElse("id", -1L).toString.toLong,
