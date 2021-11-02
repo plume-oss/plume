@@ -29,7 +29,7 @@ abstract class GremlinDriver extends IDriver {
   )
   config.setProperty("gremlin.tinkergraph.vertexIdManager", "LONG")
   protected val graph: Graph = TinkerGraph.open(config)
-  val connected              = new AtomicBoolean(true)
+  private val connected              = new AtomicBoolean(true)
 
   override def isConnected: Boolean = connected.get()
 
