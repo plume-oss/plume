@@ -21,7 +21,7 @@ class PlumeDriverFixture(val driver: IDriver)
   import io.github.plume.oss.testfixtures.PlumeDriverFixture._
 
   override protected def beforeAll(): Unit = {
-    if (!driver.isConnected) driver.connect()
+    if (!driver.isConnected) fail("The driver needs to be connected before the tests can be run.")
   }
 
   after {
@@ -37,12 +37,11 @@ class PlumeDriverFixture(val driver: IDriver)
     val adg =
       DiffGraph.Applier.applyDiff(diffGraph.build(), cpg.graph, undoable = false, Option(keyPool))
     driver.bulkTx(adg)
-
-    val List(m: Seq[String]) = driver.propertyFromNodes(METHOD, "ID", NAME.name(), ORDER.name())
-    m(1) shouldBe "foo"
-    m(2) shouldBe 1.toString
-    val List(b: Seq[String]) = driver.propertyFromNodes(BLOCK, ORDER.name())
-    b.head shouldBe 1.toString
+    val List(m: Map[String, Any]) = driver.propertyFromNodes(METHOD, NAME.name(), ORDER.name())
+    m.get(NAME.name()) shouldBe Some("foo")
+    m.get(ORDER.name()) shouldBe Some(1)
+    val List(b: Map[String, Any]) = driver.propertyFromNodes(BLOCK, ORDER.name())
+    m.get(ORDER.name()) shouldBe Some(1)
   }
 
   "should reflect node subtractions in bulk transactions" in {
@@ -56,19 +55,19 @@ class PlumeDriverFixture(val driver: IDriver)
       DiffGraph.Applier.applyDiff(diffGraph1.build(), cpg.graph, undoable = false, Option(keyPool))
     driver.bulkTx(adg1)
 
-    val List(m: Seq[String]) = driver.propertyFromNodes(METHOD, "ID", NAME.name(), ORDER.name())
-    m(1) shouldBe "foo"
-    m(2) shouldBe 1.toString
-    val List(b: Seq[String]) = driver.propertyFromNodes(BLOCK, ORDER.name())
-    b.head shouldBe 1.toString
+    val List(m: Map[String, Any]) = driver.propertyFromNodes(METHOD, NAME.name(), ORDER.name())
+    m.get(NAME.name()) shouldBe Some("foo")
+    m.get(ORDER.name()) shouldBe Some(1)
+    val List(b: Map[String, Any]) = driver.propertyFromNodes(BLOCK, ORDER.name())
+    m.get(ORDER.name()) shouldBe Some(1)
 
     // Remove one node
-    diffGraph2.removeNode(m.head.toLong)
+    diffGraph2.removeNode(m.getOrElse("id", -1L).toString.toLong)
     val adg2 =
       DiffGraph.Applier.applyDiff(diffGraph2.build(), cpg.graph, undoable = false, Option(keyPool))
     driver.bulkTx(adg2)
 
-    driver.propertyFromNodes(METHOD, "ID") shouldBe List()
+    driver.propertyFromNodes(METHOD) shouldBe List()
   }
 
   "should reflect edge additions in bulk transactions" in {
@@ -82,24 +81,32 @@ class PlumeDriverFixture(val driver: IDriver)
       DiffGraph.Applier.applyDiff(diffGraph1.build(), cpg.graph, undoable = false, Option(keyPool))
     driver.bulkTx(adg1)
 
-    val List(m: Seq[String]) = driver.propertyFromNodes(METHOD, "ID", NAME.name(), ORDER.name())
-    m(1) shouldBe "foo"
-    m(2) shouldBe 1.toString
-    val List(b: Seq[String]) = driver.propertyFromNodes(BLOCK, "ID", ORDER.name())
-    b(1) shouldBe 1.toString
+    val List(m: Map[String, Any]) = driver.propertyFromNodes(METHOD, NAME.name(), ORDER.name())
+    m.get(NAME.name()) shouldBe Some("foo")
+    m.get(ORDER.name()) shouldBe Some(1)
+    val List(b: Map[String, Any]) = driver.propertyFromNodes(BLOCK, ORDER.name())
+    m.get(ORDER.name()) shouldBe Some(1)
 
     // Add an edge
     diffGraph2.addEdge(
-      cpg.graph.nodes(m.head.toLong).next().asInstanceOf[AbstractNode],
-      cpg.graph.nodes(b.head.toLong).next().asInstanceOf[AbstractNode],
+      cpg.graph.nodes(m.getOrElse("id", -1L).toString.toLong).next().asInstanceOf[AbstractNode],
+      cpg.graph.nodes(b.getOrElse("id", -1L).toString.toLong).next().asInstanceOf[AbstractNode],
       EdgeTypes.AST
     )
     val adg2 =
       DiffGraph.Applier.applyDiff(diffGraph2.build(), cpg.graph, undoable = false, Option(keyPool))
     driver.bulkTx(adg2)
 
-    driver.exists(m.head.toLong, b.head.toLong, EdgeTypes.AST) shouldBe true
-    driver.exists(b.head.toLong, m.head.toLong, EdgeTypes.AST) shouldBe false
+    driver.exists(
+      m.getOrElse("id", -1L).toString.toLong,
+      b.getOrElse("id", -1L).toString.toLong,
+      EdgeTypes.AST
+    ) shouldBe true
+    driver.exists(
+      b.getOrElse("id", -1L).toString.toLong,
+      m.getOrElse("id", -1L).toString.toLong,
+      EdgeTypes.AST
+    ) shouldBe false
   }
 
   "should reflect edge removal in bulk transactions" in {
@@ -113,19 +120,28 @@ class PlumeDriverFixture(val driver: IDriver)
       DiffGraph.Applier.applyDiff(diffGraph1.build(), cpg.graph, undoable = false, Option(keyPool))
     driver.bulkTx(adg1)
 
-    val List(m: Seq[String]) = driver.propertyFromNodes(METHOD, "ID", NAME.name(), ORDER.name())
-    m(1) shouldBe "foo"
-    m(2) shouldBe 1.toString
-    val List(b: Seq[String]) = driver.propertyFromNodes(BLOCK, "ID", ORDER.name())
-    b(1) shouldBe 1.toString
-    driver.exists(m.head.toLong, b.head.toLong, EdgeTypes.AST) shouldBe true
+    val List(m: Map[String, Any]) = driver.propertyFromNodes(METHOD, NAME.name(), ORDER.name())
+    m.get(NAME.name()) shouldBe Some("foo")
+    m.get(ORDER.name()) shouldBe Some(1)
+    val List(b: Map[String, Any]) = driver.propertyFromNodes(BLOCK, ORDER.name())
+    m.get(ORDER.name()) shouldBe Some(1)
 
-    diffGraph2.removeEdge(cpg.graph.node(m.head.toLong).outE(EdgeTypes.AST).next())
+    driver.exists(
+      m.getOrElse("id", -1L).toString.toLong,
+      b.getOrElse("id", -1L).toString.toLong,
+      EdgeTypes.AST
+    ) shouldBe true
+
+    diffGraph2.removeEdge(cpg.graph.node(m.getOrElse("id", -1L).toString.toLong).outE(EdgeTypes.AST).next())
     val adg2 =
       DiffGraph.Applier.applyDiff(diffGraph2.build(), cpg.graph, undoable = false, Option(keyPool))
     driver.bulkTx(adg2)
 
-    driver.exists(m.head.toLong, b.head.toLong, EdgeTypes.AST) shouldBe false
+    driver.exists(
+      m.getOrElse("id", -1L).toString.toLong,
+      b.getOrElse("id", -1L).toString.toLong,
+      EdgeTypes.AST
+    ) shouldBe false
   }
 
   "should recursively delete a node and its children given the node type, key-value pair, and edge type to follow" in {
@@ -141,11 +157,11 @@ class PlumeDriverFixture(val driver: IDriver)
     driver.deleteNodeWithChildren(METHOD, EdgeTypes.AST, NAME.name(), "foo")
     // A deletion should delete all nodes except for the MetaData one
     driver.propertyFromNodes(METHOD, NAME.name()) shouldBe List()
-    driver.propertyFromNodes(BLOCK, "ID") shouldBe List()
+    driver.propertyFromNodes(BLOCK) shouldBe List()
     driver.propertyFromNodes(CALL, NAME.name()) shouldBe List()
     driver.propertyFromNodes(LOCAL, NAME.name()) shouldBe List()
     driver.propertyFromNodes(IDENTIFIER, NAME.name()) shouldBe List()
-    driver.propertyFromNodes(META_DATA, LANGUAGE.name()) shouldBe List(Seq("PLUME"))
+    driver.propertyFromNodes(META_DATA, LANGUAGE.name()) shouldBe List(Map(LANGUAGE.name() -> "PLUME", "id" -> 1))
   }
 
   "should accurately report which IDs have been taken" in {

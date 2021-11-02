@@ -3,7 +3,12 @@ package io.github.plume.oss
 import io.github.plume.oss.drivers.{IDriver, OverflowDbDriver}
 import io.github.plume.oss.passes._
 import io.github.plume.oss.passes.concurrent.{PlumeCfgCreationPass, PlumeContainsEdgePass}
-import io.github.plume.oss.passes.parallel.{AstCreationPass, PlumeCdgPass, PlumeCfgDominatorPass, PlumeMethodStubCreator}
+import io.github.plume.oss.passes.parallel.{
+  AstCreationPass,
+  PlumeCdgPass,
+  PlumeCfgDominatorPass,
+  PlumeMethodStubCreator
+}
 import io.shiftleft.codepropertygraph.Cpg
 import io.shiftleft.passes.CpgPassBase
 import io.shiftleft.semanticcpg.passes.linking.calllinker.StaticCallLinker
@@ -12,7 +17,7 @@ import io.shiftleft.x2cpg.SourceFiles
 import io.shiftleft.x2cpg.X2Cpg.newEmptyCpg
 import org.slf4j.LoggerFactory
 import soot.options.Options
-import soot.{G, PhaseOptions, Scene, SootClass}
+import soot.{G, PhaseOptions, Scene}
 
 import java.io.{File => JFile}
 import java.nio.file.Files
@@ -46,8 +51,6 @@ class Jimple2Cpg {
       val cpg = newEmptyCpg(outputPath)
 
       Using(driver) { d =>
-        if (!d.isConnected) d.connect()
-
         val metaDataKeyPool = new IncrementalKeyPool(1, 100, driver.idInterval(1, 100))
         val typesKeyPool    = new IncrementalKeyPool(101, 1000100, driver.idInterval(101, 1000100))
         val methodKeyPool =

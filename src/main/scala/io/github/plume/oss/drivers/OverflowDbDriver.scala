@@ -4,18 +4,16 @@ import io.github.plume.oss.drivers.OverflowDbDriver.newOverflowGraph
 import io.shiftleft.codepropertygraph.generated.Cpg
 import io.shiftleft.passes.AppliedDiffGraph
 import io.shiftleft.passes.DiffGraph.{Change, PackedProperties}
-import org.apache.tinkerpop.gremlin.structure.T
 import org.slf4j.LoggerFactory
 import overflowdb.{Config, Node}
 
 import java.io.{File => JFile}
 import scala.collection.mutable
 import scala.jdk.CollectionConverters.IteratorHasAsScala
-import scala.util.{Failure, Try}
+import scala.util.{Failure, Success, Try}
 
-/**
- * Driver to create an OverflowDB database file.
- */
+/** Driver to create an OverflowDB database file.
+  */
 case class OverflowDbDriver(
     storageLocation: Option[String] = Option(
       JFile.createTempFile("plume-", ".odb").getAbsolutePath
@@ -40,6 +38,7 @@ case class OverflowDbDriver(
 
   override def close(): Unit = {
     Try(cpg.close()) match {
+      case Success(_) => // nothing
       case Failure(e) =>
         logger.warn("Exception thrown while attempting to close graph.", e)
     }
@@ -111,24 +110,21 @@ case class OverflowDbDriver(
     }
   }
 
-  override def propertyFromNodes(nodeType: String, keys: String*): List[Seq[String]] = cpg.graph
-    .nodes(nodeType)
-    .asScala
-    .map { n =>
-      keys.map { k =>
-        if (k == T.id) {
-          n.id().toString
-        } else {
-          n.propertiesMap().getOrDefault(k, null).toString
-        }
+  override def propertyFromNodes(nodeType: String, keys: String*): List[Map[String, Any]] =
+    cpg.graph
+      .nodes(nodeType)
+      .asScala
+      .map { n =>
+        keys.map { k =>
+          k -> n.propertiesMap().getOrDefault(k, null)
+        }.toMap + ("id" -> n.id())
       }
-    }
-    .toList
+      .toList
 
   override def idInterval(lower: Long, upper: Long): Set[Long] = cpg.graph.nodes.asScala
-        .filter(n => n.id() >= lower && n.id() <= upper)
-        .map(_.id())
-        .toSet
+    .filter(n => n.id() >= lower && n.id() <= upper)
+    .map(_.id())
+    .toSet
 }
 
 object OverflowDbDriver {

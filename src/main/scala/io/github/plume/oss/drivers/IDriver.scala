@@ -39,10 +39,10 @@ trait IDriver extends AutoCloseable {
       propertyValue: Any
   ): Unit
 
-  /** Obtains properties from the specified node type and key(s). Use [[org.apache.tinkerpop.gremlin.structure.T.id]] to
-    *  retrieve node ID.
+  /** Obtains properties from the specified node type and key(s). By default will return the ID property as one of the
+    * keys as "id".
     */
-  def propertyFromNodes(nodeType: String, keys: String*): List[Seq[String]]
+  def propertyFromNodes(nodeType: String, keys: String*): List[Map[String, Any]]
 
   /** Returns all the taken IDs between the two boundaries (inclusive).
     */
