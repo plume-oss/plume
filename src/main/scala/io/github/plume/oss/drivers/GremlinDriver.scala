@@ -5,7 +5,7 @@ import io.shiftleft.passes.DiffGraph.{Change, PackedProperties}
 import org.apache.commons.configuration2.BaseConfiguration
 import org.apache.tinkerpop.gremlin.process.traversal.Order
 import org.apache.tinkerpop.gremlin.process.traversal.dsl.graph.{GraphTraversal, __}
-import org.apache.tinkerpop.gremlin.structure.{T, Vertex}
+import org.apache.tinkerpop.gremlin.structure.{Graph, T, Vertex}
 import org.apache.tinkerpop.gremlin.tinkergraph.structure.TinkerGraph
 import org.slf4j.LoggerFactory
 
@@ -18,14 +18,14 @@ import scala.util.{Failure, Success, Try, Using}
 abstract class GremlinDriver extends IDriver {
 
   private val logger                    = LoggerFactory.getLogger(classOf[GremlinDriver])
-  private val config: BaseConfiguration = new BaseConfiguration()
+  protected val config: BaseConfiguration = new BaseConfiguration()
   config.setProperty(
     "gremlin.graph",
     "org.apache.tinkerpop.gremlin.tinkergraph.structure.TinkerGraph"
   )
   config.setProperty("gremlin.tinkergraph.vertexIdManager", "LONG")
-  private val graph     = TinkerGraph.open(config)
-  private val connected = new AtomicBoolean(true)
+  protected val graph: Graph     = TinkerGraph.open(config)
+  val connected = new AtomicBoolean(true)
 
   override def isConnected: Boolean = connected.get()
 

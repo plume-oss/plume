@@ -2,7 +2,6 @@ package io.github.plume.oss.drivers
 
 import io.github.plume.oss.drivers.OverflowDbDriver.newOverflowGraph
 import io.shiftleft.codepropertygraph.generated.Cpg
-import io.shiftleft.codepropertygraph.generated.nodes.{AbstractNode, NewNode, StoredNode}
 import io.shiftleft.passes.AppliedDiffGraph
 import io.shiftleft.passes.DiffGraph.{Change, PackedProperties}
 import org.apache.tinkerpop.gremlin.structure.T
@@ -14,6 +13,9 @@ import scala.collection.mutable
 import scala.jdk.CollectionConverters.IteratorHasAsScala
 import scala.util.{Failure, Try}
 
+/**
+ * Driver to create an OverflowDB database file.
+ */
 case class OverflowDbDriver(
     storageLocation: Option[String] = Option(
       JFile.createTempFile("plume-", ".odb").getAbsolutePath
