@@ -1,5 +1,6 @@
 package io.github.plume.oss.drivers
 
+import io.shiftleft.codepropertygraph.generated.nodes.{AbstractNode, NewNode, StoredNode}
 import io.shiftleft.passes.AppliedDiffGraph
 
 /** The interface for all methods that should be implemented by the driver's underlying database query language.
@@ -9,10 +10,6 @@ trait IDriver extends AutoCloseable {
   /** Will return true if the database is connected, false if otherwise.
     */
   def isConnected: Boolean
-
-  /** Attempts to connect the database with the given parameters.
-    */
-  def connect(): Unit
 
   /** Removes all entries from the database.
     */
@@ -42,13 +39,23 @@ trait IDriver extends AutoCloseable {
       propertyValue: Any
   ): Unit
 
-  /** Obtains properties from the specified node type and key(s).
+  /** Obtains properties from the specified node type and key(s). Use [[org.apache.tinkerpop.gremlin.structure.T.id]] to
+    *  retrieve node ID.
     */
   def propertyFromNodes(nodeType: String, keys: String*): List[Seq[String]]
 
   /** Returns all the taken IDs between the two boundaries (inclusive).
     */
   def idInterval(lower: Long, upper: Long): Set[Long]
+
+  /** Provides the assigned ID for the given node using the given diff graph.
+    */
+  protected def id(node: AbstractNode, dg: AppliedDiffGraph): Long =
+    node match {
+      case n: NewNode    => dg.nodeToGraphId(n)
+      case n: StoredNode => n.id()
+      case _             => throw new RuntimeException(s"Unable to obtain ID for $node")
+    }
 
 }
 
