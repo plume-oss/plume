@@ -6,6 +6,7 @@ import io.shiftleft.passes.DiffGraph.Change
 import org.neo4j.driver.{AuthTokens, GraphDatabase}
 import org.slf4j.LoggerFactory
 
+import java.util
 import java.util.concurrent.atomic.AtomicBoolean
 import scala.jdk.CollectionConverters.CollectionHasAsScala
 import scala.util.{Failure, Success, Try, Using}
@@ -47,7 +48,7 @@ class Neo4jDriver(
       !tx
         .run(s"""
                |MATCH (n)
-               |WHERE n.ID = $nodeId
+               |WHERE n.id = $nodeId
                |RETURN n
                |""".stripMargin)
         .list
@@ -61,11 +62,12 @@ class Neo4jDriver(
         tx
           .run(s"""
                 |MATCH (a), (b)
-                |WHERE a.ID = $srcId AND b.ID = $dstId
+                |WHERE a.id = $srcId AND b.id = $dstId
                 |RETURN EXISTS ((a)-[:$edge]->(b)) as edge_exists
                 |""".stripMargin)
-          .next()["edge_exists"]
-          .toString == "TRUE"
+          .next()
+          .get("edge_exists")
+          .asBoolean(false)
       }
     }
 
@@ -75,11 +77,12 @@ class Neo4jDriver(
       Literal(Constant(raw)).toString
     }
     val propertyStr = (n.properties.map { case (k, v) =>
-      s"$k:" + v match {
-        case x: String => s""""${escape(x)}""""
+      val vStr = v match {
+        case x: String => escape(x)
         case x         => x
       }
-    }.toList :+ s"ID: $id")
+      s"$k:$vStr"
+    }.toList :+ s"id:$id")
       .mkString(",")
     s"CREATE (n$id:${n.label} {$propertyStr})"
   }
@@ -87,7 +90,7 @@ class Neo4jDriver(
   private def bulkDeleteNode(ops: Seq[Change.RemoveNode]): Unit = {
     val m = ops
       .map {
-        case Change.RemoveNode(nodeId) => s"(n$nodeId {ID: $nodeId})"
+        case Change.RemoveNode(nodeId) => s"(n$nodeId {id: $nodeId})"
         case _                         =>
       }
       .mkString(",")
@@ -126,7 +129,7 @@ class Neo4jDriver(
 
   private def bulkNodeSetProperty(ops: Seq[Change.SetNodeProperty]): Unit = {
     val ms = ops.map { case Change.SetNodeProperty(node, _, _) =>
-      s"(n${node.id()}:${node.label} {ID:${node.id()}})"
+      s"(n${node.id()}:${node.label} {id:${node.id()}})"
     }
     val ss = ops.map { case Change.SetNodeProperty(node, k, v) =>
       val s = v match {
@@ -157,18 +160,19 @@ class Neo4jDriver(
         val srcId    = edge.outNode().id()
         val srcLabel = edge.outNode().label()
         val dstId    = edge.inNode().id()
-        val dstLabel = edge.outNode().label()
-        s"(n$srcId:$srcLabel {ID: $srcId})-[r$i:${edge.label()}]->(n$dstId:$dstLabel {ID: $dstId})"
+        val dstLabel = edge.inNode().label()
+        s"(n$srcId:$srcLabel {id: $srcId})-[r$i:${edge.label()}]->(n$dstId:$dstLabel {id: $dstId})"
       }
       .mkString(",")
     val rs = ops.zipWithIndex
-      .map { case (Change.RemoveEdge(edge), i) => s"r$i:${edge.label()}" }
+      .map { case (Change.RemoveEdge(_), i) => s"r$i" }
       .mkString(",")
     Using.resource(driver.session()) { session =>
       val payload = s"""
                        |MATCH $ms
                        |DELETE $rs
                        |""".stripMargin
+      println(payload)
       try {
         session.writeTransaction { tx => tx.run(payload) }
       } catch {
@@ -185,7 +189,7 @@ class Neo4jDriver(
       .flatMap { case Change.CreateEdge(src, dst, _, _) =>
         val srcId = id(src, dg)
         val dstId = id(dst, dg)
-        Seq(s"(n$srcId {ID: $srcId})", s"(n$dstId {ID: $dstId})")
+        Seq(s"(n$srcId {id: $srcId})", s"(n$dstId {id: $dstId})")
       }
       .toSet
       .mkString(",")
@@ -254,8 +258,6 @@ class Neo4jDriver(
                 |FOREACH (x IN r | DELETE x)
                 |DETACH DELETE a, t
                 |""".stripMargin)
-        .next()["edge_exists"]
-        .toString == "TRUE"
     }
   }
 
@@ -266,19 +268,19 @@ class Neo4jDriver(
         tx
           .run(s"""
                   |MATCH (n: $nodeType)
-                  |RETURN ${(keys.map(f => s"n.$f as $f") :+ "n.ID as id").mkString(",")}
+                  |RETURN ${(keys.map(f => s"n.$f as $f") :+ "n.id as id").mkString(",")}
                   |""".stripMargin)
           .list()
           .asScala
           .map(record =>
-            (keys :+ "ID").map { k: String =>
+            (keys :+ "id").map { k: String =>
               val v = record.get(k)
-              if (k == "ID") {
+              if (k == "id") {
                 k -> v.asLong(-1L)
               } else if (v.hasType(typeSystem.INTEGER())) {
                 k -> v.asInt(-1)
               } else if (v.hasType(typeSystem.LIST())) {
-                k -> v.asList[String](java.util.List[String]).asScala
+                k -> v.asList().asScala
               } else {
                 k -> v.asString("<empty>")
               }
@@ -294,8 +296,8 @@ class Neo4jDriver(
         tx
           .run(s"""
                 |MATCH (n)
-                |WHERE n.ID >= $lower AND n.ID <= $upper
-                |RETURN n.ID as id
+                |WHERE n.id >= $lower AND n.id <= $upper
+                |RETURN n.id as id
                 |""".stripMargin)
           .list()
           .asScala
