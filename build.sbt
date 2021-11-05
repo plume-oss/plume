@@ -8,6 +8,7 @@ val cpgVersion         = "1.3.384"
 val sootVersion        = "4.2.1"
 val tinkerGraphVersion = "3.5.1"
 val neo4jVersion       = "4.3.4"
+val lz4Version         = "1.7.1"
 val slf4jVersion       = "1.7.32"
 val scalatestVersion   = "3.2.9"
 val circleVersion      = "0.14.0-M4"
@@ -32,6 +33,7 @@ libraryDependencies ++= Seq(
   "org.soot-oss"         % "soot"                % sootVersion,
   "org.apache.tinkerpop" % "tinkergraph-gremlin" % tinkerGraphVersion,
   "org.neo4j.driver"     % "neo4j-java-driver"   % neo4jVersion,
+  "org.lz4"              % "lz4-java"            % lz4Version,
   "org.slf4j"            % "slf4j-api"           % slf4jVersion,
   "org.slf4j"            % "slf4j-simple"        % slf4jVersion,
   "org.scalatest"       %% "scalatest"           % scalatestVersion % Test

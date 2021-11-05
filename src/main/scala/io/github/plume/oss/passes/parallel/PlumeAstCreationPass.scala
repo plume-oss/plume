@@ -15,6 +15,8 @@ case class Global(
     sootLock: Semaphore = new Semaphore(1)
 )
 
+/** Creates the AST layer from the given class file and stores all types in the given global parameter.
+ */
 class AstCreationPass(
     codePath: String,
     filenames: List[String],

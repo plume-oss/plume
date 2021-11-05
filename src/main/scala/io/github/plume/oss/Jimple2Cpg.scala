@@ -2,15 +2,11 @@ package io.github.plume.oss
 
 import io.github.plume.oss.drivers.{IDriver, OverflowDbDriver}
 import io.github.plume.oss.passes._
-import io.github.plume.oss.passes.concurrent.{PlumeCfgCreationPass, PlumeContainsEdgePass}
-import io.github.plume.oss.passes.parallel.{
-  AstCreationPass,
-  PlumeCdgPass,
-  PlumeCfgDominatorPass,
-  PlumeMethodStubCreator
-}
+import io.github.plume.oss.passes.concurrent.{PlumeCfgCreationPass, PlumeContainsEdgePass, PlumeHashPass}
+import io.github.plume.oss.passes.parallel.{AstCreationPass, PlumeCdgPass, PlumeCfgDominatorPass, PlumeMethodStubCreator}
 import io.shiftleft.codepropertygraph.Cpg
 import io.shiftleft.passes.CpgPassBase
+import io.shiftleft.semanticcpg.language.{toFile, toMethodTraversalExtGen, toNodeTypeStarters, toTypeDeclTraversalExtGen}
 import io.shiftleft.semanticcpg.passes.linking.calllinker.StaticCallLinker
 import io.shiftleft.semanticcpg.passes.linking.linker.Linker
 import io.shiftleft.x2cpg.SourceFiles
@@ -91,6 +87,7 @@ class Jimple2Cpg {
 
         basePasses(cpg, d).foreach(_.createAndApply(d))
         controlFlowPasses(cpg).foreach(_.createAndApply(d))
+        new PlumeHashPass(sourceCodePath, cpg).createAndApply(d)
 
         // If the call ID is missing then discard as it will be regenerated
         new Linker(cpg).createAndApply()

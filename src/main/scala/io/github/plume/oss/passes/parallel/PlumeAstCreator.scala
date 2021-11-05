@@ -18,6 +18,8 @@ import java.io.File
 import scala.collection.mutable
 import scala.jdk.CollectionConverters.CollectionHasAsScala
 
+/** Manages the creation of the AST layer from the given class file and stores all types in the given global parameter.
+  */
 class PlumeAstCreator(filename: String, global: Global) {
 
   import PlumeAstCreator._
