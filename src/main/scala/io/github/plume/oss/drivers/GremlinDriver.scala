@@ -73,19 +73,6 @@ abstract class GremlinDriver extends IDriver {
       .foreach { ops: Seq[Change] =>
         Using.resource(graph.traversal()) { g => bulkEdgeTx(g, ops, dg) }
       }
-    // remove edges in serial
-//    Using.resource(graph.traversal()) { g =>
-//      dg.diffGraph.iterator
-//        .foreach {
-//          case Change.RemoveEdge(edge) =>
-//            g.V(edge.outNode().id())
-//              .outE(edge.label())
-//              .forEachRemaining(x => {
-//                if (x.inVertex().id() == edge.inNode().id) x.remove()
-//              })
-//          case _ => // nothing
-//        }
-//    }
   }
 
   private def bulkNodeTx(
