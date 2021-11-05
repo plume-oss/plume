@@ -6,7 +6,6 @@ import io.shiftleft.passes.DiffGraph.Change
 import org.neo4j.driver.{AuthTokens, GraphDatabase}
 import org.slf4j.LoggerFactory
 
-import java.util
 import java.util.concurrent.atomic.AtomicBoolean
 import scala.jdk.CollectionConverters.CollectionHasAsScala
 import scala.util.{Failure, Success, Try, Using}
