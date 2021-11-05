@@ -10,6 +10,7 @@ val tinkerGraphVersion = "3.5.1"
 val neo4jVersion       = "4.3.4"
 val slf4jVersion       = "1.7.32"
 val scalatestVersion   = "3.2.9"
+val circleVersion      = "0.14.0-M4"
 
 lazy val scalatest  = "org.scalatest" %% "scalatest" % scalatestVersion
 lazy val NeoIntTest = config("neoTest") extend Test
@@ -34,13 +35,16 @@ libraryDependencies ++= Seq(
   "org.slf4j"            % "slf4j-api"           % slf4jVersion,
   "org.slf4j"            % "slf4j-simple"        % slf4jVersion,
   "org.scalatest"       %% "scalatest"           % scalatestVersion % Test
-)
+) ++ Seq(
+  "io.circe" %% "circe-core",
+  "io.circe" %% "circe-generic",
+  "io.circe" %% "circe-parser"
+).map(_ % circleVersion % Test)
 
 enablePlugins(
   JavaAppPackaging,
   GitVersioning,
   BuildInfoPlugin,
-  DockerComposePlugin,
   GhpagesPlugin,
   SiteScaladocPlugin
 )
@@ -74,6 +78,10 @@ lazy val root = (project in file("."))
   .settings(
     inConfig(NeoIntTest)(Defaults.testSettings),
     libraryDependencies += scalatest % NeoIntTest,
-    Test / testOptions := Seq(Tests.Filter(s => !s.endsWith("IntTests"))),
-    NeoIntTest / testOptions := Seq(Tests.Filter(s => s.contains("Neo4j")))
+    Test / testOptions := Seq(
+      Tests.Filter(s => !s.endsWith("IntTests"))
+    ),
+    NeoIntTest / testOptions := Seq(
+      Tests.Filter(s => s.contains("Neo4j"))
+    )
   )

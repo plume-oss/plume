@@ -133,10 +133,10 @@ class Neo4jDriver(
     }
     val ss = ops.map { case Change.SetNodeProperty(node, k, v) =>
       val s = v match {
-        case x: String       => s""""$x""""
-        case x: Number       => x.toString
-        case x: List[String] => x.toString
-        case x               => logger.warn(s"Unhandled property $x (${x.getClass}")
+        case x: String    => s""""$x""""
+        case x: List[Any] => x.toString
+        case x: Number    => x.toString
+        case x            => logger.warn(s"Unhandled property $x (${x.getClass}")
       }
       s"n${node.id()}.$k = $s"
     }
@@ -172,7 +172,6 @@ class Neo4jDriver(
                        |MATCH $ms
                        |DELETE $rs
                        |""".stripMargin
-      println(payload)
       try {
         session.writeTransaction { tx => tx.run(payload) }
       } catch {

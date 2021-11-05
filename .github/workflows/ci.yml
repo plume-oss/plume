@@ -25,10 +25,10 @@ jobs:
       - name: Check styling and begin coverage instrumentation
         run: sbt scalafmtCheck coverage
 
-      - name: Run unit tests
+      - name: Run unit and inmem database tests
         run: sbt test
-      - name: Run OverflowDB integration tests
-        run: sbt "odbTest:test"
+      - name: Run Neo4j integration tests
+        run: sbt "neoTest:test"
 
       - name: Compile coverage report
         run: sbt coverageReport
