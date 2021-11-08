@@ -4,16 +4,15 @@ import io.shiftleft.passes.AppliedDiffGraph
 import io.shiftleft.passes.DiffGraph.{Change, PackedProperties}
 import org.apache.commons.configuration2.BaseConfiguration
 import org.apache.tinkerpop.gremlin.process.traversal.Order
-import org.apache.tinkerpop.gremlin.process.traversal.dsl.graph.{
-  GraphTraversal,
-  GraphTraversalSource,
-  __
-}
+import org.apache.tinkerpop.gremlin.process.traversal.P.neq
+import org.apache.tinkerpop.gremlin.process.traversal.dsl.graph.__.has
+import org.apache.tinkerpop.gremlin.process.traversal.dsl.graph.{GraphTraversal, GraphTraversalSource, __}
 import org.apache.tinkerpop.gremlin.structure.{Edge, Graph, T, Vertex}
 import org.apache.tinkerpop.gremlin.tinkergraph.structure.TinkerGraph
 import org.slf4j.LoggerFactory
 
 import java.util.concurrent.atomic.AtomicBoolean
+import scala.collection.mutable
 import scala.jdk.CollectionConverters.{IteratorHasAsScala, MapHasAsScala}
 import scala.util.{Failure, Success, Try, Using}
 
@@ -29,7 +28,7 @@ abstract class GremlinDriver extends IDriver {
   )
   config.setProperty("gremlin.tinkergraph.vertexIdManager", "LONG")
   protected val graph: Graph = TinkerGraph.open(config)
-  private val connected              = new AtomicBoolean(true)
+  private val connected      = new AtomicBoolean(true)
 
   override def isConnected: Boolean = connected.get()
 
@@ -86,10 +85,10 @@ abstract class GremlinDriver extends IDriver {
         ptr match {
           case Some(p) =>
             ptr = Some(p.addV(node.label).property(T.id, dg.nodeToGraphId(node)))
-            node.properties.foreach { case (k, v) => p.property(k, v) }
+            removeLists(node.properties).foreach { case (k, v) => p.property(k, v) }
           case None =>
             ptr = Some(g.addV(node.label).property(T.id, dg.nodeToGraphId(node)))
-            node.properties.foreach { case (k, v) => ptr.get.property(k, v) }
+            removeLists(node.properties).foreach { case (k, v) => ptr.get.property(k, v) }
         }
       case Change.SetNodeProperty(node, key, value) =>
         ptr match {
@@ -177,11 +176,12 @@ abstract class GremlinDriver extends IDriver {
       var ptr = g
         .V()
         .hasLabel(nodeType)
-        .project(T.id.toString, keys: _*)
+        .project[Any](T.id.toString, keys: _*)
         .by(T.id)
       keys.foreach(k => ptr = ptr.by(k))
-      ptr.asScala
-        .map(m => m.asInstanceOf[java.util.Map[String, Any]].asScala.toMap)
+      ptr
+        .asScala
+        .map(_.asScala.toMap)
         .toList
     }
   }
@@ -197,5 +197,42 @@ abstract class GremlinDriver extends IDriver {
         .map(_.toString.toLong)
         .toSet
     }
+
+  override def linkAstNodes(
+      srcLabels: List[String],
+      edgeType: String,
+      dstNodeMap: mutable.Map[String, Long],
+      dstFullNameKey: String
+  ): Unit = {
+    Using.resource(graph.traversal()) { g =>
+      g
+        .V()
+        .hasLabel(srcLabels.head, srcLabels.drop(1): _*)
+        .not(__.outE(edgeType))
+        .filter(
+          has(dstFullNameKey)
+            .and(has(dstFullNameKey, neq(null)))
+            .and(has(dstFullNameKey, neq(-1)))
+            .and(has(dstFullNameKey, neq("<empty>")))
+        )
+        .project[Any]("id", dstFullNameKey)
+        .by(T.id)
+        .by(dstFullNameKey)
+        .asScala
+        .map(_.asScala.toMap)
+        .foreach { m =>
+          val srcId       = m.getOrElse("id", null).asInstanceOf[Long]
+          val dstFullName = m.getOrElse(dstFullNameKey, null).asInstanceOf[String]
+          if (dstFullName != null) {
+            println(s"Adding $srcId -[$edgeType]-> $dstFullName")
+            val dstId = dstNodeMap.getOrElse(dstFullName, null)
+            if (dstId != null) {
+              println(s"Adding $srcId -[$edgeType]-> $dstId")
+              g.V(srcId).addE(edgeType).to(__.V(dstId))
+            }
+          }
+        }
+    }
+  }
 
 }

@@ -6,7 +6,6 @@ import io.github.plume.oss.passes.concurrent.{PlumeCfgCreationPass, PlumeContain
 import io.github.plume.oss.passes.parallel.{AstCreationPass, PlumeCdgPass, PlumeCfgDominatorPass, PlumeMethodStubCreator}
 import io.shiftleft.codepropertygraph.Cpg
 import io.shiftleft.passes.CpgPassBase
-import io.shiftleft.semanticcpg.language.{toFile, toMethodTraversalExtGen, toNodeTypeStarters, toTypeDeclTraversalExtGen}
 import io.shiftleft.semanticcpg.passes.linking.calllinker.StaticCallLinker
 import io.shiftleft.semanticcpg.passes.linking.linker.Linker
 import io.shiftleft.x2cpg.SourceFiles
@@ -46,54 +45,53 @@ class Jimple2Cpg {
       configureSoot(sourceCodePath)
       val cpg = newEmptyCpg(outputPath)
 
-      Using(driver) { d =>
-        val metaDataKeyPool = new IncrementalKeyPool(1, 100, driver.idInterval(1, 100))
-        val typesKeyPool    = new IncrementalKeyPool(101, 1000100, driver.idInterval(101, 1000100))
-        val methodKeyPool =
-          new IncrementalKeyPool(
-            20001001,
-            Long.MaxValue,
-            driver.idInterval(20001001, Long.MaxValue)
-          )
+      val metaDataKeyPool = new IncrementalKeyPool(1, 100, driver.idInterval(1, 100))
+      val typesKeyPool    = new IncrementalKeyPool(101, 1000100, driver.idInterval(101, 1000100))
+      val methodKeyPool =
+        new IncrementalKeyPool(
+          20001001,
+          Long.MaxValue,
+          driver.idInterval(20001001, Long.MaxValue)
+        )
 
-        new PlumeMetaDataPass(cpg, language, Some(metaDataKeyPool)).createAndApply(driver)
+      new PlumeMetaDataPass(cpg, language, Some(metaDataKeyPool)).createAndApply(driver)
 
-        val sourceFileExtensions  = Set(".class", ".jimple")
-        val archiveFileExtensions = Set(".jar", ".war")
-        // Unpack any archives on the path onto the source code path as project root
-        val archives = SourceFiles.determine(Set(sourceCodePath), archiveFileExtensions)
-        // Load source files and unpack archives if necessary
-        val sourceFileNames = (archives
-          .map(new ZipFile(_))
-          .flatMap(x => {
-            unzipArchive(x, sourceCodePath) match {
-              case Failure(e) =>
-                logger.error(s"Error extracting files from archive at ${x.getName}", e); null
-              case Success(value) => value
-            }
-          })
-          .map(_.getAbsolutePath) ++ SourceFiles.determine(
-          Set(sourceCodePath),
-          sourceFileExtensions
-        )).distinct
+      val sourceFileExtensions  = Set(".class", ".jimple")
+      val archiveFileExtensions = Set(".jar", ".war")
+      // Unpack any archives on the path onto the source code path as project root
+      val archives = SourceFiles.determine(Set(sourceCodePath), archiveFileExtensions)
+      // Load source files and unpack archives if necessary
+      val sourceFileNames = (archives
+        .map(new ZipFile(_))
+        .flatMap(x => {
+          unzipArchive(x, sourceCodePath) match {
+            case Failure(e) =>
+              logger.error(s"Error extracting files from archive at ${x.getName}", e); null
+            case Success(value) => value
+          }
+        })
+        .map(_.getAbsolutePath) ++ SourceFiles.determine(
+        Set(sourceCodePath),
+        sourceFileExtensions
+      )).distinct
 
-        val astCreator = new AstCreationPass(sourceCodePath, sourceFileNames, cpg, methodKeyPool)
-        astCreator.createAndApply(d)
-        new PlumeTypeNodePass(
-          astCreator.global.usedTypes.keys().asScala.toList,
-          cpg,
-          Some(typesKeyPool)
-        ).createAndApply(d)
+      val astCreator = new AstCreationPass(sourceCodePath, sourceFileNames, cpg, methodKeyPool)
+      astCreator.createAndApply(driver)
+      new PlumeTypeNodePass(
+        astCreator.global.usedTypes.keys().asScala.toList,
+        cpg,
+        Some(typesKeyPool)
+      ).createAndApply(driver)
 
-        basePasses(cpg, d).foreach(_.createAndApply(d))
-        controlFlowPasses(cpg).foreach(_.createAndApply(d))
-        new PlumeHashPass(sourceCodePath, cpg).createAndApply(d)
+      basePasses(cpg, driver).foreach(_.createAndApply(driver))
+      controlFlowPasses(cpg).foreach(_.createAndApply(driver))
+      new PlumeHashPass(cpg).createAndApply(driver)
 
-        // If the call ID is missing then discard as it will be regenerated
-        new Linker(cpg).createAndApply()
-        new StaticCallLinker(cpg).createAndApply()
-        new PlumeDynamicCallLinker(cpg).createAndApply()
-      }
+      // If the call ID is missing then discard as it will be regenerated
+      driver.astLinker()
+      new Linker(cpg).createAndApply()
+      new StaticCallLinker(cpg).createAndApply()
+      new PlumeDynamicCallLinker(cpg).createAndApply()
       cpg
     } finally {
       closeSoot()

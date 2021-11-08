@@ -7,6 +7,7 @@ import org.neo4j.driver.{AuthTokens, GraphDatabase}
 import org.slf4j.LoggerFactory
 
 import java.util.concurrent.atomic.AtomicBoolean
+import scala.collection.mutable
 import scala.jdk.CollectionConverters.CollectionHasAsScala
 import scala.util.{Failure, Success, Try, Using}
 
@@ -75,7 +76,7 @@ class Neo4jDriver(
       import scala.reflect.runtime.universe._
       Literal(Constant(raw)).toString
     }
-    val propertyStr = (n.properties.map { case (k, v) =>
+    val propertyStr = (removeLists(n.properties).map { case (k, v) =>
       val vStr = v match {
         case x: String => escape(x)
         case x         => x
@@ -304,6 +305,7 @@ class Neo4jDriver(
       }
   }
 
+  override def linkAstNodes(srcLabels: List[String], edgeType: String, dstNodeMap: mutable.Map[String, Long], dstFullNameKey: String): Unit = ???
 }
 
 object Neo4jDriver {

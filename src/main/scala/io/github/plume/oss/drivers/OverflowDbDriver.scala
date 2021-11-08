@@ -1,10 +1,12 @@
 package io.github.plume.oss.drivers
 
 import io.github.plume.oss.drivers.OverflowDbDriver.newOverflowGraph
-import io.shiftleft.codepropertygraph.generated.Cpg
+import io.shiftleft.codepropertygraph.generated.nodes.{HasAstParentFullName, HasAstParentType, StoredNode}
+import io.shiftleft.codepropertygraph.generated.{Cpg, EdgeTypes, NodeTypes, PropertyNames}
 import io.shiftleft.passes.AppliedDiffGraph
 import io.shiftleft.passes.DiffGraph.{Change, PackedProperties}
 import org.slf4j.LoggerFactory
+import overflowdb.traversal.{Traversal, jIteratortoTraversal}
 import overflowdb.{Config, Node}
 
 import java.io.{File => JFile}
@@ -32,7 +34,7 @@ case class OverflowDbDriver(
     case None       => odbConfig.disableOverflow()
   }
   if (serializationStatsEnabled) odbConfig.withSerializationStatsEnabled()
-  private val cpg = newOverflowGraph(odbConfig)
+  val cpg: Cpg = newOverflowGraph(odbConfig)
 
   override def isConnected: Boolean = !cpg.graph.isClosed
 
@@ -125,6 +127,40 @@ case class OverflowDbDriver(
     .filter(n => n.id() >= lower && n.id() <= upper)
     .map(_.id())
     .toSet
+
+  override def linkAstNodes(
+      srcLabels: List[String],
+      edgeType: String,
+      dstNodeMap: mutable.Map[String, Long],
+      dstFullNameKey: String
+  ): Unit = {
+    Traversal(cpg.graph.nodes(srcLabels: _*)).foreach { srcNode =>
+      if (srcNode.out(edgeType).isEmpty) {
+        srcNode
+          .propertyOption(dstFullNameKey)
+          .filter { dstFullName =>
+            srcNode.propertyDefaultValue(dstFullNameKey) != null &&
+            !srcNode.propertyDefaultValue(dstFullNameKey).equals(dstFullName)
+          }
+          .ifPresent { x =>
+            val ds = x match {
+              case dstFullName: String        => List(dstFullName)
+              case dstFullNames: List[String] => dstFullNames
+              case _                          => List()
+            }
+            ds.foreach { dstFullName =>
+              val srcStoredNode = srcNode.asInstanceOf[StoredNode]
+              dstNodeMap.get(dstFullName) match {
+                case Some(dstNodeId) =>
+                  val dstNode = cpg.graph.nodes(dstNodeId).next()
+                  srcStoredNode.addEdge(edgeType, dstNode)
+                case None =>
+              }
+            }
+          }
+      }
+    }
+  }
 }
 
 object OverflowDbDriver {

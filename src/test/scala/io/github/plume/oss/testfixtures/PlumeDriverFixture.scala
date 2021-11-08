@@ -132,7 +132,9 @@ class PlumeDriverFixture(val driver: IDriver)
       EdgeTypes.AST
     ) shouldBe true
 
-    diffGraph2.removeEdge(cpg.graph.node(m.getOrElse("id", -1L).toString.toLong).outE(EdgeTypes.AST).next())
+    diffGraph2.removeEdge(
+      cpg.graph.node(m.getOrElse("id", -1L).toString.toLong).outE(EdgeTypes.AST).next()
+    )
     val adg2 =
       DiffGraph.Applier.applyDiff(diffGraph2.build(), cpg.graph, undoable = false, Option(keyPool))
     driver.bulkTx(adg2)
@@ -149,7 +151,7 @@ class PlumeDriverFixture(val driver: IDriver)
     val keyPool   = new IntervalKeyPool(1, 1000)
     val diffGraph = DiffGraph.newBuilder
     // Create some basic method
-    createSimpleMethod(diffGraph)
+    createSimpleGraph(diffGraph)
     val adg =
       DiffGraph.Applier.applyDiff(diffGraph.build(), cpg.graph, undoable = false, Option(keyPool))
     driver.bulkTx(adg)
@@ -161,7 +163,9 @@ class PlumeDriverFixture(val driver: IDriver)
     driver.propertyFromNodes(CALL, NAME.name()) shouldBe List()
     driver.propertyFromNodes(LOCAL, NAME.name()) shouldBe List()
     driver.propertyFromNodes(IDENTIFIER, NAME.name()) shouldBe List()
-    driver.propertyFromNodes(META_DATA, LANGUAGE.name()) shouldBe List(Map(LANGUAGE.name() -> "PLUME", "id" -> 1))
+    driver.propertyFromNodes(META_DATA, LANGUAGE.name()) shouldBe List(
+      Map(LANGUAGE.name() -> "PLUME", "id" -> 1)
+    )
   }
 
   "should accurately report which IDs have been taken" in {
@@ -169,13 +173,13 @@ class PlumeDriverFixture(val driver: IDriver)
     val keyPool   = new IntervalKeyPool(1, 1000)
     val diffGraph = DiffGraph.newBuilder
     // Create some basic method
-    createSimpleMethod(diffGraph)
+    createSimpleGraph(diffGraph)
     val adg =
       DiffGraph.Applier.applyDiff(diffGraph.build(), cpg.graph, undoable = false, Option(keyPool))
     driver.bulkTx(adg)
 
     driver.idInterval(1, 6).size shouldBe 6
-    driver.idInterval(1, 10).size shouldBe 6
+    driver.idInterval(1, 10).size shouldBe 8
     driver.idInterval(1, 3).size shouldBe 3
     driver.idInterval(1001, 2000).size shouldBe 0
   }
@@ -184,8 +188,10 @@ class PlumeDriverFixture(val driver: IDriver)
     if (driver.isConnected) driver.close()
   }
 
-  private def createSimpleMethod(dg: DiffGraph.Builder): Unit = {
+  private def createSimpleGraph(dg: DiffGraph.Builder): Unit = {
     dg.addNode(meta)
+      .addNode(t1)
+      .addNode(n1)
       .addNode(m1)
       .addNode(b1)
       .addNode(c1)
@@ -201,8 +207,15 @@ class PlumeDriverFixture(val driver: IDriver)
 }
 
 object PlumeDriverFixture {
-  val meta: NewMetaData = NewMetaData().language("PLUME").version("0.1")
-  val m1: NewMethod     = NewMethod().name("foo").order(1)
+  val meta: NewMetaData     = NewMetaData().language("PLUME").version("0.1")
+  val n1: NewNamespaceBlock = NewNamespaceBlock().name("bar").fullName("bar")
+  val t1: NewTypeDecl = NewTypeDecl()
+    .name("Foo")
+    .fullName("bar.Foo")
+    .astParentType(NAMESPACE_BLOCK)
+    .astParentFullName(n1.fullName)
+  val m1: NewMethod =
+    NewMethod().name("foo").order(1).astParentType(TYPE_DECL).astParentFullName(t1.fullName)
   val b1: NewBlock      = NewBlock().order(1)
   val c1: NewCall       = NewCall().name(Operators.assignment)
   val l1: NewLocal      = NewLocal().name("x")
