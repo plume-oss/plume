@@ -157,13 +157,10 @@ case class OverflowDbDriver(
             dstNodeMap.get(dstFullName) match {
               case Some(dstNodeId) =>
                 val dstNode = cpg.graph.nodes(dstNodeId).next()
-                if (reverse) {
-                  if (!dstNode.out(edgeType).asScala.contains(srcStoredNode))
-                    dstNode.addEdge(edgeType, srcStoredNode)
-                } else {
-                  if (!srcStoredNode.out(edgeType).asScala.contains(dstNode))
-                    srcStoredNode.addEdge(edgeType, dstNode)
-                }
+                val dst     = if (reverse) srcStoredNode else dstNode
+                val src     = if (reverse) dstNode else srcStoredNode
+                if (!src.out(edgeType).asScala.contains(dst))
+                  src.addEdge(edgeType, dst)
               case None =>
             }
           }

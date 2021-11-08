@@ -199,9 +199,6 @@ class PlumeDriverFixture(val driver: IDriver)
     val List(m: Map[String, Any])  = driver.propertyFromNodes(METHOD)
     val List(td: Map[String, Any]) = driver.propertyFromNodes(TYPE_DECL)
     val List(n: Map[String, Any])  = driver.propertyFromNodes(NAMESPACE_BLOCK)
-    println(m.getOrElse("id", -1L).asInstanceOf[Long])
-    println(td.getOrElse("id", -1L).asInstanceOf[Long])
-    println(n.getOrElse("id", -1L).asInstanceOf[Long])
     driver.exists(
       td.getOrElse("id", -1L).asInstanceOf[Long],
       m.getOrElse("id", -1L).asInstanceOf[Long],

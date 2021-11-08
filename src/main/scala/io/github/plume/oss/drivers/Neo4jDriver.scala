@@ -313,15 +313,15 @@ class Neo4jDriver(
       edgeType: String,
       dstNodeMap: mutable.Map[String, Long],
       dstFullNameKey: String,
-      reverse: Boolean = false,
+      reverse: Boolean = false
   ): Unit = {
     Using.resource(driver.session()) { session =>
       session.writeTransaction { tx =>
         val payload = s"""
                            |MATCH (n:${srcLabels.mkString(":")})
                            |WHERE EXISTS(n.$dstFullNameKey)
-                           | AND n.$dstFullNameKey != "<empty>"
-                           | AND n.$dstFullNameKey != -1
+                           | AND n.$dstFullNameKey <> "<empty>"
+                           | AND n.$dstFullNameKey <> -1
                            |RETURN n.id AS id, n.$dstFullNameKey as $dstFullNameKey
                            |""".stripMargin
         try {
@@ -331,17 +331,23 @@ class Neo4jDriver(
             .map(record =>
               record.get("id").asLong() -> dstNodeMap.get(record.get(dstFullNameKey).asString())
             )
-            .foreach { case (src, dst) =>
-              val srcId = if (reverse) dst else src
-              val dstId = if (reverse) src else dst
-              tx.run(s"""
-                | MATCH (n), (m)
-                | WHERE n.ID == $srcId
-                |   AND m.ID == $dstId
-                |   AND NOT EXISTS((n)-[:$edgeType]->(m))
-                | CREATE n-[r:$edgeType]->m
-                |""".stripMargin)
+            .foreach { case (src, maybeDst) =>
+              if (maybeDst.isDefined) {
+                val srcId          = if (reverse) maybeDst.get else src
+                val dstId          = if (reverse) src else maybeDst.get
+                val astLinkPayload = s"""
+                                        | MATCH (n {id: $srcId}), (m {id: $dstId})
+                                        | WHERE NOT EXISTS((n)-[:$edgeType]->(m))
+                                        | CREATE (n)-[r:$edgeType]->(m)
+                                        |""".stripMargin
+                try {
+                  tx.run(astLinkPayload)
+                } catch {
+                  case e: Exception => logger.error(s"Unable to link AST nodes: $astLinkPayload", e)
+                }
+              }
             }
+
         } catch {
           case e: Exception =>
             logger.error(s"Unable to obtain AST nodes to link: $payload", e)
