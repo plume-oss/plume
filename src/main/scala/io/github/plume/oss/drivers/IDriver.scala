@@ -51,7 +51,7 @@ trait IDriver extends AutoCloseable {
     properties.map { case (k, v) =>
       v match {
         case is: Iterable[String] => k -> is.head
-        case _ => k -> v
+        case _                    => k -> v
       }
     }
   }
@@ -66,8 +66,8 @@ trait IDriver extends AutoCloseable {
   protected val namespaceBlockFullNameToNode = mutable.Map.empty[String, Long]
 
   /** Create REF edges from TYPE nodes to TYPE_DECL, EVAL_TYPE edges from nodes of various types to TYPE, REF edges from
-    * METHOD_REFs to METHOD, INHERITS_FROM nodes from TYPE_DECL nodes to TYPE, and ALIAS_OF edges from TYPE_DECL nodes to
-    * TYPE.
+    * METHOD_REFs to METHOD, INHERITS_FROM nodes from TYPE_DECL nodes to TYPE, and ALIAS_OF edges from TYPE_DECL nodes
+    * to TYPE.
     */
   def astLinker(): Unit = {
     initMaps()
@@ -162,6 +162,10 @@ trait IDriver extends AutoCloseable {
     namespaceBlockFullNameToNode.clear()
   }
 
+  /** Links nodes by their source label and destination full name key to their destination nodes by the
+    * specified edge type using the destination node map as the lookup table. Source labels are assumed
+    * to be non-empty.
+    */
   def linkAstNodes(
       srcLabels: List[String],
       edgeType: String,

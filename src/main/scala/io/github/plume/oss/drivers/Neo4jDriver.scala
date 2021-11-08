@@ -1,5 +1,6 @@
 package io.github.plume.oss.drivers
 import io.github.plume.oss.drivers.Neo4jDriver._
+import io.shiftleft.codepropertygraph.generated.NodeTypes
 import io.shiftleft.codepropertygraph.generated.nodes.NewNode
 import io.shiftleft.passes.AppliedDiffGraph
 import io.shiftleft.passes.DiffGraph.Change
@@ -11,14 +12,16 @@ import scala.collection.mutable
 import scala.jdk.CollectionConverters.CollectionHasAsScala
 import scala.util.{Failure, Success, Try, Using}
 
-/** The driver used to connect to a remote Neo4j instance.
+/** The driver used to connect to a remote Neo4j instance. Once can optionally call buildSchema to add indexes for
+  * improved performance on larger graphs.
   */
 class Neo4jDriver(
     hostname: String = DEFAULT_HOSTNAME,
     port: Int = DEFAULT_PORT,
     username: String = DEFAULT_USERNAME,
     password: String = DEFAULT_PASSWORD
-) extends IDriver {
+) extends IDriver
+    with ISchemaSafeDriver {
 
   private val logger    = LoggerFactory.getLogger(classOf[Neo4jDriver])
   private val connected = new AtomicBoolean(true)
@@ -305,7 +308,66 @@ class Neo4jDriver(
       }
   }
 
-  override def linkAstNodes(srcLabels: List[String], edgeType: String, dstNodeMap: mutable.Map[String, Long], dstFullNameKey: String): Unit = ???
+  override def linkAstNodes(
+      srcLabels: List[String],
+      edgeType: String,
+      dstNodeMap: mutable.Map[String, Long],
+      dstFullNameKey: String
+  ): Unit = {
+    Using.resource(driver.session()) { session =>
+      session.writeTransaction { tx =>
+        val payload = s"""
+                           |MATCH (n:${srcLabels.mkString(":")})
+                           |WHERE EXISTS(n.$dstFullNameKey)
+                           | AND n.$dstFullNameKey != "<empty>"
+                           | AND n.$dstFullNameKey != -1
+                           |RETURN n.id AS id, n.$dstFullNameKey as $dstFullNameKey
+                           |""".stripMargin
+        try {
+          tx.run(payload)
+            .list()
+            .asScala
+            .map(record =>
+              record.get("id").asLong() -> dstNodeMap.get(record.get(dstFullNameKey).asString())
+            )
+            .foreach { case (src, dst) =>
+              tx.run(s"""
+                | MATCH (n), (m)
+                | WHERE n.ID == $src AND m.ID == $dst
+                | CREATE n-[r:$edgeType]->m
+                  |""".stripMargin)
+            }
+        } catch {
+          case e: Exception =>
+            logger.error(s"Unable to obtain AST nodes to link: $payload", e)
+        }
+      }
+    }
+  }
+
+  override def buildSchema(): Unit = {
+    Using.resource(driver.session()) { session =>
+      session.writeTransaction { tx =>
+        val payload = buildSchemaPayload()
+        try {
+          payload.lines().forEach(line => tx.run(line))
+        } catch {
+          case e: Exception =>
+            logger.error(s"Unable to set schema: $payload", e)
+        }
+      }
+    }
+  }
+
+  override def buildSchemaPayload(): String = {
+    val btree = NodeTypes.ALL.asScala
+      .map(l =>
+        s"CREATE BTREE INDEX ${l.toLowerCase}_id_btree_index IF NOT EXISTS FOR (n:$l) ON (n.id)"
+      )
+      .mkString("\n")
+    s"""CREATE LOOKUP INDEX node_label_lookup_index IF NOT EXISTS FOR (n) ON EACH labels(n)
+      |$btree""".stripMargin
+  }
 }
 
 object Neo4jDriver {

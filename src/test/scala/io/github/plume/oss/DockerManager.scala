@@ -25,7 +25,6 @@ object DockerManager {
     logger.info(s"Docker Compose file found for $dbName, starting...")
     closeAnyDockerContainers(dbName) // Easiest way to clear the db
     Thread.sleep(3000)
-    println(toDockerComposeFile(dbName).getAbsolutePath)
     val dockerComposeUp = Process(
       Seq("docker-compose", "-f", toDockerComposeFile(dbName).getAbsolutePath, "up", "--remove-orphans")
     )
