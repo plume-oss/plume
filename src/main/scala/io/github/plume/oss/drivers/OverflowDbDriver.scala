@@ -1,7 +1,11 @@
 package io.github.plume.oss.drivers
 
 import io.github.plume.oss.drivers.OverflowDbDriver.newOverflowGraph
-import io.shiftleft.codepropertygraph.generated.nodes.{HasAstParentFullName, HasAstParentType, StoredNode}
+import io.shiftleft.codepropertygraph.generated.nodes.{
+  HasAstParentFullName,
+  HasAstParentType,
+  StoredNode
+}
 import io.shiftleft.codepropertygraph.generated.{Cpg, EdgeTypes, NodeTypes, PropertyNames}
 import io.shiftleft.passes.AppliedDiffGraph
 import io.shiftleft.passes.DiffGraph.{Change, PackedProperties}
@@ -132,33 +136,38 @@ case class OverflowDbDriver(
       srcLabels: List[String],
       edgeType: String,
       dstNodeMap: mutable.Map[String, Long],
-      dstFullNameKey: String
+      dstFullNameKey: String,
+      reverse: Boolean = false
   ): Unit = {
     Traversal(cpg.graph.nodes(srcLabels: _*)).foreach { srcNode =>
-      if (srcNode.out(edgeType).isEmpty) {
-        srcNode
-          .propertyOption(dstFullNameKey)
-          .filter { dstFullName =>
-            srcNode.propertyDefaultValue(dstFullNameKey) != null &&
-            !srcNode.propertyDefaultValue(dstFullNameKey).equals(dstFullName)
+      srcNode
+        .propertyOption(dstFullNameKey)
+        .filter { dstFullName =>
+          srcNode.propertyDefaultValue(dstFullNameKey) != null &&
+          !srcNode.propertyDefaultValue(dstFullNameKey).equals(dstFullName)
+        }
+        .ifPresent { x =>
+          val ds = x match {
+            case dstFullName: String        => List(dstFullName)
+            case dstFullNames: List[String] => dstFullNames
+            case _                          => List()
           }
-          .ifPresent { x =>
-            val ds = x match {
-              case dstFullName: String        => List(dstFullName)
-              case dstFullNames: List[String] => dstFullNames
-              case _                          => List()
-            }
-            ds.foreach { dstFullName =>
-              val srcStoredNode = srcNode.asInstanceOf[StoredNode]
-              dstNodeMap.get(dstFullName) match {
-                case Some(dstNodeId) =>
-                  val dstNode = cpg.graph.nodes(dstNodeId).next()
-                  srcStoredNode.addEdge(edgeType, dstNode)
-                case None =>
-              }
+          ds.foreach { dstFullName =>
+            val srcStoredNode = srcNode.asInstanceOf[StoredNode]
+            dstNodeMap.get(dstFullName) match {
+              case Some(dstNodeId) =>
+                val dstNode = cpg.graph.nodes(dstNodeId).next()
+                if (reverse) {
+                  if (!dstNode.out(edgeType).asScala.contains(srcStoredNode))
+                    dstNode.addEdge(edgeType, srcStoredNode)
+                } else {
+                  if (!srcStoredNode.out(edgeType).asScala.contains(dstNode))
+                    srcStoredNode.addEdge(edgeType, dstNode)
+                }
+              case None =>
             }
           }
-      }
+        }
     }
   }
 }

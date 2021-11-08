@@ -6,7 +6,11 @@ import org.apache.commons.configuration2.BaseConfiguration
 import org.apache.tinkerpop.gremlin.process.traversal.Order
 import org.apache.tinkerpop.gremlin.process.traversal.P.neq
 import org.apache.tinkerpop.gremlin.process.traversal.dsl.graph.__.has
-import org.apache.tinkerpop.gremlin.process.traversal.dsl.graph.{GraphTraversal, GraphTraversalSource, __}
+import org.apache.tinkerpop.gremlin.process.traversal.dsl.graph.{
+  GraphTraversal,
+  GraphTraversalSource,
+  __
+}
 import org.apache.tinkerpop.gremlin.structure.{Edge, Graph, T, Vertex}
 import org.apache.tinkerpop.gremlin.tinkergraph.structure.TinkerGraph
 import org.slf4j.LoggerFactory
@@ -179,8 +183,7 @@ abstract class GremlinDriver extends IDriver {
         .project[Any](T.id.toString, keys: _*)
         .by(T.id)
       keys.foreach(k => ptr = ptr.by(k))
-      ptr
-        .asScala
+      ptr.asScala
         .map(_.asScala.toMap)
         .toList
     }
@@ -202,13 +205,13 @@ abstract class GremlinDriver extends IDriver {
       srcLabels: List[String],
       edgeType: String,
       dstNodeMap: mutable.Map[String, Long],
-      dstFullNameKey: String
+      dstFullNameKey: String,
+      reverse: Boolean = false
   ): Unit = {
     Using.resource(graph.traversal()) { g =>
       g
         .V()
         .hasLabel(srcLabels.head, srcLabels.drop(1): _*)
-        .not(__.outE(edgeType))
         .filter(
           has(dstFullNameKey)
             .and(has(dstFullNameKey, neq(null)))
@@ -224,11 +227,13 @@ abstract class GremlinDriver extends IDriver {
           val srcId       = m.getOrElse("id", null).asInstanceOf[Long]
           val dstFullName = m.getOrElse(dstFullNameKey, null).asInstanceOf[String]
           if (dstFullName != null) {
-            println(s"Adding $srcId -[$edgeType]-> $dstFullName")
             val dstId = dstNodeMap.getOrElse(dstFullName, null)
             if (dstId != null) {
-              println(s"Adding $srcId -[$edgeType]-> $dstId")
-              g.V(srcId).addE(edgeType).to(__.V(dstId))
+              val src = if (reverse) dstId.asInstanceOf[Long] else srcId
+              val dst = if (reverse) srcId else dstId.asInstanceOf[Long]
+              if (!exists(src, dst, edgeType)) {
+                g.V(src).addE(edgeType).to(__.V(dst)).iterate()
+              }
             }
           }
         }

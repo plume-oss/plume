@@ -184,6 +184,36 @@ class PlumeDriverFixture(val driver: IDriver)
     driver.idInterval(1001, 2000).size shouldBe 0
   }
 
+  "should link AST children automatically" in {
+    val cpg       = Cpg.empty
+    val keyPool   = new IntervalKeyPool(1, 1000)
+    val diffGraph = DiffGraph.newBuilder
+    // Create some basic method
+    createSimpleGraph(diffGraph)
+    val adg =
+      DiffGraph.Applier.applyDiff(diffGraph.build(), cpg.graph, undoable = false, Option(keyPool))
+    driver.bulkTx(adg)
+
+    driver.astLinker()
+
+    val List(m: Map[String, Any])  = driver.propertyFromNodes(METHOD)
+    val List(td: Map[String, Any]) = driver.propertyFromNodes(TYPE_DECL)
+    val List(n: Map[String, Any])  = driver.propertyFromNodes(NAMESPACE_BLOCK)
+    println(m.getOrElse("id", -1L).asInstanceOf[Long])
+    println(td.getOrElse("id", -1L).asInstanceOf[Long])
+    println(n.getOrElse("id", -1L).asInstanceOf[Long])
+    driver.exists(
+      td.getOrElse("id", -1L).asInstanceOf[Long],
+      m.getOrElse("id", -1L).asInstanceOf[Long],
+      EdgeTypes.AST
+    ) shouldBe true
+    driver.exists(
+      n.getOrElse("id", -1L).asInstanceOf[Long],
+      td.getOrElse("id", -1L).asInstanceOf[Long],
+      EdgeTypes.AST
+    ) shouldBe true
+  }
+
   override def afterAll(): Unit = {
     if (driver.isConnected) driver.close()
   }
@@ -215,7 +245,11 @@ object PlumeDriverFixture {
     .astParentType(NAMESPACE_BLOCK)
     .astParentFullName(n1.fullName)
   val m1: NewMethod =
-    NewMethod().name("foo").order(1).astParentType(TYPE_DECL).astParentFullName(t1.fullName)
+    NewMethod()
+      .name("foo")
+      .order(1)
+      .astParentType(TYPE_DECL)
+      .astParentFullName(t1.fullName)
   val b1: NewBlock      = NewBlock().order(1)
   val c1: NewCall       = NewCall().name(Operators.assignment)
   val l1: NewLocal      = NewLocal().name("x")

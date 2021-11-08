@@ -312,7 +312,8 @@ class Neo4jDriver(
       srcLabels: List[String],
       edgeType: String,
       dstNodeMap: mutable.Map[String, Long],
-      dstFullNameKey: String
+      dstFullNameKey: String,
+      reverse: Boolean = false,
   ): Unit = {
     Using.resource(driver.session()) { session =>
       session.writeTransaction { tx =>
@@ -331,11 +332,15 @@ class Neo4jDriver(
               record.get("id").asLong() -> dstNodeMap.get(record.get(dstFullNameKey).asString())
             )
             .foreach { case (src, dst) =>
+              val srcId = if (reverse) dst else src
+              val dstId = if (reverse) src else dst
               tx.run(s"""
                 | MATCH (n), (m)
-                | WHERE n.ID == $src AND m.ID == $dst
+                | WHERE n.ID == $srcId
+                |   AND m.ID == $dstId
+                |   AND NOT EXISTS((n)-[:$edgeType]->(m))
                 | CREATE n-[r:$edgeType]->m
-                  |""".stripMargin)
+                |""".stripMargin)
             }
         } catch {
           case e: Exception =>

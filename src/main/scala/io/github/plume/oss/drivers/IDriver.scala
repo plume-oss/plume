@@ -73,16 +73,18 @@ trait IDriver extends AutoCloseable {
     initMaps()
     // Link AST children
     linkAstNodes(
-      srcLabels = List(NodeTypes.TYPE_DECL),
+      srcLabels = List(NodeTypes.METHOD),
       edgeType = EdgeTypes.AST,
-      dstNodeMap = methodFullNameToNode,
-      dstFullNameKey = PropertyNames.AST_PARENT_FULL_NAME
+      dstNodeMap = typeDeclFullNameToNode,
+      dstFullNameKey = PropertyNames.AST_PARENT_FULL_NAME,
+      reverse = true
     )
     linkAstNodes(
-      srcLabels = List(NodeTypes.NAMESPACE_BLOCK),
+      srcLabels = List(NodeTypes.TYPE_DECL),
       edgeType = EdgeTypes.AST,
-      dstNodeMap = typeFullNameToNode,
-      dstFullNameKey = PropertyNames.AST_PARENT_FULL_NAME
+      dstNodeMap = namespaceBlockFullNameToNode,
+      dstFullNameKey = PropertyNames.AST_PARENT_FULL_NAME,
+      reverse = true
     )
     // Create REF edges from TYPE nodes to TYPE_DECL
     linkAstNodes(
@@ -170,7 +172,8 @@ trait IDriver extends AutoCloseable {
       srcLabels: List[String],
       edgeType: String,
       dstNodeMap: mutable.Map[String, Long],
-      dstFullNameKey: String
+      dstFullNameKey: String,
+      reverse: Boolean = false,
   ): Unit
 
   /** Provides the assigned ID for the given node using the given diff graph.
