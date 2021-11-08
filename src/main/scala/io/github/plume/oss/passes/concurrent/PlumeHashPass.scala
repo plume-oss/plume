@@ -13,7 +13,7 @@ import scala.util.{Failure, Success, Try}
 
 /** Performs hash calculations on the files represented by the FILE nodes.
   */
-class PlumeHashPass(pathToSource: String, cpg: Cpg) extends PlumeConcurrentCpgPass[File](cpg) {
+class PlumeHashPass(cpg: Cpg) extends PlumeConcurrentCpgPass[File](cpg) {
 
   import PlumeHashPass._
 
@@ -27,10 +27,9 @@ class PlumeHashPass(pathToSource: String, cpg: Cpg) extends PlumeConcurrentCpgPa
     */
   override def runOnPart(diffGraph: DiffGraph.Builder, part: File): Unit = {
     val localDiff = DiffGraph.newBuilder
-    val filePath  = s"$pathToSource/${part.name}.class"
-    Try(HashUtil.getFileHash(new JFile(filePath))) match {
+    Try(HashUtil.getFileHash(new JFile(part.name))) match {
       case Failure(exception) =>
-        logger.warn(s"Unable to generate hash for file at $filePath", exception)
+        logger.warn(s"Unable to generate hash for file at ${part.name}", exception)
       case Success(fileHash) =>
         localDiff.addNodeProperty(part, PropertyNames.HASH, fileHash)
     }
