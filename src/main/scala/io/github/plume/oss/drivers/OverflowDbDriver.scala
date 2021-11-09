@@ -4,7 +4,9 @@ import io.github.plume.oss.drivers.OverflowDbDriver.newOverflowGraph
 import io.shiftleft.codepropertygraph.generated.nodes.{
   HasAstParentFullName,
   HasAstParentType,
-  StoredNode
+  NamespaceBlock,
+  StoredNode,
+  TypeDecl
 }
 import io.shiftleft.codepropertygraph.generated.{Cpg, EdgeTypes, NodeTypes, PropertyNames}
 import io.shiftleft.passes.AppliedDiffGraph
@@ -14,6 +16,7 @@ import overflowdb.traversal.{Traversal, jIteratortoTraversal}
 import overflowdb.{Config, Node}
 
 import java.io.{File => JFile}
+import scala.collection.compat.immutable.ArraySeq
 import scala.collection.mutable
 import scala.jdk.CollectionConverters.IteratorHasAsScala
 import scala.util.{Failure, Success, Try}
@@ -98,22 +101,48 @@ case class OverflowDbDriver(
       propertyValue: Any
   ): Unit = {
     val visitedNodes = mutable.Set[Node]()
-    def dfsDelete(n: Node): Unit = {
-      if (!visitedNodes.contains(n)) {
-        visitedNodes.add(n)
-        n.out(edgeToFollow).forEachRemaining(dfsDelete(_))
-      }
-      n.remove()
-    }
     cpg.graph
       .nodes(nodeType)
       .asScala
       .filter(n => n.property(propertyKey, null) == propertyValue)
       .toList
       .headOption match {
-      case Some(headNode) => dfsDelete(headNode)
+      case Some(headNode) => dfsDelete(headNode, edgeToFollow, visitedNodes)
       case None           =>
     }
+  }
+
+  private def dfsDelete(
+      n: Node,
+      edgeToFollow: String,
+      visitedNodes: mutable.Set[Node] = mutable.Set.empty[Node]
+  ): Unit = {
+    if (!visitedNodes.contains(n)) {
+      visitedNodes.add(n)
+      n.out(edgeToFollow).forEachRemaining(dfsDelete(_, edgeToFollow, visitedNodes))
+    }
+    n.remove()
+  }
+
+  override def removeSourceFiles(filenames: String*): Unit = {
+    val fs = filenames.toSet
+    cpg.graph
+      .nodes(NodeTypes.FILE)
+      .filter { f =>
+        fs.contains(f.property(PropertyNames.NAME).toString)
+      }
+      .foreach { f =>
+        val fileChildren    = f.in(EdgeTypes.SOURCE_FILE).asScala.toList
+        val typeDecls       = fileChildren.collect { case x: TypeDecl => x }
+        val namespaceBlocks = fileChildren.collect { case x: NamespaceBlock => x }
+        // Remove TYPE nodes
+        typeDecls.flatMap(_.in(EdgeTypes.REF)).foreach(_.remove())
+        // Remove NAMESPACE_BLOCKs and their AST children (TYPE_DECL, METHOD, etc.)
+        val visitedNodes = mutable.Set.empty[Node]
+        namespaceBlocks.foreach(dfsDelete(_, EdgeTypes.AST, visitedNodes))
+        // Finally remove FILE node
+        f.remove()
+      }
   }
 
   override def propertyFromNodes(nodeType: String, keys: String*): List[Map[String, Any]] =
@@ -136,29 +165,27 @@ case class OverflowDbDriver(
       srcLabels: List[String],
       edgeType: String,
       dstNodeMap: mutable.Map[String, Long],
-      dstFullNameKey: String,
-      reverse: Boolean = false
+      dstFullNameKey: String
   ): Unit = {
     Traversal(cpg.graph.nodes(srcLabels: _*)).foreach { srcNode =>
       srcNode
         .propertyOption(dstFullNameKey)
         .filter { dstFullName =>
-          srcNode.propertyDefaultValue(dstFullNameKey) != null &&
-          !srcNode.propertyDefaultValue(dstFullNameKey).equals(dstFullName)
+          dstFullName.isInstanceOf[Seq[String]] ||
+          (srcNode.propertyDefaultValue(dstFullNameKey) != null &&
+            !srcNode.propertyDefaultValue(dstFullNameKey).equals(dstFullName))
         }
         .ifPresent { x =>
           val ds = x match {
-            case dstFullName: String        => List(dstFullName)
-            case dstFullNames: List[String] => dstFullNames
-            case _                          => List()
+            case dstFullName: String       => Seq(dstFullName)
+            case dstFullNames: Seq[String] => dstFullNames
+            case _                         => Seq()
           }
           ds.foreach { dstFullName =>
-            val srcStoredNode = srcNode.asInstanceOf[StoredNode]
+            val src = srcNode.asInstanceOf[StoredNode]
             dstNodeMap.get(dstFullName) match {
               case Some(dstNodeId) =>
-                val dstNode = cpg.graph.nodes(dstNodeId).next()
-                val dst     = if (reverse) srcStoredNode else dstNode
-                val src     = if (reverse) dstNode else srcStoredNode
+                val dst = cpg.graph.nodes(dstNodeId).next()
                 if (!src.out(edgeType).asScala.contains(dst))
                   src.addEdge(edgeType, dst)
               case None =>

@@ -42,6 +42,10 @@ trait IDriver extends AutoCloseable {
       propertyValue: Any
   ): Unit
 
+  /** Given filenames, will remove related TYPE, TYPE_DECL, METHOD (with AST children), and NAMESPACE_BLOCK.
+    */
+  def removeSourceFiles(filenames: String*): Unit
+
   /** Obtains properties from the specified node type and key(s). By default will return the ID property as one of the
     * keys as "id".
     */
@@ -63,7 +67,6 @@ trait IDriver extends AutoCloseable {
   protected val typeDeclFullNameToNode       = mutable.Map.empty[String, Long]
   protected val typeFullNameToNode           = mutable.Map.empty[String, Long]
   protected val methodFullNameToNode         = mutable.Map.empty[String, Long]
-  protected val namespaceBlockFullNameToNode = mutable.Map.empty[String, Long]
 
   /** Create REF edges from TYPE nodes to TYPE_DECL, EVAL_TYPE edges from nodes of various types to TYPE, REF edges from
     * METHOD_REFs to METHOD, INHERITS_FROM nodes from TYPE_DECL nodes to TYPE, and ALIAS_OF edges from TYPE_DECL nodes
@@ -71,21 +74,6 @@ trait IDriver extends AutoCloseable {
     */
   def astLinker(): Unit = {
     initMaps()
-    // Link AST children
-    linkAstNodes(
-      srcLabels = List(NodeTypes.METHOD),
-      edgeType = EdgeTypes.AST,
-      dstNodeMap = typeDeclFullNameToNode,
-      dstFullNameKey = PropertyNames.AST_PARENT_FULL_NAME,
-      reverse = true
-    )
-    linkAstNodes(
-      srcLabels = List(NodeTypes.TYPE_DECL),
-      edgeType = EdgeTypes.AST,
-      dstNodeMap = namespaceBlockFullNameToNode,
-      dstFullNameKey = PropertyNames.AST_PARENT_FULL_NAME,
-      reverse = true
-    )
     // Create REF edges from TYPE nodes to TYPE_DECL
     linkAstNodes(
       srcLabels = List(NodeTypes.TYPE),
@@ -154,14 +142,12 @@ trait IDriver extends AutoCloseable {
     initMap(NodeTypes.TYPE_DECL, PropertyNames.FULL_NAME, typeDeclFullNameToNode)
     initMap(NodeTypes.TYPE, PropertyNames.FULL_NAME, typeFullNameToNode)
     initMap(NodeTypes.METHOD, PropertyNames.FULL_NAME, methodFullNameToNode)
-    initMap(NodeTypes.NAMESPACE_BLOCK, PropertyNames.FULL_NAME, namespaceBlockFullNameToNode)
   }
 
   protected def clearMaps(): Unit = {
     typeDeclFullNameToNode.clear()
     typeFullNameToNode.clear()
     methodFullNameToNode.clear()
-    namespaceBlockFullNameToNode.clear()
   }
 
   /** Links nodes by their source label and destination full name key to their destination nodes by the
@@ -173,7 +159,6 @@ trait IDriver extends AutoCloseable {
       edgeType: String,
       dstNodeMap: mutable.Map[String, Long],
       dstFullNameKey: String,
-      reverse: Boolean = false,
   ): Unit
 
   /** Provides the assigned ID for the given node using the given diff graph.

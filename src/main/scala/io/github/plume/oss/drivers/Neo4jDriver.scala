@@ -263,6 +263,8 @@ class Neo4jDriver(
     }
   }
 
+  override def removeSourceFiles(filenames: String*): Unit = ???
+
   override def propertyFromNodes(nodeType: String, keys: String*): List[Map[String, Any]] =
     Using.resource(driver.session()) { session =>
       val typeSystem = driver.defaultTypeSystem()
@@ -312,8 +314,7 @@ class Neo4jDriver(
       srcLabels: List[String],
       edgeType: String,
       dstNodeMap: mutable.Map[String, Long],
-      dstFullNameKey: String,
-      reverse: Boolean = false
+      dstFullNameKey: String
   ): Unit = {
     Using.resource(driver.session()) { session =>
       session.writeTransaction { tx =>
@@ -331,20 +332,21 @@ class Neo4jDriver(
             .map(record =>
               record.get("id").asLong() -> dstNodeMap.get(record.get(dstFullNameKey).asString())
             )
-            .foreach { case (src, maybeDst) =>
-              if (maybeDst.isDefined) {
-                val srcId          = if (reverse) maybeDst.get else src
-                val dstId          = if (reverse) src else maybeDst.get
-                val astLinkPayload = s"""
-                                        | MATCH (n {id: $srcId}), (m {id: $dstId})
-                                        | WHERE NOT EXISTS((n)-[:$edgeType]->(m))
-                                        | CREATE (n)-[r:$edgeType]->(m)
-                                        |""".stripMargin
-                try {
-                  tx.run(astLinkPayload)
-                } catch {
-                  case e: Exception => logger.error(s"Unable to link AST nodes: $astLinkPayload", e)
-                }
+            .foreach { case (srcId, maybeDst) =>
+              maybeDst match {
+                case Some(dstId) =>
+                  val astLinkPayload = s"""
+                                          | MATCH (n {id: $srcId}), (m {id: $dstId})
+                                          | WHERE NOT EXISTS((n)-[:$edgeType]->(m))
+                                          | CREATE (n)-[r:$edgeType]->(m)
+                                          |""".stripMargin
+                  try {
+                    tx.run(astLinkPayload)
+                  } catch {
+                    case e: Exception =>
+                      logger.error(s"Unable to link AST nodes: $astLinkPayload", e)
+                  }
+                case None =>
               }
             }
 

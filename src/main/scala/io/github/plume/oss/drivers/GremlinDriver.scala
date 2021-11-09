@@ -1,10 +1,11 @@
 package io.github.plume.oss.drivers
 
+import io.shiftleft.codepropertygraph.generated.{EdgeTypes, NodeTypes, PropertyNames}
 import io.shiftleft.passes.AppliedDiffGraph
 import io.shiftleft.passes.DiffGraph.{Change, PackedProperties}
 import org.apache.commons.configuration2.BaseConfiguration
 import org.apache.tinkerpop.gremlin.process.traversal.Order
-import org.apache.tinkerpop.gremlin.process.traversal.P.neq
+import org.apache.tinkerpop.gremlin.process.traversal.P.{neq, within}
 import org.apache.tinkerpop.gremlin.process.traversal.dsl.graph.__.has
 import org.apache.tinkerpop.gremlin.process.traversal.dsl.graph.{
   GraphTraversal,
@@ -175,6 +176,50 @@ abstract class GremlinDriver extends IDriver {
     }
   }
 
+  override def removeSourceFiles(filenames: String*): Unit = {
+    Using.resource(graph.traversal()) { g =>
+      println(
+        g.V()
+          .hasLabel(NodeTypes.FILE)
+          .filter(__.has(PropertyNames.NAME, within[String](filenames: _*)))
+          .as("files")
+          .in(EdgeTypes.SOURCE_FILE)
+//        .hasLabel(NodeTypes.TYPE_DECL)
+//        .in(EdgeTypes.REF)
+          .in()
+          .project[Any]("id", "label", "filename")
+          .by(T.id)
+          .by(T.label)
+          .by("FILENAME")
+          .asScala
+          .toList
+      )
+      g.V()
+        .hasLabel(NodeTypes.FILE)
+        .filter(__.has(PropertyNames.NAME, within[String](filenames: _*)))
+        .as("files")
+        .in(EdgeTypes.SOURCE_FILE)
+        .as("fileChildren")
+        .filter(__.hasLabel(NodeTypes.TYPE_DECL))
+        .in(EdgeTypes.REF)
+        .drop()
+        .select("fileChildren")
+        .filter(__.hasLabel(NodeTypes.NAMESPACE_BLOCK))
+        .aggregate("x")
+        .repeat(__.out(EdgeTypes.AST))
+        .emit()
+        .barrier()
+        .aggregate("x")
+        .select[Vertex]("x")
+        .unfold[Vertex]()
+        .drop()
+        .select("files")
+        .drop()
+        .iterate()
+    }
+
+  }
+
   override def propertyFromNodes(nodeType: String, keys: String*): List[Map[String, Any]] = {
     Using.resource(graph.traversal()) { g =>
       var ptr = g
@@ -205,8 +250,7 @@ abstract class GremlinDriver extends IDriver {
       srcLabels: List[String],
       edgeType: String,
       dstNodeMap: mutable.Map[String, Long],
-      dstFullNameKey: String,
-      reverse: Boolean = false
+      dstFullNameKey: String
   ): Unit = {
     Using.resource(graph.traversal()) { g =>
       g
@@ -227,13 +271,12 @@ abstract class GremlinDriver extends IDriver {
           val srcId       = m.getOrElse("id", null).asInstanceOf[Long]
           val dstFullName = m.getOrElse(dstFullNameKey, null).asInstanceOf[String]
           if (dstFullName != null) {
-            val dstId = dstNodeMap.getOrElse(dstFullName, null)
-            if (dstId != null) {
-              val src = if (reverse) dstId.asInstanceOf[Long] else srcId
-              val dst = if (reverse) srcId else dstId.asInstanceOf[Long]
-              if (!exists(src, dst, edgeType)) {
-                g.V(src).addE(edgeType).to(__.V(dst)).iterate()
-              }
+            dstNodeMap.get(dstFullName) match {
+              case Some(dstId) =>
+                if (!exists(srcId, dstId, edgeType)) {
+                  g.V(srcId).addE(edgeType).to(__.V(dstId)).iterate()
+                }
+              case None =>
             }
           }
         }
