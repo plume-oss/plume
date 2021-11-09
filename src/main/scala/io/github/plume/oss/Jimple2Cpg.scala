@@ -2,7 +2,7 @@ package io.github.plume.oss
 
 import io.github.plume.oss.drivers.{IDriver, OverflowDbDriver}
 import io.github.plume.oss.passes._
-import io.github.plume.oss.passes.concurrent.{PlumeCfgCreationPass, PlumeContainsEdgePass, PlumeHashPass}
+import io.github.plume.oss.passes.concurrent.{PlumeCfgCreationPass, PlumeContainsEdgePass, PlumeDiffPass, PlumeHashPass}
 import io.github.plume.oss.passes.parallel.{AstCreationPass, PlumeCdgPass, PlumeCfgDominatorPass, PlumeMethodStubCreator}
 import io.shiftleft.codepropertygraph.Cpg
 import io.shiftleft.passes.CpgPassBase
@@ -75,7 +75,8 @@ class Jimple2Cpg {
         sourceFileExtensions
       )).distinct
 
-      val astCreator = new AstCreationPass(sourceCodePath, sourceFileNames, cpg, methodKeyPool)
+      val codeToProcess = new PlumeDiffPass(sourceFileNames, driver).createAndApply()
+      val astCreator    = new AstCreationPass(sourceCodePath, codeToProcess.toList, cpg, methodKeyPool)
       astCreator.createAndApply(driver)
       new PlumeTypeNodePass(
         astCreator.global.usedTypes.keys().asScala.toList,
