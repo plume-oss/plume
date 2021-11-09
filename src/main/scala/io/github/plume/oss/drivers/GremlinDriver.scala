@@ -178,33 +178,21 @@ abstract class GremlinDriver extends IDriver {
 
   override def removeSourceFiles(filenames: String*): Unit = {
     Using.resource(graph.traversal()) { g =>
-      println(
-        g.V()
+       val fs = g.V()
           .hasLabel(NodeTypes.FILE)
           .filter(__.has(PropertyNames.NAME, within[String](filenames: _*)))
-          .as("files")
-          .in(EdgeTypes.SOURCE_FILE)
-//        .hasLabel(NodeTypes.TYPE_DECL)
-//        .in(EdgeTypes.REF)
-          .in()
-          .project[Any]("id", "label", "filename")
-          .by(T.id)
-          .by(T.label)
-          .by("FILENAME")
-          .asScala
-          .toList
-      )
-      g.V()
-        .hasLabel(NodeTypes.FILE)
-        .filter(__.has(PropertyNames.NAME, within[String](filenames: _*)))
-        .as("files")
+         .id().toSet
+
+      g.V(fs)
         .in(EdgeTypes.SOURCE_FILE)
-        .as("fileChildren")
         .filter(__.hasLabel(NodeTypes.TYPE_DECL))
         .in(EdgeTypes.REF)
         .drop()
-        .select("fileChildren")
-        .filter(__.hasLabel(NodeTypes.NAMESPACE_BLOCK))
+        .iterate()
+
+      g.V(fs)
+        .in(EdgeTypes.SOURCE_FILE)
+        .hasLabel(NodeTypes.NAMESPACE_BLOCK)
         .aggregate("x")
         .repeat(__.out(EdgeTypes.AST))
         .emit()
@@ -213,11 +201,12 @@ abstract class GremlinDriver extends IDriver {
         .select[Vertex]("x")
         .unfold[Vertex]()
         .drop()
-        .select("files")
+        .iterate()
+
+      g.V(fs)
         .drop()
         .iterate()
     }
-
   }
 
   override def propertyFromNodes(nodeType: String, keys: String*): List[Map[String, Any]] = {
