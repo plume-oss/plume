@@ -1,7 +1,7 @@
 package io.github.plume.oss.drivers
 import io.github.plume.oss.drivers.Neo4jDriver._
-import io.shiftleft.codepropertygraph.generated.NodeTypes
 import io.shiftleft.codepropertygraph.generated.nodes.NewNode
+import io.shiftleft.codepropertygraph.generated.{EdgeTypes, NodeTypes, PropertyNames}
 import io.shiftleft.passes.AppliedDiffGraph
 import io.shiftleft.passes.DiffGraph.Change
 import org.neo4j.driver.{AuthTokens, GraphDatabase}
@@ -81,8 +81,9 @@ class Neo4jDriver(
     }
     val propertyStr = (removeLists(n.properties).map { case (k, v) =>
       val vStr = v match {
-        case x: String => escape(x)
-        case x         => x
+        case x: String      => escape(x)
+        case x: Seq[String] => escape(x.headOption.getOrElse("<empty>"))
+        case x              => x
       }
       s"$k:$vStr"
     }.toList :+ s"id:$id")
@@ -136,10 +137,10 @@ class Neo4jDriver(
     }
     val ss = ops.map { case Change.SetNodeProperty(node, k, v) =>
       val s = v match {
-        case x: String    => s""""$x""""
-        case x: List[Any] => x.toString
-        case x: Number    => x.toString
-        case x            => logger.warn(s"Unhandled property $x (${x.getClass}")
+        case x: String      => s""""$x""""
+        case x: Seq[String] => x.headOption.getOrElse("<empty>")
+        case x: Number      => x.toString
+        case x              => logger.warn(s"Unhandled property $x (${x.getClass}")
       }
       s"n${node.id()}.$k = $s"
     }
@@ -263,7 +264,25 @@ class Neo4jDriver(
     }
   }
 
-  override def removeSourceFiles(filenames: String*): Unit = ???
+  override def removeSourceFiles(filenames: String*): Unit = {
+    Using.resource(driver.session()) { session =>
+      val fileSet = filenames.map(x => s"\"$x\"").mkString(",")
+      session.writeTransaction { tx =>
+        val filePayload = s"""
+             |MATCH (f:${NodeTypes.FILE})
+             |OPTIONAL MATCH (f)-[:${EdgeTypes.SOURCE_FILE}]->(td:${NodeTypes.TYPE_DECL})<-[:${EdgeTypes.REF}]-(t)
+             |WHERE f.NAME IN [$fileSet]
+             |DETACH DELETE f, t
+             |""".stripMargin
+        try {
+          tx.run(filePayload)
+        } catch {
+          case e:Exception => logger.error(s"Unable to link AST nodes: $filePayload", e)
+        }
+      }
+    }
+    filenames.foreach(deleteNodeWithChildren(NodeTypes.NAMESPACE_BLOCK, EdgeTypes.AST, PropertyNames.FILENAME, _))
+  }
 
   override def propertyFromNodes(nodeType: String, keys: String*): List[Map[String, Any]] =
     Using.resource(driver.session()) { session =>
@@ -283,8 +302,6 @@ class Neo4jDriver(
                 k -> v.asLong(-1L)
               } else if (v.hasType(typeSystem.INTEGER())) {
                 k -> v.asInt(-1)
-              } else if (v.hasType(typeSystem.LIST())) {
-                k -> v.asList().asScala
               } else {
                 k -> v.asString("<empty>")
               }

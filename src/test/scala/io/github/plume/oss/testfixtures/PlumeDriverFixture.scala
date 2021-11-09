@@ -1,9 +1,9 @@
 package io.github.plume.oss.testfixtures
 
-import io.github.plume.oss.drivers.{IDriver, TinkerGraphDriver}
+import io.github.plume.oss.drivers.IDriver
 import io.shiftleft.codepropertygraph.generated.NodeTypes._
 import io.shiftleft.codepropertygraph.generated.nodes._
-import io.shiftleft.codepropertygraph.generated.{Cpg, DispatchTypes, EdgeTypes, Operators}
+import io.shiftleft.codepropertygraph.generated.{Cpg, DispatchTypes, EdgeTypes}
 import io.shiftleft.passes.{DiffGraph, IntervalKeyPool}
 import io.shiftleft.proto.cpg.Cpg.NodePropertyName._
 import org.scalatest.matchers.should.Matchers

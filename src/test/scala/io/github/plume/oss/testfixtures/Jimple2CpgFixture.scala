@@ -17,12 +17,9 @@ class PlumeFrontend extends LanguageFrontend {
   override val fileSuffix: String = ".java"
 
   override def execute(sourceCodeFile: File): Cpg = {
-    val driver = new TinkerGraphDriver()
-//    val driver = new OverflowDbDriver()
-    val cpg = new Jimple2Cpg().createCpg(sourceCodeFile.getAbsolutePath, driver = driver)
-//    driver.exportGraph("./test.xml")
-//    Cpg(driver.cpg.graph)
-    cpg
+    val driver = new OverflowDbDriver()
+    new Jimple2Cpg().createCpg(sourceCodeFile.getAbsolutePath, driver = driver)
+    Cpg(driver.cpg.graph)
   }
 }
 
