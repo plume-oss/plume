@@ -179,7 +179,7 @@ class PlumeDriverFixture(val driver: IDriver)
     driver.bulkTx(adg)
 
     driver.idInterval(1, 6).size shouldBe 6
-    driver.idInterval(1, 20).size shouldBe 14
+    driver.idInterval(1, 20).size shouldBe 16
     driver.idInterval(1, 3).size shouldBe 3
     driver.idInterval(1001, 2000).size shouldBe 0
   }
