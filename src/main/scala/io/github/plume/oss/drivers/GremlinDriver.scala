@@ -7,11 +7,7 @@ import org.apache.commons.configuration2.BaseConfiguration
 import org.apache.tinkerpop.gremlin.process.traversal.Order
 import org.apache.tinkerpop.gremlin.process.traversal.P.{neq, within}
 import org.apache.tinkerpop.gremlin.process.traversal.dsl.graph.__.has
-import org.apache.tinkerpop.gremlin.process.traversal.dsl.graph.{
-  GraphTraversal,
-  GraphTraversalSource,
-  __
-}
+import org.apache.tinkerpop.gremlin.process.traversal.dsl.graph.{GraphTraversal, GraphTraversalSource, __}
 import org.apache.tinkerpop.gremlin.structure.{Edge, Graph, T, Vertex}
 import org.apache.tinkerpop.gremlin.tinkergraph.structure.TinkerGraph
 import org.slf4j.LoggerFactory
@@ -164,6 +160,7 @@ abstract class GremlinDriver extends IDriver {
     Using.resource(graph.traversal()) { g =>
       g.V()
         .hasLabel(nodeType)
+        .has(propertyKey, propertyValue)
         .aggregate("x")
         .repeat(__.out(edgeToFollow))
         .emit()
@@ -178,10 +175,12 @@ abstract class GremlinDriver extends IDriver {
 
   override def removeSourceFiles(filenames: String*): Unit = {
     Using.resource(graph.traversal()) { g =>
-       val fs = g.V()
-          .hasLabel(NodeTypes.FILE)
-          .filter(__.has(PropertyNames.NAME, within[String](filenames: _*)))
-         .id().toSet
+      val fs = g
+        .V()
+        .hasLabel(NodeTypes.FILE)
+        .filter(__.has(PropertyNames.NAME, within[String](filenames: _*)))
+        .id()
+        .toSet
 
       g.V(fs)
         .in(EdgeTypes.SOURCE_FILE)
