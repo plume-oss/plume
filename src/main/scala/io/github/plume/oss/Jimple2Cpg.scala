@@ -18,10 +18,31 @@ import java.io.{File => JFile}
 import java.nio.file.Files
 import java.util.zip.ZipFile
 import scala.jdk.CollectionConverters.EnumerationHasAsScala
+import scala.tools.nsc
 import scala.util.{Failure, Success, Using}
 
 object Jimple2Cpg {
   val language = "PLUME"
+
+  /** Formats the file name the way Soot refers to classes within a class path. e.g.
+   * /unrelated/paths/class/path/Foo.class => class.path.Foo
+   *
+   * @param codePath the parent directory
+   * @param filename the file name to transform.
+   * @return the correctly formatted class path.
+   */
+  def getQualifiedClassPath(codePath: String, filename: String): String = {
+    val codeDir: String = if (new JFile(codePath).isDirectory) {
+      codePath
+    } else {
+      new JFile(codePath).getParentFile.getAbsolutePath
+    }
+
+    filename
+      .replace(codeDir + nsc.io.File.separator, "")
+      .replace(".class", "")
+      .replace(nsc.io.File.separator, ".")
+  }
 }
 
 class Jimple2Cpg {
@@ -76,8 +97,16 @@ class Jimple2Cpg {
       )).distinct
 
       val codeToProcess = new PlumeDiffPass(sourceFileNames, driver).createAndApply()
-      val astCreator    = new AstCreationPass(sourceCodePath, codeToProcess.toList, cpg, methodKeyPool)
+      // Load classes into Soot
+      sourceFileNames
+        .map(getQualifiedClassPath(sourceCodePath, _))
+        .foreach(Scene.v().addBasicClass(_))
+      Scene.v().loadNecessaryClasses()
+      // Project Soot classes
+      val astCreator = new AstCreationPass(sourceCodePath, codeToProcess.toList, cpg, methodKeyPool)
       astCreator.createAndApply(driver)
+      // Clear classes from Soot
+      closeSoot()
       new PlumeTypeNodePass(
         astCreator.global.usedTypes.keys().asScala.toList,
         cpg,

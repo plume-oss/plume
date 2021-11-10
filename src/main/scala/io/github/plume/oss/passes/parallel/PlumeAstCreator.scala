@@ -1,12 +1,7 @@
 package io.github.plume.oss.passes.parallel
 
 import io.shiftleft.codepropertygraph.generated.nodes._
-import io.shiftleft.codepropertygraph.generated.{
-  ControlStructureTypes,
-  DispatchTypes,
-  EdgeTypes,
-  Operators
-}
+import io.shiftleft.codepropertygraph.generated._
 import io.shiftleft.passes.DiffGraph
 import io.shiftleft.x2cpg.Ast
 import org.slf4j.LoggerFactory
@@ -14,9 +9,9 @@ import soot.jimple._
 import soot.tagkit.Host
 import soot.{Local => _, _}
 
-import java.io.File
 import scala.collection.mutable
 import scala.jdk.CollectionConverters.CollectionHasAsScala
+import scala.util.Try
 
 /** Manages the creation of the AST layer from the given class file and stores all types in the given global parameter.
   */
@@ -45,7 +40,7 @@ class PlumeAstCreator(filename: String, global: Global) {
   def createAst(cls: SootClass): Iterator[DiffGraph] = {
     val astRoot = astForCompilationUnit(cls)
     storeInDiffGraph(astRoot)
-    Iterator(diffGraph.build)
+    Iterator(diffGraph.build())
   }
 
   /** Copy nodes/edges of given `AST` into the diff graph
@@ -93,19 +88,20 @@ class PlumeAstCreator(filename: String, global: Global) {
     val shortName =
       if (fullName.contains('.')) fullName.substring(fullName.lastIndexOf('.') + 1)
       else fullName
+
+    val relatedClass = typ.getSootClass
+    val inheritsFromTypeFullName =
+      if (relatedClass.hasSuperclass) List(typ.getSootClass.getSuperclass.toString)
+      else List()
+
     val typeDecl = NewTypeDecl()
       .name(shortName)
       .fullName(registerType(fullName))
       .order(1) // Jimple always has 1 class per file
       .filename(filename)
       .code(shortName)
-      .inheritsFromTypeFullName(
-        if (typ.getSootClass.hasSuperclass)
-          List(typ.getSootClass.getSuperclass.toString)
-        else
-          List()
-      )
-      .astParentType("NAMESPACE_BLOCK")
+      .inheritsFromTypeFullName(inheritsFromTypeFullName)
+      .astParentType(NodeTypes.NAMESPACE_BLOCK)
       .astParentFullName(namespaceBlockFullName)
     val methodAsts = withOrder(
       typ.getSootClass.getMethods.asScala.toList.sortWith((x, y) => x.getName > y.getName)
@@ -156,7 +152,7 @@ class PlumeAstCreator(filename: String, global: Global) {
         .withChild(astForMethodReturn(methodDeclaration))
     } catch {
       case e: RuntimeException =>
-        logger.warn("Unable to parse method body.", e)
+        logger.warn(s"Unable to parse method body. ${e.getMessage}")
         Ast(methodNode)
           .withChild(astForMethodReturn(methodDeclaration))
     } finally {
@@ -284,33 +280,48 @@ class PlumeAstCreator(filename: String, global: Global) {
       case x: ThisRef            => Seq(createThisNode(x))
       case x: ParameterRef       => Seq(createParameterNode(x, order))
       case x: IdentityRef        => Seq(astForIdentityRef(x, order, parentUnit))
+      case x: ArrayRef           => Seq(astForArrayRef(x, order, parentUnit))
       case x =>
         logger.warn(s"Unhandled soot.Value type ${x.getClass}")
         Seq()
     }
   }
 
-  private def astForLocal(
-      local: soot.Local,
+  private def astForArrayRef(
+      arrRef: ArrayRef,
       order: Int,
-      parentUnit: soot.Unit,
-      dynamicTypeHintFullName: Option[String] = None
+      parentUnit: soot.Unit
   ): Ast = {
-    val name         = local.getName
-    val typeFullName = registerType(local.getType.toQuotedString)
-    val identifier = NewIdentifier()
-      .name(name)
-      .lineNumber(line(parentUnit))
-      .columnNumber(column(parentUnit))
+    val indexAccess = NewCall()
+      .name(Operators.indexAccess)
+      .methodFullName(Operators.indexAccess)
+      .dispatchType(DispatchTypes.STATIC_DISPATCH)
+      .code(arrRef.toString())
       .order(order)
       .argumentIndex(order)
-      .code(name)
-      .typeFullName(typeFullName)
+      .lineNumber(line(parentUnit))
+      .columnNumber(column(parentUnit))
+      .typeFullName(registerType(arrRef.getType.toQuotedString))
+
+    val astChildren =
+      astsForValue(arrRef.getBase, 0, parentUnit) ++ astsForValue(arrRef.getIndex, 1, parentUnit)
+    Ast(indexAccess)
+      .withChildren(astChildren)
+      .withArgEdges(indexAccess, astChildren.flatMap(_.root))
+  }
+
+  private def astForLocal(local: soot.Local, order: Int, parentUnit: soot.Unit): Ast = {
+    val name         = local.getName
+    val typeFullName = registerType(local.getType.toQuotedString)
     Ast(
-      dynamicTypeHintFullName match {
-        case Some(dynamicTypeHint) => identifier.dynamicTypeHintFullName(Seq(dynamicTypeHint))
-        case None                  => identifier
-      }
+      NewIdentifier()
+        .name(name)
+        .lineNumber(line(parentUnit))
+        .columnNumber(column(parentUnit))
+        .order(order)
+        .argumentIndex(order)
+        .code(name)
+        .typeFullName(typeFullName)
     )
   }
 
@@ -441,24 +452,31 @@ class PlumeAstCreator(filename: String, global: Global) {
   /** Creates the AST for assignment statements keeping in mind Jimple is a 3-address code language.
     */
   private def astsForDefinition(assignStmt: DefinitionStmt, order: Int): Seq[Ast] = {
-    val leftOp       = assignStmt.getLeftOp.asInstanceOf[soot.Local]
-    val initializer  = assignStmt.getRightOp
-    val name         = leftOp.getName
-    val code         = leftOp.getType.toQuotedString + " " + leftOp.getName
+    val initializer = assignStmt.getRightOp
+    val leftOp      = assignStmt.getLeftOp
+    val name = assignStmt.getLeftOp match {
+      case x: soot.Local => x.getName
+      case x: FieldRef   => x.getFieldRef.name
+      case x: ArrayRef   => x.toString()
+      case x             => logger.warn(s"Unhandled LHS type in definition ${x.getClass}"); x.toString()
+    }
     val typeFullName = registerType(leftOp.getType.toQuotedString)
-
-    val identifier = astForLocal(leftOp, 1, assignStmt, Option(initializer.getType.toQuotedString))
+    val code         = s"$typeFullName $name"
+    val identifier = leftOp match {
+      case x: soot.Local => Seq(astForLocal(x, 1, assignStmt))
+      case x: FieldRef   => Seq(astForFieldRef(x, 1, assignStmt))
+      case x             => astsForValue(x, 1, assignStmt)
+    }
     val assignment = NewCall()
       .name(Operators.assignment)
       .code(s"$name = ${initializer.toString()}")
       .dispatchType(DispatchTypes.STATIC_DISPATCH)
       .order(order)
       .argumentIndex(order)
-      .dynamicTypeHintFullName(Seq(initializer.getType.toQuotedString))
       .typeFullName(registerType(assignStmt.getLeftOp.getType.toQuotedString))
 
     val initAsts       = astsForValue(initializer, 2, assignStmt)
-    val initializerAst = Seq(callAst(assignment, Seq(identifier) ++ initAsts))
+    val initializerAst = Seq(callAst(assignment, identifier ++ initAsts))
     Seq(
       Ast(
         NewLocal().name(name).code(code).typeFullName(typeFullName).order(order)
@@ -757,13 +775,12 @@ class PlumeAstCreator(filename: String, global: Global) {
 
   private def paramListSignature(methodDeclaration: SootMethod, withParams: Boolean = false) = {
     val paramTypes = methodDeclaration.getParameterTypes.asScala.map(_.toQuotedString)
+
     val paramNames =
-      if (!methodDeclaration.isPhantom)
+      if (!methodDeclaration.isPhantom && Try(methodDeclaration.retrieveActiveBody()).isSuccess)
         methodDeclaration.retrieveActiveBody().getParameterLocals.asScala.map(_.getName)
       else
-        paramTypes.zipWithIndex.map(x => {
-          s"${x._1} param${x._2 + 1}"
-        })
+        paramTypes.zipWithIndex.map(x => { s"${x._1} param${x._2 + 1}" })
     if (!withParams) {
       "(" + paramTypes.mkString(",") + ")"
     } else {
