@@ -5,6 +5,7 @@ import io.github.plume.oss.passes._
 import io.github.plume.oss.passes.concurrent.{PlumeCfgCreationPass, PlumeContainsEdgePass, PlumeDiffPass, PlumeHashPass}
 import io.github.plume.oss.passes.parallel.{AstCreationPass, PlumeCdgPass, PlumeCfgDominatorPass, PlumeMethodStubCreator}
 import io.shiftleft.codepropertygraph.Cpg
+import io.shiftleft.codepropertygraph.generated.{NodeTypes, PropertyNames}
 import io.shiftleft.passes.CpgPassBase
 import io.shiftleft.semanticcpg.passes.linking.calllinker.StaticCallLinker
 import io.shiftleft.semanticcpg.passes.linking.linker.Linker
@@ -17,7 +18,7 @@ import soot.{G, PhaseOptions, Scene}
 import java.io.{File => JFile}
 import java.nio.file.Files
 import java.util.zip.ZipFile
-import scala.jdk.CollectionConverters.EnumerationHasAsScala
+import scala.jdk.CollectionConverters.{CollectionHasAsScala, EnumerationHasAsScala}
 import scala.tools.nsc
 import scala.util.{Failure, Success, Using}
 
@@ -25,12 +26,12 @@ object Jimple2Cpg {
   val language = "PLUME"
 
   /** Formats the file name the way Soot refers to classes within a class path. e.g.
-   * /unrelated/paths/class/path/Foo.class => class.path.Foo
-   *
-   * @param codePath the parent directory
-   * @param filename the file name to transform.
-   * @return the correctly formatted class path.
-   */
+    * /unrelated/paths/class/path/Foo.class => class.path.Foo
+    *
+    * @param codePath the parent directory
+    * @param filename the file name to transform.
+    * @return the correctly formatted class path.
+    */
   def getQualifiedClassPath(codePath: String, filename: String): String = {
     val codeDir: String = if (new JFile(codePath).isDirectory) {
       codePath
@@ -97,10 +98,17 @@ class Jimple2Cpg {
       )).distinct
 
       val codeToProcess = new PlumeDiffPass(sourceFileNames, driver).createAndApply()
+      // After the diff pass any changed types are removed. Remaining types should be black listed to avoid duplicates
+      val unchangedTypes = driver
+        .propertyFromNodes(NodeTypes.TYPE_DECL, PropertyNames.FULL_NAME)
+        .flatMap(_.get(PropertyNames.FULL_NAME))
+        .map(_.toString)
+        .toSet[String]
       // Load classes into Soot
       sourceFileNames
         .map(getQualifiedClassPath(sourceCodePath, _))
-        .foreach(Scene.v().addBasicClass(_))
+        .map { x => Scene.v().addBasicClass(x); x }
+        .foreach(Scene.v().loadClassAndSupport(_).setApplicationClass())
       Scene.v().loadNecessaryClasses()
       // Project Soot classes
       val astCreator = new AstCreationPass(sourceCodePath, codeToProcess.toList, cpg, methodKeyPool)
@@ -108,12 +116,13 @@ class Jimple2Cpg {
       // Clear classes from Soot
       closeSoot()
       new PlumeTypeNodePass(
-        astCreator.global.usedTypes.keys().asScala.toList,
+        astCreator.global.usedTypes.asScala.toList,
         cpg,
-        Some(typesKeyPool)
+        Some(typesKeyPool),
+        unchangedTypes
       ).createAndApply(driver)
 
-      basePasses(cpg, driver).foreach(_.createAndApply(driver))
+      basePasses(cpg, driver, unchangedTypes).foreach(_.createAndApply(driver))
       controlFlowPasses(cpg).foreach(_.createAndApply(driver))
       new PlumeHashPass(cpg).createAndApply(driver)
 
@@ -128,7 +137,7 @@ class Jimple2Cpg {
     }
   }
 
-  private def basePasses(cpg: Cpg, driver: IDriver): Seq[CpgPassBase with PlumeCpgPassBase] = {
+  private def basePasses(cpg: Cpg, driver: IDriver, blackList: Set[String]): Seq[CpgPassBase with PlumeCpgPassBase] = {
     val namespaceKeyPool =
       new IncrementalKeyPool(1000101, 2000200, driver.idInterval(1000101, 2000200))
     val filesKeyPool =
@@ -140,11 +149,11 @@ class Jimple2Cpg {
     val methodDecoratorKeyPool =
       new IncrementalKeyPool(10001001, 20001000, driver.idInterval(10001001, 20001000))
     Seq(
-      new PlumeFileCreationPass(cpg, Some(filesKeyPool)),
-      new PlumeNamespaceCreator(cpg, Some(namespaceKeyPool)),
-      new PlumeTypeDeclStubCreator(cpg, Some(typeDeclKeyPool)),
-      new PlumeMethodStubCreator(cpg, Some(methodStubKeyPool)),
-      new PlumeMethodDecoratorPass(cpg, Some(methodDecoratorKeyPool)),
+      new PlumeFileCreationPass(cpg, Some(filesKeyPool), blackList),
+      new PlumeNamespaceCreator(cpg, Some(namespaceKeyPool), blackList),
+      new PlumeTypeDeclStubCreator(cpg, Some(typeDeclKeyPool), blackList),
+      new PlumeMethodStubCreator(cpg, Some(methodStubKeyPool), blackList),
+      new PlumeMethodDecoratorPass(cpg, Some(methodDecoratorKeyPool), blackList),
       new PlumeContainsEdgePass(cpg)
     ).collect { case pass: Any with PlumeCpgPassBase => pass }
   }
@@ -158,7 +167,7 @@ class Jimple2Cpg {
   private def configureSoot(sourceCodePath: String): Unit = {
     // set application mode
     Options.v().set_app(true)
-    Options.v().set_whole_program(false)
+    Options.v().set_whole_program(true)
     // make sure classpath is configured correctly
     Options.v().set_soot_classpath(sourceCodePath)
     Options.v().set_prepend_classpath(true)
@@ -170,8 +179,6 @@ class Jimple2Cpg {
     Options.v().set_allow_phantom_refs(true)
     // keep variable names
     PhaseOptions.v().setPhaseOption("jb", "use-original-names:true")
-    Scene.v().loadBasicClasses()
-    Scene.v().loadDynamicClasses()
   }
 
   private def closeSoot(): Unit = {

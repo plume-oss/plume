@@ -9,7 +9,7 @@ import io.shiftleft.semanticcpg.passes.languagespecific.fuzzyc.{MethodStubCreato
 class PlumeMethodStubCreator(
     cpg: Cpg,
     keyPool: Option[IncrementalKeyPool],
-    blacklist: Set[NameAndSignature] = Set()
+    blacklist: Set[String] = Set()
 ) extends MethodStubCreator(cpg)
     with PlumeCpgPassBase {
 
@@ -25,7 +25,7 @@ class PlumeMethodStubCreator(
 
   // Do not create stubs for methods that exist
   override def runOnPart(part: (NameAndSignature, Int)): Iterator[DiffGraph] = {
-    if (blacklist.contains(part._1)) {
+    if (blacklist.contains(part._1.fullName)) {
       Iterator()
     } else {
       super.runOnPart(part)

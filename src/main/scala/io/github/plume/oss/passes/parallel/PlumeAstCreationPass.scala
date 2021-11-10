@@ -7,11 +7,10 @@ import io.shiftleft.passes.DiffGraph
 import org.slf4j.LoggerFactory
 import soot.Scene
 
-import java.util.concurrent.{ConcurrentHashMap, Semaphore}
+import java.util.concurrent.ConcurrentSkipListSet
 
 case class Global(
-    usedTypes: ConcurrentHashMap[String, Boolean] = new ConcurrentHashMap[String, Boolean](),
-    sootLock: Semaphore = new Semaphore(1)
+    usedTypes: ConcurrentSkipListSet[String] = new ConcurrentSkipListSet[String](),
 )
 
 /** Creates the AST layer from the given class file and stores all types in the given global parameter.

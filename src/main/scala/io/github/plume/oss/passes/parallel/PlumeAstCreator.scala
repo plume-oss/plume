@@ -29,7 +29,7 @@ class PlumeAstCreator(filename: String, global: Global) {
     * nodes for each key in the map.
     */
   private def registerType(typeName: String): String = {
-    global.usedTypes.put(typeName, true)
+    global.usedTypes.add(typeName)
     typeName
   }
 
@@ -91,8 +91,11 @@ class PlumeAstCreator(filename: String, global: Global) {
 
     val relatedClass = typ.getSootClass
     val inheritsFromTypeFullName =
-      if (relatedClass.hasSuperclass) List(typ.getSootClass.getSuperclass.toString)
-      else List()
+      if (relatedClass.hasSuperclass) {
+        if (!typ.getSootClass.getSuperclass.isApplicationClass)
+          registerType(typ.getSootClass.getSuperclass.getType.toQuotedString)
+        List(typ.getSootClass.getSuperclass.toString)
+      } else List()
 
     val typeDecl = NewTypeDecl()
       .name(shortName)
