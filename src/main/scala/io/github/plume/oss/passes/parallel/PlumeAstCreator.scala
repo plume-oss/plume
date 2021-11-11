@@ -95,7 +95,7 @@ class PlumeAstCreator(filename: String, global: Global) {
         if (!typ.getSootClass.getSuperclass.isApplicationClass)
           registerType(typ.getSootClass.getSuperclass.getType.toQuotedString)
         List(typ.getSootClass.getSuperclass.toString)
-      } else List()
+      } else List(registerType("java.lang.Object"))
 
     val typeDecl = NewTypeDecl()
       .name(shortName)

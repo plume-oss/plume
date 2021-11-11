@@ -74,13 +74,6 @@ trait IDriver extends AutoCloseable {
     */
   def astLinker(): Unit = {
     initMaps()
-    // Create REF edges from TYPE nodes to TYPE_DECL
-    linkAstNodes(
-      srcLabels = List(NodeTypes.TYPE),
-      edgeType = EdgeTypes.REF,
-      dstNodeMap = typeDeclFullNameToNode,
-      dstFullNameKey = PropertyNames.TYPE_DECL_FULL_NAME
-    )
     // Create EVAL_TYPE edges from nodes of various types
     // to TYPE
     linkAstNodes(

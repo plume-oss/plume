@@ -13,7 +13,7 @@ import io.shiftleft.x2cpg.SourceFiles
 import io.shiftleft.x2cpg.X2Cpg.newEmptyCpg
 import org.slf4j.LoggerFactory
 import soot.options.Options
-import soot.{G, PhaseOptions, Scene}
+import soot.{G, PhaseOptions, Scene, SootClass}
 
 import java.io.{File => JFile}
 import java.nio.file.Files
@@ -107,7 +107,9 @@ class Jimple2Cpg {
       // Load classes into Soot
       sourceFileNames
         .map(getQualifiedClassPath(sourceCodePath, _))
-        .map { x => Scene.v().addBasicClass(x); x }
+        .map { x =>
+          Scene.v().addBasicClass(x, SootClass.BODIES); x
+        }
         .foreach(Scene.v().loadClassAndSupport(_).setApplicationClass())
       Scene.v().loadNecessaryClasses()
       // Project Soot classes
