@@ -21,11 +21,12 @@ class PlumeMetaDataPass(
     with PlumeCpgPassBase {
 
   override def createAndApply(driver: IDriver): Unit = {
-    withStartEndTimesLogged {
-      run()
-        .map(dg => PlumeCpgPass.filterDiffGraph(dg, PropertyNames.LANGUAGE, blacklist))
-        .map(diffGraph => DiffGraph.Applier.applyDiff(diffGraph, cpg, undoable = false, keyPool))
-        .foreach(driver.bulkTx)
+    if (blacklist.isEmpty) {
+      withStartEndTimesLogged {
+        run()
+          .map(diffGraph => DiffGraph.Applier.applyDiff(diffGraph, cpg, undoable = false, keyPool))
+          .foreach(driver.bulkTx)
+      }
     }
   }
 
@@ -38,7 +39,7 @@ class PlumeNamespaceCreator(cpg: Cpg, keyPool: Option[KeyPool], blacklist: Set[S
   override def createAndApply(driver: IDriver): Unit = {
     withStartEndTimesLogged {
       run()
-        .map(dg => PlumeCpgPass.filterDiffGraph(dg, PropertyNames.NAME, blacklist))
+        .map(dg => PlumeCpgPass.filterDiffGraph(dg, PropertyNames.FULL_NAME, blacklist))
         .map(diffGraph => DiffGraph.Applier.applyDiff(diffGraph, cpg, undoable = false, keyPool))
         .foreach(driver.bulkTx)
     }
@@ -46,14 +47,13 @@ class PlumeNamespaceCreator(cpg: Cpg, keyPool: Option[KeyPool], blacklist: Set[S
 
 }
 
-class PlumeFileCreationPass(cpg: Cpg, keyPool: Option[KeyPool], blacklist: Set[String] = Set())
+class PlumeFileCreationPass(cpg: Cpg, keyPool: Option[KeyPool])
     extends FileCreationPass(cpg)
     with PlumeCpgPassBase {
 
   override def createAndApply(driver: IDriver): Unit = {
     withStartEndTimesLogged {
       run()
-        .map(dg => PlumeCpgPass.filterDiffGraph(dg, PropertyNames.NAME, blacklist))
         .map(diffGraph => DiffGraph.Applier.applyDiff(diffGraph, cpg, undoable = false, keyPool))
         .foreach(driver.bulkTx)
     }

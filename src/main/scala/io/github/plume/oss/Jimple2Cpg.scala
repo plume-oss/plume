@@ -149,7 +149,7 @@ class Jimple2Cpg {
     val methodDecoratorKeyPool =
       new IncrementalKeyPool(10001001, 20001000, driver.idInterval(10001001, 20001000))
     Seq(
-      new PlumeFileCreationPass(cpg, Some(filesKeyPool), blackList),
+      new PlumeFileCreationPass(cpg, Some(filesKeyPool)),
       new PlumeNamespaceCreator(cpg, Some(namespaceKeyPool), blackList),
       new PlumeTypeDeclStubCreator(cpg, Some(typeDeclKeyPool), blackList),
       new PlumeMethodStubCreator(cpg, Some(methodStubKeyPool), blackList),
