@@ -1,7 +1,7 @@
 package io.github.plume.oss.drivers
 
-import io.shiftleft.codepropertygraph.generated.{EdgeTypes, NodeTypes, PropertyNames}
 import io.shiftleft.codepropertygraph.generated.nodes.{AbstractNode, NewNode, StoredNode}
+import io.shiftleft.codepropertygraph.generated.{EdgeTypes, NodeTypes, PropertyNames}
 import io.shiftleft.passes.AppliedDiffGraph
 
 import scala.collection.mutable
@@ -64,9 +64,9 @@ trait IDriver extends AutoCloseable {
     */
   def idInterval(lower: Long, upper: Long): Set[Long]
 
-  protected val typeDeclFullNameToNode       = mutable.Map.empty[String, Long]
-  protected val typeFullNameToNode           = mutable.Map.empty[String, Long]
-  protected val methodFullNameToNode         = mutable.Map.empty[String, Long]
+  protected val typeDeclFullNameToNode = mutable.Map.empty[String, Long]
+  protected val typeFullNameToNode     = mutable.Map.empty[String, Long]
+  protected val methodFullNameToNode   = mutable.Map.empty[String, Long]
 
   /** Create REF edges from TYPE nodes to TYPE_DECL, EVAL_TYPE edges from nodes of various types to TYPE, REF edges from
     * METHOD_REFs to METHOD, INHERITS_FROM nodes from TYPE_DECL nodes to TYPE, and ALIAS_OF edges from TYPE_DECL nodes
@@ -153,6 +153,34 @@ trait IDriver extends AutoCloseable {
       dstNodeMap: mutable.Map[String, Long],
       dstFullNameKey: String,
   ): Unit
+
+  /** Given a property, returns its known default.
+    */
+  protected def getPropertyDefault(prop: String): Any = {
+    import PropertyNames._
+    val strDefault  = "<empty>"
+    val intDefault  = -1
+    val boolDefault = false
+    prop match {
+      case AST_PARENT_TYPE      => strDefault
+      case AST_PARENT_FULL_NAME => strDefault
+      case NAME                 => strDefault
+      case CODE                 => strDefault
+      case ORDER                => intDefault
+      case SIGNATURE            => ""
+      case ARGUMENT_INDEX       => intDefault
+      case FULL_NAME            => strDefault
+      case TYPE_FULL_NAME       => strDefault
+      case TYPE_DECL_FULL_NAME  => strDefault
+      case IS_EXTERNAL          => boolDefault
+      case DISPATCH_TYPE        => strDefault
+      case LINE_NUMBER          => intDefault
+      case COLUMN_NUMBER        => intDefault
+      case LINE_NUMBER_END      => intDefault
+      case COLUMN_NUMBER_END    => intDefault
+      case _                    => strDefault
+    }
+  }
 
   /** Provides the assigned ID for the given node using the given diff graph.
     */

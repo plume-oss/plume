@@ -4,10 +4,14 @@ import io.shiftleft.codepropertygraph.generated.{EdgeTypes, NodeTypes, PropertyN
 import io.shiftleft.passes.AppliedDiffGraph
 import io.shiftleft.passes.DiffGraph.{Change, PackedProperties}
 import org.apache.commons.configuration2.BaseConfiguration
-import org.apache.tinkerpop.gremlin.process.traversal.Order
+import org.apache.tinkerpop.gremlin.process.traversal.P
 import org.apache.tinkerpop.gremlin.process.traversal.P.{neq, within}
 import org.apache.tinkerpop.gremlin.process.traversal.dsl.graph.__.has
-import org.apache.tinkerpop.gremlin.process.traversal.dsl.graph.{GraphTraversal, GraphTraversalSource, __}
+import org.apache.tinkerpop.gremlin.process.traversal.dsl.graph.{
+  GraphTraversal,
+  GraphTraversalSource,
+  __
+}
 import org.apache.tinkerpop.gremlin.structure.{Edge, Graph, T, Vertex}
 import org.apache.tinkerpop.gremlin.tinkergraph.structure.TinkerGraph
 import org.slf4j.LoggerFactory
@@ -217,7 +221,12 @@ abstract class GremlinDriver extends IDriver {
         .by(T.id)
       keys.foreach(k => ptr = ptr.by(k))
       ptr.asScala
-        .map(_.asScala.toMap)
+        .map(_.asScala.map { case (k, v) =>
+          if (v == null)
+            k -> getPropertyDefault(k)
+          else
+            k -> v
+        }.toMap)
         .toList
     }
   }
@@ -225,9 +234,7 @@ abstract class GremlinDriver extends IDriver {
   override def idInterval(lower: Long, upper: Long): Set[Long] =
     Using.resource(graph.traversal()) { g =>
       g.V()
-        .order()
-        .by(T.id, Order.asc)
-        .range(lower - 1, upper)
+        .filter(has(T.id, P.gte(lower)).and(has(T.id, P.lte(upper))))
         .id()
         .asScala
         .map(_.toString.toLong)

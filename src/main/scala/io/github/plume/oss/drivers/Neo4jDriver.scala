@@ -298,7 +298,9 @@ class Neo4jDriver(
           .map(record =>
             (keys :+ "id").map { k: String =>
               val v = record.get(k)
-              if (k == "id") {
+              if (v == null) {
+                k -> getPropertyDefault(k)
+              } else if (k == "id") {
                 k -> v.asLong(-1L)
               } else if (v.hasType(typeSystem.INTEGER())) {
                 k -> v.asInt(-1)

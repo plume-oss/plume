@@ -1,13 +1,7 @@
 package io.github.plume.oss.drivers
 
 import io.github.plume.oss.drivers.OverflowDbDriver.newOverflowGraph
-import io.shiftleft.codepropertygraph.generated.nodes.{
-  HasAstParentFullName,
-  HasAstParentType,
-  NamespaceBlock,
-  StoredNode,
-  TypeDecl
-}
+import io.shiftleft.codepropertygraph.generated.nodes.{NamespaceBlock, StoredNode, TypeDecl}
 import io.shiftleft.codepropertygraph.generated.{Cpg, EdgeTypes, NodeTypes, PropertyNames}
 import io.shiftleft.passes.AppliedDiffGraph
 import io.shiftleft.passes.DiffGraph.{Change, PackedProperties}
@@ -16,7 +10,6 @@ import overflowdb.traversal.{Traversal, jIteratortoTraversal}
 import overflowdb.{Config, Node}
 
 import java.io.{File => JFile}
-import scala.collection.compat.immutable.ArraySeq
 import scala.collection.mutable
 import scala.jdk.CollectionConverters.IteratorHasAsScala
 import scala.util.{Failure, Success, Try}
