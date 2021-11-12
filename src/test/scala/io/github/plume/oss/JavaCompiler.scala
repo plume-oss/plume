@@ -11,7 +11,7 @@ object JavaCompiler {
 
   /** Compiles the source code with debugging info.
     */
-  def compileJava(sourceCodeFile: File): Unit = {
+  def compileJava(sourceCodeFiles: File*): Unit = {
     val javac       = getJavaCompiler
     val fileManager = javac.getStandardFileManager(null, null, null)
     javac
@@ -19,10 +19,10 @@ object JavaCompiler {
         null,
         fileManager,
         null,
-        CollectionConverters.SeqHasAsJava(Seq("-g", "-d", sourceCodeFile.getParent)).asJava,
+        CollectionConverters.SeqHasAsJava(Seq("-g", "-d") :+ sourceCodeFiles.head.getParent).asJava,
         null,
         fileManager.getJavaFileObjectsFromFiles(
-          CollectionConverters.SeqHasAsJava(Seq(sourceCodeFile)).asJava
+          CollectionConverters.SeqHasAsJava(sourceCodeFiles.toList).asJava
         )
       )
       .call()
