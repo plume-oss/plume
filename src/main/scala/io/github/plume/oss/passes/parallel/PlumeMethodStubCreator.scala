@@ -25,7 +25,8 @@ class PlumeMethodStubCreator(
 
   // Do not create stubs for methods that exist
   override def runOnPart(part: (NameAndSignature, Int)): Iterator[DiffGraph] = {
-    if (blacklist.contains(part._1.fullName)) {
+    val methodTypeName = part._1.fullName.replace(s".${part._1.name}:${part._1.signature}", "")
+    if (blacklist.contains(methodTypeName) || (blacklist.nonEmpty && methodTypeName == "<empty>")) {
       Iterator()
     } else {
       super.runOnPart(part)

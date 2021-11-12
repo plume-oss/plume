@@ -150,7 +150,7 @@ case class OverflowDbDriver(
       .toList
 
   override def idInterval(lower: Long, upper: Long): Set[Long] = cpg.graph.nodes.asScala
-    .filter(n => n.id() >= lower && n.id() <= upper)
+    .filter(n => n.id() >= lower - 1 && n.id() <= upper)
     .map(_.id())
     .toSet
 

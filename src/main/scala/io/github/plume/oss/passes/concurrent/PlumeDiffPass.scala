@@ -17,9 +17,15 @@ class PlumeDiffPass(filenames: List[String], driver: IDriver) {
   private val classHashes: Map[String, String] =
     driver
       .propertyFromNodes(NodeTypes.FILE, PropertyNames.NAME, PropertyNames.HASH, "")
-      .map(m =>
-        m.getOrElse(PropertyNames.NAME, "").toString -> m.getOrElse(PropertyNames.HASH, "").toString
-      )
+      .flatMap { m =>
+        val name = m.getOrElse(PropertyNames.NAME, "")
+        val hash = m.getOrElse(PropertyNames.HASH, "")
+        if (hash != null) {
+          Some(name.toString -> hash.toString)
+        } else {
+          None
+        }
+      }
       .toMap
 
   /** Returns all given filenames as [[File]] objects.
@@ -30,12 +36,12 @@ class PlumeDiffPass(filenames: List[String], driver: IDriver) {
     */
   def createAndApply(): Seq[String] = {
     val changedFiles = partIterator
-      .filter(f =>
+      .filter { f =>
         classHashes.get(f.getAbsolutePath) match {
-          case Some(hash) => HashUtil.getFileHash(f) == hash
+          case Some(hash) => HashUtil.getFileHash(f) != hash
           case None       => false // New files
         }
-      )
+      }
       .map(_.getAbsolutePath)
       .toSeq
     if (changedFiles.nonEmpty) {

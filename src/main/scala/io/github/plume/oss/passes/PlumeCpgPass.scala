@@ -39,7 +39,7 @@ class PlumeNamespaceCreator(cpg: Cpg, keyPool: Option[KeyPool], blacklist: Set[S
   override def createAndApply(driver: IDriver): Unit = {
     withStartEndTimesLogged {
       run()
-        .map(dg => PlumeCpgPass.filterDiffGraph(dg, PropertyNames.FULL_NAME, blacklist))
+        .map(dg => PlumeCpgPass.filterDiffGraph(dg, PropertyNames.NAME, blacklist))
         .map(diffGraph => DiffGraph.Applier.applyDiff(diffGraph, cpg, undoable = false, keyPool))
         .foreach(driver.bulkTx)
     }
@@ -102,7 +102,7 @@ class PlumeMethodDecoratorPass(cpg: Cpg, keyPool: Option[KeyPool], blacklist: Se
       run()
         .map(dg =>
           PlumeCpgPass
-            .filterDiffGraph(dg, PropertyNames.FULL_NAME, blacklist, rejectAllOnFail = true)
+            .filterDiffGraph(dg, PropertyNames.TYPE_FULL_NAME, blacklist, rejectAllOnFail = true)
         )
         .map(diffGraph => DiffGraph.Applier.applyDiff(diffGraph, cpg, undoable = false, keyPool))
         .foreach(driver.bulkTx)

@@ -18,7 +18,7 @@ import org.slf4j.LoggerFactory
 
 import java.util.concurrent.atomic.AtomicBoolean
 import scala.collection.mutable
-import scala.jdk.CollectionConverters.{IteratorHasAsScala, MapHasAsScala}
+import scala.jdk.CollectionConverters.{CollectionHasAsScala, IteratorHasAsScala, MapHasAsScala}
 import scala.util.{Failure, Success, Try, Using}
 
 /** The driver used by databases implementing Gremlin.
@@ -172,6 +172,7 @@ abstract class GremlinDriver extends IDriver {
         .aggregate("x")
         .select[Vertex]("x")
         .unfold[Vertex]()
+        .dedup()
         .drop()
         .iterate()
     }
@@ -185,15 +186,17 @@ abstract class GremlinDriver extends IDriver {
         .filter(__.has(PropertyNames.NAME, within[String](filenames: _*)))
         .id()
         .toSet
+        .asScala
+        .toSeq
 
-      g.V(fs)
+      g.V(fs: _*)
         .in(EdgeTypes.SOURCE_FILE)
         .filter(__.hasLabel(NodeTypes.TYPE_DECL))
         .in(EdgeTypes.REF)
         .drop()
         .iterate()
 
-      g.V(fs)
+      g.V(fs: _*)
         .in(EdgeTypes.SOURCE_FILE)
         .hasLabel(NodeTypes.NAMESPACE_BLOCK)
         .aggregate("x")
@@ -203,10 +206,11 @@ abstract class GremlinDriver extends IDriver {
         .aggregate("x")
         .select[Vertex]("x")
         .unfold[Vertex]()
+        .dedup()
         .drop()
         .iterate()
 
-      g.V(fs)
+      g.V(fs: _*)
         .drop()
         .iterate()
     }
@@ -234,7 +238,7 @@ abstract class GremlinDriver extends IDriver {
   override def idInterval(lower: Long, upper: Long): Set[Long] =
     Using.resource(graph.traversal()) { g =>
       g.V()
-        .filter(has(T.id, P.gte(lower)).and(has(T.id, P.lte(upper))))
+        .filter(has(T.id, P.gte(lower - 1)).and(has(T.id, P.lte(upper))))
         .id()
         .asScala
         .map(_.toString.toLong)

@@ -2,8 +2,18 @@ package io.github.plume.oss
 
 import io.github.plume.oss.drivers.{IDriver, OverflowDbDriver}
 import io.github.plume.oss.passes._
-import io.github.plume.oss.passes.concurrent.{PlumeCfgCreationPass, PlumeContainsEdgePass, PlumeDiffPass, PlumeHashPass}
-import io.github.plume.oss.passes.parallel.{AstCreationPass, PlumeCdgPass, PlumeCfgDominatorPass, PlumeMethodStubCreator}
+import io.github.plume.oss.passes.concurrent.{
+  PlumeCfgCreationPass,
+  PlumeContainsEdgePass,
+  PlumeDiffPass,
+  PlumeHashPass
+}
+import io.github.plume.oss.passes.parallel.{
+  AstCreationPass,
+  PlumeCdgPass,
+  PlumeCfgDominatorPass,
+  PlumeMethodStubCreator
+}
 import io.shiftleft.codepropertygraph.Cpg
 import io.shiftleft.codepropertygraph.generated.{NodeTypes, PropertyNames}
 import io.shiftleft.passes.CpgPassBase
@@ -76,8 +86,6 @@ class Jimple2Cpg {
           driver.idInterval(20001001, Long.MaxValue)
         )
 
-      new PlumeMetaDataPass(cpg, language, Some(metaDataKeyPool)).createAndApply(driver)
-
       val sourceFileExtensions  = Set(".class", ".jimple")
       val archiveFileExtensions = Set(".jar", ".war")
       // Unpack any archives on the path onto the source code path as project root
@@ -104,6 +112,14 @@ class Jimple2Cpg {
         .flatMap(_.get(PropertyNames.FULL_NAME))
         .map(_.toString)
         .toSet[String]
+      val unchangedNamespaces = driver
+        .propertyFromNodes(NodeTypes.NAMESPACE_BLOCK, PropertyNames.NAME)
+        .flatMap(_.get(PropertyNames.NAME))
+        .map(_.toString)
+        .toSet[String]
+
+      new PlumeMetaDataPass(cpg, language, Some(metaDataKeyPool), unchangedTypes).createAndApply(driver)
+
       // Load classes into Soot
       sourceFileNames
         .map(getQualifiedClassPath(sourceCodePath, _))
@@ -124,7 +140,7 @@ class Jimple2Cpg {
         unchangedTypes
       ).createAndApply(driver)
 
-      basePasses(cpg, driver, unchangedTypes).foreach(_.createAndApply(driver))
+      basePasses(cpg, driver, unchangedTypes, unchangedNamespaces).foreach(_.createAndApply(driver))
       controlFlowPasses(cpg).foreach(_.createAndApply(driver))
       new PlumeHashPass(cpg).createAndApply(driver)
 
@@ -139,7 +155,12 @@ class Jimple2Cpg {
     }
   }
 
-  private def basePasses(cpg: Cpg, driver: IDriver, blackList: Set[String]): Seq[CpgPassBase with PlumeCpgPassBase] = {
+  private def basePasses(
+      cpg: Cpg,
+      driver: IDriver,
+      blackList: Set[String],
+      nBlacklist: Set[String]
+  ): Seq[CpgPassBase with PlumeCpgPassBase] = {
     val namespaceKeyPool =
       new IncrementalKeyPool(1000101, 2000200, driver.idInterval(1000101, 2000200))
     val filesKeyPool =
@@ -152,7 +173,7 @@ class Jimple2Cpg {
       new IncrementalKeyPool(10001001, 20001000, driver.idInterval(10001001, 20001000))
     Seq(
       new PlumeFileCreationPass(cpg, Some(filesKeyPool)),
-      new PlumeNamespaceCreator(cpg, Some(namespaceKeyPool), blackList),
+      new PlumeNamespaceCreator(cpg, Some(namespaceKeyPool), nBlacklist),
       new PlumeTypeDeclStubCreator(cpg, Some(typeDeclKeyPool), blackList),
       new PlumeMethodStubCreator(cpg, Some(methodStubKeyPool), blackList),
       new PlumeMethodDecoratorPass(cpg, Some(methodDecoratorKeyPool), blackList),

@@ -134,7 +134,7 @@ class Neo4jDriver(
   private def bulkNodeSetProperty(ops: Seq[Change.SetNodeProperty]): Unit = {
     val ms = ops.map { case Change.SetNodeProperty(node, _, _) =>
       s"(n${node.id()}:${node.label} {id:${node.id()}})"
-    }
+    }.mkString(",")
     val ss = ops.map { case Change.SetNodeProperty(node, k, v) =>
       val s = v match {
         case x: String      => s""""$x""""
@@ -221,24 +221,24 @@ class Neo4jDriver(
     // Node operations
     dg.diffGraph.iterator
       .collect { case x: Change.RemoveNode => x }
-      .grouped(50)
+      .grouped(25)
       .foreach(bulkDeleteNode)
     dg.diffGraph.iterator
       .collect { case x: Change.CreateNode => x }
-      .grouped(50)
+      .grouped(25)
       .foreach(bulkCreateNode(_, dg))
     dg.diffGraph.iterator
       .collect { case x: Change.SetNodeProperty => x }
-      .grouped(50)
+      .grouped(25)
       .foreach(bulkNodeSetProperty)
     // Edge operations
     dg.diffGraph.iterator
       .collect { case x: Change.RemoveEdge => x }
-      .grouped(50)
+      .grouped(25)
       .foreach(bulkRemoveEdge)
     dg.diffGraph.iterator
       .collect { case x: Change.CreateEdge => x }
-      .grouped(50)
+      .grouped(25)
       .foreach(bulkCreateEdge(_, dg))
   }
 
@@ -392,6 +392,7 @@ class Neo4jDriver(
   }
 
   override def buildSchemaPayload(): String = {
+    println(NodeTypes.ALL)
     val btree = NodeTypes.ALL.asScala
       .map(l =>
         s"CREATE BTREE INDEX ${l.toLowerCase}_id_btree_index IF NOT EXISTS FOR (n:$l) ON (n.id)"

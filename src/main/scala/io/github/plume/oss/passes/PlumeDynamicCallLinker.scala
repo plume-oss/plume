@@ -9,7 +9,7 @@ import org.slf4j.{Logger, LoggerFactory}
 import overflowdb.{NodeDb, NodeRef}
 
 import scala.collection.mutable
-import scala.jdk.CollectionConverters.CollectionHasAsScala
+import scala.jdk.CollectionConverters.{CollectionHasAsScala, IteratorHasAsScala}
 
 /** We compute the set of possible call-targets for each dynamic call, and add them as CALL edges to the graph, based on
   * call.methodFullName, method.name and method.signature, the inheritance hierarchy and the AST of typedecls and
@@ -90,7 +90,7 @@ class PlumeDynamicCallLinker(cpg: Cpg) extends CpgPass(cpg) {
         val directSubclasses =
           cpg.typ
             .nameExact(typDeclFullName)
-            .flatMap(_.in(EdgeTypes.INHERITS_FROM))
+            .flatMap(_.in(EdgeTypes.INHERITS_FROM).asScala)
             .collect { case x: TypeDecl =>
               x.fullName
             }

@@ -67,6 +67,7 @@ trait IDriver extends AutoCloseable {
   protected val typeDeclFullNameToNode = mutable.Map.empty[String, Long]
   protected val typeFullNameToNode     = mutable.Map.empty[String, Long]
   protected val methodFullNameToNode   = mutable.Map.empty[String, Long]
+  protected val namespaceNameToNode    = mutable.Map.empty[String, Long]
 
   /** Create REF edges from TYPE nodes to TYPE_DECL, EVAL_TYPE edges from nodes of various types to TYPE, REF edges from
     * METHOD_REFs to METHOD, INHERITS_FROM nodes from TYPE_DECL nodes to TYPE, and ALIAS_OF edges from TYPE_DECL nodes
@@ -74,6 +75,20 @@ trait IDriver extends AutoCloseable {
     */
   def astLinker(): Unit = {
     initMaps()
+    // Link NAMESPACE and NAMESPACE_BLOCK
+    linkAstNodes(
+      srcLabels = List(NodeTypes.NAMESPACE_BLOCK),
+      edgeType = EdgeTypes.REF,
+      dstNodeMap = namespaceNameToNode,
+      dstFullNameKey = PropertyNames.NAME
+    )
+    // Create REF edges between TYPE and TYPE_DECL
+    linkAstNodes(
+      srcLabels = List(NodeTypes.TYPE),
+      edgeType = EdgeTypes.REF,
+      dstNodeMap = typeDeclFullNameToNode,
+      dstFullNameKey = PropertyNames.FULL_NAME
+    )
     // Create EVAL_TYPE edges from nodes of various types
     // to TYPE
     linkAstNodes(
@@ -135,6 +150,7 @@ trait IDriver extends AutoCloseable {
     initMap(NodeTypes.TYPE_DECL, PropertyNames.FULL_NAME, typeDeclFullNameToNode)
     initMap(NodeTypes.TYPE, PropertyNames.FULL_NAME, typeFullNameToNode)
     initMap(NodeTypes.METHOD, PropertyNames.FULL_NAME, methodFullNameToNode)
+    initMap(NodeTypes.NAMESPACE, PropertyNames.NAME, namespaceNameToNode)
   }
 
   protected def clearMaps(): Unit = {
@@ -151,7 +167,7 @@ trait IDriver extends AutoCloseable {
       srcLabels: List[String],
       edgeType: String,
       dstNodeMap: mutable.Map[String, Long],
-      dstFullNameKey: String,
+      dstFullNameKey: String
   ): Unit
 
   /** Given a property, returns its known default.
