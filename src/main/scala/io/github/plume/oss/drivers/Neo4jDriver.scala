@@ -143,7 +143,7 @@ class Neo4jDriver(
         case x              => logger.warn(s"Unhandled property $x (${x.getClass}")
       }
       s"n${node.id()}.$k = $s"
-    }
+    }.mkString(",")
     val payload =
       s"""
         | MATCH $ms
@@ -270,7 +270,7 @@ class Neo4jDriver(
       session.writeTransaction { tx =>
         val filePayload = s"""
              |MATCH (f:${NodeTypes.FILE})
-             |OPTIONAL MATCH (f)-[:${EdgeTypes.SOURCE_FILE}]->(td:${NodeTypes.TYPE_DECL})<-[:${EdgeTypes.REF}]-(t)
+             |OPTIONAL MATCH (f)<-[:${EdgeTypes.SOURCE_FILE}]-(td:${NodeTypes.TYPE_DECL})<-[:${EdgeTypes.REF}]-(t)
              |WHERE f.NAME IN [$fileSet]
              |DETACH DELETE f, t
              |""".stripMargin
@@ -296,16 +296,20 @@ class Neo4jDriver(
           .list()
           .asScala
           .map(record =>
-            (keys :+ "id").map { k: String =>
+            (keys :+ "id").flatMap { k: String =>
               val v = record.get(k)
-              if (v == null) {
-                k -> getPropertyDefault(k)
+              if (v.hasType(typeSystem.NULL())) {
+                Some(k -> getPropertyDefault(k))
               } else if (k == "id") {
-                k -> v.asLong(-1L)
+                Some(k -> v.asLong(-1L))
               } else if (v.hasType(typeSystem.INTEGER())) {
-                k -> v.asInt(-1)
+                Some(k -> v.asInt(-1))
+              } else if (v.hasType(typeSystem.BOOLEAN())) {
+                Some(k -> v.asBoolean(false))
+              } else if (v.hasType(typeSystem.STRING())) {
+                Some(k -> v.asString("<empty>"))
               } else {
-                k -> v.asString("<empty>")
+                None
               }
             }.toMap
           )
@@ -392,7 +396,6 @@ class Neo4jDriver(
   }
 
   override def buildSchemaPayload(): String = {
-    println(NodeTypes.ALL)
     val btree = NodeTypes.ALL.asScala
       .map(l =>
         s"CREATE BTREE INDEX ${l.toLowerCase}_id_btree_index IF NOT EXISTS FOR (n:$l) ON (n.id)"
