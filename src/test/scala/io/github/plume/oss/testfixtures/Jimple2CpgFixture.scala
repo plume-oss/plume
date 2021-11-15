@@ -16,8 +16,8 @@ class PlumeFrontend extends LanguageFrontend {
 
   override def execute(sourceCodeFile: File): Cpg = {
     val driver = new OverflowDbDriver()
-    new Jimple2Cpg().createCpg(sourceCodeFile.getAbsolutePath, driver = driver)
-//    Cpg(driver.cpg.graph)
+    val cpg    = new Jimple2Cpg().createCpg(sourceCodeFile.getAbsolutePath, driver = driver)
+    cpg
   }
 }
 
