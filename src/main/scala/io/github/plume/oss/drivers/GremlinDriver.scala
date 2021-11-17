@@ -227,7 +227,7 @@ abstract class GremlinDriver extends IDriver {
       ptr.asScala
         .map(_.asScala.map { case (k, v) =>
           if (v == null)
-            k -> getPropertyDefault(k)
+            k -> IDriver.getPropertyDefault(k)
           else
             k -> v
         }.toMap)
@@ -258,8 +258,8 @@ abstract class GremlinDriver extends IDriver {
         .filter(
           has(dstFullNameKey)
             .and(has(dstFullNameKey, neq(null)))
-            .and(has(dstFullNameKey, neq(-1)))
-            .and(has(dstFullNameKey, neq("<empty>")))
+            .and(has(dstFullNameKey, neq(IDriver.INT_DEFAULT)))
+            .and(has(dstFullNameKey, neq(IDriver.STRING_DEFAULT)))
         )
         .project[Any]("id", dstFullNameKey)
         .by(T.id)

@@ -1,0 +1,20 @@
+version: '3'
+services:
+  tigergraph:
+    image: dbakereffendi/tigergraph:3.0.5
+    container_name: plume-tigergraph
+    ports:
+      - "14022:22"
+      - "9000:9000"
+      - "14240:14240"
+    healthcheck:
+      test: ["CMD-SHELL", "curl --fail http://localhost:9000/echo || exit 1"]
+      interval: 30s
+      timeout: 10s
+      retries: 5
+    ulimits:
+      nofile:
+        soft: 1000000
+        hard: 1000000
+    stdin_open: true
+    tty: true

@@ -8,40 +8,47 @@ val cpgVersion         = "1.3.384"
 val sootVersion        = "4.2.1"
 val tinkerGraphVersion = "3.5.1"
 val neo4jVersion       = "4.3.4"
+val tigerGraphVersion  = "3.1.0"
+val sttpVersion        = "3.3.16"
 val lz4Version         = "1.7.1"
 val slf4jVersion       = "1.7.32"
 val scalatestVersion   = "3.2.9"
-val circleVersion      = "0.14.0-M4"
+val circeVersion       = "0.14.0-M4"
 
 lazy val scalatest  = "org.scalatest" %% "scalatest" % scalatestVersion
 lazy val NeoIntTest = config("neoTest") extend Test
+lazy val TigerGraphIntTest = config("tgTest") extend Test
 
 fork := true
 
 resolvers ++= Seq(
   Resolver.mavenLocal,
-  Resolver.mavenCentral
+  Resolver.mavenCentral,
+  Resolver.JCenterRepository,
 )
 
 trapExit := false
 
 libraryDependencies ++= Seq(
-  "io.shiftleft"        %% "codepropertygraph"   % cpgVersion,
-  "io.shiftleft"        %% "semanticcpg"         % cpgVersion,
-  "io.shiftleft"        %% "dataflowengineoss"   % cpgVersion,
-  "io.shiftleft"        %% "semanticcpg-tests"   % cpgVersion       % Test classifier "tests",
-  "org.soot-oss"         % "soot"                % sootVersion,
-  "org.apache.tinkerpop" % "tinkergraph-gremlin" % tinkerGraphVersion,
-  "org.neo4j.driver"     % "neo4j-java-driver"   % neo4jVersion,
-  "org.lz4"              % "lz4-java"            % lz4Version,
-  "org.slf4j"            % "slf4j-api"           % slf4jVersion,
-  "org.slf4j"            % "slf4j-simple"        % slf4jVersion,
-  "org.scalatest"       %% "scalatest"           % scalatestVersion % Test
+  "io.shiftleft"                  %% "codepropertygraph"   % cpgVersion,
+  "io.shiftleft"                  %% "semanticcpg"         % cpgVersion,
+  "io.shiftleft"                  %% "dataflowengineoss"   % cpgVersion,
+  "io.shiftleft"                  %% "semanticcpg-tests"   % cpgVersion       % Test classifier "tests",
+  "org.soot-oss"                   % "soot"                % sootVersion,
+  "org.apache.tinkerpop"           % "tinkergraph-gremlin" % tinkerGraphVersion,
+  "org.neo4j.driver"               % "neo4j-java-driver"   % neo4jVersion,
+  "com.tigergraph.client"          % "gsql_client"         % tigerGraphVersion,
+  "com.softwaremill.sttp.client3" %% "core"                % sttpVersion,
+  "com.softwaremill.sttp.client3" %% "circe"               % sttpVersion,
+  "org.lz4"                        % "lz4-java"            % lz4Version,
+  "org.slf4j"                      % "slf4j-api"           % slf4jVersion,
+  "org.slf4j"                      % "slf4j-simple"        % slf4jVersion,
+  "org.scalatest"                 %% "scalatest"           % scalatestVersion % Test
 ) ++ Seq(
   "io.circe" %% "circe-core",
   "io.circe" %% "circe-generic",
   "io.circe" %% "circe-parser"
-).map(_ % circleVersion % Test)
+).map(_ % circeVersion % Test)
 
 enablePlugins(
   JavaAppPackaging,
@@ -79,11 +86,12 @@ lazy val root = (project in file("."))
   .configs(NeoIntTest)
   .settings(
     inConfig(NeoIntTest)(Defaults.testSettings),
-    libraryDependencies += scalatest % NeoIntTest,
-    Test / testOptions := Seq(
-      Tests.Filter(s => !s.endsWith("IntTests"))
+    inConfig(TigerGraphIntTest)(Defaults.testSettings),
+    libraryDependencies ++= Seq(
+      scalatest % NeoIntTest,
+      scalatest % TigerGraphIntTest,
     ),
-    NeoIntTest / testOptions := Seq(
-      Tests.Filter(s => s.contains("Neo4j"))
-    )
+    Test / testOptions := Seq(Tests.Filter(s => !s.endsWith("IntTests"))),
+    NeoIntTest / testOptions := Seq(Tests.Filter(s => s.contains("Neo4j"))),
+    TigerGraphIntTest / testOptions := Seq(Tests.Filter(s => s.contains("TigerGraph"))),
   )

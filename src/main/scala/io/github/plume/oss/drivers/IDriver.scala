@@ -54,7 +54,7 @@ trait IDriver extends AutoCloseable {
   protected def removeLists(properties: Map[String, Any]): Map[String, Any] = {
     properties.map { case (k, v) =>
       v match {
-        case is: Iterable[String] => k -> is.head
+        case is: Seq[String] => k -> is.head
         case _                    => k -> v
       }
     }
@@ -170,33 +170,7 @@ trait IDriver extends AutoCloseable {
       dstFullNameKey: String
   ): Unit
 
-  /** Given a property, returns its known default.
-    */
-  protected def getPropertyDefault(prop: String): Any = {
-    import PropertyNames._
-    val strDefault  = "<empty>"
-    val intDefault  = -1
-    val boolDefault = false
-    prop match {
-      case AST_PARENT_TYPE      => strDefault
-      case AST_PARENT_FULL_NAME => strDefault
-      case NAME                 => strDefault
-      case CODE                 => strDefault
-      case ORDER                => intDefault
-      case SIGNATURE            => ""
-      case ARGUMENT_INDEX       => intDefault
-      case FULL_NAME            => strDefault
-      case TYPE_FULL_NAME       => strDefault
-      case TYPE_DECL_FULL_NAME  => strDefault
-      case IS_EXTERNAL          => boolDefault
-      case DISPATCH_TYPE        => strDefault
-      case LINE_NUMBER          => intDefault
-      case COLUMN_NUMBER        => intDefault
-      case LINE_NUMBER_END      => intDefault
-      case COLUMN_NUMBER_END    => intDefault
-      case _                    => strDefault
-    }
-  }
+
 
   /** Provides the assigned ID for the given node using the given diff graph.
     */
@@ -221,4 +195,37 @@ trait ISchemaSafeDriver extends IDriver {
     */
   def buildSchemaPayload(): String
 
+}
+
+object IDriver {
+  val STRING_DEFAULT: String = "<empty>"
+  val INT_DEFAULT: Int = -1
+  val LONG_DEFAULT: Long = -1L
+  val BOOL_DEFAULT: Boolean = false
+
+  /** Given a property, returns its known default.
+   */
+  def getPropertyDefault(prop: String): Any = {
+    import PropertyNames._
+//    import IDriver._
+    prop match {
+      case AST_PARENT_TYPE      => STRING_DEFAULT
+      case AST_PARENT_FULL_NAME => STRING_DEFAULT
+      case NAME                 => STRING_DEFAULT
+      case CODE                 => STRING_DEFAULT
+      case ORDER                => INT_DEFAULT
+      case SIGNATURE            => ""
+      case ARGUMENT_INDEX       => INT_DEFAULT
+      case FULL_NAME            => STRING_DEFAULT
+      case TYPE_FULL_NAME       => STRING_DEFAULT
+      case TYPE_DECL_FULL_NAME  => STRING_DEFAULT
+      case IS_EXTERNAL          => BOOL_DEFAULT
+      case DISPATCH_TYPE        => STRING_DEFAULT
+      case LINE_NUMBER          => INT_DEFAULT
+      case COLUMN_NUMBER        => INT_DEFAULT
+      case LINE_NUMBER_END      => INT_DEFAULT
+      case COLUMN_NUMBER_END    => INT_DEFAULT
+      case _                    => STRING_DEFAULT
+    }
+  }
 }

@@ -82,7 +82,6 @@ class Neo4jDriver(
     val propertyStr = (removeLists(n.properties).map { case (k, v) =>
       val vStr = v match {
         case x: String      => escape(x)
-        case x: Seq[String] => escape(x.headOption.getOrElse("<empty>"))
         case x              => x
       }
       s"$k:$vStr"
@@ -299,15 +298,15 @@ class Neo4jDriver(
             (keys :+ "id").flatMap { k: String =>
               val v = record.get(k)
               if (v.hasType(typeSystem.NULL())) {
-                Some(k -> getPropertyDefault(k))
+                Some(k -> IDriver.getPropertyDefault(k))
               } else if (k == "id") {
-                Some(k -> v.asLong(-1L))
+                Some(k -> v.asLong(IDriver.LONG_DEFAULT))
               } else if (v.hasType(typeSystem.INTEGER())) {
-                Some(k -> v.asInt(-1))
+                Some(k -> v.asInt(IDriver.INT_DEFAULT))
               } else if (v.hasType(typeSystem.BOOLEAN())) {
-                Some(k -> v.asBoolean(false))
+                Some(k -> v.asBoolean(IDriver.BOOL_DEFAULT))
               } else if (v.hasType(typeSystem.STRING())) {
-                Some(k -> v.asString("<empty>"))
+                Some(k -> v.asString(IDriver.STRING_DEFAULT))
               } else {
                 None
               }
