@@ -55,7 +55,7 @@ trait IDriver extends AutoCloseable {
     properties.map { case (k, v) =>
       v match {
         case is: Seq[String] => k -> is.head
-        case _                    => k -> v
+        case _               => k -> v
       }
     }
   }
@@ -170,8 +170,6 @@ trait IDriver extends AutoCloseable {
       dstFullNameKey: String
   ): Unit
 
-
-
   /** Provides the assigned ID for the given node using the given diff graph.
     */
   protected def id(node: AbstractNode, dg: AppliedDiffGraph): Long =
@@ -199,15 +197,14 @@ trait ISchemaSafeDriver extends IDriver {
 
 object IDriver {
   val STRING_DEFAULT: String = "<empty>"
-  val INT_DEFAULT: Int = -1
-  val LONG_DEFAULT: Long = -1L
-  val BOOL_DEFAULT: Boolean = false
+  val INT_DEFAULT: Int       = -1
+  val LONG_DEFAULT: Long     = -1L
+  val BOOL_DEFAULT: Boolean  = false
 
   /** Given a property, returns its known default.
-   */
+    */
   def getPropertyDefault(prop: String): Any = {
     import PropertyNames._
-//    import IDriver._
     prop match {
       case AST_PARENT_TYPE      => STRING_DEFAULT
       case AST_PARENT_FULL_NAME => STRING_DEFAULT

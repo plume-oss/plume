@@ -19,6 +19,7 @@ class TigerGraphIntTests extends PlumeDriverFixture(new TigerGraphDriver(hostnam
 
 
   "foobar" in {
-    driver.asInstanceOf[ISchemaSafeDriver].buildSchema()
+    driver.exists(0) shouldBe false
+//    driver.asInstanceOf[ISchemaSafeDriver].buildSchema()
   }
 }
