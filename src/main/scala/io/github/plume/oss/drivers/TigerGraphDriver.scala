@@ -67,6 +67,15 @@ class TigerGraphDriver(
 
   override def exists(srcId: Long, dstId: Long, edge: String): Boolean = ???
 
+  private def jsonValue(value: Any): Option[Json] = {
+    value match {
+      case x: String  => Option(Json.fromString(x))
+      case x: Int     => Option(Json.fromInt(x))
+      case x: Boolean => Option(Json.fromBoolean(x))
+      case _          => None
+    }
+  }
+
   private def nodePayload(id: Long, n: NewNode): JsonObject = {
     val attributes = removeLists(n.properties).flatMap { case (k, v) =>
       val vStr = v match {
@@ -74,15 +83,10 @@ class TigerGraphDriver(
         case x if x == null => IDriver.getPropertyDefault(k)
         case x              => x
       }
-      val vson = vStr match {
-        case x: String  => Json.fromString(x)
-        case x: Int     => Json.fromInt(x)
-        case x: Boolean => Json.fromBoolean(x)
-        case _          => null
+      jsonValue(vStr) match {
+        case Some(vson) => Some(s"_$k" -> JsonObject.fromMap(Map("value" -> vson)).asJson)
+        case None       => None
       }
-      if (vson != null)
-        Some(s"_$k" -> JsonObject.fromMap(Map("value" -> vson)).asJson)
-      else None
     }
 
     JsonObject.fromMap(
@@ -104,10 +108,10 @@ class TigerGraphDriver(
       .collect { case x: Change.CreateNode => x }
       .grouped(25)
       .foreach(bulkCreateNode(_, dg))
-//    dg.diffGraph.iterator
-//      .collect { case x: Change.SetNodeProperty => x }
-//      .grouped(25)
-//      .foreach(bulkNodeSetProperty)
+    dg.diffGraph.iterator
+      .collect { case x: Change.SetNodeProperty => x }
+      .grouped(25)
+      .foreach(bulkNodeSetProperty)
   }
 
   private def bulkDeleteNode(ops: Seq[Change.RemoveNode]): Unit = {
@@ -115,7 +119,7 @@ class TigerGraphDriver(
       case Change.RemoveNode(nodeId) => Some(nodeId)
       case _                         => None
     }
-    get("/query/v_delete", Map("ids" -> ids))
+    get("/query/cpg/v_delete", ids.map { i => "ids" -> i.toString })
   }
 
   private def bulkCreateNode(ops: Seq[Change.CreateNode], dg: AppliedDiffGraph): Unit = {
@@ -128,18 +132,23 @@ class TigerGraphDriver(
     post("/graph/cpg", PayloadBody(vertices = payload))
   }
 
-//  private def bulkNodeSetProperty(ops: Seq[Change.SetNodeProperty]): Unit = {
-//    val payload = ops
-//      .flatMap {
-//        case Change.SetNodeProperty(n: StoredNode, key, value) =>
-//          Some(
-//            Map(s"${n.label}_" -> Map(id -> Map(s"_$key" -> Map("value" -> value)))).asJsonObject
-//          )
-//        case _ => None
-//      }
-//      .reduce { case (a: JsonObject, b: JsonObject) => a.deepMerge(b) }
-//    post("/graph/cpg", PayloadBody(vertices = payload))
-//  }
+  private def bulkNodeSetProperty(ops: Seq[Change.SetNodeProperty]): Unit = {
+    val payload = ops
+      .flatMap {
+        case Change.SetNodeProperty(n: StoredNode, key, value) =>
+          jsonValue(value) match {
+            case Some(v) =>
+              val kv =
+                JsonObject.fromMap(Map(s"_$key" -> JsonObject.fromMap(Map("value" -> v)).asJson))
+              val body = JsonObject.fromMap(Map(n.id().toString -> kv.asJson))
+              Some(JsonObject.fromMap(Map(s"${n.label}_" -> body.asJson)))
+            case None => None
+          }
+        case _ => None
+      }
+      .reduce { (a: JsonObject, b: JsonObject) => a.deepMerge(b) }
+    post("/graph/cpg", PayloadBody(vertices = payload))
+  }
 
   override def deleteNodeWithChildren(
       nodeType: String,
@@ -160,7 +169,8 @@ class TigerGraphDriver(
           case _          => k -> get("/query/cpg/s_property_from_nodes", params)
         }
       }
-      .map { case (k, res) => k -> res.head.asObject.get.toMap("properties").asArray.get.head.asObject.get.toMap }
+      .map { case (k, res) => k -> res.head.asObject.get.toMap("properties").asArray.get }
+      .map { case (k, properties) => k -> properties.head.asObject.get.toMap }
       .map { case (k, m) =>
         m("id").asNumber.get.toLong.get -> (k, m("property"))
       }
@@ -239,6 +249,18 @@ class TigerGraphDriver(
           body.results
         }
     }
+  }
+
+  private def get(
+      endpoint: String,
+      params: Seq[(String, String)]
+  ): Seq[Json] = {
+    val uri = buildUri(endpoint).addParams(params: _*)
+    val response = request()
+      .get(uri)
+      .response(asJson[TigerGraphResponse])
+      .send(backend)
+    unboxResponse(response)
   }
 
   private def get(
