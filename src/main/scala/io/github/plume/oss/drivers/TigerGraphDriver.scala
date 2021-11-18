@@ -13,10 +13,11 @@ import org.slf4j.LoggerFactory
 import sttp.client3._
 import sttp.client3.circe.asJson
 import sttp.model.Uri
+import sttp.client3.circe._
 
 import java.io.{ByteArrayOutputStream, IOException, PrintStream}
 import java.security.Permission
-import scala.collection.mutable
+import scala.collection.{immutable, mutable}
 import scala.jdk.CollectionConverters.CollectionHasAsScala
 import scala.util.Try
 
@@ -39,7 +40,7 @@ class TigerGraphDriver(
   private val api                                 = Uri(scheme, hostname, restPpPort)
   private val backend: SttpBackend[Identity, Any] = HttpURLConnectionBackend()
 
-  implicit val encodeUser: Encoder[PayloadBody] =
+  implicit val payloadEncoder: Encoder[PayloadBody] =
     Encoder.forProduct2("vertices", "edges")(u => (u.vertices, u.edges))
 
   override def isConnected: Boolean = true
@@ -67,16 +68,30 @@ class TigerGraphDriver(
   override def exists(srcId: Long, dstId: Long, edge: String): Boolean = ???
 
   private def nodePayload(id: Long, n: NewNode): JsonObject = {
-    val attributes = removeLists(n.properties).map { case (k, v) =>
+    val attributes = removeLists(n.properties).flatMap { case (k, v) =>
       val vStr = v match {
         case x: Seq[String] => x.headOption.getOrElse(IDriver.STRING_DEFAULT)
         case x if x == null => IDriver.getPropertyDefault(k)
         case x              => x
       }
-      s"_$k" -> Map("value" -> vStr)
+      val vson = vStr match {
+        case x: String  => Json.fromString(x)
+        case x: Int     => Json.fromInt(x)
+        case x: Boolean => Json.fromBoolean(x)
+        case _          => null
+      }
+      if (vson != null)
+        Some(s"_$k" -> JsonObject.fromMap(Map("value" -> vson)).asJson)
+      else None
     }
 
-    Map(s"${n.label}_" -> Map(id -> attributes)).asJsonObject
+    JsonObject.fromMap(
+      Map(
+        s"${n.label}_" -> JsonObject
+          .fromMap(Map(id.toString -> JsonObject.fromMap(attributes).asJson))
+          .asJson
+      )
+    )
   }
 
   override def bulkTx(dg: AppliedDiffGraph): Unit = {
@@ -89,10 +104,10 @@ class TigerGraphDriver(
       .collect { case x: Change.CreateNode => x }
       .grouped(25)
       .foreach(bulkCreateNode(_, dg))
-    dg.diffGraph.iterator
-      .collect { case x: Change.SetNodeProperty => x }
-      .grouped(25)
-      .foreach(bulkNodeSetProperty)
+//    dg.diffGraph.iterator
+//      .collect { case x: Change.SetNodeProperty => x }
+//      .grouped(25)
+//      .foreach(bulkNodeSetProperty)
   }
 
   private def bulkDeleteNode(ops: Seq[Change.RemoveNode]): Unit = {
@@ -109,22 +124,22 @@ class TigerGraphDriver(
         case Change.CreateNode(node) => Some(nodePayload(id(node, dg), node))
         case _                       => None
       }
-      .reduce { case (a: JsonObject, b: JsonObject) => a.deepMerge(b) }
+      .reduce { (a: JsonObject, b: JsonObject) => a.deepMerge(b) }
     post("/graph/cpg", PayloadBody(vertices = payload))
   }
 
-  private def bulkNodeSetProperty(ops: Seq[Change.SetNodeProperty]): Unit = {
-    val payload = ops
-      .flatMap {
-        case Change.SetNodeProperty(n: StoredNode, key, value) =>
-          Some(
-            Map(s"${n.label}_" -> Map(id -> Map(s"_$key" -> Map("value" -> value)))).asJsonObject
-          )
-        case _ => None
-      }
-      .reduce { case (a: JsonObject, b: JsonObject) => a.deepMerge(b) }
-    post("/graph/cpg", PayloadBody(vertices = payload))
-  }
+//  private def bulkNodeSetProperty(ops: Seq[Change.SetNodeProperty]): Unit = {
+//    val payload = ops
+//      .flatMap {
+//        case Change.SetNodeProperty(n: StoredNode, key, value) =>
+//          Some(
+//            Map(s"${n.label}_" -> Map(id -> Map(s"_$key" -> Map("value" -> value)))).asJsonObject
+//          )
+//        case _ => None
+//      }
+//      .reduce { case (a: JsonObject, b: JsonObject) => a.deepMerge(b) }
+//    post("/graph/cpg", PayloadBody(vertices = payload))
+//  }
 
   override def deleteNodeWithChildren(
       nodeType: String,
@@ -138,25 +153,37 @@ class TigerGraphDriver(
   override def propertyFromNodes(nodeType: String, keys: String*): List[Map[String, Any]] = {
     keys
       .map { k =>
-        val params = Map("node_type" -> nodeType, "property" -> k)
+        val params = Map("node_type" -> s"${nodeType}_", "property" -> s"_$k")
         IDriver.getPropertyDefault(k) match {
           case _: Boolean => k -> get("/query/cpg/b_property_from_nodes", params)
           case _: Int     => k -> get("/query/cpg/i_property_from_nodes", params)
           case _          => k -> get("/query/cpg/s_property_from_nodes", params)
         }
       }
-      .map { case (k, res) => k -> res.head.asJsonObject.toMap }
+      .map { case (k, res) => k -> res.head.asObject.get.toMap("properties").asArray.get.head.asObject.get.toMap }
       .map { case (k, m) =>
-        Map("id" -> m("id").asNumber.get.toLong.get, k -> m("property").asObject.get)
+        m("id").asNumber.get.toLong.get -> (k, m("property"))
       }
-    ???
+      .groupBy { case (i, _) => i }
+      .map { case (i: Long, ps: Seq[(Long, (String, Json))]) =>
+        (ps.flatMap { case (_, (key: String, json: Json)) =>
+          json match {
+            case v if v.isNumber  => Some(key -> v.asNumber.get.toInt.get)
+            case v if v.isBoolean => Some(key -> v.asBoolean.get)
+            case v if v.isString  => Some(key -> v.asString.get)
+            case _                => None
+          }
+        } :+ ("id" -> i)).toMap
+      }
+      .toList
   }
 
   override def idInterval(lower: Long, upper: Long): Set[Long] = {
     val response = get("/query/cpg/id_interval", Map("lower" -> lower, "upper" -> upper))
     response.head.asObject match {
-      case Some(map) => map.toMap("ids").asArray.get.toSet.map(_.asNumber.get.toLong.get)
-      case None      => Set()
+      case Some(map) =>
+        map.toMap("ids").asArray.get.toSet.map { x: Json => x.asNumber.get.toLong.get }
+      case None => Set()
     }
   }
 
@@ -176,6 +203,7 @@ class TigerGraphDriver(
       |$EDGES
       |CREATE GRAPH cpg(*)
       |$QUERIES
+      |INSTALL QUERY ALL
       |""".stripMargin
   }
 
@@ -226,7 +254,6 @@ class TigerGraphDriver(
   }
 
   private def post(endpoint: String, payload: PayloadBody): Seq[Json] = {
-    import sttp.client3.circe._
     val uri = buildUri(endpoint)
     val response = request()
       .post(uri)
@@ -512,7 +539,7 @@ object TigerGraphDriver {
   }
 
   private def QUERIES: String = {
-    Array(
+    (Array(
       """
         |CREATE QUERY show_all() FOR GRAPH cpg {
         |  SetAccum<EDGE> @@edges;
@@ -562,9 +589,10 @@ object TigerGraphDriver {
         |      ACCUM @@ids += src.id;
         |  PRINT @@ids as ids;
         |}
-        |""".stripMargin,
+        |""".stripMargin
+    ) ++
       Array("STRING", "INT", "BOOL").map(x => s"""
-        |CREATE QUERY ${x(0).toLower}_property_from_nodes(STRING node_type, $x property) FOR GRAPH cpg { 
+        |CREATE QUERY ${x(0).toLower}_property_from_nodes(STRING node_type, STRING property) FOR GRAPH cpg {
         |  TYPEDEF TUPLE<id UINT, property $x> RES;
         |  SetAccum<RES> @@result;
         |  seed = {ANY};
@@ -574,8 +602,6 @@ object TigerGraphDriver {
         |          ACCUM @@result += RES(src.id, src.getAttr(property, "$x"));
         |  PRINT @@result as properties;
         |}
-        |""".stripMargin): _*,
-      "INSTALL QUERY ALL"
-    ).mkString
+        |""".stripMargin)).mkString
   }
 }
