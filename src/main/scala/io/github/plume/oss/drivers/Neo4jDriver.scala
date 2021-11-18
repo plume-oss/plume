@@ -19,7 +19,8 @@ class Neo4jDriver(
     hostname: String = DEFAULT_HOSTNAME,
     port: Int = DEFAULT_PORT,
     username: String = DEFAULT_USERNAME,
-    password: String = DEFAULT_PASSWORD
+    password: String = DEFAULT_PASSWORD,
+    txMax: Int = DEFAULT_TX_MAX,
 ) extends IDriver
     with ISchemaSafeDriver {
 
@@ -220,24 +221,24 @@ class Neo4jDriver(
     // Node operations
     dg.diffGraph.iterator
       .collect { case x: Change.RemoveNode => x }
-      .grouped(25)
+      .grouped(txMax)
       .foreach(bulkDeleteNode)
     dg.diffGraph.iterator
       .collect { case x: Change.CreateNode => x }
-      .grouped(25)
+      .grouped(txMax)
       .foreach(bulkCreateNode(_, dg))
     dg.diffGraph.iterator
       .collect { case x: Change.SetNodeProperty => x }
-      .grouped(25)
+      .grouped(txMax)
       .foreach(bulkNodeSetProperty)
     // Edge operations
     dg.diffGraph.iterator
       .collect { case x: Change.RemoveEdge => x }
-      .grouped(25)
+      .grouped(txMax)
       .foreach(bulkRemoveEdge)
     dg.diffGraph.iterator
       .collect { case x: Change.CreateEdge => x }
-      .grouped(25)
+      .grouped(txMax)
       .foreach(bulkCreateEdge(_, dg))
   }
 
@@ -422,4 +423,9 @@ object Neo4jDriver {
   /** Default port number a remote Bolt server.
     */
   private val DEFAULT_PORT = 7687
+
+  /**
+   * Default maximum number of transactions to bundle in a single transaction
+   */
+  private val DEFAULT_TX_MAX = 25
 }

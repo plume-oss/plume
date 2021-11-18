@@ -11,13 +11,12 @@ import io.shiftleft.passes.AppliedDiffGraph
 import io.shiftleft.passes.DiffGraph.Change
 import org.slf4j.LoggerFactory
 import sttp.client3._
-import sttp.client3.circe.asJson
-import sttp.model.Uri
 import sttp.client3.circe._
+import sttp.model.Uri
 
 import java.io.{ByteArrayOutputStream, IOException, PrintStream}
 import java.security.Permission
-import scala.collection.{immutable, mutable}
+import scala.collection.mutable
 import scala.jdk.CollectionConverters.CollectionHasAsScala
 import scala.util.Try
 
@@ -31,6 +30,7 @@ class TigerGraphDriver(
     password: String = DEFAULT_PASSWORD,
     timeout: Int = DEFAULT_TIMEOUT,
     secure: Boolean = false,
+    txMax: Int = DEFAULT_TX_MAX,
     authKey: String = ""
 ) extends IDriver
     with ISchemaSafeDriver {
@@ -65,7 +65,24 @@ class TigerGraphDriver(
     }
   }
 
-  override def exists(srcId: Long, dstId: Long, edge: String): Boolean = ???
+  override def exists(srcId: Long, dstId: Long, edge: String): Boolean = {
+    try {
+      val response = get(
+        "query/cpg/e_exists",
+        Map(
+          "src_id"     -> srcId,
+          "dst_id"     -> dstId,
+          "edge_label" -> s"_$edge"
+        )
+      )
+      response.head.asObject match {
+        case Some(map) => map.toMap("exists").asBoolean.get
+        case None      => false
+      }
+    } catch {
+      case _: IOException => false
+    }
+  }
 
   private def jsonValue(value: Any): Option[Json] = {
     value match {
@@ -98,20 +115,44 @@ class TigerGraphDriver(
     )
   }
 
+  private def edgePayload(
+      srcId: Long,
+      srcLabel: String,
+      dstId: Long,
+      dstLabel: String,
+      edge: String
+  ): JsonObject = {
+    val toIdMap =
+      JsonObject.fromMap(Map(dstId.toString -> JsonObject.fromMap(Map.empty).asJson)).asJson
+    val toMap     = JsonObject.fromMap(Map(s"${dstLabel}_" -> toIdMap)).asJson
+    val edgeMap   = JsonObject.fromMap(Map(s"_$edge" -> toMap)).asJson
+    val fromIdMap = JsonObject.fromMap(Map(srcId.toString -> edgeMap)).asJson
+    JsonObject.fromMap(Map(s"${srcLabel}_" -> fromIdMap))
+  }
+
   override def bulkTx(dg: AppliedDiffGraph): Unit = {
     // Node operations
     dg.diffGraph.iterator
       .collect { case x: Change.RemoveNode => x }
-      .grouped(25)
+      .grouped(txMax)
       .foreach(bulkDeleteNode)
     dg.diffGraph.iterator
       .collect { case x: Change.CreateNode => x }
-      .grouped(25)
+      .grouped(txMax)
       .foreach(bulkCreateNode(_, dg))
     dg.diffGraph.iterator
       .collect { case x: Change.SetNodeProperty => x }
-      .grouped(25)
+      .grouped(txMax)
       .foreach(bulkNodeSetProperty)
+    // Edge operations
+    dg.diffGraph.iterator
+      .collect { case x: Change.RemoveEdge => x }
+      .grouped(txMax)
+      .foreach(bulkRemoveEdge)
+    dg.diffGraph.iterator
+      .collect { case x: Change.CreateEdge => x }
+      .grouped(txMax)
+      .foreach(bulkCreateEdge(_, dg))
   }
 
   private def bulkDeleteNode(ops: Seq[Change.RemoveNode]): Unit = {
@@ -148,6 +189,25 @@ class TigerGraphDriver(
       }
       .reduce { (a: JsonObject, b: JsonObject) => a.deepMerge(b) }
     post("/graph/cpg", PayloadBody(vertices = payload))
+  }
+
+  private def bulkRemoveEdge(ops: Seq[Change.RemoveEdge]): Unit = {
+    ops.foreach {
+      case Change.RemoveEdge(edge) =>
+        val src = edge.outNode()
+        val dst = edge.inNode()
+        delete(s"/graph/cpg/edges/${src.label()}_/${src.id()}/_${edge.label()}/${dst.label()}_/${dst.id()}")
+      case _ =>
+    }
+  }
+
+  private def bulkCreateEdge(ops: Seq[Change.CreateEdge], dg: AppliedDiffGraph): Unit = {
+    val payload = ops.flatMap {
+      case Change.CreateEdge(src, dst, edge, _) =>
+        Some(edgePayload(id(src, dg), src.label, id(dst, dg), dst.label, edge))
+      case _ => None
+    } .reduce { (a: JsonObject, b: JsonObject) => a.deepMerge(b) }
+    post("/graph/cpg", PayloadBody(edges = payload))
   }
 
   override def deleteNodeWithChildren(
@@ -417,6 +477,10 @@ object TigerGraphDriver {
   /** Default timeout for HTTP requests.
     */
   private val DEFAULT_TIMEOUT = 30 * 100
+
+  /** Default maximum number of transactions to bundle in a single transaction
+    */
+  private val DEFAULT_TX_MAX = 25
 
   /** Returns the corresponding TigerGraph type given a Scala type.
     */
