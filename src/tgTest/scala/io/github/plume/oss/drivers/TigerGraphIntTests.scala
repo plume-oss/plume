@@ -3,23 +3,19 @@ package io.github.plume.oss.drivers
 import io.github.plume.oss.DockerManager
 import io.github.plume.oss.testfixtures.PlumeDriverFixture
 import io.shiftleft.codepropertygraph.generated.nodes.{Local, NewFile}
+import sttp.model.Uri
 
-class TigerGraphIntTests extends PlumeDriverFixture(new TigerGraphDriver(hostname = "18.170.23.236")) {
+class TigerGraphIntTests extends PlumeDriverFixture(new TigerGraphDriver()) {
 
   override def beforeAll(): Unit = {
-//    DockerManager.startDockerFile("TigerGraph", List("plume-tigergraph"))
-//    driver.asInstanceOf[IDriver with ISchemaSafeDriver].buildSchema()
+    DockerManager.startDockerFile("TigerGraph", List("plume-tigergraph"))
+    driver.asInstanceOf[IDriver with ISchemaSafeDriver].buildSchema()
     super.beforeAll()
   }
 
   override def afterAll(): Unit = {
     super.afterAll()
-//    DockerManager.closeAnyDockerContainers("TigerGraph")
+    DockerManager.closeAnyDockerContainers("TigerGraph")
   }
 
-
-  "foobar" in {
-    driver.exists(0) shouldBe false
-//    driver.asInstanceOf[ISchemaSafeDriver].buildSchema()
-  }
 }

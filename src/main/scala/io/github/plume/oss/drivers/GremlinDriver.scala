@@ -177,7 +177,7 @@ abstract class GremlinDriver extends IDriver {
         .in(EdgeTypes.SOURCE_FILE)
         .hasLabel(NodeTypes.NAMESPACE_BLOCK)
         .aggregate("x")
-        .repeat(__.out(EdgeTypes.AST))
+        .repeat(__.out(EdgeTypes.AST, EdgeTypes.CONDITION))
         .emit()
         .barrier()
         .aggregate("x")
@@ -226,7 +226,8 @@ abstract class GremlinDriver extends IDriver {
       srcLabels: List[String],
       edgeType: String,
       dstNodeMap: mutable.Map[String, Long],
-      dstFullNameKey: String
+      dstFullNameKey: String,
+      dstNodeType: String,
   ): Unit = {
     Using.resource(graph.traversal()) { g =>
       g

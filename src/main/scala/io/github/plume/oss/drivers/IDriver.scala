@@ -69,14 +69,16 @@ trait IDriver extends AutoCloseable {
       srcLabels = List(NodeTypes.NAMESPACE_BLOCK),
       edgeType = EdgeTypes.REF,
       dstNodeMap = namespaceNameToNode,
-      dstFullNameKey = PropertyNames.NAME
+      dstFullNameKey = PropertyNames.NAME,
+      dstNodeType = NodeTypes.NAMESPACE
     )
     // Create REF edges between TYPE and TYPE_DECL
     linkAstNodes(
       srcLabels = List(NodeTypes.TYPE),
       edgeType = EdgeTypes.REF,
       dstNodeMap = typeDeclFullNameToNode,
-      dstFullNameKey = PropertyNames.FULL_NAME
+      dstFullNameKey = PropertyNames.FULL_NAME,
+      dstNodeType = NodeTypes.TYPE_DECL
     )
     // Create EVAL_TYPE edges from nodes of various types
     // to TYPE
@@ -97,7 +99,8 @@ trait IDriver extends AutoCloseable {
       ),
       edgeType = EdgeTypes.EVAL_TYPE,
       dstNodeMap = typeFullNameToNode,
-      dstFullNameKey = PropertyNames.TYPE_FULL_NAME
+      dstFullNameKey = PropertyNames.TYPE_FULL_NAME,
+      dstNodeType = NodeTypes.TYPE
     )
     // Create REF edges from METHOD_REFs to
     // METHOD
@@ -105,7 +108,8 @@ trait IDriver extends AutoCloseable {
       srcLabels = List(NodeTypes.METHOD_REF),
       edgeType = EdgeTypes.REF,
       dstNodeMap = methodFullNameToNode,
-      dstFullNameKey = PropertyNames.METHOD_FULL_NAME
+      dstFullNameKey = PropertyNames.METHOD_FULL_NAME,
+      dstNodeType = NodeTypes.METHOD
     )
     // Create INHERITS_FROM nodes from TYPE_DECL
     // nodes to TYPE
@@ -113,7 +117,8 @@ trait IDriver extends AutoCloseable {
       srcLabels = List(NodeTypes.TYPE_DECL),
       edgeType = EdgeTypes.INHERITS_FROM,
       dstNodeMap = typeFullNameToNode,
-      dstFullNameKey = PropertyNames.INHERITS_FROM_TYPE_FULL_NAME
+      dstFullNameKey = PropertyNames.INHERITS_FROM_TYPE_FULL_NAME,
+      dstNodeType = NodeTypes.TYPE
     )
     // Create ALIAS_OF edges from TYPE_DECL nodes to
     // TYPE
@@ -121,7 +126,8 @@ trait IDriver extends AutoCloseable {
       srcLabels = List(NodeTypes.TYPE_DECL),
       edgeType = EdgeTypes.ALIAS_OF,
       dstNodeMap = typeFullNameToNode,
-      dstFullNameKey = PropertyNames.ALIAS_TYPE_FULL_NAME
+      dstFullNameKey = PropertyNames.ALIAS_TYPE_FULL_NAME,
+      dstNodeType = NodeTypes.TYPE
     )
     clearMaps()
   }
@@ -156,7 +162,8 @@ trait IDriver extends AutoCloseable {
       srcLabels: List[String],
       edgeType: String,
       dstNodeMap: mutable.Map[String, Long],
-      dstFullNameKey: String
+      dstFullNameKey: String,
+      dstNodeType: String,
   ): Unit
 
   /** Provides the assigned ID for the given node using the given diff graph.

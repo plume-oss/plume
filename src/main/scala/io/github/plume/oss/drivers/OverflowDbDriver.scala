@@ -89,12 +89,12 @@ case class OverflowDbDriver(
 
   private def dfsDelete(
       n: Node,
-      edgeToFollow: String,
-      visitedNodes: mutable.Set[Node] = mutable.Set.empty[Node]
+      visitedNodes: mutable.Set[Node],
+      edgeToFollow: String*
   ): Unit = {
     if (!visitedNodes.contains(n)) {
       visitedNodes.add(n)
-      n.out(edgeToFollow).forEachRemaining(dfsDelete(_, edgeToFollow, visitedNodes))
+      n.out(edgeToFollow: _*).forEachRemaining(dfsDelete(_, visitedNodes, edgeToFollow: _*))
     }
     n.remove()
   }
@@ -114,7 +114,7 @@ case class OverflowDbDriver(
         typeDecls.flatMap(_.in(EdgeTypes.REF)).foreach(_.remove())
         // Remove NAMESPACE_BLOCKs and their AST children (TYPE_DECL, METHOD, etc.)
         val visitedNodes = mutable.Set.empty[Node]
-        namespaceBlocks.foreach(dfsDelete(_, EdgeTypes.AST, visitedNodes))
+        namespaceBlocks.foreach(dfsDelete(_, visitedNodes, EdgeTypes.AST, EdgeTypes.CONDITION))
         // Finally remove FILE node
         f.remove()
       }
@@ -140,7 +140,8 @@ case class OverflowDbDriver(
       srcLabels: List[String],
       edgeType: String,
       dstNodeMap: mutable.Map[String, Long],
-      dstFullNameKey: String
+      dstFullNameKey: String,
+      dstNodeType: String
   ): Unit = {
     Traversal(cpg.graph.nodes(srcLabels: _*)).foreach { srcNode =>
       srcNode

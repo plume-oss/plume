@@ -175,11 +175,17 @@ class PlumeDriverFixture(val driver: IDriver)
     driver.astLinker()
 
     val List(t1: Map[String, Any], t2: Map[String, Any]) =
-      driver.propertyFromNodes(TYPE, FULL_NAME.name())
+      driver
+        .propertyFromNodes(TYPE, FULL_NAME.name())
+        .sortBy { a => a(FULL_NAME.name()).asInstanceOf[String] }
+        .reverse
     t1.get(FULL_NAME.name()) shouldBe Some("bar.Foo")
     t2.get(FULL_NAME.name()) shouldBe Some("bar.Bar")
     val List(td1: Map[String, Any], td2: Map[String, Any]) =
-      driver.propertyFromNodes(TYPE_DECL, FULL_NAME.name())
+      driver
+        .propertyFromNodes(TYPE_DECL, FULL_NAME.name())
+        .sortBy { a => a(FULL_NAME.name()).asInstanceOf[String] }
+        .reverse
     td1.get(FULL_NAME.name()) shouldBe Some("bar.Foo")
     td2.get(FULL_NAME.name()) shouldBe Some("bar.Bar")
     driver.exists(

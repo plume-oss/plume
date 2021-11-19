@@ -334,7 +334,8 @@ class Neo4jDriver(
       srcLabels: List[String],
       edgeType: String,
       dstNodeMap: mutable.Map[String, Long],
-      dstFullNameKey: String
+      dstFullNameKey: String,
+      dstNodeType: String,
   ): Unit = {
     Using.resource(driver.session()) { session =>
       session.writeTransaction { tx =>

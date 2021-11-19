@@ -172,7 +172,7 @@ class TigerGraphDriver(
       case Change.RemoveNode(nodeId) => Some(nodeId)
       case _                         => None
     }
-    get("/query/cpg/v_delete", ids.map { i => "ids" -> i.toString })
+    get("query/cpg/v_delete", ids.map { i => "ids" -> i.toString })
   }
 
   private def bulkCreateNode(ops: Seq[Change.CreateNode], dg: AppliedDiffGraph): Unit = {
@@ -182,7 +182,7 @@ class TigerGraphDriver(
         case _                       => None
       }
       .reduce { (a: JsonObject, b: JsonObject) => a.deepMerge(b) }
-    post("/graph/cpg", PayloadBody(vertices = payload))
+    post("graph/cpg", PayloadBody(vertices = payload))
   }
 
   private def bulkNodeSetProperty(ops: Seq[Change.SetNodeProperty]): Unit = {
@@ -200,7 +200,7 @@ class TigerGraphDriver(
         case _ => None
       }
       .reduce { (a: JsonObject, b: JsonObject) => a.deepMerge(b) }
-    post("/graph/cpg", PayloadBody(vertices = payload))
+    post("graph/cpg", PayloadBody(vertices = payload))
   }
 
   private def bulkRemoveEdge(ops: Seq[Change.RemoveEdge]): Unit = {
@@ -209,7 +209,7 @@ class TigerGraphDriver(
         val src = edge.outNode()
         val dst = edge.inNode()
         delete(
-          s"/graph/cpg/edges/${src.label()}_/${src.id()}/_${edge.label()}/${dst.label()}_/${dst.id()}"
+          s"graph/cpg/edges/${src.label()}_/${src.id()}/_${edge.label()}/${dst.label()}_/${dst.id()}"
         )
       case _ =>
     }
@@ -223,11 +223,11 @@ class TigerGraphDriver(
         case _ => None
       }
       .reduce { (a: JsonObject, b: JsonObject) => a.deepMerge(b) }
-    post("/graph/cpg", PayloadBody(edges = payload))
+    post("graph/cpg", PayloadBody(edges = payload))
   }
 
   override def removeSourceFiles(filenames: String*): Unit = {
-    get("/query/cpg/delete_source_file", filenames.map(("filenames", _)))
+    get("query/cpg/delete_source_file", filenames.map(("filenames", _)))
   }
 
   override def propertyFromNodes(nodeType: String, keys: String*): List[Map[String, Any]] = {
@@ -235,9 +235,9 @@ class TigerGraphDriver(
       .map { k =>
         val params = Map("node_type" -> s"${nodeType}_", "property" -> s"_$k")
         IDriver.getPropertyDefault(k) match {
-          case _: Boolean => k -> get("/query/cpg/b_property_from_nodes", params)
-          case _: Int     => k -> get("/query/cpg/i_property_from_nodes", params)
-          case _          => k -> get("/query/cpg/s_property_from_nodes", params)
+          case _: Boolean => k -> get("query/cpg/b_property_from_nodes", params)
+          case _: Int     => k -> get("query/cpg/i_property_from_nodes", params)
+          case _          => k -> get("query/cpg/s_property_from_nodes", params)
         }
       }
       .flatMap { case (k, res) =>
@@ -256,7 +256,7 @@ class TigerGraphDriver(
   }
 
   override def idInterval(lower: Long, upper: Long): Set[Long] = {
-    val response = get("/query/cpg/id_interval", Map("lower" -> lower, "upper" -> upper))
+    val response = get("query/cpg/id_interval", Map("lower" -> lower, "upper" -> upper))
     response.head.asObject match {
       case Some(map) =>
         map.toMap("ids").asArray.get.toSet.map { x: Json => x.asNumber.get.toLong.get }
@@ -268,11 +268,17 @@ class TigerGraphDriver(
       srcLabels: List[String],
       edgeType: String,
       dstNodeMap: mutable.Map[String, Long],
-      dstFullNameKey: String
+      dstFullNameKey: String,
+      dstNodeType: String
   ): Unit = {
-    val endpoint = s"/query/cpg/link_ast_${edgeType.toLowerCase}_${dstFullNameKey.toLowerCase}"
+    val endpoint = s"query/cpg/link_ast_${edgeType.toLowerCase}_${dstFullNameKey.toLowerCase}"
     dstNodeMap.foreach { case (key, id) =>
-      get(endpoint, srcLabels.map(("src_labels", _)) :+ ("dst_value", key) :+ ("dst", id.toString))
+      get(
+        endpoint,
+        srcLabels.map { x =>
+          ("src_labels", s"${x}_")
+        } :+ ("dst_value", key) :+ ("dst", id.toString) :+ ("dst.type", s"${dstNodeType}_")
+      )
     }
   }
 
@@ -385,8 +391,7 @@ class TigerGraphDriver(
       logger.debug(s"Posting payload:\n$payload")
       codeControl.disableSystemExit()
       val output = executeGsqlClient(args)
-      println(output)
-      logger.trace(output)
+      logger.debug(output)
     } catch {
       case e: Throwable => logger.error(s"Unable to post GSQL payload! Payload $payload", e)
     }
@@ -675,7 +680,7 @@ object TigerGraphDriver {
         |CREATE QUERY e_exists(UINT src_id, UINT dst_id, STRING edge_label) FOR GRAPH cpg {
         |  seed = {ANY};
         |  temp = SELECT tgt
-        |          FROM seed:src -(:e)- :tgt
+        |          FROM seed:src -(:e)-> :tgt
         |          WHERE src.id == src_id
         |            AND tgt.id == dst_id
         |            AND e.type == edge_label;
@@ -721,7 +726,7 @@ object TigerGraphDriver {
         |  ts = SELECT t
         |       FROM tds -(<_REF)- TYPE_:t;
         |  nbs = SELECT n
-        |        FROM fs - (<_SOURCE_FILE)- NAMESPACE_BLOCK_:n;
+        |        FROM fvs - (<_SOURCE_FILE)- NAMESPACE_BLOCK_:n;
         |
         |  childVs = SELECT t
         |            FROM nbs:s -((_AST>|_CONDITION>)*) - :t;
@@ -730,21 +735,6 @@ object TigerGraphDriver {
         |  DELETE v FROM nsToDelete:v;
         |}
         |""".stripMargin
-//      Array(("name", "name"))
-//      """
-//        |CREATE QUERY link_ast_name_by_name(SET<STRING> src_labels, STRING edge_label, STRING dst_label, STRING dst_key) FOR GRAPH cpg SYNTAX v2 {
-//        |  SetAccum<VERTEX> @@srcs;
-//        |  seed = {ANY};
-//        |  srcV = SELECT src
-//        |         FROM seed:src
-//        |         WHERE src.type IN src_labels AND src._NAME == dst_key
-//        |         ACCUM @@srcs += src;
-//        |  dstV = SELECT tgt
-//        |         FROM seed:tgt
-//        |         WHERE tgt.type == dst_label AND tgt._NAME == dst_key
-//        |         ACCUM FOREACH s IN @@srcs DO INSERT INTO _AST VALUES(s, tgt) END;
-//        |}
-//        |""".stripMargin
     ) ++ Array(
       (EdgeTypes.REF, PropertyNames.NAME),
       (EdgeTypes.REF, PropertyNames.FULL_NAME),
@@ -756,11 +746,10 @@ object TigerGraphDriver {
       s"""
         |CREATE QUERY link_ast_${e.toLowerCase}_${p.toLowerCase}(SET<STRING> src_labels, STRING dst_value, VERTEX dst) FOR GRAPH cpg {
         |  seed = {ANY};
-        |  srcV = SELECT src
+        |  temp = SELECT src
         |         FROM seed:src
         |         WHERE src.type IN src_labels AND src._$p == dst_value
         |         ACCUM INSERT INTO _$e VALUES (src, dst);
-        |  PRINT srcV;
         |}
         |""".stripMargin
     } ++
