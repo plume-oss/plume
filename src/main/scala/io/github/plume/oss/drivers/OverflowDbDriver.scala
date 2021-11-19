@@ -87,24 +87,6 @@ case class OverflowDbDriver(
     }
   }
 
-  override def deleteNodeWithChildren(
-      nodeType: String,
-      edgeToFollow: String,
-      propertyKey: String,
-      propertyValue: Any
-  ): Unit = {
-    val visitedNodes = mutable.Set[Node]()
-    cpg.graph
-      .nodes(nodeType)
-      .asScala
-      .filter(n => n.property(propertyKey, null) == propertyValue)
-      .toList
-      .headOption match {
-      case Some(headNode) => dfsDelete(headNode, edgeToFollow, visitedNodes)
-      case None           =>
-    }
-  }
-
   private def dfsDelete(
       n: Node,
       edgeToFollow: String,

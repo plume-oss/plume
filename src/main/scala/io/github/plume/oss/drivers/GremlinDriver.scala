@@ -155,29 +155,6 @@ abstract class GremlinDriver extends IDriver {
     }
   }
 
-  override def deleteNodeWithChildren(
-      nodeType: String,
-      edgeToFollow: String,
-      propertyKey: String,
-      propertyValue: Any
-  ): Unit = {
-    Using.resource(graph.traversal()) { g =>
-      g.V()
-        .hasLabel(nodeType)
-        .has(propertyKey, propertyValue)
-        .aggregate("x")
-        .repeat(__.out(edgeToFollow))
-        .emit()
-        .barrier()
-        .aggregate("x")
-        .select[Vertex]("x")
-        .unfold[Vertex]()
-        .dedup()
-        .drop()
-        .iterate()
-    }
-  }
-
   override def removeSourceFiles(filenames: String*): Unit = {
     Using.resource(graph.traversal()) { g =>
       val fs = g

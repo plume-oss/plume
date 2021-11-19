@@ -146,28 +146,6 @@ class PlumeDriverFixture(val driver: IDriver)
     ) shouldBe false
   }
 
-  "should recursively delete a node and its children given the node type, key-value pair, and edge type to follow" in {
-    val cpg       = Cpg.empty
-    val keyPool   = new IntervalKeyPool(1, 1000)
-    val diffGraph = DiffGraph.newBuilder
-    // Create some basic method
-    createSimpleGraph(diffGraph)
-    val adg =
-      DiffGraph.Applier.applyDiff(diffGraph.build(), cpg.graph, undoable = false, Option(keyPool))
-    driver.bulkTx(adg)
-
-    driver.deleteNodeWithChildren(METHOD, EdgeTypes.AST, NAME.name(), "foo")
-    // A deletion should delete all nodes except for the MetaData one
-    val List(mBar: Map[String, Any]) = driver.propertyFromNodes(METHOD, NAME.name())
-    mBar.get(NAME.name()) shouldBe Some("bar")
-    driver.propertyFromNodes(BLOCK) shouldBe List()
-    driver.propertyFromNodes(CALL, NAME.name()) shouldBe List()
-    driver.propertyFromNodes(LOCAL, NAME.name()) shouldBe List()
-    driver.propertyFromNodes(IDENTIFIER, NAME.name()) shouldBe List()
-    val List(meta) = driver.propertyFromNodes(META_DATA, LANGUAGE.name())
-    meta.get(LANGUAGE.name()) shouldBe Some("PLUME")
-  }
-
   "should accurately report which IDs have been taken" in {
     val cpg       = Cpg.empty
     val keyPool   = new IntervalKeyPool(1, 1000)

@@ -31,17 +31,6 @@ trait IDriver extends AutoCloseable {
     */
   def bulkTx(dg: AppliedDiffGraph): Unit
 
-  /** Removes the specified node and children based on the edge and key-value property. The given edge type will be
-    * followed to determine node children and the rest of the parameters will be used to determine the starting node.
-    * This detects already visited nodes and thus is safe from cycles.
-    */
-  def deleteNodeWithChildren(
-      nodeType: String,
-      edgeToFollow: String,
-      propertyKey: String,
-      propertyValue: Any
-  ): Unit
-
   /** Given filenames, will remove related TYPE, TYPE_DECL, METHOD (with AST children), and NAMESPACE_BLOCK.
     */
   def removeSourceFiles(filenames: String*): Unit

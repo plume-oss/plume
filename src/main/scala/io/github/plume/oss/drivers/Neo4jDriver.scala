@@ -20,7 +20,7 @@ class Neo4jDriver(
     port: Int = DEFAULT_PORT,
     username: String = DEFAULT_USERNAME,
     password: String = DEFAULT_PASSWORD,
-    txMax: Int = DEFAULT_TX_MAX,
+    txMax: Int = DEFAULT_TX_MAX
 ) extends IDriver
     with ISchemaSafeDriver {
 
@@ -82,8 +82,8 @@ class Neo4jDriver(
     }
     val propertyStr = (removeLists(n.properties).map { case (k, v) =>
       val vStr = v match {
-        case x: String      => escape(x)
-        case x              => x
+        case x: String => escape(x)
+        case x         => x
       }
       s"$k:$vStr"
     }.toList :+ s"id:$id")
@@ -132,18 +132,22 @@ class Neo4jDriver(
   }
 
   private def bulkNodeSetProperty(ops: Seq[Change.SetNodeProperty]): Unit = {
-    val ms = ops.map { case Change.SetNodeProperty(node, _, _) =>
-      s"(n${node.id()}:${node.label} {id:${node.id()}})"
-    }.mkString(",")
-    val ss = ops.map { case Change.SetNodeProperty(node, k, v) =>
-      val s = v match {
-        case x: String      => s""""$x""""
-        case x: Seq[String] => x.headOption.getOrElse("<empty>")
-        case x: Number      => x.toString
-        case x              => logger.warn(s"Unhandled property $x (${x.getClass}")
+    val ms = ops
+      .map { case Change.SetNodeProperty(node, _, _) =>
+        s"(n${node.id()}:${node.label} {id:${node.id()}})"
       }
-      s"n${node.id()}.$k = $s"
-    }.mkString(",")
+      .mkString(",")
+    val ss = ops
+      .map { case Change.SetNodeProperty(node, k, v) =>
+        val s = v match {
+          case x: String      => s""""$x""""
+          case x: Seq[String] => x.headOption.getOrElse("<empty>")
+          case x: Number      => x.toString
+          case x              => logger.warn(s"Unhandled property $x (${x.getClass}")
+        }
+        s"n${node.id()}.$k = $s"
+      }
+      .mkString(",")
     val payload =
       s"""
         | MATCH $ms
@@ -242,31 +246,24 @@ class Neo4jDriver(
       .foreach(bulkCreateEdge(_, dg))
   }
 
-  override def deleteNodeWithChildren(
-      nodeType: String,
-      edgeToFollow: String,
-      propertyKey: String,
-      propertyValue: Any
-  ): Unit = Using.resource(driver.session()) { session =>
-    val valueStr = propertyValue match {
-      case x: Int  => s"$x"
-      case x: Long => s"$x"
-      case x       => s"\'$x\'"
-    }
-    session.writeTransaction { tx =>
-      tx
-        .run(s"""
-                |MATCH (a:$nodeType)-[r:$edgeToFollow*]->(t)
-                |WHERE a.$propertyKey = $valueStr
+  /** Removes the namespace block with all of its AST children specified by the given FILENAME property.
+    */
+  private def deleteNamespaceBlockWithAstChildrenByFilename(filename: String): Unit =
+    Using.resource(driver.session()) { session =>
+      session.writeTransaction { tx =>
+        tx
+          .run(s"""
+                |MATCH (a:${NodeTypes.NAMESPACE_BLOCK})-[r:${EdgeTypes.AST}*]->(t)
+                |WHERE a.${PropertyNames.FILENAME} = \'$filename\'
                 |FOREACH (x IN r | DELETE x)
                 |DETACH DELETE a, t
                 |""".stripMargin)
+      }
     }
-  }
 
   override def removeSourceFiles(filenames: String*): Unit = {
     Using.resource(driver.session()) { session =>
-      val fileSet = filenames.map(x => s"\"$x\"").mkString(",")
+      val fileSet = filenames.map(x => "\"" + x + "\"").mkString(",")
       session.writeTransaction { tx =>
         val filePayload = s"""
              |MATCH (f:${NodeTypes.FILE})
@@ -277,11 +274,11 @@ class Neo4jDriver(
         try {
           tx.run(filePayload)
         } catch {
-          case e:Exception => logger.error(s"Unable to link AST nodes: $filePayload", e)
+          case e: Exception => logger.error(s"Unable to link AST nodes: $filePayload", e)
         }
       }
     }
-    filenames.foreach(deleteNodeWithChildren(NodeTypes.NAMESPACE_BLOCK, EdgeTypes.AST, PropertyNames.FILENAME, _))
+    filenames.foreach(deleteNamespaceBlockWithAstChildrenByFilename)
   }
 
   override def propertyFromNodes(nodeType: String, keys: String*): List[Map[String, Any]] =
@@ -424,8 +421,7 @@ object Neo4jDriver {
     */
   private val DEFAULT_PORT = 7687
 
-  /**
-   * Default maximum number of transactions to bundle in a single transaction
-   */
+  /** Default maximum number of transactions to bundle in a single transaction
+    */
   private val DEFAULT_TX_MAX = 25
 }
