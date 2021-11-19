@@ -43,7 +43,18 @@ class TigerGraphDriver(
   implicit val payloadEncoder: Encoder[PayloadBody] =
     Encoder.forProduct2("vertices", "edges")(u => (u.vertices, u.edges))
 
-  override def isConnected: Boolean = true
+  override def isConnected: Boolean = try {
+    val response = quickRequest
+      .get(Uri(scheme, hostname, restPpPort).addPath(Seq("endpoints")))
+      .response(asJson[Map[String, JsonObject]])
+      .send(backend)
+    response.body match {
+      case Left(_)      => false
+      case Right(_) => true
+    }
+  } catch {
+    case _: Exception => false
+  }
 
   override def clear(): Unit = NodeTypes.ALL.forEach { nodeType =>
     Try(delete(s"graph/cpg/delete_by_type/vertices/${nodeType}_"))

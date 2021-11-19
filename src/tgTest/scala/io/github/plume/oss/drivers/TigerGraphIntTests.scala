@@ -2,8 +2,6 @@ package io.github.plume.oss.drivers
 
 import io.github.plume.oss.DockerManager
 import io.github.plume.oss.testfixtures.PlumeDriverFixture
-import io.shiftleft.codepropertygraph.generated.nodes.{Local, NewFile}
-import sttp.model.Uri
 
 class TigerGraphIntTests extends PlumeDriverFixture(new TigerGraphDriver()) {
 
