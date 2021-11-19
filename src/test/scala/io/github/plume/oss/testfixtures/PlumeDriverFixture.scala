@@ -174,10 +174,12 @@ class PlumeDriverFixture(val driver: IDriver)
 
     driver.astLinker()
 
-    val List(t1: Map[String, Any], t2: Map[String, Any]) = driver.propertyFromNodes(TYPE, FULL_NAME.name())
+    val List(t1: Map[String, Any], t2: Map[String, Any]) =
+      driver.propertyFromNodes(TYPE, FULL_NAME.name())
     t1.get(FULL_NAME.name()) shouldBe Some("bar.Foo")
     t2.get(FULL_NAME.name()) shouldBe Some("bar.Bar")
-    val List(td1: Map[String, Any], td2: Map[String, Any]) = driver.propertyFromNodes(TYPE_DECL, FULL_NAME.name())
+    val List(td1: Map[String, Any], td2: Map[String, Any]) =
+      driver.propertyFromNodes(TYPE_DECL, FULL_NAME.name())
     td1.get(FULL_NAME.name()) shouldBe Some("bar.Foo")
     td2.get(FULL_NAME.name()) shouldBe Some("bar.Bar")
     driver.exists(

@@ -6,7 +6,7 @@ import io.circe.syntax._
 import io.circe.{Encoder, Json, JsonObject}
 import io.github.plume.oss.drivers.TigerGraphDriver._
 import io.shiftleft.codepropertygraph.generated.nodes._
-import io.shiftleft.codepropertygraph.generated.{EdgeTypes, NodeTypes}
+import io.shiftleft.codepropertygraph.generated.{EdgeTypes, NodeTypes, PropertyNames}
 import io.shiftleft.passes.AppliedDiffGraph
 import io.shiftleft.passes.DiffGraph.Change
 import org.slf4j.LoggerFactory
@@ -90,6 +90,18 @@ class TigerGraphDriver(
       case x: Int     => Option(Json.fromInt(x))
       case x: Boolean => Option(Json.fromBoolean(x))
       case _          => None
+    }
+  }
+
+  private def scalaValue(value: Json): Option[Any] = {
+    if (value.isBoolean) {
+      value.asBoolean
+    } else if (value.isNumber) {
+      value.asNumber.get.toInt
+    } else if (value.isString) {
+      value.asString
+    } else {
+      value.asObject
     }
   }
 
@@ -196,28 +208,27 @@ class TigerGraphDriver(
       case Change.RemoveEdge(edge) =>
         val src = edge.outNode()
         val dst = edge.inNode()
-        delete(s"/graph/cpg/edges/${src.label()}_/${src.id()}/_${edge.label()}/${dst.label()}_/${dst.id()}")
+        delete(
+          s"/graph/cpg/edges/${src.label()}_/${src.id()}/_${edge.label()}/${dst.label()}_/${dst.id()}"
+        )
       case _ =>
     }
   }
 
   private def bulkCreateEdge(ops: Seq[Change.CreateEdge], dg: AppliedDiffGraph): Unit = {
-    val payload = ops.flatMap {
-      case Change.CreateEdge(src, dst, edge, _) =>
-        Some(edgePayload(id(src, dg), src.label, id(dst, dg), dst.label, edge))
-      case _ => None
-    } .reduce { (a: JsonObject, b: JsonObject) => a.deepMerge(b) }
+    val payload = ops
+      .flatMap {
+        case Change.CreateEdge(src, dst, edge, _) =>
+          Some(edgePayload(id(src, dg), src.label, id(dst, dg), dst.label, edge))
+        case _ => None
+      }
+      .reduce { (a: JsonObject, b: JsonObject) => a.deepMerge(b) }
     post("/graph/cpg", PayloadBody(edges = payload))
   }
 
-  override def deleteNodeWithChildren(
-      nodeType: String,
-      edgeToFollow: String,
-      propertyKey: String,
-      propertyValue: Any
-  ): Unit = ???
-
-  override def removeSourceFiles(filenames: String*): Unit = ???
+  override def removeSourceFiles(filenames: String*): Unit = {
+    get("/query/cpg/delete_source_file", filenames.map(("filenames", _)))
+  }
 
   override def propertyFromNodes(nodeType: String, keys: String*): List[Map[String, Any]] = {
     keys
@@ -229,22 +240,18 @@ class TigerGraphDriver(
           case _          => k -> get("/query/cpg/s_property_from_nodes", params)
         }
       }
-      .map { case (k, res) => k -> res.head.asObject.get.toMap("properties").asArray.get }
-      .map { case (k, properties) => k -> properties.head.asObject.get.toMap }
-      .map { case (k, m) =>
-        m("id").asNumber.get.toLong.get -> (k, m("property"))
-      }
-      .groupBy { case (i, _) => i }
-      .map { case (i: Long, ps: Seq[(Long, (String, Json))]) =>
-        (ps.flatMap { case (_, (key: String, json: Json)) =>
-          json match {
-            case v if v.isNumber  => Some(key -> v.asNumber.get.toInt.get)
-            case v if v.isBoolean => Some(key -> v.asBoolean.get)
-            case v if v.isString  => Some(key -> v.asString.get)
-            case _                => None
+      .flatMap { case (k, res) =>
+        res.head.asObject.get
+          .toMap("properties")
+          .asArray
+          .get
+          .map(_.asObject.get.toMap)
+          .map { m =>
+            Map("id" -> m("id").asNumber.get.toLong.get, k -> scalaValue(m("property")).get)
           }
-        } :+ ("id" -> i)).toMap
       }
+      .groupBy { m => m("id").asInstanceOf[Long] }
+      .map { case (i: Long, ps: Seq[Map[String, Any]]) => ps.reduce { (a, b) => a ++ b } }
       .toList
   }
 
@@ -262,7 +269,12 @@ class TigerGraphDriver(
       edgeType: String,
       dstNodeMap: mutable.Map[String, Long],
       dstFullNameKey: String
-  ): Unit = ???
+  ): Unit = {
+    val endpoint = s"/query/cpg/link_ast_${edgeType.toLowerCase}_${dstFullNameKey.toLowerCase}"
+    dstNodeMap.foreach { case (key, id) =>
+      get(endpoint, srcLabels.map(("src_labels", _)) :+ ("dst_value", key) :+ ("dst", id.toString))
+    }
+  }
 
   override def buildSchema(): Unit = postGSQL(buildSchemaPayload())
 
@@ -271,6 +283,7 @@ class TigerGraphDriver(
       |DROP ALL
       |$VERTICES
       |$EDGES
+      |$WILDCARD_EDGES
       |CREATE GRAPH cpg(*)
       |$QUERIES
       |INSTALL QUERY ALL
@@ -372,6 +385,7 @@ class TigerGraphDriver(
       logger.debug(s"Posting payload:\n$payload")
       codeControl.disableSystemExit()
       val output = executeGsqlClient(args)
+      println(output)
       logger.trace(output)
     } catch {
       case e: Throwable => logger.error(s"Unable to post GSQL payload! Payload $payload", e)
@@ -493,6 +507,15 @@ object TigerGraphDriver {
     }
   }
 
+  /** Edges that should be specified as being between any kind of vertex.
+    */
+  private val WILDCARD_EDGE_LABELS = Set(
+    EdgeTypes.EVAL_TYPE,
+    EdgeTypes.REF,
+    EdgeTypes.INHERITS_FROM,
+    EdgeTypes.ALIAS_OF
+  )
+
   /** Determines if an edge type between two node types is valid.
     */
   def checkEdgeConstraint(from: String, to: String, edge: String): Boolean = {
@@ -572,10 +595,21 @@ object TigerGraphDriver {
         }
       }
       .groupBy { case (_, _, e) => e }
+      .filterNot { x => WILDCARD_EDGE_LABELS.contains(x._1) }
       .map { x: (String, Iterable[(String, String, String)]) =>
         val prefix = s"CREATE DIRECTED EDGE _${x._1}("
         val body   = x._2.map { case (src, dst, _) => s"FROM ${src}_, TO ${dst}_" }.mkString("|")
         s"$prefix$body)"
+      }
+      .mkString("\n")
+  }
+
+  /** Creates the schema string of all edges that should be treated as widlcards.
+    */
+  private def WILDCARD_EDGES: String = {
+    WILDCARD_EDGE_LABELS
+      .map { x =>
+        s"CREATE DIRECTED EDGE _$x(FROM *, TO *)"
       }
       .mkString("\n")
   }
@@ -675,8 +709,61 @@ object TigerGraphDriver {
         |      ACCUM @@ids += src.id;
         |  PRINT @@ids as ids;
         |}
+        |""".stripMargin,
+      """
+        |CREATE QUERY delete_source_file(SET<STRING> filenames) FOR GRAPH cpg SYNTAX v2 {
+        |  fs = {FILE_.*};
+        |  fvs = SELECT f
+        |        FROM fs:f
+        |        WHERE f._NAME IN filenames;
+        |  tds = SELECT td
+        |        FROM fvs -(<_SOURCE_FILE)- TYPE_DECL_:td;
+        |  ts = SELECT t
+        |       FROM tds -(<_REF)- TYPE_:t;
+        |  nbs = SELECT n
+        |        FROM fs - (<_SOURCE_FILE)- NAMESPACE_BLOCK_:n;
+        |
+        |  childVs = SELECT t
+        |            FROM nbs:s -((_AST>|_CONDITION>)*) - :t;
+        |
+        |  nsToDelete = fvs UNION tds UNION ts UNION childVs;
+        |  DELETE v FROM nsToDelete:v;
+        |}
         |""".stripMargin
-    ) ++
+//      Array(("name", "name"))
+//      """
+//        |CREATE QUERY link_ast_name_by_name(SET<STRING> src_labels, STRING edge_label, STRING dst_label, STRING dst_key) FOR GRAPH cpg SYNTAX v2 {
+//        |  SetAccum<VERTEX> @@srcs;
+//        |  seed = {ANY};
+//        |  srcV = SELECT src
+//        |         FROM seed:src
+//        |         WHERE src.type IN src_labels AND src._NAME == dst_key
+//        |         ACCUM @@srcs += src;
+//        |  dstV = SELECT tgt
+//        |         FROM seed:tgt
+//        |         WHERE tgt.type == dst_label AND tgt._NAME == dst_key
+//        |         ACCUM FOREACH s IN @@srcs DO INSERT INTO _AST VALUES(s, tgt) END;
+//        |}
+//        |""".stripMargin
+    ) ++ Array(
+      (EdgeTypes.REF, PropertyNames.NAME),
+      (EdgeTypes.REF, PropertyNames.FULL_NAME),
+      (EdgeTypes.EVAL_TYPE, PropertyNames.TYPE_FULL_NAME),
+      (EdgeTypes.REF, PropertyNames.METHOD_FULL_NAME),
+      (EdgeTypes.INHERITS_FROM, PropertyNames.INHERITS_FROM_TYPE_FULL_NAME),
+      (EdgeTypes.ALIAS_OF, PropertyNames.ALIAS_TYPE_FULL_NAME)
+    ).map { case (e: String, p: String) =>
+      s"""
+        |CREATE QUERY link_ast_${e.toLowerCase}_${p.toLowerCase}(SET<STRING> src_labels, STRING dst_value, VERTEX dst) FOR GRAPH cpg {
+        |  seed = {ANY};
+        |  srcV = SELECT src
+        |         FROM seed:src
+        |         WHERE src.type IN src_labels AND src._$p == dst_value
+        |         ACCUM INSERT INTO _$e VALUES (src, dst);
+        |  PRINT srcV;
+        |}
+        |""".stripMargin
+    } ++
       Array("STRING", "INT", "BOOL").map(x => s"""
         |CREATE QUERY ${x(0).toLower}_property_from_nodes(STRING node_type, STRING property) FOR GRAPH cpg {
         |  TYPEDEF TUPLE<id UINT, property $x> RES;
