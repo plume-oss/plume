@@ -12,16 +12,18 @@ import scala.util.Using
 
 class PlumeFrontend extends LanguageFrontend {
 
+  val driver: OverflowDbDriver = new OverflowDbDriver()
   override val fileSuffix: String = ".java"
 
   override def execute(sourceCodeFile: File): Cpg = {
-    val driver = new OverflowDbDriver()
     val cpg    = new Jimple2Cpg().createCpg(sourceCodeFile.getAbsolutePath, driver = driver)
     cpg
   }
 }
 
 class Jimple2CpgFixture extends CodeToCpgFixture(new PlumeFrontend) {
+
+  val driver: OverflowDbDriver = frontend.asInstanceOf[PlumeFrontend].driver
 
   override def writeCodeToFile(sourceCode: String): File = {
     val tmpDir = Files.createTempDirectory("semanticcpgtest").toFile

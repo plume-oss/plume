@@ -1,8 +1,16 @@
 package io.github.plume.oss.drivers
 
 import io.github.plume.oss.drivers.OverflowDbDriver.newOverflowGraph
-import io.shiftleft.codepropertygraph.generated.nodes.{NamespaceBlock, StoredNode, TypeDecl}
+import io.shiftleft.codepropertygraph.generated.nodes.{
+  CfgNode,
+  NamespaceBlock,
+  StoredNode,
+  TypeDecl
+}
 import io.shiftleft.codepropertygraph.generated.{Cpg, EdgeTypes, NodeTypes, PropertyNames}
+import io.shiftleft.dataflowengineoss.language.toExtendedCfgNode
+import io.shiftleft.dataflowengineoss.queryengine.{EngineConfig, EngineContext}
+import io.shiftleft.dataflowengineoss.semanticsloader.Semantics
 import io.shiftleft.passes.AppliedDiffGraph
 import io.shiftleft.passes.DiffGraph.{Change, PackedProperties}
 import org.slf4j.LoggerFactory
@@ -21,10 +29,14 @@ case class OverflowDbDriver(
       JFile.createTempFile("plume-", ".odb").getAbsolutePath
     ),
     heapPercentageThreshold: Int = 80,
-    serializationStatsEnabled: Boolean = false
+    serializationStatsEnabled: Boolean = false,
+    maxCallDepth: Int = 2
 ) extends IDriver {
 
-  private val logger = LoggerFactory.getLogger(classOf[OverflowDbDriver])
+  private val logger                  = LoggerFactory.getLogger(classOf[OverflowDbDriver])
+  private val semanticsParser         = new io.shiftleft.dataflowengineoss.semanticsloader.Parser()
+  private val defaultSemantics        = getClass.getClassLoader.getResource("default.semantics")
+  implicit var context: EngineContext = loadDataflowContext(maxCallDepth)
 
   private val odbConfig = Config
     .withDefaults()
@@ -35,6 +47,20 @@ case class OverflowDbDriver(
   }
   if (serializationStatsEnabled) odbConfig.withSerializationStatsEnabled()
   val cpg: Cpg = newOverflowGraph(odbConfig)
+
+  def loadDataflowContext(maxCallDepth: Int): EngineContext = {
+    if (defaultSemantics != null) {
+      EngineContext(
+        Semantics.fromList(semanticsParser.parseFile(defaultSemantics.getFile)),
+        EngineConfig(maxCallDepth)
+      )
+    } else {
+      logger.warn(
+        "No \"default.semantics\" file found under resources - data flow tracking may not perform correctly."
+      )
+      EngineContext(Semantics.fromList(List()))
+    }
+  }
 
   override def isConnected: Boolean = !cpg.graph.isClosed
 
@@ -170,6 +196,9 @@ case class OverflowDbDriver(
         }
     }
   }
+
+  def getPath(source: Traversal[CfgNode], sink: Traversal[CfgNode]): List[CfgNode] =
+    sink.reachableBy(source).toList
 }
 
 object OverflowDbDriver {
