@@ -3,6 +3,7 @@ package io.github.plume.oss.drivers
 import io.shiftleft.codepropertygraph.generated.{EdgeTypes, NodeTypes, PropertyNames}
 import io.shiftleft.passes.AppliedDiffGraph
 import io.shiftleft.passes.DiffGraph.{Change, PackedProperties}
+import io.shiftleft.proto.cpg.Cpg.DispatchTypes
 import org.apache.commons.configuration2.BaseConfiguration
 import org.apache.tinkerpop.gremlin.process.traversal.P
 import org.apache.tinkerpop.gremlin.process.traversal.P.{neq, within}
@@ -260,7 +261,31 @@ abstract class GremlinDriver extends IDriver {
     }
   }
 
-  override def staticCallLinker(): Unit = {}
+  override def staticCallLinker(): Unit = {
+    Using.resource(graph.traversal()) { g =>
+      g.V()
+        .hasLabel(NodeTypes.CALL)
+        .has(PropertyNames.DISPATCH_TYPE, DispatchTypes.STATIC_DISPATCH.name())
+        .project[Any]("id", PropertyNames.METHOD_FULL_NAME)
+        .by(T.id)
+        .by(PropertyNames.METHOD_FULL_NAME)
+        .asScala
+        .map(_.asScala.toMap)
+        .foreach { m =>
+          val srcId       = m.getOrElse("id", null).asInstanceOf[Long]
+          val dstFullName = m.getOrElse(PropertyNames.METHOD_FULL_NAME, null).asInstanceOf[String]
+          if (dstFullName != null) {
+            methodFullNameToNode.get(dstFullName) match {
+              case Some(dstId) =>
+                if (!exists(srcId, dstId, EdgeTypes.CALL)) {
+                  g.V(srcId).addE(EdgeTypes.CALL).to(__.V(dstId)).iterate()
+                }
+              case None =>
+            }
+          }
+        }
+    }
+  }
 
   override def dynamicCallLinker(): Unit = {}
 

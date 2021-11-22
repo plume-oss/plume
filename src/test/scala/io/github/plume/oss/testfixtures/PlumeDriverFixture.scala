@@ -5,7 +5,7 @@ import io.shiftleft.codepropertygraph.generated.NodeTypes._
 import io.shiftleft.codepropertygraph.generated.nodes._
 import io.shiftleft.codepropertygraph.generated.{Cpg, DispatchTypes, EdgeTypes}
 import io.shiftleft.passes.{DiffGraph, IntervalKeyPool}
-import io.shiftleft.proto.cpg.Cpg.NodePropertyName._
+import io.shiftleft.codepropertygraph.generated.PropertyNames._
 import org.scalatest.matchers.should.Matchers
 import org.scalatest.wordspec.AnyWordSpec
 import org.scalatest.{BeforeAndAfter, BeforeAndAfterAll}
@@ -37,11 +37,11 @@ class PlumeDriverFixture(val driver: IDriver)
     val adg =
       DiffGraph.Applier.applyDiff(diffGraph.build(), cpg.graph, undoable = false, Option(keyPool))
     driver.bulkTx(adg)
-    val List(m: Map[String, Any]) = driver.propertyFromNodes(METHOD, NAME.name(), ORDER.name())
-    m.get(NAME.name()) shouldBe Some("foo")
-    m.get(ORDER.name()) shouldBe Some(1)
-    val List(b: Map[String, Any]) = driver.propertyFromNodes(BLOCK, ORDER.name())
-    b.get(ORDER.name()) shouldBe Some(1)
+    val List(m: Map[String, Any]) = driver.propertyFromNodes(METHOD, NAME, ORDER)
+    m.get(NAME) shouldBe Some("foo")
+    m.get(ORDER) shouldBe Some(1)
+    val List(b: Map[String, Any]) = driver.propertyFromNodes(BLOCK, ORDER)
+    b.get(ORDER) shouldBe Some(1)
   }
 
   "should reflect node subtractions in bulk transactions" in {
@@ -55,11 +55,11 @@ class PlumeDriverFixture(val driver: IDriver)
       DiffGraph.Applier.applyDiff(diffGraph1.build(), cpg.graph, undoable = false, Option(keyPool))
     driver.bulkTx(adg1)
 
-    val List(m: Map[String, Any]) = driver.propertyFromNodes(METHOD, NAME.name(), ORDER.name())
-    m.get(NAME.name()) shouldBe Some("foo")
-    m.get(ORDER.name()) shouldBe Some(1)
-    val List(b: Map[String, Any]) = driver.propertyFromNodes(BLOCK, ORDER.name())
-    b.get(ORDER.name()) shouldBe Some(1)
+    val List(m: Map[String, Any]) = driver.propertyFromNodes(METHOD, NAME, ORDER)
+    m.get(NAME) shouldBe Some("foo")
+    m.get(ORDER) shouldBe Some(1)
+    val List(b: Map[String, Any]) = driver.propertyFromNodes(BLOCK, ORDER)
+    b.get(ORDER) shouldBe Some(1)
 
     // Remove one node
     diffGraph2.removeNode(m.getOrElse("id", -1L).toString.toLong)
@@ -81,11 +81,11 @@ class PlumeDriverFixture(val driver: IDriver)
       DiffGraph.Applier.applyDiff(diffGraph1.build(), cpg.graph, undoable = false, Option(keyPool))
     driver.bulkTx(adg1)
 
-    val List(m: Map[String, Any]) = driver.propertyFromNodes(METHOD, NAME.name(), ORDER.name())
-    m.get(NAME.name()) shouldBe Some("foo")
-    m.get(ORDER.name()) shouldBe Some(1)
-    val List(b: Map[String, Any]) = driver.propertyFromNodes(BLOCK, ORDER.name())
-    b.get(ORDER.name()) shouldBe Some(1)
+    val List(m: Map[String, Any]) = driver.propertyFromNodes(METHOD, NAME, ORDER)
+    m.get(NAME) shouldBe Some("foo")
+    m.get(ORDER) shouldBe Some(1)
+    val List(b: Map[String, Any]) = driver.propertyFromNodes(BLOCK, ORDER)
+    b.get(ORDER) shouldBe Some(1)
 
     // Add an edge
     diffGraph2.addEdge(
@@ -120,11 +120,11 @@ class PlumeDriverFixture(val driver: IDriver)
       DiffGraph.Applier.applyDiff(diffGraph1.build(), cpg.graph, undoable = false, Option(keyPool))
     driver.bulkTx(adg1)
 
-    val List(m: Map[String, Any]) = driver.propertyFromNodes(METHOD, NAME.name(), ORDER.name())
-    m.get(NAME.name()) shouldBe Some("foo")
-    m.get(ORDER.name()) shouldBe Some(1)
-    val List(b: Map[String, Any]) = driver.propertyFromNodes(BLOCK, ORDER.name())
-    b.get(ORDER.name()) shouldBe Some(1)
+    val List(m: Map[String, Any]) = driver.propertyFromNodes(METHOD, NAME, ORDER)
+    m.get(NAME) shouldBe Some("foo")
+    m.get(ORDER) shouldBe Some(1)
+    val List(b: Map[String, Any]) = driver.propertyFromNodes(BLOCK, ORDER)
+    b.get(ORDER) shouldBe Some(1)
 
     driver.exists(
       m.getOrElse("id", -1L).toString.toLong,
@@ -157,7 +157,7 @@ class PlumeDriverFixture(val driver: IDriver)
     driver.bulkTx(adg)
 
     driver.idInterval(1, 6).size shouldBe 6
-    driver.idInterval(1, 20).size shouldBe 16
+    driver.idInterval(1, 20).size shouldBe 18
     driver.idInterval(1, 3).size shouldBe 3
     driver.idInterval(1001, 2000).size shouldBe 0
   }
@@ -176,18 +176,18 @@ class PlumeDriverFixture(val driver: IDriver)
 
     val List(t1: Map[String, Any], t2: Map[String, Any]) =
       driver
-        .propertyFromNodes(TYPE, FULL_NAME.name())
-        .sortBy { a => a(FULL_NAME.name()).asInstanceOf[String] }
+        .propertyFromNodes(TYPE, FULL_NAME)
+        .sortBy { a => a(FULL_NAME).asInstanceOf[String] }
         .reverse
-    t1.get(FULL_NAME.name()) shouldBe Some("bar.Foo")
-    t2.get(FULL_NAME.name()) shouldBe Some("bar.Bar")
+    t1.get(FULL_NAME) shouldBe Some("bar.Foo")
+    t2.get(FULL_NAME) shouldBe Some("bar.Bar")
     val List(td1: Map[String, Any], td2: Map[String, Any]) =
       driver
-        .propertyFromNodes(TYPE_DECL, FULL_NAME.name())
-        .sortBy { a => a(FULL_NAME.name()).asInstanceOf[String] }
+        .propertyFromNodes(TYPE_DECL, FULL_NAME)
+        .sortBy { a => a(FULL_NAME).asInstanceOf[String] }
         .reverse
-    td1.get(FULL_NAME.name()) shouldBe Some("bar.Foo")
-    td2.get(FULL_NAME.name()) shouldBe Some("bar.Bar")
+    td1.get(FULL_NAME) shouldBe Some("bar.Foo")
+    td2.get(FULL_NAME) shouldBe Some("bar.Bar")
     driver.exists(
       t1.getOrElse("id", -1L).asInstanceOf[Long],
       td1.getOrElse("id", -1L).asInstanceOf[Long],
@@ -219,12 +219,35 @@ class PlumeDriverFixture(val driver: IDriver)
     // remove f1 nodes
     driver.removeSourceFiles(f1.name)
 
-    val List(m: Map[String, Any])  = driver.propertyFromNodes(METHOD, NAME.name())
-    val List(td: Map[String, Any]) = driver.propertyFromNodes(TYPE_DECL, NAME.name())
-    val List(n: Map[String, Any])  = driver.propertyFromNodes(NAMESPACE_BLOCK, NAME.name())
-    m.getOrElse(NAME.name(), -1L).asInstanceOf[String] shouldBe m2.name
-    td.getOrElse(NAME.name(), -1L).asInstanceOf[String] shouldBe td2.name
-    n.getOrElse(NAME.name(), -1L).asInstanceOf[String] shouldBe n2.name
+    val List(m: Map[String, Any])  = driver.propertyFromNodes(METHOD, NAME)
+    val List(td: Map[String, Any]) = driver.propertyFromNodes(TYPE_DECL, NAME)
+    val List(n: Map[String, Any])  = driver.propertyFromNodes(NAMESPACE_BLOCK, NAME)
+    m.getOrElse(NAME, -1L).asInstanceOf[String] shouldBe m2.name
+    td.getOrElse(NAME, -1L).asInstanceOf[String] shouldBe td2.name
+    n.getOrElse(NAME, -1L).asInstanceOf[String] shouldBe n2.name
+  }
+
+  "should link static calls to their methods" in {
+    val cpg       = Cpg.empty
+    val keyPool   = new IntervalKeyPool(1, 1000)
+    val diffGraph = DiffGraph.newBuilder
+    createSimpleGraph(diffGraph)
+    val adg =
+      DiffGraph.Applier.applyDiff(diffGraph.build(), cpg.graph, undoable = false, Option(keyPool))
+    driver.bulkTx(adg)
+
+    driver.buildInterproceduralEdges()
+
+    val List(_: Map[String, Any], barBar: Map[String, Any], _: Map[String, Any]) =
+      driver.propertyFromNodes(METHOD, FULL_NAME)
+    val List(barCall: Map[String, Any], _: Map[String, Any]) = driver.propertyFromNodes(CALL, METHOD_FULL_NAME)
+    barBar.get(FULL_NAME) shouldBe Some("bar.Bar:bar(int,int):int")
+    barCall.get(METHOD_FULL_NAME) shouldBe Some("bar.Bar:bar(int,int):int")
+    driver.exists(
+      barCall.getOrElse("id", -1L).asInstanceOf[Long],
+      barBar.getOrElse("id", -1L).asInstanceOf[Long],
+      CALL
+    ) shouldBe true
   }
 
   override def afterAll(): Unit = {
@@ -243,13 +266,16 @@ class PlumeDriverFixture(val driver: IDriver)
       .addNode(n2)
       .addNode(m1)
       .addNode(m2)
+      .addNode(m3)
       .addNode(b1)
       .addNode(c1)
+      .addNode(c2)
       .addNode(li1)
       .addNode(l1)
       .addNode(i1)
       .addEdge(m1, f1, EdgeTypes.SOURCE_FILE)
       .addEdge(m2, f2, EdgeTypes.SOURCE_FILE)
+      .addEdge(m3, f1, EdgeTypes.SOURCE_FILE)
       .addEdge(td1, f1, EdgeTypes.SOURCE_FILE)
       .addEdge(td2, f2, EdgeTypes.SOURCE_FILE)
       .addEdge(n1, f1, EdgeTypes.SOURCE_FILE)
@@ -259,9 +285,11 @@ class PlumeDriverFixture(val driver: IDriver)
       .addEdge(n1, td1, EdgeTypes.AST)
       .addEdge(n2, td2, EdgeTypes.AST)
       .addEdge(td1, m1, EdgeTypes.AST)
+      .addEdge(td1, m3, EdgeTypes.AST)
       .addEdge(td2, m2, EdgeTypes.AST)
       .addEdge(m1, b1, EdgeTypes.AST)
       .addEdge(b1, c1, EdgeTypes.AST)
+      .addEdge(b1, c2, EdgeTypes.AST)
       .addEdge(b1, l1, EdgeTypes.AST)
       .addEdge(c1, li1, EdgeTypes.AST)
       .addEdge(c1, i1, EdgeTypes.AST)
@@ -304,6 +332,7 @@ object PlumeDriverFixture {
   val m1: NewMethod =
     NewMethod()
       .name("foo")
+      .fullName("bar.Foo:foo():int")
       .order(1)
       .astParentType(TYPE_DECL)
       .astParentFullName(td1.fullName)
@@ -313,6 +342,12 @@ object PlumeDriverFixture {
     .order(1)
     .astParentType(TYPE_DECL)
     .astParentType(td2.fullName)
+  val m3: NewMethod = NewMethod()
+    .name("bar")
+    .fullName("bar.Foo:bar(int,int):int")
+    .order(2)
+    .astParentType(TYPE_DECL)
+    .astParentType(td1.fullName)
   val f1: NewFile  = NewFile().name("/bar/Foo.class").order(1)
   val f2: NewFile  = NewFile().name("/bar/Bar.class").order(1)
   val b1: NewBlock = NewBlock().order(1)
@@ -320,6 +355,10 @@ object PlumeDriverFixture {
     .name("bar")
     .methodFullName("bar.Bar:bar(int,int):int")
     .dispatchType(DispatchTypes.STATIC_DISPATCH)
+  val c2: NewCall = NewCall()
+    .name("bar")
+    .methodFullName("bar.Foo:bar(int,int):int")
+    .dispatchType(DispatchTypes.DYNAMIC_DISPATCH)
   val l1: NewLocal      = NewLocal().name("x").typeFullName("int")
   val li1: NewLiteral   = NewLiteral().code("1").typeFullName("int")
   val i1: NewIdentifier = NewIdentifier().name("x").typeFullName("int")
