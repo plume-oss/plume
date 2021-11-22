@@ -2,7 +2,7 @@ package io.github.plume.oss.unpacking
 
 import io.github.plume.oss.Jimple2Cpg
 import io.shiftleft.codepropertygraph.Cpg
-import io.shiftleft.semanticcpg.language.{toMethodTraversalExtGen, toNodeTypeStarters}
+import io.shiftleft.semanticcpg.language.{toMethodTraversalExtGen, toNodeTypeStarters, toTypeDeclTraversalExtGen}
 import org.scalatest.BeforeAndAfterAll
 import org.scalatest.matchers.must.Matchers
 import org.scalatest.matchers.should.Matchers.convertToAnyShouldWrapper
@@ -37,10 +37,10 @@ class JarUnpackingTests extends AnyWordSpec with Matchers with BeforeAndAfterAll
   }
 
   "should reflect the correct package order" in {
-    val List(foo) = cpg.typeDecl("Foo").l
+    val List(foo) = cpg.typeDecl.fullNameExact("Foo").l
     foo.name shouldBe "Foo"
 
-    val List(bar) = cpg.typeDecl("pac.Bar").l
+    val List(bar) = cpg.typeDecl.fullNameExact("pac.Bar").l
     bar.name shouldBe "Bar"
 
     cpg.method.filterNot(_.isExternal).fullName.toSet shouldBe Set("Foo.<init>:void()", "Foo.add:int(int,int)", "pac.Bar.sub:int(int,int)", "pac.Bar.<init>:void()")

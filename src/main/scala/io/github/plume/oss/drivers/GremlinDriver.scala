@@ -227,7 +227,7 @@ abstract class GremlinDriver extends IDriver {
       edgeType: String,
       dstNodeMap: mutable.Map[String, Long],
       dstFullNameKey: String,
-      dstNodeType: String,
+      dstNodeType: String
   ): Unit = {
     Using.resource(graph.traversal()) { g =>
       g
@@ -259,5 +259,9 @@ abstract class GremlinDriver extends IDriver {
         }
     }
   }
+
+  override def staticCallLinker(): Unit = {}
+
+  override def dynamicCallLinker(): Unit = {}
 
 }

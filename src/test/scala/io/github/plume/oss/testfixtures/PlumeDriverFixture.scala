@@ -172,7 +172,7 @@ class PlumeDriverFixture(val driver: IDriver)
       DiffGraph.Applier.applyDiff(diffGraph.build(), cpg.graph, undoable = false, Option(keyPool))
     driver.bulkTx(adg)
 
-    driver.astLinker()
+    driver.buildInterproceduralEdges()
 
     val List(t1: Map[String, Any], t2: Map[String, Any]) =
       driver
@@ -215,7 +215,7 @@ class PlumeDriverFixture(val driver: IDriver)
       DiffGraph.Applier.applyDiff(diffGraph.build(), cpg.graph, undoable = false, Option(keyPool))
     driver.bulkTx(adg)
 
-    driver.astLinker()
+    driver.buildInterproceduralEdges()
     // remove f1 nodes
     driver.removeSourceFiles(f1.name)
 

@@ -2,14 +2,25 @@ package io.github.plume.oss
 
 import io.github.plume.oss.drivers.{IDriver, OverflowDbDriver}
 import io.github.plume.oss.passes._
-import io.github.plume.oss.passes.concurrent.{PlumeCfgCreationPass, PlumeContainsEdgePass, PlumeDiffPass, PlumeHashPass}
-import io.github.plume.oss.passes.parallel.{AstCreationPass, PlumeCdgPass, PlumeCfgDominatorPass, PlumeMethodStubCreator, PlumeReachingDefPass}
+import io.github.plume.oss.passes.concurrent.{
+  PlumeCfgCreationPass,
+  PlumeContainsEdgePass,
+  PlumeDiffPass,
+  PlumeHashPass
+}
+import io.github.plume.oss.passes.parallel.{
+  AstCreationPass,
+  PlumeCdgPass,
+  PlumeCfgDominatorPass,
+  PlumeMethodStubCreator,
+  PlumeReachingDefPass
+}
 import io.shiftleft.codepropertygraph.Cpg
 import io.shiftleft.codepropertygraph.generated.{NodeTypes, PropertyNames}
-import io.shiftleft.dataflowengineoss.passes.reachingdef.ReachingDefPass
 import io.shiftleft.passes.CpgPassBase
-import io.shiftleft.semanticcpg.passes.linking.calllinker.StaticCallLinker
-import io.shiftleft.semanticcpg.passes.linking.linker.Linker
+import io.shiftleft.semanticcpg.passes.base.{AstLinkerPass, TypeUsagePass}
+import io.shiftleft.semanticcpg.passes.callgraph.{MethodRefLinker, StaticCallLinker}
+import io.shiftleft.semanticcpg.passes.typerelations.{AliasLinkerPass, TypeHierarchyPass}
 import io.shiftleft.x2cpg.SourceFiles
 import io.shiftleft.x2cpg.X2Cpg.newEmptyCpg
 import org.slf4j.LoggerFactory
@@ -138,18 +149,14 @@ class Jimple2Cpg {
       new PlumeReachingDefPass(cpg).createAndApply(driver)
       new PlumeHashPass(cpg).createAndApply(driver)
 
-      // If the call ID is missing then discard as it will be regenerated
-      driver.astLinker()
-      new Linker(cpg).createAndApply()
-      new StaticCallLinker(cpg).createAndApply()
-      new PlumeDynamicCallLinker(cpg).createAndApply()
+      driver.buildInterproceduralEdges()
       cpg
     } finally {
       closeSoot()
     }
   }
 
-  private def loadClassesIntoSoot(sourceCodePath: String, sourceFileNames: List[String]) = {
+  private def loadClassesIntoSoot(sourceCodePath: String, sourceFileNames: List[String]): Unit = {
     sourceFileNames
       .map(getQualifiedClassPath(sourceCodePath, _))
       .map { x =>
@@ -164,7 +171,7 @@ class Jimple2Cpg {
       driver: IDriver,
       blackList: Set[String],
       nBlacklist: Set[String]
-  ): Seq[CpgPassBase with PlumeCpgPassBase] = {
+  ): Seq[PlumeCpgPassBase] = {
     val namespaceKeyPool =
       new IncrementalKeyPool(1000101, 2000200, driver.idInterval(1000101, 2000200))
     val filesKeyPool =

@@ -5,7 +5,7 @@ import io.github.plume.oss.passes.PlumeCpgPassBase
 import io.shiftleft.codepropertygraph.Cpg
 import io.shiftleft.codepropertygraph.generated.nodes.Method
 import io.shiftleft.passes.{KeyPool, ParallelIteratorExecutor}
-import io.shiftleft.semanticcpg.passes.codepencegraph.CdgPass
+import io.shiftleft.semanticcpg.passes.controlflow.codepencegraph.CdgPass
 
 class PlumeCdgPass(cpg: Cpg, keyPools: Option[Iterator[KeyPool]] = None)
     extends CdgPass(cpg)

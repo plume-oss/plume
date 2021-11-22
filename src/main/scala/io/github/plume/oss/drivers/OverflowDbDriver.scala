@@ -1,16 +1,13 @@
 package io.github.plume.oss.drivers
 
 import io.github.plume.oss.drivers.OverflowDbDriver.newOverflowGraph
-import io.shiftleft.codepropertygraph.generated.nodes.{
-  CfgNode,
-  NamespaceBlock,
-  StoredNode,
-  TypeDecl
-}
-import io.shiftleft.codepropertygraph.generated.{Cpg, EdgeTypes, NodeTypes, PropertyNames}
-import io.shiftleft.dataflowengineoss.language.toExtendedCfgNode
-import io.shiftleft.dataflowengineoss.queryengine.{EngineConfig, EngineContext}
-import io.shiftleft.dataflowengineoss.semanticsloader.Semantics
+import io.github.plume.oss.passes.PlumeDynamicCallLinker
+import io.joern.dataflowengineoss.language.toExtendedCfgNode
+import io.joern.dataflowengineoss.queryengine.{EngineConfig, EngineContext}
+import io.joern.dataflowengineoss.semanticsloader.{Parser, Semantics}
+import io.shiftleft.codepropertygraph.generated.nodes._
+import io.shiftleft.codepropertygraph.generated._
+import io.shiftleft.codepropertygraph.{Cpg => CPG}
 import io.shiftleft.passes.AppliedDiffGraph
 import io.shiftleft.passes.DiffGraph.{Change, PackedProperties}
 import org.slf4j.LoggerFactory
@@ -34,7 +31,7 @@ case class OverflowDbDriver(
 ) extends IDriver {
 
   private val logger                  = LoggerFactory.getLogger(classOf[OverflowDbDriver])
-  private val semanticsParser         = new io.shiftleft.dataflowengineoss.semanticsloader.Parser()
+  private val semanticsParser         = new Parser()
   private val defaultSemantics        = getClass.getClassLoader.getResource("default.semantics")
   implicit var context: EngineContext = loadDataflowContext(maxCallDepth)
 
@@ -197,8 +194,24 @@ case class OverflowDbDriver(
     }
   }
 
-  def getPath(source: Traversal[CfgNode], sink: Traversal[CfgNode]): List[CfgNode] =
-    sink.reachableBy(source).toList
+  override def staticCallLinker(): Unit = {
+    cpg.graph
+      .nodes(NodeTypes.CALL)
+      .collect { case x: Call if x.dispatchType == DispatchTypes.STATIC_DISPATCH => x }
+      .foreach { c: Call =>
+        methodFullNameToNode.get(c.methodFullName) match {
+          case Some(dstId) if cpg.graph.nodes(dstId).hasNext =>
+            c.addEdge(EdgeTypes.CALL, cpg.graph.nodes(dstId).next())
+          case None =>
+        }
+      }
+  }
+
+  override def dynamicCallLinker(): Unit =
+    new PlumeDynamicCallLinker(CPG(cpg.graph)).createAndApply()
+
+  def nodesReachableBy(source: Traversal[CfgNode], sink: Traversal[CfgNode]): List[CfgNode] =
+    sink.reachableBy(source).dedup.toList
 }
 
 object OverflowDbDriver {

@@ -17,13 +17,15 @@ class PlumeFrontend extends LanguageFrontend {
 
   override def execute(sourceCodeFile: File): Cpg = {
     val cpg    = new Jimple2Cpg().createCpg(sourceCodeFile.getAbsolutePath, driver = driver)
-    cpg
+    Cpg(driver.cpg.graph)
   }
 }
 
 class Jimple2CpgFixture extends CodeToCpgFixture(new PlumeFrontend) {
 
   val driver: OverflowDbDriver = frontend.asInstanceOf[PlumeFrontend].driver
+
+  override def createEnhancements(cpg: Cpg): Unit = {}
 
   override def writeCodeToFile(sourceCode: String): File = {
     val tmpDir = Files.createTempDirectory("semanticcpgtest").toFile

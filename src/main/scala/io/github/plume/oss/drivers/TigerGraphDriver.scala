@@ -49,7 +49,7 @@ class TigerGraphDriver(
       .response(asJson[Map[String, JsonObject]])
       .send(backend)
     response.body match {
-      case Left(_)      => false
+      case Left(_)  => false
       case Right(_) => true
     }
   } catch {
@@ -292,6 +292,10 @@ class TigerGraphDriver(
       )
     }
   }
+
+  override def staticCallLinker(): Unit = {}
+
+  override def dynamicCallLinker(): Unit = {}
 
   override def buildSchema(): Unit = postGSQL(buildSchemaPayload())
 

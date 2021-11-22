@@ -2,9 +2,9 @@ package io.github.plume.oss.passes.parallel
 
 import io.github.plume.oss.drivers.IDriver
 import io.github.plume.oss.passes.PlumeCpgPassBase
+import io.joern.dataflowengineoss.passes.reachingdef.ReachingDefPass
 import io.shiftleft.codepropertygraph.Cpg
 import io.shiftleft.codepropertygraph.generated.nodes.Method
-import io.shiftleft.dataflowengineoss.passes.reachingdef.ReachingDefPass
 import io.shiftleft.passes.{KeyPool, ParallelIteratorExecutor}
 
 class PlumeReachingDefPass(cpg: Cpg, keyPools: Option[Iterator[KeyPool]] = None)

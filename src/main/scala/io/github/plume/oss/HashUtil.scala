@@ -28,7 +28,8 @@ object HashUtil {
       val seed                      = -0x68b84d74
       val hash32: StreamingXXHash32 = factory.newStreamingHash32(seed)
       val buf                       = new Array[Byte](8192)
-      Iterator.continually(inStream.read(buf))
+      Iterator
+        .continually(inStream.read(buf))
         .takeWhile(_ != -1)
         .foreach(hash32.update(buf, 0, _))
       return hash32.getValue

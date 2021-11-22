@@ -48,12 +48,12 @@ class TypeTests extends Jimple2CpgFixture {
   //  }
 
   "should allow traversing from member's TYPE to member" in {
-    val List(x) = cpg.typ("java.lang.Long").memberOfType.l
+    val List(x) = cpg.typ.fullNameExact("java.lang.Long").memberOfType.l
     x.name shouldBe "x"
   }
 
   "should allow traversing from return params TYPE to return param" in {
-    val List(x) = cpg.typ("java.lang.Integer").methodReturnOfType.l
+    val List(x) = cpg.typ.fullNameExact("java.lang.Integer").methodReturnOfType.l
     x.typeFullName shouldBe "java.lang.Integer"
   }
 

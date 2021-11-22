@@ -58,12 +58,23 @@ trait IDriver extends AutoCloseable {
   protected val methodFullNameToNode   = mutable.Map.empty[String, Long]
   protected val namespaceNameToNode    = mutable.Map.empty[String, Long]
 
+  /** Runs linkers for AST node relations and calls.
+    */
+  def buildInterproceduralEdges(): Unit = {
+    initMaps()
+    astLinker()
+    staticCallLinker()
+    dynamicCallLinker()
+    clearMaps()
+  }
+
   /** Create REF edges from TYPE nodes to TYPE_DECL, EVAL_TYPE edges from nodes of various types to TYPE, REF edges from
     * METHOD_REFs to METHOD, INHERITS_FROM nodes from TYPE_DECL nodes to TYPE, and ALIAS_OF edges from TYPE_DECL nodes
     * to TYPE.
+    *
+    * Requires [[initMaps]]
     */
-  def astLinker(): Unit = {
-    initMaps()
+  protected def astLinker(): Unit = {
     // Link NAMESPACE and NAMESPACE_BLOCK
     linkAstNodes(
       srcLabels = List(NodeTypes.NAMESPACE_BLOCK),
@@ -129,7 +140,6 @@ trait IDriver extends AutoCloseable {
       dstFullNameKey = PropertyNames.ALIAS_TYPE_FULL_NAME,
       dstNodeType = NodeTypes.TYPE
     )
-    clearMaps()
   }
 
   protected def initMaps(): Unit = {
@@ -152,6 +162,7 @@ trait IDriver extends AutoCloseable {
     typeDeclFullNameToNode.clear()
     typeFullNameToNode.clear()
     methodFullNameToNode.clear()
+    namespaceNameToNode.clear()
   }
 
   /** Links nodes by their source label and destination full name key to their destination nodes by the
@@ -163,8 +174,16 @@ trait IDriver extends AutoCloseable {
       edgeType: String,
       dstNodeMap: mutable.Map[String, Long],
       dstFullNameKey: String,
-      dstNodeType: String,
+      dstNodeType: String
   ): Unit
+
+  /** Links all static dispatch calls to their methods.
+    */
+  protected def staticCallLinker(): Unit
+
+  /** Links all dynamic dispatch calls to their methods.
+    */
+  protected def dynamicCallLinker(): Unit
 
   /** Provides the assigned ID for the given node using the given diff graph.
     */

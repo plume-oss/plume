@@ -6,11 +6,13 @@ import io.shiftleft.codepropertygraph.generated.PropertyNames
 import io.shiftleft.codepropertygraph.generated.nodes.{AbstractNode, NewNode, StoredNode}
 import io.shiftleft.passes.DiffGraph.Change
 import io.shiftleft.passes.{DiffGraph, KeyPool}
-import io.shiftleft.semanticcpg.passes.FileCreationPass
-import io.shiftleft.semanticcpg.passes.metadata.MetaDataPass
-import io.shiftleft.semanticcpg.passes.methoddecorations.MethodDecoratorPass
-import io.shiftleft.semanticcpg.passes.namespacecreator.NamespaceCreator
-import io.shiftleft.semanticcpg.passes.typenodes.{TypeDeclStubCreator, TypeNodePass}
+import io.shiftleft.semanticcpg.passes.base.{
+  FileCreationPass,
+  MethodDecoratorPass,
+  NamespaceCreator,
+  TypeDeclStubCreator
+}
+import io.shiftleft.semanticcpg.passes.frontend.{MetaDataPass, TypeNodePass}
 
 class PlumeMetaDataPass(
     cpg: Cpg,

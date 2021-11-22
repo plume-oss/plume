@@ -4,7 +4,7 @@ import io.github.plume.oss.drivers.IDriver
 import io.github.plume.oss.passes.{IncrementalKeyPool, PlumeCpgPassBase}
 import io.shiftleft.codepropertygraph.Cpg
 import io.shiftleft.passes.{DiffGraph, KeyPool, ParallelIteratorExecutor}
-import io.shiftleft.semanticcpg.passes.languagespecific.fuzzyc.{MethodStubCreator, NameAndSignature}
+import io.shiftleft.semanticcpg.passes.base.{MethodStubCreator, NameAndSignature}
 
 class PlumeMethodStubCreator(
     cpg: Cpg,

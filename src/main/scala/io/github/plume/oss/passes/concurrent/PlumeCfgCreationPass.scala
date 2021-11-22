@@ -4,7 +4,7 @@ import io.github.plume.oss.drivers.IDriver
 import io.github.plume.oss.passes.PlumeCpgPassBase
 import io.shiftleft.codepropertygraph.Cpg
 import io.shiftleft.passes.DiffGraph
-import io.shiftleft.semanticcpg.passes.CfgCreationPass
+import io.shiftleft.semanticcpg.passes.controlflow.CfgCreationPass
 
 import scala.collection.mutable
 import scala.concurrent.ExecutionContext.Implicits.global

@@ -335,7 +335,7 @@ class Neo4jDriver(
       edgeType: String,
       dstNodeMap: mutable.Map[String, Long],
       dstFullNameKey: String,
-      dstNodeType: String,
+      dstNodeType: String
   ): Unit = {
     Using.resource(driver.session()) { session =>
       session.writeTransaction { tx =>
@@ -378,6 +378,10 @@ class Neo4jDriver(
       }
     }
   }
+
+  override def staticCallLinker(): Unit = {}
+
+  override def dynamicCallLinker(): Unit = {}
 
   override def buildSchema(): Unit = {
     Using.resource(driver.session()) { session =>

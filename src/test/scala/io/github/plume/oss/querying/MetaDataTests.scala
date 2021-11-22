@@ -14,7 +14,7 @@ class MetaDataTests extends Jimple2CpgFixture {
     val List(x) = cpg.metaData.l
     x.language shouldBe "PLUME"
     x.version shouldBe "0.1"
-    x.overlays shouldBe List("semanticcpg")
+    x.overlays shouldBe Seq()
   }
 
   "should not have any incoming or outgoing edges" in {
