@@ -2,18 +2,8 @@ package io.github.plume.oss
 
 import io.github.plume.oss.drivers.{IDriver, OverflowDbDriver}
 import io.github.plume.oss.passes._
-import io.github.plume.oss.passes.concurrent.{
-  PlumeCfgCreationPass,
-  PlumeContainsEdgePass,
-  PlumeDiffPass,
-  PlumeHashPass
-}
-import io.github.plume.oss.passes.parallel.{
-  AstCreationPass,
-  PlumeCdgPass,
-  PlumeCfgDominatorPass,
-  PlumeMethodStubCreator
-}
+import io.github.plume.oss.passes.concurrent.{PlumeCfgCreationPass, PlumeContainsEdgePass, PlumeDiffPass, PlumeHashPass}
+import io.github.plume.oss.passes.parallel.{AstCreationPass, PlumeCdgPass, PlumeCfgDominatorPass, PlumeMethodStubCreator}
 import io.shiftleft.codepropertygraph.Cpg
 import io.shiftleft.codepropertygraph.generated.{NodeTypes, PropertyNames}
 import io.shiftleft.passes.CpgPassBase
@@ -26,10 +16,9 @@ import soot.options.Options
 import soot.{G, PhaseOptions, Scene, SootClass}
 
 import java.io.{File => JFile}
-import java.nio.file.Files
+import java.nio.file.{Files, Paths}
 import java.util.zip.ZipFile
 import scala.jdk.CollectionConverters.{CollectionHasAsScala, EnumerationHasAsScala}
-import scala.tools.nsc
 import scala.util.{Failure, Success, Using}
 
 object Jimple2Cpg {
@@ -43,16 +32,16 @@ object Jimple2Cpg {
     * @return the correctly formatted class path.
     */
   def getQualifiedClassPath(codePath: String, filename: String): String = {
-    val codeDir: String = if (new JFile(codePath).isDirectory) {
-      codePath
+    val pathFile = new JFile(codePath)
+    val codeDir: String = if (pathFile.isDirectory) {
+      pathFile.toPath.toAbsolutePath.normalize.toString
     } else {
-      new JFile(codePath).getParentFile.getAbsolutePath
+      Paths.get(pathFile.getParentFile.getAbsolutePath).normalize.toString
     }
-
     filename
-      .replace(codeDir + nsc.io.File.separator, "")
+      .replace(codeDir + JFile.separator, "")
       .replace(".class", "")
-      .replace(nsc.io.File.separator, ".")
+      .replace(JFile.separator, ".")
   }
 }
 
@@ -64,16 +53,24 @@ class Jimple2Cpg {
 
   /** Creates a CPG from Jimple.
     *
-    * @param sourceCodePath The path to the Jimple code or code that can be transformed into Jimple.
+    * @param rawSourceCodePath The path to the Jimple code or code that can be transformed into Jimple.
     * @param outputPath     The path to store the CPG. If `outputPath` is `None`, the CPG is created in-memory.
     * @return The constructed CPG.
     */
   def createCpg(
-      sourceCodePath: String,
+      rawSourceCodePath: String,
       outputPath: Option[String] = Option(JFile.createTempFile("plume-", ".odb").getAbsolutePath),
       driver: IDriver = new OverflowDbDriver()
   ): Cpg = {
     try {
+      // Determine if the given path is a file or directory and sanitize accordingly
+      val rawSourceCodeFile = new JFile(rawSourceCodePath)
+      val sourceCodePath = if (rawSourceCodeFile.isDirectory) {
+        rawSourceCodeFile.toPath.toAbsolutePath.normalize.toString
+      } else {
+        Paths.get(rawSourceCodeFile.getParentFile.getAbsolutePath).normalize.toString
+      }
+
       configureSoot(sourceCodePath)
       val cpg = newEmptyCpg(outputPath)
 
@@ -118,7 +115,8 @@ class Jimple2Cpg {
         .map(_.toString)
         .toSet[String]
 
-      new PlumeMetaDataPass(cpg, language, Some(metaDataKeyPool), unchangedTypes).createAndApply(driver)
+      new PlumeMetaDataPass(cpg, language, Some(metaDataKeyPool), unchangedTypes)
+        .createAndApply(driver)
 
       // Load classes into Soot
       sourceFileNames
