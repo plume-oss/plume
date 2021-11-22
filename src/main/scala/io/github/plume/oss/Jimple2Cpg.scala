@@ -3,9 +3,10 @@ package io.github.plume.oss
 import io.github.plume.oss.drivers.{IDriver, OverflowDbDriver}
 import io.github.plume.oss.passes._
 import io.github.plume.oss.passes.concurrent.{PlumeCfgCreationPass, PlumeContainsEdgePass, PlumeDiffPass, PlumeHashPass}
-import io.github.plume.oss.passes.parallel.{AstCreationPass, PlumeCdgPass, PlumeCfgDominatorPass, PlumeMethodStubCreator}
+import io.github.plume.oss.passes.parallel.{AstCreationPass, PlumeCdgPass, PlumeCfgDominatorPass, PlumeMethodStubCreator, PlumeReachingDefPass}
 import io.shiftleft.codepropertygraph.Cpg
 import io.shiftleft.codepropertygraph.generated.{NodeTypes, PropertyNames}
+import io.shiftleft.dataflowengineoss.passes.reachingdef.ReachingDefPass
 import io.shiftleft.passes.CpgPassBase
 import io.shiftleft.semanticcpg.passes.linking.calllinker.StaticCallLinker
 import io.shiftleft.semanticcpg.passes.linking.linker.Linker
@@ -119,13 +120,7 @@ class Jimple2Cpg {
         .createAndApply(driver)
 
       // Load classes into Soot
-      sourceFileNames
-        .map(getQualifiedClassPath(sourceCodePath, _))
-        .map { x =>
-          Scene.v().addBasicClass(x, SootClass.BODIES); x
-        }
-        .foreach(Scene.v().loadClassAndSupport(_).setApplicationClass())
-      Scene.v().loadNecessaryClasses()
+      loadClassesIntoSoot(sourceCodePath, sourceFileNames)
       // Project Soot classes
       val astCreator = new AstCreationPass(sourceCodePath, codeToProcess.toList, cpg, methodKeyPool)
       astCreator.createAndApply(driver)
@@ -140,6 +135,7 @@ class Jimple2Cpg {
 
       basePasses(cpg, driver, unchangedTypes, unchangedNamespaces).foreach(_.createAndApply(driver))
       controlFlowPasses(cpg).foreach(_.createAndApply(driver))
+      new PlumeReachingDefPass(cpg).createAndApply(driver)
       new PlumeHashPass(cpg).createAndApply(driver)
 
       // If the call ID is missing then discard as it will be regenerated
@@ -151,6 +147,16 @@ class Jimple2Cpg {
     } finally {
       closeSoot()
     }
+  }
+
+  private def loadClassesIntoSoot(sourceCodePath: String, sourceFileNames: List[String]) = {
+    sourceFileNames
+      .map(getQualifiedClassPath(sourceCodePath, _))
+      .map { x =>
+        Scene.v().addBasicClass(x, SootClass.BODIES); x
+      }
+      .foreach(Scene.v().loadClassAndSupport(_).setApplicationClass())
+    Scene.v().loadNecessaryClasses()
   }
 
   private def basePasses(
