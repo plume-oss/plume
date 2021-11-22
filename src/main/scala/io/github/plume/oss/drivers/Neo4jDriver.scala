@@ -4,7 +4,7 @@ import io.shiftleft.codepropertygraph.generated.nodes.NewNode
 import io.shiftleft.codepropertygraph.generated.{EdgeTypes, NodeTypes, PropertyNames}
 import io.shiftleft.passes.AppliedDiffGraph
 import io.shiftleft.passes.DiffGraph.Change
-import org.neo4j.driver.{AuthTokens, GraphDatabase}
+import org.neo4j.driver.{AuthTokens, GraphDatabase, Transaction}
 import org.slf4j.LoggerFactory
 
 import java.util.concurrent.atomic.AtomicBoolean
@@ -271,14 +271,18 @@ class Neo4jDriver(
              |WHERE f.NAME IN [$fileSet]
              |DETACH DELETE f, t
              |""".stripMargin
-        try {
-          tx.run(filePayload)
-        } catch {
-          case e: Exception => logger.error(s"Unable to link AST nodes: $filePayload", e)
-        }
+        runPayload(tx, filePayload)
       }
     }
     filenames.foreach(deleteNamespaceBlockWithAstChildrenByFilename)
+  }
+
+  private def runPayload(tx: Transaction, filePayload: String) = {
+    try {
+      tx.run(filePayload)
+    } catch {
+      case e: Exception => logger.error(s"Unable to link AST nodes: $filePayload", e)
+    }
   }
 
   override def propertyFromNodes(nodeType: String, keys: String*): List[Map[String, Any]] =
@@ -361,12 +365,7 @@ class Neo4jDriver(
                                           | WHERE NOT EXISTS((n)-[:$edgeType]->(m))
                                           | CREATE (n)-[r:$edgeType]->(m)
                                           |""".stripMargin
-                  try {
-                    tx.run(astLinkPayload)
-                  } catch {
-                    case e: Exception =>
-                      logger.error(s"Unable to link AST nodes: $astLinkPayload", e)
-                  }
+                  runPayload(tx, astLinkPayload)
                 case None =>
               }
             }
@@ -379,7 +378,20 @@ class Neo4jDriver(
     }
   }
 
-  override def staticCallLinker(): Unit = {}
+  override def staticCallLinker(): Unit = {
+    Using.resource(driver.session()) { session =>
+      session.writeTransaction { tx =>
+        val payload =
+          s"""
+             |MATCH (call:${NodeTypes.CALL})
+             |OPTIONAL MATCH (method:${NodeTypes.METHOD} {${PropertyNames.FULL_NAME}: call.${PropertyNames.METHOD_FULL_NAME}})
+             |WHERE NOT EXISTS((call)-[:${EdgeTypes.CALL}]->(method))
+             |CREATE (call)-[r:${EdgeTypes.CALL}]->(method)
+             |""".stripMargin
+        runPayload(tx, payload)
+      }
+    }
+  }
 
   override def dynamicCallLinker(): Unit = {}
 
