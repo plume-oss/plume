@@ -6,6 +6,7 @@ import io.shiftleft.passes.AppliedDiffGraph
 import org.apache.commons.configuration.BaseConfiguration
 import org.apache.tinkerpop.gremlin.driver.Cluster
 import org.apache.tinkerpop.gremlin.driver.remote.DriverRemoteConnection
+import org.apache.tinkerpop.gremlin.process.traversal.AnonymousTraversalSource
 import org.apache.tinkerpop.gremlin.process.traversal.dsl.graph.GraphTraversalSource
 import org.apache.tinkerpop.gremlin.structure.Graph
 import org.slf4j.{Logger, LoggerFactory}
@@ -13,7 +14,6 @@ import sttp.client3.{Empty, RequestT, basicRequest}
 
 import scala.util.Using
 
-@SuppressWarnings(Array("DEPRECATION"))
 class NeptuneDriver(
     hostname: String,
     port: Int = DEFAULT_PORT,
@@ -33,9 +33,8 @@ class NeptuneDriver(
   override protected val config: BaseConfiguration = null
   override protected val graph: Graph              = null
 
-  @SuppressWarnings("DEPRECATION")
   override def traversal(): GraphTraversalSource =
-    traversal().withRemote(DriverRemoteConnection.using(cluster))
+    AnonymousTraversalSource.traversal().withRemote(DriverRemoteConnection.using(cluster))
 
   override def isConnected: Boolean = !cluster.isClosed
 
