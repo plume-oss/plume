@@ -13,7 +13,7 @@ import sttp.client3.{Empty, RequestT, basicRequest}
 
 import scala.util.Using
 
-@SuppressWarnings("DEPRECATION")
+@SuppressWarnings(Array("DEPRECATION"))
 class NeptuneDriver(
     hostname: String,
     port: Int = DEFAULT_PORT,
