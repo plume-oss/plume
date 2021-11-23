@@ -29,6 +29,8 @@ jobs:
         run: sbt test
       - name: Run Neo4j integration tests
         run: sbt "neoTest:test"
+      - name: Run TigerGraph integration tests
+        run: sbt "tgTest:test"
 
       - name: Compile coverage report
         run: sbt coverageReport

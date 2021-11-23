@@ -88,14 +88,15 @@ lazy val root = (project in file("."))
   .configs(NeoIntTest)
   .settings(
     inConfig(NeoIntTest)(Defaults.testSettings),
-    inConfig(TigerGraphIntTest)(Defaults.testSettings),
-//    libraryDependencies ++= Seq(
-//      scalatest % NeoIntTest,
-//    ),
-//    libraryDependencies ++= Seq(
-//      scalatest % TigerGraphIntTest
-//    ),
+    libraryDependencies += scalatest % NeoIntTest,
     Test / testOptions := Seq(Tests.Filter(s => !s.endsWith("IntTests"))),
     NeoIntTest / testOptions := Seq(Tests.Filter(s => s.contains("Neo4j"))),
+  )
+  .configs(TigerGraphIntTest)
+  .settings(
+    inConfig(TigerGraphIntTest)(Defaults.testSettings),
+    libraryDependencies += scalatest % TigerGraphIntTest,
+    Test / testOptions := Seq(Tests.Filter(s => !s.endsWith("IntTests"))),
     TigerGraphIntTest / testOptions := Seq(Tests.Filter(s => s.contains("TigerGraph")))
   )
+

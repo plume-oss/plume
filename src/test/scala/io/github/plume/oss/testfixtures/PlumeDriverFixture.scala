@@ -237,10 +237,14 @@ class PlumeDriverFixture(val driver: IDriver)
     driver.bulkTx(adg)
 
     driver.buildInterproceduralEdges()
-
-    val List(_: Map[String, Any], barBar: Map[String, Any], _: Map[String, Any]) =
+    val List(_: Map[String, Any], _: Map[String, Any], barBar: Map[String, Any]) =
       driver.propertyFromNodes(METHOD, FULL_NAME)
-    val List(barCall: Map[String, Any], _: Map[String, Any]) = driver.propertyFromNodes(CALL, METHOD_FULL_NAME)
+        .sortBy { a => a(FULL_NAME).asInstanceOf[String] }
+        .reverse
+    val List(_: Map[String, Any], barCall: Map[String, Any]) = driver
+      .propertyFromNodes(CALL, METHOD_FULL_NAME)
+      .sortBy { a => a(METHOD_FULL_NAME).asInstanceOf[String] }
+      .reverse
     barBar.get(FULL_NAME) shouldBe Some("bar.Bar:bar(int,int):int")
     barCall.get(METHOD_FULL_NAME) shouldBe Some("bar.Bar:bar(int,int):int")
     driver.exists(

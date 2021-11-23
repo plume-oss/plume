@@ -237,9 +237,8 @@ class TigerGraphDriver(
     post("graph/cpg", PayloadBody(edges = payload))
   }
 
-  override def removeSourceFiles(filenames: String*): Unit = {
+  override def removeSourceFiles(filenames: String*): Unit =
     get("query/cpg/delete_source_file", filenames.map(("filenames", _)))
-  }
 
   override def propertyFromNodes(nodeType: String, keys: String*): List[Map[String, Any]] = {
     keys
@@ -262,7 +261,7 @@ class TigerGraphDriver(
           }
       }
       .groupBy { m => m("id").asInstanceOf[Long] }
-      .map { case (i: Long, ps: Seq[Map[String, Any]]) => ps.reduce { (a, b) => a ++ b } }
+      .map { case (_: Long, ps: Seq[Map[String, Any]]) => ps.reduce { (a, b) => a ++ b } }
       .toList
   }
 
@@ -293,7 +292,7 @@ class TigerGraphDriver(
     }
   }
 
-  override def staticCallLinker(): Unit = {}
+  override def staticCallLinker(): Unit =  get("query/cpg/static_call_linker")
 
   override def dynamicCallLinker(): Unit = {}
 
@@ -748,6 +747,26 @@ object TigerGraphDriver {
         |
         |  nsToDelete = fvs UNION tds UNION ts UNION childVs;
         |  DELETE v FROM nsToDelete:v;
+        |}
+        |""".stripMargin,
+      """
+        |CREATE QUERY static_call_linker() FOR GRAPH cpg {
+        |  TYPEDEF TUPLE<FULL_NAME STRING, method VERTEX<METHOD_>> M_TUP;
+        |  SetAccum<M_TUP> @@methods;
+        |  calls = {CALL_.*};
+        |  methods = {METHOD_.*};
+        |
+        |  ms = SELECT m
+        |       FROM methods:m
+        |       ACCUM @@methods += M_TUP(m._FULL_NAME, m);
+        |
+        |  FOREACH m in @@methods DO
+        |    cs = SELECT c
+        |         FROM calls:c
+        |         WHERE c._DISPATCH_TYPE == "STATIC_DISPATCH"
+        |          AND m.FULL_NAME == c._METHOD_FULL_NAME
+        |         ACCUM INSERT INTO _CALL VALUES(c, m.method);
+        |  END;
         |}
         |""".stripMargin
     ) ++ Array(

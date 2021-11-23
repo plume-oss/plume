@@ -202,7 +202,7 @@ case class OverflowDbDriver(
         methodFullNameToNode.get(c.methodFullName) match {
           case Some(dstId) if cpg.graph.nodes(dstId).hasNext =>
             c.addEdge(EdgeTypes.CALL, cpg.graph.nodes(dstId).next())
-          case None =>
+          case _ =>
         }
       }
   }
