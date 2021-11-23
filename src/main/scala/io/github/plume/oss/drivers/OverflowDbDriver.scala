@@ -210,8 +210,11 @@ case class OverflowDbDriver(
   override def dynamicCallLinker(): Unit =
     new PlumeDynamicCallLinker(CPG(cpg.graph)).createAndApply()
 
-  def nodesReachableBy(source: Traversal[CfgNode], sink: Traversal[CfgNode]): List[CfgNode] =
-    sink.reachableBy(source).dedup.toList
+  def nodesReachableBy(source: Traversal[CfgNode], sink: Traversal[CfgNode]): List[CfgNode] = {
+    val paths = sink.reachableByDetailed(source)
+    // TODO: Save these paths to the CPG
+    paths.map(_.path.head.node).distinct
+  }
 }
 
 object OverflowDbDriver {
