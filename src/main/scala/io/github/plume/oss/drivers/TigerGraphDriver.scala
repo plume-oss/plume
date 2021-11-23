@@ -189,7 +189,7 @@ class TigerGraphDriver(
   private def bulkCreateNode(ops: Seq[Change.CreateNode], dg: AppliedDiffGraph): Unit = {
     val payload = ops
       .flatMap {
-        case Change.CreateNode(node) => Some(nodePayload(id(node, dg), node))
+        case Change.CreateNode(node) => Some(nodePayload(id(node, dg).asInstanceOf[Long], node))
         case _                       => None
       }
       .reduce { (a: JsonObject, b: JsonObject) => a.deepMerge(b) }
@@ -230,7 +230,15 @@ class TigerGraphDriver(
     val payload = ops
       .flatMap {
         case Change.CreateEdge(src, dst, edge, _) =>
-          Some(edgePayload(id(src, dg), src.label, id(dst, dg), dst.label, edge))
+          Some(
+            edgePayload(
+              id(src, dg).asInstanceOf[Long],
+              src.label,
+              id(dst, dg).asInstanceOf[Long],
+              dst.label,
+              edge
+            )
+          )
         case _ => None
       }
       .reduce { (a: JsonObject, b: JsonObject) => a.deepMerge(b) }
@@ -292,7 +300,7 @@ class TigerGraphDriver(
     }
   }
 
-  override def staticCallLinker(): Unit =  get("query/cpg/static_call_linker")
+  override def staticCallLinker(): Unit = get("query/cpg/static_call_linker")
 
   override def dynamicCallLinker(): Unit = {}
 

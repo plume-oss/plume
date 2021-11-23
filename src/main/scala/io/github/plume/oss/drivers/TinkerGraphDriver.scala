@@ -1,5 +1,7 @@
 package io.github.plume.oss.drivers
 
+import org.slf4j.{Logger, LoggerFactory}
+
 import scala.tools.nsc.io.File
 import scala.util.Using
 
@@ -7,7 +9,9 @@ import scala.util.Using
   */
 class TinkerGraphDriver extends GremlinDriver {
 
-  /** Add or update a [[org.apache.commons.configuration2.BaseConfiguration]] key-value pair.
+  override protected val logger: Logger = LoggerFactory.getLogger(classOf[TinkerGraphDriver])
+
+  /** Add or update a [[org.apache.commons.configuration.BaseConfiguration]] key-value pair.
     *
     * @param key the key of the property.
     * @param value the value of the property.

@@ -4,18 +4,14 @@ import io.shiftleft.codepropertygraph.generated.{EdgeTypes, NodeTypes, PropertyN
 import io.shiftleft.passes.AppliedDiffGraph
 import io.shiftleft.passes.DiffGraph.{Change, PackedProperties}
 import io.shiftleft.proto.cpg.Cpg.DispatchTypes
-import org.apache.commons.configuration2.BaseConfiguration
+import org.apache.commons.configuration.BaseConfiguration
 import org.apache.tinkerpop.gremlin.process.traversal.P
 import org.apache.tinkerpop.gremlin.process.traversal.P.{neq, within}
 import org.apache.tinkerpop.gremlin.process.traversal.dsl.graph.__.has
-import org.apache.tinkerpop.gremlin.process.traversal.dsl.graph.{
-  GraphTraversal,
-  GraphTraversalSource,
-  __
-}
+import org.apache.tinkerpop.gremlin.process.traversal.dsl.graph.{GraphTraversal, GraphTraversalSource, __}
 import org.apache.tinkerpop.gremlin.structure.{Edge, Graph, T, Vertex}
 import org.apache.tinkerpop.gremlin.tinkergraph.structure.TinkerGraph
-import org.slf4j.LoggerFactory
+import org.slf4j.{Logger, LoggerFactory}
 
 import java.util.concurrent.atomic.AtomicBoolean
 import scala.collection.mutable
@@ -26,7 +22,7 @@ import scala.util.{Failure, Success, Try, Using}
   */
 abstract class GremlinDriver extends IDriver {
 
-  private val logger                      = LoggerFactory.getLogger(classOf[GremlinDriver])
+  protected val logger: Logger = LoggerFactory.getLogger(classOf[GremlinDriver])
   protected val config: BaseConfiguration = new BaseConfiguration()
   config.setProperty(
     "gremlin.graph",
@@ -45,14 +41,16 @@ abstract class GremlinDriver extends IDriver {
       connected.set(false)
   }
 
-  override def clear(): Unit = Using.resource(graph.traversal()) { g => g.V().drop().iterate() }
+  protected def traversal(): GraphTraversalSource = graph.traversal()
 
-  override def exists(nodeId: Long): Boolean = Using.resource(graph.traversal()) { g =>
+  override def clear(): Unit = Using.resource(traversal()) { g => g.V().drop().iterate() }
+
+  override def exists(nodeId: Long): Boolean = Using.resource(traversal()) { g =>
     g.V(nodeId).hasNext
   }
 
   override def exists(srcId: Long, dstId: Long, edge: String): Boolean =
-    Using.resource(graph.traversal()) { g =>
+    Using.resource(traversal()) { g =>
       g.V(srcId).out(edge).asScala.filter(v => v.id() == dstId).hasNext
     }
 
@@ -66,7 +64,7 @@ abstract class GremlinDriver extends IDriver {
       }
       .grouped(50)
       .foreach { ops: Seq[Change] =>
-        Using.resource(graph.traversal()) { g => bulkNodeTx(g, ops, dg) }
+        Using.resource(traversal()) { g => bulkNodeTx(g, ops, dg) }
       }
     // Now that all nodes are in, do edges
     dg.diffGraph.iterator
@@ -76,7 +74,7 @@ abstract class GremlinDriver extends IDriver {
       }
       .grouped(50)
       .foreach { ops: Seq[Change] =>
-        Using.resource(graph.traversal()) { g => bulkEdgeTx(g, ops, dg) }
+        Using.resource(traversal()) { g => bulkEdgeTx(g, ops, dg) }
       }
   }
 
@@ -90,10 +88,10 @@ abstract class GremlinDriver extends IDriver {
       case Change.CreateNode(node) =>
         ptr match {
           case Some(p) =>
-            ptr = Some(p.addV(node.label).property(T.id, dg.nodeToGraphId(node)))
+            ptr = Some(p.addV(node.label).property(T.id, id(node, dg)))
             removeLists(node.properties).foreach { case (k, v) => p.property(k, v) }
           case None =>
-            ptr = Some(g.addV(node.label).property(T.id, dg.nodeToGraphId(node)))
+            ptr = Some(g.addV(node.label).property(T.id, id(node, dg)))
             removeLists(node.properties).foreach { case (k, v) => ptr.get.property(k, v) }
         }
       case Change.SetNodeProperty(node, key, value) =>
@@ -157,7 +155,7 @@ abstract class GremlinDriver extends IDriver {
   }
 
   override def removeSourceFiles(filenames: String*): Unit = {
-    Using.resource(graph.traversal()) { g =>
+    Using.resource(traversal()) { g =>
       val fs = g
         .V()
         .hasLabel(NodeTypes.FILE)
@@ -195,7 +193,7 @@ abstract class GremlinDriver extends IDriver {
   }
 
   override def propertyFromNodes(nodeType: String, keys: String*): List[Map[String, Any]] = {
-    Using.resource(graph.traversal()) { g =>
+    Using.resource(traversal()) { g =>
       var ptr = g
         .V()
         .hasLabel(nodeType)
@@ -214,7 +212,7 @@ abstract class GremlinDriver extends IDriver {
   }
 
   override def idInterval(lower: Long, upper: Long): Set[Long] =
-    Using.resource(graph.traversal()) { g =>
+    Using.resource(traversal()) { g =>
       g.V()
         .filter(has(T.id, P.gte(lower - 1)).and(has(T.id, P.lte(upper))))
         .id()
@@ -230,7 +228,7 @@ abstract class GremlinDriver extends IDriver {
       dstFullNameKey: String,
       dstNodeType: String
   ): Unit = {
-    Using.resource(graph.traversal()) { g =>
+    Using.resource(traversal()) { g =>
       g
         .V()
         .hasLabel(srcLabels.head, srcLabels.drop(1): _*)
@@ -262,7 +260,7 @@ abstract class GremlinDriver extends IDriver {
   }
 
   override def staticCallLinker(): Unit = {
-    Using.resource(graph.traversal()) { g =>
+    Using.resource(traversal()) { g =>
       g.V()
         .hasLabel(NodeTypes.CALL)
         .has(PropertyNames.DISPATCH_TYPE, DispatchTypes.STATIC_DISPATCH.name())

@@ -187,7 +187,7 @@ trait IDriver extends AutoCloseable {
 
   /** Provides the assigned ID for the given node using the given diff graph.
     */
-  protected def id(node: AbstractNode, dg: AppliedDiffGraph): Long =
+  protected def id(node: AbstractNode, dg: AppliedDiffGraph): Any =
     node match {
       case n: NewNode    => dg.nodeToGraphId(n)
       case n: StoredNode => n.id()

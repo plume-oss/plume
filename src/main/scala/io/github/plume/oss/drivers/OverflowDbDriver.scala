@@ -99,8 +99,8 @@ case class OverflowDbDriver(
           .outE(edge.label())
           .forEachRemaining(e => if (e.inNode().id() == edge.inNode().id()) e.remove())
       case Change.CreateEdge(src, dst, label, packedProperties) =>
-        val srcId: Long = id(src, dg)
-        val dstId: Long = id(dst, dg)
+        val srcId: Long = id(src, dg).asInstanceOf[Long]
+        val dstId: Long = id(dst, dg).asInstanceOf[Long]
         val e: overflowdb.Edge =
           cpg.graph.nodes(srcId).next().addEdge(label, cpg.graph.nodes(dstId).next())
         PackedProperties.unpack(packedProperties).foreach { case (k: String, v: Any) =>

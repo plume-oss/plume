@@ -7,7 +7,7 @@ scalaVersion := "2.13.6"
 val cpgVersion         = "1.3.433"
 val joernVersion       = "1.1.349"
 val sootVersion        = "4.2.1"
-val tinkerGraphVersion = "3.5.1"
+val tinkerGraphVersion = "3.4.8"
 val neo4jVersion       = "4.3.4"
 val tigerGraphVersion  = "3.1.0"
 val sttpVersion        = "3.3.16"
@@ -19,6 +19,7 @@ val circeVersion       = "0.14.1"
 lazy val scalatest         = "org.scalatest" %% "scalatest" % scalatestVersion
 lazy val NeoIntTest        = config("neoTest") extend Test
 lazy val TigerGraphIntTest = config("tgTest") extend Test
+lazy val NeptuneIntTest = config("nepTest") extend Test
 
 fork := true
 
@@ -37,6 +38,7 @@ libraryDependencies ++= Seq(
   "io.shiftleft"                  %% "semanticcpg-tests"   % "1.3.405"        % Test classifier "tests",
   "org.soot-oss"                   % "soot"                % sootVersion,
   "org.apache.tinkerpop"           % "tinkergraph-gremlin" % tinkerGraphVersion,
+  "org.apache.tinkerpop"           % "gremlin-driver"      % tinkerGraphVersion,
   "org.neo4j.driver"               % "neo4j-java-driver"   % neo4jVersion,
   "com.tigergraph.client"          % "gsql_client"         % tigerGraphVersion,
   "com.softwaremill.sttp.client3" %% "core"                % sttpVersion,
@@ -90,7 +92,7 @@ lazy val root = (project in file("."))
     inConfig(NeoIntTest)(Defaults.testSettings),
     libraryDependencies += scalatest % NeoIntTest,
     Test / testOptions := Seq(Tests.Filter(s => !s.endsWith("IntTests"))),
-    NeoIntTest / testOptions := Seq(Tests.Filter(s => s.contains("Neo4j"))),
+    NeoIntTest / testOptions := Seq(Tests.Filter(s => s.contains("Neo4j")))
   )
   .configs(TigerGraphIntTest)
   .settings(
@@ -99,4 +101,10 @@ lazy val root = (project in file("."))
     Test / testOptions := Seq(Tests.Filter(s => !s.endsWith("IntTests"))),
     TigerGraphIntTest / testOptions := Seq(Tests.Filter(s => s.contains("TigerGraph")))
   )
-
+  .configs(NeptuneIntTest)
+  .settings(
+    inConfig(NeptuneIntTest)(Defaults.testSettings),
+    libraryDependencies += scalatest % NeptuneIntTest,
+    Test / testOptions := Seq(Tests.Filter(s => !s.endsWith("IntTests"))),
+    NeptuneIntTest / testOptions := Seq(Tests.Filter(s => s.contains("Neptune")))
+  )
