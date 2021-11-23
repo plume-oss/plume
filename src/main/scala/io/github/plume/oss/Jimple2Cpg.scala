@@ -80,7 +80,8 @@ class Jimple2Cpg {
       val sourceCodePath = if (rawSourceCodeFile.isDirectory) {
         rawSourceCodeFile.toPath.toAbsolutePath.normalize.toString
       } else {
-        Paths.get(rawSourceCodeFile.getParentFile.getAbsolutePath).normalize.toString
+        println(rawSourceCodeFile.getAbsolutePath)
+        Paths.get(new JFile(rawSourceCodeFile.getAbsolutePath).getParentFile.getAbsolutePath).normalize.toString
       }
 
       configureSoot(sourceCodePath)

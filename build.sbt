@@ -11,10 +11,10 @@ val tinkerGraphVersion = "3.5.1"
 val neo4jVersion       = "4.3.4"
 val tigerGraphVersion  = "3.1.0"
 val sttpVersion        = "3.3.16"
-val lz4Version         = "1.7.1"
+val lz4Version         = "1.8.0"
 val slf4jVersion       = "1.7.32"
 val scalatestVersion   = "3.2.9"
-val circeVersion       = "0.14.0-M4"
+val circeVersion       = "0.14.1"
 
 lazy val scalatest         = "org.scalatest" %% "scalatest" % scalatestVersion
 lazy val NeoIntTest        = config("neoTest") extend Test
@@ -34,7 +34,7 @@ libraryDependencies ++= Seq(
   "io.shiftleft"                  %% "codepropertygraph"   % cpgVersion,
   "io.shiftleft"                  %% "semanticcpg"         % cpgVersion,
   "io.joern"                      %% "dataflowengineoss"   % joernVersion,
-  "io.shiftleft"                  %% "semanticcpg-tests"   % "1.3.405"       % Test classifier "tests",
+  "io.shiftleft"                  %% "semanticcpg-tests"   % "1.3.405"        % Test classifier "tests",
   "org.soot-oss"                   % "soot"                % sootVersion,
   "org.apache.tinkerpop"           % "tinkergraph-gremlin" % tinkerGraphVersion,
   "org.neo4j.driver"               % "neo4j-java-driver"   % neo4jVersion,
@@ -48,7 +48,8 @@ libraryDependencies ++= Seq(
 ) ++ Seq(
   "io.circe" %% "circe-core",
   "io.circe" %% "circe-generic",
-  "io.circe" %% "circe-parser"
+  "io.circe" %% "circe-parser",
+  "io.circe" %% "circe-yaml"
 ).map(_ % circeVersion)
 
 enablePlugins(
@@ -88,10 +89,12 @@ lazy val root = (project in file("."))
   .settings(
     inConfig(NeoIntTest)(Defaults.testSettings),
     inConfig(TigerGraphIntTest)(Defaults.testSettings),
-    libraryDependencies ++= Seq(
-      scalatest % NeoIntTest,
-      scalatest % TigerGraphIntTest
-    ),
+//    libraryDependencies ++= Seq(
+//      scalatest % NeoIntTest,
+//    ),
+//    libraryDependencies ++= Seq(
+//      scalatest % TigerGraphIntTest
+//    ),
     Test / testOptions := Seq(Tests.Filter(s => !s.endsWith("IntTests"))),
     NeoIntTest / testOptions := Seq(Tests.Filter(s => s.contains("Neo4j"))),
     TigerGraphIntTest / testOptions := Seq(Tests.Filter(s => s.contains("TigerGraph")))
