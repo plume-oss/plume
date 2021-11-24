@@ -11,7 +11,15 @@ import org.apache.tinkerpop.gremlin.process.traversal.dsl.graph.{GraphTraversalS
 import org.apache.tinkerpop.gremlin.process.traversal.{AnonymousTraversalSource, P}
 import org.slf4j.{Logger, LoggerFactory}
 import sttp.client3.circe._
-import sttp.client3.{Empty, HttpURLConnectionBackend, Identity, RequestT, SttpBackend, basicRequest}
+import sttp.client3.{
+  Empty,
+  HttpURLConnectionBackend,
+  Identity,
+  RequestT,
+  ResponseException,
+  SttpBackend,
+  basicRequest
+}
 import sttp.model.Uri
 
 import scala.jdk.CollectionConverters.IteratorHasAsScala
@@ -63,15 +71,16 @@ class NeptuneDriver(
         .response(asJson[InitiateResetResponse])
         .send(backend)
         .body match {
-        case Left(e)              => logger.error("Unable to initiate database reset!"); throw e
-        case Right(resetResponse) => resetResponse.token
+        case Left(e) =>
+          throw new RuntimeException(s"Unable to initiate database reset! ${e.getMessage}")
+        case Right(resetResponse: InitiateResetResponse) => resetResponse.token
       }
       request()
         .post(systemUri)
         .body(PerformResetBody(token))
         .send(backend)
         .body match {
-        case Left(e) =>
+        case Left(e: String) =>
           logger.error("Unable to perform database reset!")
           throw new RuntimeException(e)
         case Right(_) =>
