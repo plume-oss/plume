@@ -108,12 +108,8 @@ class NeptuneDriver(
     }
   }
 
-  override def id(node: AbstractNode, dg: AppliedDiffGraph): Any =
-    node match {
-      case n: NewNode    => dg.nodeToGraphId(n).toString
-      case n: StoredNode => n.id().toString
-      case _             => throw new RuntimeException(s"Unable to obtain ID for $node")
-    }
+  override def typedNodeId(nodeId: Long): Any =
+    nodeId.toString
 
   override def idInterval(lower: Long, upper: Long): Set[Long] =
     Using.resource(traversal()) { g =>

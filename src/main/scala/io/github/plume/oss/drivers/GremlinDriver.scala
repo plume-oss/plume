@@ -1,5 +1,6 @@
 package io.github.plume.oss.drivers
 
+import io.shiftleft.codepropertygraph.generated.nodes.{AbstractNode, NewNode, StoredNode}
 import io.shiftleft.codepropertygraph.generated.{EdgeTypes, NodeTypes, PropertyNames}
 import io.shiftleft.passes.AppliedDiffGraph
 import io.shiftleft.passes.DiffGraph.{Change, PackedProperties}
@@ -22,7 +23,7 @@ import scala.util.{Failure, Success, Try, Using}
   */
 abstract class GremlinDriver extends IDriver {
 
-  protected val logger: Logger = LoggerFactory.getLogger(classOf[GremlinDriver])
+  protected val logger: Logger            = LoggerFactory.getLogger(classOf[GremlinDriver])
   protected val config: BaseConfiguration = new BaseConfiguration()
   config.setProperty(
     "gremlin.graph",
@@ -99,7 +100,8 @@ abstract class GremlinDriver extends IDriver {
           case Some(p) => ptr = Some(p.V(node.id()).property(key, value))
           case None    => ptr = Some(g.V(node.id()).property(key, value))
         }
-      case Change.RemoveNode(nodeId) =>
+      case Change.RemoveNode(rawNodeId) =>
+        val nodeId = typedNodeId(rawNodeId)
         ptr match {
           case Some(p) => ptr = Some(p.V(nodeId).drop())
           case None    => ptr = Some(g.V(nodeId).drop())
@@ -210,6 +212,17 @@ abstract class GremlinDriver extends IDriver {
         .toList
     }
   }
+
+  @inline
+  protected def typedNodeId(nodeId: Long): Any =
+    nodeId
+
+  override def id(node: AbstractNode, dg: AppliedDiffGraph): Any =
+    node match {
+      case n: NewNode    => typedNodeId(dg.nodeToGraphId(n))
+      case n: StoredNode => typedNodeId(n.id())
+      case _             => throw new RuntimeException(s"Unable to obtain ID for $node")
+    }
 
   override def idInterval(lower: Long, upper: Long): Set[Long] =
     Using.resource(traversal()) { g =>
