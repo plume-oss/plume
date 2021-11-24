@@ -3,18 +3,15 @@ package io.github.plume.oss.drivers
 import io.circe.generic.semiauto.deriveDecoder
 import io.circe.{Decoder, jawn}
 import io.github.plume.oss.drivers.NeptuneDriver.DEFAULT_PORT
-import io.shiftleft.codepropertygraph.generated.nodes.{AbstractNode, NewNode, StoredNode}
-import io.shiftleft.passes.AppliedDiffGraph
 import org.apache.tinkerpop.gremlin.driver.Cluster
 import org.apache.tinkerpop.gremlin.driver.remote.DriverRemoteConnection
-import org.apache.tinkerpop.gremlin.process.traversal.dsl.graph.{GraphTraversalSource, __}
-import org.apache.tinkerpop.gremlin.process.traversal.{AnonymousTraversalSource, P, Traverser}
-import org.apache.tinkerpop.gremlin.structure.Vertex
+import org.apache.tinkerpop.gremlin.process.traversal.AnonymousTraversalSource
+import org.apache.tinkerpop.gremlin.process.traversal.dsl.graph.GraphTraversalSource
 import org.slf4j.{Logger, LoggerFactory}
 import scalaj.http.{Http, HttpOptions}
 import sttp.model.Uri
 
-import scala.jdk.CollectionConverters.{CollectionHasAsScala, IteratorHasAsScala}
+import scala.jdk.CollectionConverters.CollectionHasAsScala
 import scala.util.Using
 
 class NeptuneDriver(

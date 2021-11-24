@@ -81,7 +81,10 @@ class Jimple2Cpg {
         rawSourceCodeFile.toPath.toAbsolutePath.normalize.toString
       } else {
         println(rawSourceCodeFile.getAbsolutePath)
-        Paths.get(new JFile(rawSourceCodeFile.getAbsolutePath).getParentFile.getAbsolutePath).normalize.toString
+        Paths
+          .get(new JFile(rawSourceCodeFile.getAbsolutePath).getParentFile.getAbsolutePath)
+          .normalize
+          .toString
       }
 
       configureSoot(sourceCodePath)
