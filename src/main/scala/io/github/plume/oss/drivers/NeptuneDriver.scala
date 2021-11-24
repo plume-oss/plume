@@ -35,13 +35,16 @@ class NeptuneDriver(
   lazy implicit val statusDecoder: Decoder[InstanceStatusResponse] =
     deriveDecoder[InstanceStatusResponse]
 
-  private val cluster = Cluster
-    .build()
-    .addContactPoints(hostname)
-    .port(port)
-    .enableSsl(true)
-    .keyCertChainFile(keyCertChainFile)
-    .create()
+  private var cluster = connectToCluster
+
+  private def connectToCluster =
+    Cluster
+      .build()
+      .addContactPoints(hostname)
+      .port(port)
+      .enableSsl(true)
+      .keyCertChainFile(keyCertChainFile)
+      .create()
 
   override def traversal(): GraphTraversalSource =
     AnonymousTraversalSource.traversal().withRemote(DriverRemoteConnection.using(cluster))
@@ -60,6 +63,7 @@ class NeptuneDriver(
         }
       }
     } else {
+      cluster.close()
       val systemUri =
         Uri("https", hostname, port)
           .addPath(Seq("system"))
@@ -99,6 +103,7 @@ class NeptuneDriver(
             }
             .foreach(_ => Thread.sleep(5000))
       }
+      cluster = connectToCluster
     }
   }
 
