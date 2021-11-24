@@ -50,10 +50,10 @@ class NeptuneDriver(
       }
     } else {
       val backend: SttpBackend[Identity, Any] = HttpURLConnectionBackend()
-      val systemUri                           = Uri("https", hostname, port).addPath(Seq("system"))
-      val response = request()
+      val systemUri                           = Uri("https", cluster.allHosts().iterator().next().getAddress.getHostString, port).addPath(Seq("system"))
+      val response = basicRequest
         .post(systemUri)
-        .body(InitiateResetBody())
+        .body(Map("action" -> "initiateDatabaseReset"))
         .response(asJson[InitiateResetResponse])
         .send(backend)
       println("Got this far")
@@ -63,30 +63,30 @@ class NeptuneDriver(
           throw new RuntimeException(s"Unable to initiate database reset! $e")
         case Right(resetResponse: InitiateResetResponse) => resetResponse.token
       }
-//      request()
-//        .post(systemUri)
-//        .body(PerformResetBody(token))
-//        .send(backend)
-//        .body match {
-//        case Left(e: String) =>
-//          logger.error("Unable to perform database reset!")
-//          throw new RuntimeException(e)
-//        case Right(_) =>
-//          val statusUri = Uri("https", hostname, port).addPath(Seq("status"))
-//          Iterator
-//            .continually(
-//              request()
-//                .get(statusUri)
-//                .response(asJson[InstanceStatusResponse])
-//                .send(backend)
-//                .body
-//            )
-//            .takeWhile {
-//              case Left(e)         => logger.warn("Unable to obtain instance status", e); true
-//              case Right(response) => if (response.status == "healthy") true else false
-//            }
-//            .foreach(_ => Thread.sleep(5000))
-//      }
+      basicRequest
+        .post(systemUri)
+        .body(Map("action" -> "performDatabaseReset", "token" -> token))
+        .send(backend)
+        .body match {
+        case Left(e: String) =>
+          logger.error("Unable to perform database reset!")
+          throw new RuntimeException(e)
+        case Right(_) =>
+          val statusUri = Uri("https", hostname, port).addPath(Seq("status"))
+          Iterator
+            .continually(
+              basicRequest
+                .get(statusUri)
+                .response(asJson[InstanceStatusResponse])
+                .send(backend)
+                .body
+            )
+            .takeWhile {
+              case Left(e)         => logger.warn("Unable to obtain instance status", e); true
+              case Right(response) => if (response.status == "healthy") true else false
+            }
+            .foreach(_ => Thread.sleep(5000))
+      }
     }
   }
 
@@ -122,9 +122,6 @@ class NeptuneDriver(
       case e: Exception => logger.error("Exception thrown while attempting to close graph.", e)
     }
 
-  private def request(): RequestT[Empty, String, Any] =
-    sttp.client3.quickRequest
-      .contentType(MediaType.ApplicationJson)
 }
 
 object NeptuneDriver {
