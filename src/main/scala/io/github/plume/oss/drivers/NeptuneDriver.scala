@@ -8,7 +8,8 @@ import io.shiftleft.passes.AppliedDiffGraph
 import org.apache.tinkerpop.gremlin.driver.Cluster
 import org.apache.tinkerpop.gremlin.driver.remote.DriverRemoteConnection
 import org.apache.tinkerpop.gremlin.process.traversal.dsl.graph.{GraphTraversalSource, __}
-import org.apache.tinkerpop.gremlin.process.traversal.{AnonymousTraversalSource, P}
+import org.apache.tinkerpop.gremlin.process.traversal.{AnonymousTraversalSource, P, Traverser}
+import org.apache.tinkerpop.gremlin.structure.Vertex
 import org.slf4j.{Logger, LoggerFactory}
 import scalaj.http.{Http, HttpOptions}
 import sttp.model.Uri
@@ -117,11 +118,8 @@ class NeptuneDriver(
   override def idInterval(lower: Long, upper: Long): Set[Long] =
     Using.resource(traversal()) { g =>
       g.V()
-        .id()
-//        .map(new java.util.function.Function[Traverser[String], Long] {
-//          override def apply(t: Traverser[String]): Long = t.get().toLong
-//        })
-        .filter(__.is(P.gte((lower - 1).toString).and(P.lte(upper.toString))))
+        .map((t: Traverser[Vertex]) => t.get().id().toString.toLong)
+        .filter(__.is(P.gte(lower - 1).and(P.lte(upper))))
         .asScala
         .map(_.toString.toLong)
         .toSet
