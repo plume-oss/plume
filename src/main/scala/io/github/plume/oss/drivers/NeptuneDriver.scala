@@ -95,7 +95,7 @@ class NeptuneDriver(
             )
             .takeWhile {
               case Left(e)         => logger.warn("Unable to obtain instance status", e); true
-              case Right(response) => if (response.status == "healthy") true else false
+              case Right(response) => if (response.status == "healthy") false else true
             }
             .foreach(_ => Thread.sleep(5000))
       }
