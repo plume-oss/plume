@@ -145,7 +145,7 @@ trait IDriver extends AutoCloseable {
   protected def initMaps(): Unit = {
     def initMap(k: String, p: String, map: mutable.Map[String, Any]): Unit = {
       propertyFromNodes(k, p).foreach { m =>
-        val id = m.getOrElse("id", null).asInstanceOf[Long]
+        val id = m.getOrElse("id", null)
         val fn = m.getOrElse(p, null)
         if (fn != null) {
           map += fn.toString -> id
