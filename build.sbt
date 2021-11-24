@@ -19,7 +19,7 @@ val circeVersion       = "0.14.1"
 lazy val scalatest         = "org.scalatest" %% "scalatest" % scalatestVersion
 lazy val NeoIntTest        = config("neoTest") extend Test
 lazy val TigerGraphIntTest = config("tgTest") extend Test
-lazy val NeptuneIntTest = config("nepTest") extend Test
+lazy val NeptuneIntTest    = config("nepTest") extend Test
 
 fork := true
 
@@ -43,6 +43,7 @@ libraryDependencies ++= Seq(
   "com.tigergraph.client"          % "gsql_client"         % tigerGraphVersion,
   "com.softwaremill.sttp.client3" %% "core"                % sttpVersion,
   "com.softwaremill.sttp.client3" %% "circe"               % sttpVersion,
+  "com.softwaremill.sttp.client3" %% "zio-json"            % sttpVersion,
   "org.lz4"                        % "lz4-java"            % lz4Version,
   "org.slf4j"                      % "slf4j-api"           % slf4jVersion,
   "org.slf4j"                      % "slf4j-simple"        % slf4jVersion,

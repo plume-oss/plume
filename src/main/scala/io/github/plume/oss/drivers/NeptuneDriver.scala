@@ -1,5 +1,6 @@
 package io.github.plume.oss.drivers
 
+import io.circe.{Decoder, Encoder}
 import io.circe.generic.codec.DerivedAsObjectCodec.deriveCodec
 import io.github.plume.oss.drivers.NeptuneDriver.DEFAULT_PORT
 import io.shiftleft.codepropertygraph.generated.nodes.{AbstractNode, NewNode, StoredNode}
@@ -10,7 +11,15 @@ import org.apache.tinkerpop.gremlin.process.traversal.dsl.graph.{GraphTraversalS
 import org.apache.tinkerpop.gremlin.process.traversal.{AnonymousTraversalSource, P}
 import org.slf4j.{Logger, LoggerFactory}
 import sttp.client3.circe._
-import sttp.client3.{Empty, HttpURLConnectionBackend, Identity, RequestT, SttpBackend, basicRequest, quickRequest}
+import sttp.client3.{
+  Empty,
+  HttpURLConnectionBackend,
+  Identity,
+  RequestT,
+  SttpBackend,
+  basicRequest,
+  quickRequest
+}
 import sttp.model.{MediaType, Uri}
 
 import scala.jdk.CollectionConverters.IteratorHasAsScala
@@ -21,8 +30,13 @@ class NeptuneDriver(
     port: Int = DEFAULT_PORT,
     keyCertChainFile: String = "src/main/resources/conf/SFSRootCAC2.pem"
 ) extends GremlinDriver {
-
+  import sttp.client3.ziojson._
+  import zio.json._
   override protected val logger: Logger = LoggerFactory.getLogger(classOf[NeptuneDriver])
+  implicit val initDecoder: JsonDecoder[InitiateResetResponse] =
+    DeriveJsonDecoder.gen[InitiateResetResponse]
+  implicit val statusDecoder: JsonDecoder[InstanceStatusResponse] =
+    DeriveJsonDecoder.gen[InstanceStatusResponse]
 
   private val cluster = Cluster
     .build()
@@ -50,15 +64,16 @@ class NeptuneDriver(
       }
     } else {
       val backend: SttpBackend[Identity, Any] = HttpURLConnectionBackend()
-      val systemUri                           = Uri("https", cluster.allHosts().iterator().next().getAddress.getHostString, port).addPath(Seq("system"))
+      val systemUri =
+        Uri("https", cluster.allHosts().iterator().next().getAddress.getHostString, port)
+          .addPath(Seq("system"))
       val response = basicRequest
         .post(systemUri)
         .body(Map("action" -> "initiateDatabaseReset"))
         .response(asJson[InitiateResetResponse])
         .send(backend)
       println("Got this far")
-      val token: String = response
-        .body match {
+      val token: String = response.body match {
         case Left(e) =>
           throw new RuntimeException(s"Unable to initiate database reset! $e")
         case Right(resetResponse: InitiateResetResponse) => resetResponse.token
