@@ -247,7 +247,6 @@ abstract class GremlinDriver extends IDriver {
         .hasLabel(srcLabels.head, srcLabels.drop(1): _*)
         .filter(
           has(dstFullNameKey)
-            .and(has(dstFullNameKey, neq(null)))
             .and(has(dstFullNameKey, neq(IDriver.INT_DEFAULT)))
             .and(has(dstFullNameKey, neq(IDriver.STRING_DEFAULT)))
         )

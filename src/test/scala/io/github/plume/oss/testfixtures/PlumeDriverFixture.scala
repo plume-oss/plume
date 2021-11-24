@@ -189,18 +189,18 @@ class PlumeDriverFixture(val driver: IDriver)
     td1.get(FULL_NAME) shouldBe Some("bar.Foo")
     td2.get(FULL_NAME) shouldBe Some("bar.Bar")
     driver.exists(
-      t1.getOrElse("id", -1L).asInstanceOf[Long],
-      td1.getOrElse("id", -1L).asInstanceOf[Long],
+      t1.getOrElse("id", -1L).toString.toLong,
+      td1.getOrElse("id", -1L).toString.toLong,
       EdgeTypes.REF
     ) shouldBe true
     driver.exists(
-      t2.getOrElse("id", -1L).asInstanceOf[Long],
-      td2.getOrElse("id", -1L).asInstanceOf[Long],
+      t2.getOrElse("id", -1L).toString.toLong,
+      td2.getOrElse("id", -1L).toString.toLong,
       EdgeTypes.REF
     ) shouldBe true
     driver.exists(
-      td1.getOrElse("id", -1L).asInstanceOf[Long],
-      t2.getOrElse("id", -1L).asInstanceOf[Long],
+      td1.getOrElse("id", -1L).toString.toLong,
+      t2.getOrElse("id", -1L).toString.toLong,
       EdgeTypes.INHERITS_FROM
     ) shouldBe true
   }
@@ -248,8 +248,8 @@ class PlumeDriverFixture(val driver: IDriver)
     barBar.get(FULL_NAME) shouldBe Some("bar.Bar:bar(int,int):int")
     barCall.get(METHOD_FULL_NAME) shouldBe Some("bar.Bar:bar(int,int):int")
     driver.exists(
-      barCall.getOrElse("id", -1L).asInstanceOf[Long],
-      barBar.getOrElse("id", -1L).asInstanceOf[Long],
+      barCall.getOrElse("id", -1L).toString.toLong,
+      barBar.getOrElse("id", -1L).toString.toLong,
       CALL
     ) shouldBe true
   }
