@@ -53,10 +53,10 @@ trait IDriver extends AutoCloseable {
     */
   def idInterval(lower: Long, upper: Long): Set[Long]
 
-  protected val typeDeclFullNameToNode = mutable.Map.empty[String, Long]
-  protected val typeFullNameToNode     = mutable.Map.empty[String, Long]
-  protected val methodFullNameToNode   = mutable.Map.empty[String, Long]
-  protected val namespaceNameToNode    = mutable.Map.empty[String, Long]
+  protected val typeDeclFullNameToNode = mutable.Map.empty[String, Any]
+  protected val typeFullNameToNode     = mutable.Map.empty[String, Any]
+  protected val methodFullNameToNode   = mutable.Map.empty[String, Any]
+  protected val namespaceNameToNode    = mutable.Map.empty[String, Any]
 
   /** Runs linkers for AST node relations and calls.
     */
@@ -143,7 +143,7 @@ trait IDriver extends AutoCloseable {
   }
 
   protected def initMaps(): Unit = {
-    def initMap(k: String, p: String, map: mutable.Map[String, Long]): Unit = {
+    def initMap(k: String, p: String, map: mutable.Map[String, Any]): Unit = {
       propertyFromNodes(k, p).foreach { m =>
         val id = m.getOrElse("id", null).asInstanceOf[Long]
         val fn = m.getOrElse(p, null)
@@ -172,7 +172,7 @@ trait IDriver extends AutoCloseable {
   def linkAstNodes(
       srcLabels: List[String],
       edgeType: String,
-      dstNodeMap: mutable.Map[String, Long],
+      dstNodeMap: mutable.Map[String, Any],
       dstFullNameKey: String,
       dstNodeType: String
   ): Unit

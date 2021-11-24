@@ -162,7 +162,7 @@ case class OverflowDbDriver(
   override def linkAstNodes(
       srcLabels: List[String],
       edgeType: String,
-      dstNodeMap: mutable.Map[String, Long],
+      dstNodeMap: mutable.Map[String, Any],
       dstFullNameKey: String,
       dstNodeType: String
   ): Unit = {
@@ -184,7 +184,7 @@ case class OverflowDbDriver(
             val src = srcNode.asInstanceOf[StoredNode]
             dstNodeMap.get(dstFullName) match {
               case Some(dstNodeId) =>
-                val dst = cpg.graph.nodes(dstNodeId).next()
+                val dst = cpg.graph.nodes(dstNodeId.asInstanceOf[Long]).next()
                 if (!src.out(edgeType).asScala.contains(dst))
                   src.addEdge(edgeType, dst)
               case None =>
@@ -200,8 +200,8 @@ case class OverflowDbDriver(
       .collect { case x: Call if x.dispatchType == DispatchTypes.STATIC_DISPATCH => x }
       .foreach { c: Call =>
         methodFullNameToNode.get(c.methodFullName) match {
-          case Some(dstId) if cpg.graph.nodes(dstId).hasNext =>
-            c.addEdge(EdgeTypes.CALL, cpg.graph.nodes(dstId).next())
+          case Some(dstId) if cpg.graph.nodes(dstId.asInstanceOf[Long]).hasNext =>
+            c.addEdge(EdgeTypes.CALL, cpg.graph.nodes(dstId.asInstanceOf[Long]).next())
           case _ =>
         }
       }

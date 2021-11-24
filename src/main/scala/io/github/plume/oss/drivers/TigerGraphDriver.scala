@@ -285,7 +285,7 @@ class TigerGraphDriver(
   override def linkAstNodes(
       srcLabels: List[String],
       edgeType: String,
-      dstNodeMap: mutable.Map[String, Long],
+      dstNodeMap: mutable.Map[String, Any],
       dstFullNameKey: String,
       dstNodeType: String
   ): Unit = {

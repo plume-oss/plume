@@ -237,7 +237,7 @@ abstract class GremlinDriver extends IDriver {
   override def linkAstNodes(
       srcLabels: List[String],
       edgeType: String,
-      dstNodeMap: mutable.Map[String, Long],
+      dstNodeMap: mutable.Map[String, Any],
       dstFullNameKey: String,
       dstNodeType: String
   ): Unit = {
@@ -257,13 +257,13 @@ abstract class GremlinDriver extends IDriver {
         .asScala
         .map(_.asScala.toMap)
         .foreach { m =>
-          val srcId       = m.getOrElse("id", null).asInstanceOf[Long]
+          val srcId       = m.getOrElse("id", null).toString.toLong
           val dstFullName = m.getOrElse(dstFullNameKey, null).asInstanceOf[String]
           if (dstFullName != null) {
             dstNodeMap.get(dstFullName) match {
-              case Some(dstId) =>
-                if (!exists(srcId, dstId, edgeType)) {
-                  g.V(srcId).addE(edgeType).to(__.V(dstId)).iterate()
+              case Some(dstId: Any) =>
+                if (!exists(srcId, dstId.toString.toLong, edgeType)) {
+                  g.V(typedNodeId(srcId)).addE(edgeType).to(__.V(dstId)).iterate()
                 }
               case None =>
             }
@@ -283,13 +283,13 @@ abstract class GremlinDriver extends IDriver {
         .asScala
         .map(_.asScala.toMap)
         .foreach { m =>
-          val srcId       = m.getOrElse("id", null).asInstanceOf[Long]
+          val srcId       = m.getOrElse("id", null).toString.toLong
           val dstFullName = m.getOrElse(PropertyNames.METHOD_FULL_NAME, null).asInstanceOf[String]
           if (dstFullName != null) {
             methodFullNameToNode.get(dstFullName) match {
               case Some(dstId) =>
-                if (!exists(srcId, dstId, EdgeTypes.CALL)) {
-                  g.V(srcId).addE(EdgeTypes.CALL).to(__.V(dstId)).iterate()
+                if (!exists(srcId, dstId.toString.toLong, EdgeTypes.CALL)) {
+                  g.V(typedNodeId(srcId)).addE(EdgeTypes.CALL).to(__.V(dstId)).iterate()
                 }
               case None =>
             }
