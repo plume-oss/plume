@@ -11,7 +11,7 @@ import org.apache.tinkerpop.gremlin.process.traversal.{AnonymousTraversalSource,
 import org.slf4j.{Logger, LoggerFactory}
 import sttp.client3.circe._
 import sttp.client3.{Empty, HttpURLConnectionBackend, Identity, RequestT, SttpBackend, basicRequest}
-import sttp.model.Uri
+import sttp.model.{MediaType, Uri}
 
 import scala.jdk.CollectionConverters.IteratorHasAsScala
 import scala.util.Using
@@ -122,8 +122,8 @@ class NeptuneDriver(
 
   private def request(): RequestT[Empty, Either[String, String], Any] =
     basicRequest
-      .contentType("application/json")
-      .acceptEncoding("utf-8")
+      .contentType(MediaType.ApplicationJson)
+      .acceptEncoding("UTF-8")
 }
 
 object NeptuneDriver {

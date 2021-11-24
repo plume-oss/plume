@@ -12,7 +12,7 @@ import io.shiftleft.passes.DiffGraph.Change
 import org.slf4j.LoggerFactory
 import sttp.client3._
 import sttp.client3.circe._
-import sttp.model.Uri
+import sttp.model.{MediaType, Uri}
 
 import java.io.{ByteArrayOutputStream, IOException, PrintStream}
 import java.security.Permission
@@ -320,7 +320,7 @@ class TigerGraphDriver(
 
   private def request(): RequestT[Empty, Either[String, String], Any] =
     basicRequest
-      .contentType("application/json")
+      .contentType(MediaType.ApplicationJson)
       .headers(
         Map("GSQL-TIMEOUT" -> timeout.toString) ++
           (if (!authKey.isBlank) Map("Authorization" -> s"Bearer $authKey")
