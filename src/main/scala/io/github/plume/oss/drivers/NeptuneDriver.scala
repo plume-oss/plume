@@ -24,11 +24,15 @@ class NeptuneDriver(
 
   override protected val logger: Logger = LoggerFactory.getLogger(classOf[NeptuneDriver])
 
-  implicit val initResetDecoder: Decoder[InitiateResetResponse] =
+  lazy implicit val initResetDecoder: Decoder[InitiateResetResponse] =
     deriveDecoder[InitiateResetResponse]
-  implicit val perfResetDecoder: Decoder[PerformResetResponse] =
+  lazy implicit val tokenDecoder: Decoder[TokenPayload] =
+    deriveDecoder[TokenPayload]
+  lazy implicit val gremlinVersionDecoder: Decoder[GremlinVersion] =
+    deriveDecoder[GremlinVersion]
+  lazy implicit val perfResetDecoder: Decoder[PerformResetResponse] =
     deriveDecoder[PerformResetResponse]
-  implicit val statusDecoder: Decoder[InstanceStatusResponse] =
+  lazy implicit val statusDecoder: Decoder[InstanceStatusResponse] =
     deriveDecoder[InstanceStatusResponse]
 
   private val cluster = Cluster
@@ -98,20 +102,6 @@ class NeptuneDriver(
     }
   }
 
-  case class InitiateResetResponse(status: String, payload: AwsPayload)
-  case class PerformResetResponse(status: String)
-  case class AwsPayload(token: String)
-  case class InstanceStatusResponse(
-      status: String,
-      startTime: String,
-      dbEngineVersion: String,
-      role: String,
-      gremlin: GremlinVersion,
-      sparql: SparqlVersion
-  )
-  case class GremlinVersion(version: String)
-  case class SparqlVersion(version: String)
-
   override def id(node: AbstractNode, dg: AppliedDiffGraph): Any =
     node match {
       case n: NewNode    => dg.nodeToGraphId(n).toString
@@ -147,3 +137,15 @@ object NeptuneDriver {
     */
   private val DEFAULT_PORT = 8182
 }
+
+case class InitiateResetResponse(status: String, payload: TokenPayload)
+case class PerformResetResponse(status: String)
+case class TokenPayload(token: String)
+case class InstanceStatusResponse(
+    status: String,
+    startTime: String,
+    dbEngineVersion: String,
+    role: String,
+    gremlin: GremlinVersion
+)
+case class GremlinVersion(version: String)
