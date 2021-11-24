@@ -134,16 +134,16 @@ abstract class GremlinDriver extends IDriver {
         ptr match {
           case Some(p) =>
             ptr = Some(
-              p.V(edge.outNode().id())
+              p.V(typedNodeId(edge.outNode().id()))
                 .outE(edge.label())
-                .where(__.inV().has(T.id, edge.inNode().id()))
+                .where(__.inV().has(T.id, typedNodeId(edge.inNode().id())))
                 .drop()
             )
           case None =>
             ptr = Some(
-              g.V(edge.outNode().id())
+              g.V(typedNodeId(edge.outNode().id()))
                 .outE(edge.label())
-                .where(__.inV().has(T.id, edge.inNode().id()))
+                .where(__.inV().has(T.id, typedNodeId(edge.inNode().id())))
                 .drop()
             )
         }
