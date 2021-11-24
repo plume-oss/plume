@@ -1,6 +1,5 @@
 package io.github.plume.oss.drivers
 
-import io.circe.Encoder
 import io.circe.generic.codec.DerivedAsObjectCodec.deriveCodec
 import io.github.plume.oss.drivers.NeptuneDriver.DEFAULT_PORT
 import io.shiftleft.codepropertygraph.generated.nodes.{AbstractNode, NewNode, StoredNode}
@@ -25,12 +24,6 @@ class NeptuneDriver(
 
   override protected val logger: Logger = LoggerFactory.getLogger(classOf[NeptuneDriver])
 
-  val backend: SttpBackend[Identity, Any] = HttpURLConnectionBackend()
-  implicit val initiateResetEncoder: Encoder[InitiateResetBody] =
-    Encoder.forProduct1("action")(u => u.action)
-  implicit val performResetEncoder: Encoder[PerformResetBody] =
-    Encoder.forProduct2("action", "token")(u => (u.action, u.token))
-
   private val cluster = Cluster
     .build()
     .addContactPoints(hostname)
@@ -45,7 +38,7 @@ class NeptuneDriver(
   override def isConnected: Boolean = !cluster.isClosed
 
   override def clear(): Unit = {
-    val noVs                                = Using.resource(traversal()) { g => g.V().count().next() }
+    val noVs = Using.resource(traversal()) { g => g.V().count().next() }
     if (noVs < 10000) {
       Using.resource(traversal()) { g =>
         var deleted = 0L
@@ -56,7 +49,8 @@ class NeptuneDriver(
         }
       }
     } else {
-      val systemUri = Uri("https", hostname, port).addPath(Seq("system"))
+      val backend: SttpBackend[Identity, Any] = HttpURLConnectionBackend()
+      val systemUri                           = Uri("https", hostname, port).addPath(Seq("system"))
       val token: String = request()
         .post(systemUri)
         .body(InitiateResetBody())
@@ -129,6 +123,7 @@ class NeptuneDriver(
   private def request(): RequestT[Empty, Either[String, String], Any] =
     basicRequest
       .contentType("application/json")
+      .acceptEncoding("utf-8")
 }
 
 object NeptuneDriver {
