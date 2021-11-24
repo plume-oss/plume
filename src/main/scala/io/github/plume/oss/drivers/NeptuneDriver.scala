@@ -10,16 +10,9 @@ import org.apache.tinkerpop.gremlin.driver.remote.DriverRemoteConnection
 import org.apache.tinkerpop.gremlin.process.traversal.dsl.graph.{GraphTraversalSource, __}
 import org.apache.tinkerpop.gremlin.process.traversal.{AnonymousTraversalSource, P}
 import org.slf4j.{Logger, LoggerFactory}
+import scalaj.http.{Http, HttpOptions}
 import sttp.client3.circe._
-import sttp.client3.{
-  Empty,
-  HttpURLConnectionBackend,
-  Identity,
-  RequestT,
-  SttpBackend,
-  basicRequest,
-  quickRequest
-}
+import sttp.client3.{Empty, HttpURLConnectionBackend, Identity, RequestT, SttpBackend, basicRequest, quickRequest}
 import sttp.model.{MediaType, Uri}
 
 import scala.jdk.CollectionConverters.IteratorHasAsScala
@@ -30,13 +23,8 @@ class NeptuneDriver(
     port: Int = DEFAULT_PORT,
     keyCertChainFile: String = "src/main/resources/conf/SFSRootCAC2.pem"
 ) extends GremlinDriver {
-  import sttp.client3.ziojson._
-  import zio.json._
+
   override protected val logger: Logger = LoggerFactory.getLogger(classOf[NeptuneDriver])
-  implicit val initDecoder: JsonDecoder[InitiateResetResponse] =
-    DeriveJsonDecoder.gen[InitiateResetResponse]
-  implicit val statusDecoder: JsonDecoder[InstanceStatusResponse] =
-    DeriveJsonDecoder.gen[InstanceStatusResponse]
 
   private val cluster = Cluster
     .build()
@@ -67,6 +55,12 @@ class NeptuneDriver(
       val systemUri =
         Uri("https", cluster.allHosts().iterator().next().getAddress.getHostString, port)
           .addPath(Seq("system"))
+      val scaalj = Http(systemUri.toString())
+        .postForm(Seq(("action", "initiateDatabaseReset")))
+        .header("Charset", "UTF-8")
+        .option(HttpOptions.readTimeout(10000))
+        .asParamMap
+      println(scaalj)
       val response = basicRequest
         .post(systemUri)
         .body(Map("action" -> "initiateDatabaseReset"))
