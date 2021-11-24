@@ -10,7 +10,7 @@ import org.apache.tinkerpop.gremlin.process.traversal.dsl.graph.{GraphTraversalS
 import org.apache.tinkerpop.gremlin.process.traversal.{AnonymousTraversalSource, P}
 import org.slf4j.{Logger, LoggerFactory}
 import sttp.client3.circe._
-import sttp.client3.{Empty, HttpURLConnectionBackend, Identity, RequestT, SttpBackend, basicRequest}
+import sttp.client3.{Empty, HttpURLConnectionBackend, Identity, RequestT, SttpBackend, basicRequest, quickRequest}
 import sttp.model.{MediaType, Uri}
 
 import scala.jdk.CollectionConverters.IteratorHasAsScala
@@ -61,30 +61,30 @@ class NeptuneDriver(
           throw new RuntimeException(s"Unable to initiate database reset! $e")
         case Right(resetResponse: InitiateResetResponse) => resetResponse.token
       }
-      request()
-        .post(systemUri)
-        .body(PerformResetBody(token))
-        .send(backend)
-        .body match {
-        case Left(e: String) =>
-          logger.error("Unable to perform database reset!")
-          throw new RuntimeException(e)
-        case Right(_) =>
-          val statusUri = Uri("https", hostname, port).addPath(Seq("status"))
-          Iterator
-            .continually(
-              request()
-                .get(statusUri)
-                .response(asJson[InstanceStatusResponse])
-                .send(backend)
-                .body
-            )
-            .takeWhile {
-              case Left(e)         => logger.warn("Unable to obtain instance status", e); true
-              case Right(response) => if (response.status == "healthy") true else false
-            }
-            .foreach(_ => Thread.sleep(5000))
-      }
+//      request()
+//        .post(systemUri)
+//        .body(PerformResetBody(token))
+//        .send(backend)
+//        .body match {
+//        case Left(e: String) =>
+//          logger.error("Unable to perform database reset!")
+//          throw new RuntimeException(e)
+//        case Right(_) =>
+//          val statusUri = Uri("https", hostname, port).addPath(Seq("status"))
+//          Iterator
+//            .continually(
+//              request()
+//                .get(statusUri)
+//                .response(asJson[InstanceStatusResponse])
+//                .send(backend)
+//                .body
+//            )
+//            .takeWhile {
+//              case Left(e)         => logger.warn("Unable to obtain instance status", e); true
+//              case Right(response) => if (response.status == "healthy") true else false
+//            }
+//            .foreach(_ => Thread.sleep(5000))
+//      }
     }
   }
 
@@ -120,10 +120,9 @@ class NeptuneDriver(
       case e: Exception => logger.error("Exception thrown while attempting to close graph.", e)
     }
 
-  private def request(): RequestT[Empty, Either[String, String], Any] =
-    basicRequest
+  private def request(): RequestT[Empty, String, Any] =
+    sttp.client3.quickRequest
       .contentType(MediaType.ApplicationJson)
-      .acceptEncoding("UTF-8")
 }
 
 object NeptuneDriver {
