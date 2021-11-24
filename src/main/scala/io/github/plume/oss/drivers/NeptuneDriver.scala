@@ -6,12 +6,14 @@ import io.shiftleft.passes.AppliedDiffGraph
 import org.apache.commons.configuration.BaseConfiguration
 import org.apache.tinkerpop.gremlin.driver.Cluster
 import org.apache.tinkerpop.gremlin.driver.remote.DriverRemoteConnection
-import org.apache.tinkerpop.gremlin.process.traversal.AnonymousTraversalSource
-import org.apache.tinkerpop.gremlin.process.traversal.dsl.graph.GraphTraversalSource
-import org.apache.tinkerpop.gremlin.structure.Graph
+import org.apache.tinkerpop.gremlin.process.traversal.{AnonymousTraversalSource, P, Traverser}
+import org.apache.tinkerpop.gremlin.process.traversal.dsl.graph.{GraphTraversalSource, __}
+import org.apache.tinkerpop.gremlin.process.traversal.dsl.graph.__.has
+import org.apache.tinkerpop.gremlin.structure.{Graph, T}
 import org.slf4j.{Logger, LoggerFactory}
 import sttp.client3.{Empty, RequestT, basicRequest}
 
+import scala.jdk.CollectionConverters.IteratorHasAsScala
 import scala.util.Using
 
 class NeptuneDriver(
@@ -61,7 +63,18 @@ class NeptuneDriver(
       case _             => throw new RuntimeException(s"Unable to obtain ID for $node")
     }
 
-  override def idInterval(lower: Long, upper: Long): Set[Long] = ???
+  override def idInterval(lower: Long, upper: Long): Set[Long] =
+    Using.resource(traversal()) { g =>
+      g.V()
+        .id()
+//        .map(new java.util.function.Function[Traverser[String], Long] {
+//          override def apply(t: Traverser[String]): Long = t.get().toLong
+//        })
+        .filter(__.is(P.gte((lower - 1).toString).and(P.lte(upper.toString))))
+        .asScala
+        .map(_.toString.toLong)
+        .toSet
+    }
 
   override def close(): Unit =
     try {
