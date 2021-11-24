@@ -47,12 +47,12 @@ abstract class GremlinDriver extends IDriver {
   override def clear(): Unit = Using.resource(traversal()) { g => g.V().drop().iterate() }
 
   override def exists(nodeId: Long): Boolean = Using.resource(traversal()) { g =>
-    g.V(nodeId).hasNext
+    g.V(typedNodeId(nodeId)).hasNext
   }
 
   override def exists(srcId: Long, dstId: Long, edge: String): Boolean =
     Using.resource(traversal()) { g =>
-      g.V(srcId).out(edge).asScala.filter(v => v.id() == dstId).hasNext
+      g.V(typedNodeId(srcId)).out(edge).asScala.filter(v => v.id() == typedNodeId(dstId)).hasNext
     }
 
   override def bulkTx(dg: AppliedDiffGraph): Unit = {
@@ -97,8 +97,8 @@ abstract class GremlinDriver extends IDriver {
         }
       case Change.SetNodeProperty(node, key, value) =>
         ptr match {
-          case Some(p) => ptr = Some(p.V(node.id()).property(key, value))
-          case None    => ptr = Some(g.V(node.id()).property(key, value))
+          case Some(p) => ptr = Some(p.V(typedNodeId(node.id())).property(key, value))
+          case None    => ptr = Some(g.V(typedNodeId(node.id())).property(key, value))
         }
       case Change.RemoveNode(rawNodeId) =>
         val nodeId = typedNodeId(rawNodeId)
