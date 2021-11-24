@@ -1,7 +1,9 @@
 package io.github.plume.oss.drivers
 
-import io.circe.{Decoder, Encoder}
+import io.circe
+import io.circe.{Decoder, Encoder, jawn, parser}
 import io.circe.generic.codec.DerivedAsObjectCodec.deriveCodec
+import io.circe.generic.semiauto.deriveDecoder
 import io.github.plume.oss.drivers.NeptuneDriver.DEFAULT_PORT
 import io.shiftleft.codepropertygraph.generated.nodes.{AbstractNode, NewNode, StoredNode}
 import io.shiftleft.passes.AppliedDiffGraph
@@ -25,6 +27,8 @@ class NeptuneDriver(
 ) extends GremlinDriver {
 
   override protected val logger: Logger = LoggerFactory.getLogger(classOf[NeptuneDriver])
+
+  implicit val initResetDecoder: Decoder[InitiateResetResponse] = deriveDecoder[InitiateResetResponse]
 
   private val cluster = Cluster
     .build()
@@ -51,56 +55,56 @@ class NeptuneDriver(
         }
       }
     } else {
-      val backend: SttpBackend[Identity, Any] = HttpURLConnectionBackend()
+//      val backend: SttpBackend[Identity, Any] = HttpURLConnectionBackend()
       val systemUri =
-        Uri("https", cluster.allHosts().iterator().next().getAddress.getHostString, port)
+        Uri("https", hostname, port)
           .addPath(Seq("system"))
       val scaalj = Http(systemUri.toString())
-        .postForm(Seq(("action", "initiateDatabaseReset")))
-        .header("Charset", "UTF-8")
+        .postForm(Seq("action" -> "initiateDatabaseReset"))
         .option(HttpOptions.readTimeout(10000))
-        .asParamMap
-      println(scaalj)
-      val response = basicRequest
-        .post(systemUri)
-        .body(Map("action" -> "initiateDatabaseReset"))
-        .response(asJson[InitiateResetResponse])
-        .send(backend)
+        .asString
+      println(jawn.decode(scaalj.body))
+//      val response = basicRequest
+//        .post(systemUri)
+//        .body(Map("action" -> "initiateDatabaseReset"))
+//        .response(asJson[InitiateResetResponse])
+//        .send(backend)
       println("Got this far")
-      val token: String = response.body match {
-        case Left(e) =>
-          throw new RuntimeException(s"Unable to initiate database reset! $e")
-        case Right(resetResponse: InitiateResetResponse) => resetResponse.token
-      }
-      basicRequest
-        .post(systemUri)
-        .body(Map("action" -> "performDatabaseReset", "token" -> token))
-        .send(backend)
-        .body match {
-        case Left(e: String) =>
-          logger.error("Unable to perform database reset!")
-          throw new RuntimeException(e)
-        case Right(_) =>
-          val statusUri = Uri("https", hostname, port).addPath(Seq("status"))
-          Iterator
-            .continually(
-              basicRequest
-                .get(statusUri)
-                .response(asJson[InstanceStatusResponse])
-                .send(backend)
-                .body
-            )
-            .takeWhile {
-              case Left(e)         => logger.warn("Unable to obtain instance status", e); true
-              case Right(response) => if (response.status == "healthy") true else false
-            }
-            .foreach(_ => Thread.sleep(5000))
-      }
+//      val token: String = response.body match {
+//        case Left(e) =>
+//          throw new RuntimeException(s"Unable to initiate database reset! $e")
+//        case Right(resetResponse: InitiateResetResponse) => resetResponse.payload.token
+//      }
+//      basicRequest
+//        .post(systemUri)
+//        .body(Map("action" -> "performDatabaseReset", "token" -> token))
+//        .send(backend)
+//        .body match {
+//        case Left(e: String) =>
+//          logger.error("Unable to perform database reset!")
+//          throw new RuntimeException(e)
+//        case Right(_) =>
+//          val statusUri = Uri("https", hostname, port).addPath(Seq("status"))
+//          Iterator
+//            .continually(
+//              basicRequest
+//                .get(statusUri)
+//                .response(asJson[InstanceStatusResponse])
+//                .send(backend)
+//                .body
+//            )
+//            .takeWhile {
+//              case Left(e)         => logger.warn("Unable to obtain instance status", e); true
+//              case Right(response) => if (response.status == "healthy") true else false
+//            }
+//            .foreach(_ => Thread.sleep(5000))
+//      }
     }
   }
 
   case class InitiateResetBody(action: String = "initiateDatabaseReset")
-  case class InitiateResetResponse(token: String)
+  case class InitiateResetResponse(status: String, payload: AwsPayload)
+  case class AwsPayload(token: String)
   case class PerformResetBody(token: String, action: String = "performDatabaseReset")
   case class InstanceStatusResponse(status: String)
 

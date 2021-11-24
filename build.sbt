@@ -43,7 +43,7 @@ libraryDependencies ++= Seq(
   "com.tigergraph.client"          % "gsql_client"         % tigerGraphVersion,
   "com.softwaremill.sttp.client3" %% "core"                % sttpVersion,
   "com.softwaremill.sttp.client3" %% "circe"               % sttpVersion,
-  "org.scalaj"                     % "scalaj-http_2.11"    % "2.4.2",
+  "org.scalaj"                     % "scalaj-http_2.13"    % "2.4.2",
   "org.lz4"                        % "lz4-java"            % lz4Version,
   "org.slf4j"                      % "slf4j-api"           % slf4jVersion,
   "org.slf4j"                      % "slf4j-simple"        % slf4jVersion,
