@@ -25,8 +25,10 @@ class NeptuneDriver(
 
   override protected val logger: Logger = LoggerFactory.getLogger(classOf[NeptuneDriver])
 
-  implicit val payloadEncoder: Encoder[InitiateResetBody] =
+  implicit val initiateResetEncoder: Encoder[InitiateResetBody] =
     Encoder.forProduct1("action")(u => u.action)
+  implicit val performResetEncoder: Encoder[PerformResetBody] =
+    Encoder.forProduct2("action", "token")(u => (u.action, u.token))
 
   private val cluster = Cluster
     .build()
