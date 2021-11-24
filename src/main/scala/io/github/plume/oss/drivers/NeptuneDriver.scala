@@ -1,9 +1,7 @@
 package io.github.plume.oss.drivers
 
-import io.circe
-import io.circe.{Decoder, Encoder, jawn, parser}
-import io.circe.generic.codec.DerivedAsObjectCodec.deriveCodec
 import io.circe.generic.semiauto.deriveDecoder
+import io.circe.{Decoder, jawn}
 import io.github.plume.oss.drivers.NeptuneDriver.DEFAULT_PORT
 import io.shiftleft.codepropertygraph.generated.nodes.{AbstractNode, NewNode, StoredNode}
 import io.shiftleft.passes.AppliedDiffGraph
@@ -13,9 +11,7 @@ import org.apache.tinkerpop.gremlin.process.traversal.dsl.graph.{GraphTraversalS
 import org.apache.tinkerpop.gremlin.process.traversal.{AnonymousTraversalSource, P}
 import org.slf4j.{Logger, LoggerFactory}
 import scalaj.http.{Http, HttpOptions}
-import sttp.client3.circe._
-import sttp.client3.{Empty, HttpURLConnectionBackend, Identity, RequestT, SttpBackend, basicRequest, quickRequest}
-import sttp.model.{MediaType, Uri}
+import sttp.model.Uri
 
 import scala.jdk.CollectionConverters.IteratorHasAsScala
 import scala.util.Using
@@ -28,7 +24,12 @@ class NeptuneDriver(
 
   override protected val logger: Logger = LoggerFactory.getLogger(classOf[NeptuneDriver])
 
-  implicit val initResetDecoder: Decoder[InitiateResetResponse] = deriveDecoder[InitiateResetResponse]
+  implicit val initResetDecoder: Decoder[InitiateResetResponse] =
+    deriveDecoder[InitiateResetResponse]
+  implicit val perfResetDecoder: Decoder[PerformResetResponse] =
+    deriveDecoder[PerformResetResponse]
+  implicit val statusDecoder: Decoder[InstanceStatusResponse] =
+    deriveDecoder[InstanceStatusResponse]
 
   private val cluster = Cluster
     .build()
@@ -55,58 +56,61 @@ class NeptuneDriver(
         }
       }
     } else {
-//      val backend: SttpBackend[Identity, Any] = HttpURLConnectionBackend()
       val systemUri =
         Uri("https", hostname, port)
           .addPath(Seq("system"))
-      val scaalj = Http(systemUri.toString())
+      val initResetResponse = Http(systemUri.toString())
         .postForm(Seq("action" -> "initiateDatabaseReset"))
         .option(HttpOptions.readTimeout(10000))
         .asString
-      println(jawn.decode(scaalj.body))
-//      val response = basicRequest
-//        .post(systemUri)
-//        .body(Map("action" -> "initiateDatabaseReset"))
-//        .response(asJson[InitiateResetResponse])
-//        .send(backend)
-      println("Got this far")
-//      val token: String = response.body match {
-//        case Left(e) =>
-//          throw new RuntimeException(s"Unable to initiate database reset! $e")
-//        case Right(resetResponse: InitiateResetResponse) => resetResponse.payload.token
-//      }
-//      basicRequest
-//        .post(systemUri)
-//        .body(Map("action" -> "performDatabaseReset", "token" -> token))
-//        .send(backend)
-//        .body match {
-//        case Left(e: String) =>
-//          logger.error("Unable to perform database reset!")
-//          throw new RuntimeException(e)
-//        case Right(_) =>
-//          val statusUri = Uri("https", hostname, port).addPath(Seq("status"))
-//          Iterator
-//            .continually(
-//              basicRequest
-//                .get(statusUri)
-//                .response(asJson[InstanceStatusResponse])
-//                .send(backend)
-//                .body
-//            )
-//            .takeWhile {
-//              case Left(e)         => logger.warn("Unable to obtain instance status", e); true
-//              case Right(response) => if (response.status == "healthy") true else false
-//            }
-//            .foreach(_ => Thread.sleep(5000))
-//      }
+      val token: String = jawn.decode[InitiateResetResponse](initResetResponse.body) match {
+        case Left(e) =>
+          throw new RuntimeException(s"Unable to initiate database reset! $e")
+        case Right(resetResponse: InitiateResetResponse) => resetResponse.payload.token
+      }
+      val performResetResponse = Http(systemUri.toString())
+        .postForm(Seq("action" -> "performDatabaseReset", "token" -> token))
+        .option(HttpOptions.readTimeout(10000))
+        .asString
+      jawn.decode[PerformResetResponse](performResetResponse.body) match {
+        case Left(e) =>
+          logger.error("Unable to perform database reset!")
+          throw e
+        case Right(resetResponse) =>
+          if (!resetResponse.status.contains("200"))
+            throw new RuntimeException("Unable to perform database reset!")
+          val statusUri = Uri("https", hostname, port).addPath(Seq("status"))
+          Iterator
+            .continually(
+              jawn.decode[InstanceStatusResponse](
+                Http(statusUri.toString())
+                  .option(HttpOptions.readTimeout(10000))
+                  .asString
+                  .body
+              )
+            )
+            .takeWhile {
+              case Left(e)         => logger.warn("Unable to obtain instance status", e); true
+              case Right(response) => if (response.status == "healthy") true else false
+            }
+            .foreach(_ => Thread.sleep(5000))
+      }
     }
   }
 
-  case class InitiateResetBody(action: String = "initiateDatabaseReset")
   case class InitiateResetResponse(status: String, payload: AwsPayload)
+  case class PerformResetResponse(status: String)
   case class AwsPayload(token: String)
-  case class PerformResetBody(token: String, action: String = "performDatabaseReset")
-  case class InstanceStatusResponse(status: String)
+  case class InstanceStatusResponse(
+      status: String,
+      startTime: String,
+      dbEngineVersion: String,
+      role: String,
+      gremlin: GremlinVersion,
+      sparql: SparqlVersion
+  )
+  case class GremlinVersion(version: String)
+  case class SparqlVersion(version: String)
 
   override def id(node: AbstractNode, dg: AppliedDiffGraph): Any =
     node match {
