@@ -51,11 +51,13 @@ class NeptuneDriver(
     } else {
       val backend: SttpBackend[Identity, Any] = HttpURLConnectionBackend()
       val systemUri                           = Uri("https", hostname, port).addPath(Seq("system"))
-      val token: String = request()
+      val response = request()
         .post(systemUri)
         .body(InitiateResetBody())
         .response(asJson[InitiateResetResponse])
         .send(backend)
+      println("Got this far")
+      val token: String = response
         .body match {
         case Left(e) =>
           throw new RuntimeException(s"Unable to initiate database reset! $e")
