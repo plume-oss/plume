@@ -27,3 +27,10 @@ params:
 #  password: tigergraph
 #  timeout: 3000 # 30 seconds
 #  txMax: 25
+
+#database: Neptune
+#params:
+#  hostname: instance_id.region_name.neptune.amazonaws.com
+#  port: 8182
+#  keyCertChainFile: path/to/cert.pem
+#  txMax: 50

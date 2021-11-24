@@ -17,8 +17,9 @@ import scala.util.Using
 class NeptuneDriver(
     hostname: String,
     port: Int = DEFAULT_PORT,
-    keyCertChainFile: String = "src/main/resources/conf/SFSRootCAC2.pem"
-) extends GremlinDriver {
+    keyCertChainFile: String = "src/main/resources/conf/SFSRootCAC2.pem",
+    txMax: Int = 50
+) extends GremlinDriver(txMax) {
 
   override protected val logger: Logger = LoggerFactory.getLogger(classOf[NeptuneDriver])
 

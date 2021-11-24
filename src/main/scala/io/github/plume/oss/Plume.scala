@@ -76,7 +76,14 @@ object Plume extends App {
           timeout = conf.params.getOrElse("timeout", "3000").toInt,
           txMax = conf.params.getOrElse("txMax", "25").toInt
         )
-      case _ if conf.database == "Neptune" => println("Coming soon!"); null
+      case _ if conf.database == "Neptune" =>
+        new NeptuneDriver(
+          hostname = conf.params.getOrElse("hostname", "localhost"),
+          port = conf.params.getOrElse("port", "8182").toInt,
+          keyCertChainFile =
+            conf.params.getOrElse("keyCertChainFile", "src/main/resources/conf/SFSRootCAC2.pem"),
+          txMax = conf.params.getOrElse("txMax", "50").toInt
+        )
       case _ =>
         println(
           "No supported database specified by driver.yaml. Supported databases are: OverflowDB, TinkerGraph, Neo4j, Neptune, and TigerGraph."

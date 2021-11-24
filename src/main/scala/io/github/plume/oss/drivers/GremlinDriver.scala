@@ -25,7 +25,7 @@ import scala.util.{Failure, Success, Try, Using}
 
 /** The driver used by databases implementing Gremlin.
   */
-abstract class GremlinDriver extends IDriver {
+abstract class GremlinDriver(txMax: Int = 50) extends IDriver {
 
   protected val logger: Logger            = LoggerFactory.getLogger(classOf[GremlinDriver])
   protected val config: BaseConfiguration = new BaseConfiguration()
@@ -67,7 +67,7 @@ abstract class GremlinDriver extends IDriver {
         case x: Change.SetNodeProperty => x
         case x: Change.RemoveNode      => x
       }
-      .grouped(50)
+      .grouped(txMax)
       .foreach { ops: Seq[Change] =>
         Using.resource(traversal()) { g => bulkNodeTx(g, ops, dg) }
       }
@@ -77,7 +77,7 @@ abstract class GremlinDriver extends IDriver {
         case x: Change.CreateEdge => x
         case x: Change.RemoveEdge => x
       }
-      .grouped(50)
+      .grouped(txMax)
       .foreach { ops: Seq[Change] =>
         Using.resource(traversal()) { g => bulkEdgeTx(g, ops, dg) }
       }
