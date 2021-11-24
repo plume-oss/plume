@@ -14,7 +14,7 @@ import org.slf4j.{Logger, LoggerFactory}
 import scalaj.http.{Http, HttpOptions}
 import sttp.model.Uri
 
-import scala.jdk.CollectionConverters.IteratorHasAsScala
+import scala.jdk.CollectionConverters.{CollectionHasAsScala, IteratorHasAsScala}
 import scala.util.Using
 
 class NeptuneDriver(
@@ -118,10 +118,11 @@ class NeptuneDriver(
   override def idInterval(lower: Long, upper: Long): Set[Long] =
     Using.resource(traversal()) { g =>
       g.V()
-        .map((t: Traverser[Vertex]) => t.get().id().toString.toLong)
-        .filter(__.is(P.gte(lower - 1).and(P.lte(upper))))
+        .id()
+        .toSet
         .asScala
         .map(_.toString.toLong)
+        .filter { x => x >= lower - 1 && x <= upper }
         .toSet
     }
 
