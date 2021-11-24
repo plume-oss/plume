@@ -32,9 +32,6 @@ class NeptuneDriver(
     .keyCertChainFile(keyCertChainFile)
     .create()
 
-  override protected val config: BaseConfiguration = null
-  override protected val graph: Graph              = null
-
   override def traversal(): GraphTraversalSource =
     AnonymousTraversalSource.traversal().withRemote(DriverRemoteConnection.using(cluster))
 
