@@ -11,15 +11,7 @@ import org.apache.tinkerpop.gremlin.process.traversal.dsl.graph.{GraphTraversalS
 import org.apache.tinkerpop.gremlin.process.traversal.{AnonymousTraversalSource, P}
 import org.slf4j.{Logger, LoggerFactory}
 import sttp.client3.circe._
-import sttp.client3.{
-  Empty,
-  HttpURLConnectionBackend,
-  Identity,
-  RequestT,
-  ResponseException,
-  SttpBackend,
-  basicRequest
-}
+import sttp.client3.{Empty, HttpURLConnectionBackend, Identity, RequestT, SttpBackend, basicRequest}
 import sttp.model.Uri
 
 import scala.jdk.CollectionConverters.IteratorHasAsScala
@@ -33,6 +25,7 @@ class NeptuneDriver(
 
   override protected val logger: Logger = LoggerFactory.getLogger(classOf[NeptuneDriver])
 
+  val backend: SttpBackend[Identity, Any] = HttpURLConnectionBackend()
   implicit val initiateResetEncoder: Encoder[InitiateResetBody] =
     Encoder.forProduct1("action")(u => u.action)
   implicit val performResetEncoder: Encoder[PerformResetBody] =
@@ -52,7 +45,6 @@ class NeptuneDriver(
   override def isConnected: Boolean = !cluster.isClosed
 
   override def clear(): Unit = {
-    val backend: SttpBackend[Identity, Any] = HttpURLConnectionBackend()
     val noVs                                = Using.resource(traversal()) { g => g.V().count().next() }
     if (noVs < 10000) {
       Using.resource(traversal()) { g =>
@@ -72,7 +64,7 @@ class NeptuneDriver(
         .send(backend)
         .body match {
         case Left(e) =>
-          throw new RuntimeException(s"Unable to initiate database reset! ${e.getMessage}")
+          throw new RuntimeException(s"Unable to initiate database reset! $e")
         case Right(resetResponse: InitiateResetResponse) => resetResponse.token
       }
       request()
