@@ -20,6 +20,8 @@ Plume is going into maintenance mode. [jimple2cpg](https://github.com/joernio/ji
 project that is optimized around OverflowDB and is much more lightweight. Future development will take place on 
 [jimple2cpg](https://github.com/joernio/jimple2cpg).
 
+Right now Plume is getting a Scala overhaul in order to improve efficiency and interface better with the CPG schema library. This can be followed [here](https://github.com/plume-oss/plume/tree/dave/scala-overhaul). This addresses issues related to performance bias towards in-memory databases and includes a shell script to launch Plume from.
+
 ## Learn More
 
 For more documentation and basic guides, check out the [project homepage](https://plume-oss.github.io/plume-docs/).
