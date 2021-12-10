@@ -4,8 +4,8 @@ version := "0.1.0"
 
 scalaVersion := "2.13.6"
 
-val cpgVersion         = "1.3.433"
-val joernVersion       = "1.1.349"
+val cpgVersion         = "1.3.437"
+val joernVersion       = "1.1.358"
 val sootVersion        = "4.2.1"
 val tinkerGraphVersion = "3.4.8"
 val neo4jVersion       = "4.3.4"
