@@ -35,9 +35,6 @@ dependencies {
     implementation "org.jetbrains.kotlinx:kotlinx-coroutines-core:$kotlinxVersion"
 
     // Logging
-    implementation "org.apache.logging.log4j:log4j-api:$log4jVersion"
-    implementation "org.apache.logging.log4j:log4j-core:$log4jVersion"
-    implementation "org.apache.logging.log4j:log4j-slf4j-impl:$log4jVersion"
     implementation "org.slf4j:jul-to-slf4j:$slf4jVersion" // JUL bridge
     implementation "org.slf4j:jcl-over-slf4j:$slf4jVersion" // Apache Commons Logging (JCL) bridge
     implementation "org.slf4j:log4j-over-slf4j:$slf4jVersion" // log4j1.2 bridge
