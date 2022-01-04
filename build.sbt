@@ -1,8 +1,6 @@
-import java.time.{ZoneOffset, ZonedDateTime}
-
 name := "Plume"
 organization := "io.github.plume-oss"
-version := "0.1.0"
+version := "1.0.0"
 
 scalaVersion := "2.13.6"
 
