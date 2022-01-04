@@ -2,7 +2,12 @@ package io.github.plume.oss
 
 import io.github.plume.oss.drivers.{IDriver, OverflowDbDriver}
 import io.github.plume.oss.passes._
-import io.github.plume.oss.passes.concurrent.{PlumeCfgCreationPass, PlumeContainsEdgePass, PlumeDiffPass, PlumeHashPass}
+import io.github.plume.oss.passes.concurrent.{
+  PlumeCfgCreationPass,
+  PlumeContainsEdgePass,
+  PlumeDiffPass,
+  PlumeHashPass
+}
 import io.github.plume.oss.passes.parallel._
 import io.shiftleft.codepropertygraph.Cpg
 import io.shiftleft.codepropertygraph.generated.{NodeTypes, PropertyNames}
