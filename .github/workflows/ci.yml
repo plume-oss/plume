@@ -22,7 +22,7 @@ jobs:
         with:
           java-version: 11
 
-      - name: Check styling and begin coverage instrumentation
+      - name: Check styling
         run: sbt scalafmtCheck
 
       - name: Run unit and inmem database tests

@@ -112,16 +112,3 @@ lazy val root = (project in file("."))
     Test / testOptions := Seq(Tests.Filter(s => !s.endsWith("IntTests"))),
     NeptuneIntTest / testOptions := Seq(Tests.Filter(s => s.contains("Neptune")))
   )
-
-lazy val buildTime: SettingKey[String] = SettingKey[String]("buildTime", "time of build")
-
-ThisBuild / buildTime := ZonedDateTime.now(ZoneOffset.UTC).toString
-
-buildInfoKeys :=
-  Seq[BuildInfoKey](
-    name,
-    version,
-    scalaVersion,
-    sbtVersion,
-    buildTime
-  )
