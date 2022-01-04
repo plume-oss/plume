@@ -6,25 +6,24 @@ on:
 
 jobs:
   publish:
-    name: Publish release and KDocs
+    name: Publish release
     runs-on: ubuntu-latest
 
     steps:
       - uses: actions/checkout@v2
         with:
           lfs: true
+          fetch-depth: 0
 
       - name: Set up JDK 11
         uses: actions/setup-java@v1
         with:
           java-version: 11
 
-      - name: Grant execute permission for gradlew
-        run: chmod +x gradlew
       - name: Build code
-        run: ./gradlew assemble
+        run: sbt stage
       - name: Publish code
-        run: ./gradlew publishToMavenLocal
+        run: sbt publishM2
       - name: Create Release
         id: create_release
         uses: actions/create-release@v1
@@ -35,7 +34,3 @@ jobs:
           release_name: ${{ github.ref }}
           draft: false
           prerelease: false
-      - name: Build and deploy Orchid documentation
-        run: ./gradlew :plume:orchidDeploy -PorchidEnvironment=prod
-        env:
-          ORCHID_TOKEN: ${{ secrets.ORCHID_TOKEN }}
