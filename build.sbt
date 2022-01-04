@@ -1,3 +1,5 @@
+import java.time.{ZoneOffset, ZonedDateTime}
+
 name := "Plume"
 organization := "io.github.plume-oss"
 version := "0.1.0"
@@ -109,4 +111,17 @@ lazy val root = (project in file("."))
     libraryDependencies += scalatest % NeptuneIntTest,
     Test / testOptions := Seq(Tests.Filter(s => !s.endsWith("IntTests"))),
     NeptuneIntTest / testOptions := Seq(Tests.Filter(s => s.contains("Neptune")))
+  )
+
+lazy val buildTime: SettingKey[String] = SettingKey[String]("buildTime", "time of build")
+
+ThisBuild / buildTime := ZonedDateTime.now(ZoneOffset.UTC).toString
+
+buildInfoKeys :=
+  Seq[BuildInfoKey](
+    name,
+    version,
+    scalaVersion,
+    sbtVersion,
+    buildTime
   )
