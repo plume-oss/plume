@@ -40,7 +40,8 @@ params:
   txMax: 25
 ```
 
-For more documentation and basic guides, check out the [project homepage](https://plume-oss.github.io/plume-docs/).
+For more documentation and basic guides, check out the [project homepage](https://plume-oss.github.io/plume-docs/) or
+the [ScalaDoc](https://plume-oss.github.io/plume/latest/api/io/github/plume/oss/index.html).
 
 ## Community
 
@@ -58,17 +59,14 @@ Replace `X.X.X` with the desired version on [JitPack](https://jitpack.io/#plume-
 
 ```sbt
 libraryDependencies ++= Seq(
-  io.github.plume-oss %% plume % X.X.X
+  com.github.plume-oss % plume % X.X.X
 )
 ```
 
 Don't forget to include the JCenter and JitPack repository in your `build.sbt`.
 
 ```sbt
-resolvers ++= Seq(
-  "jitpack" at "https://jitpack.io",
-  Resolver.JCenterRepository
-)
+resolvers += "jitpack" at "https://jitpack.io"
 ```
 
 ## Building from Source

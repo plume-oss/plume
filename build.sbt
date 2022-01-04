@@ -1,5 +1,5 @@
 name := "Plume"
-organization := "io.github.plume-oss"
+organization := "com.github.plume-oss"
 version := "1.0.0"
 
 scalaVersion := "2.13.6"
@@ -65,8 +65,10 @@ enablePlugins(
 )
 
 scmInfo := Some(
-  ScmInfo(url("https://github.com/plume-oss/plume"), "scm:git@github.com:/plume-oss/plume.git")
+  ScmInfo(url("https://github.com/plume-oss/plume"), "git@github.com:plume-oss/plume.git")
 )
+git.remoteRepo := scmInfo.value.get.connection
+
 homepage := Some(url("https://github.com/plume-oss/plume/"))
 licenses := List("Apache-2.0" -> url("https://www.apache.org/licenses/LICENSE-2.0"))
 developers := List(
@@ -84,9 +86,9 @@ developers := List(
   )
 )
 
-git.remoteRepo := "git@github.com:plume-oss/plume.git"
-
 Global / onChangedBuildSource := ReloadOnSourceChanges
+
+publishMavenStyle := true
 
 lazy val root = (project in file("."))
   .configs(NeoIntTest)

@@ -5,6 +5,19 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](http://keepachangelog.com/)
 and this project adheres to [Semantic Versioning](http://semver.org/).
 
+## [1.0.0] - 2022-01-04
+
+### Changed
+
+- Whole project migrated to Scala
+- Every transaction as far as possible is a bulk transaction
+- Processing follows closely to layers used in other Joern frontends
+- Package structure changed from io.github to com.github
+
+### Removed
+
+- JanusGraph support
+
 ## [0.6.3] - 2021-12-10
 
 ### Fixed

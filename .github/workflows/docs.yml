@@ -2,7 +2,7 @@ name: Documentation
 
 on:
   push:
-    tags: [ 'v*' ] # Push events to matching v*, i.e. v1.0, v20.15.10
+    tags: [ 'd*' ] # Temporarily disable this job
 
 jobs:
   publish:
@@ -12,7 +12,6 @@ jobs:
     steps:
       - uses: actions/checkout@v2
         with:
-          lfs: true
           fetch-depth: 0
 
       - name: Set up JDK 11
@@ -20,7 +19,16 @@ jobs:
         with:
           java-version: 11
 
+      - name: Setup SSH Keys and known_hosts
+        uses: webfactory/ssh-agent@v0.5.4
+        with:
+          ssh-private-key: ${{ secrets.SSH_PRIVATE_KEY }}
+
       - name: Build code
         run: sbt stage
-      - name: Build and deploy Scala documentation
-        run: sbt makeSite ghpagesPushSite
+      - name: Build ScalaDoc website
+        run: sbt makeSite
+      - name: Deploy ScalaSite
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: sbt ghpagesPushSite
