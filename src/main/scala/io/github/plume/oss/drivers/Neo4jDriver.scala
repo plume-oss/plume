@@ -77,7 +77,7 @@ class Neo4jDriver(
 
   private def nodePayload(id: Long, n: NewNode): String = {
     def escape(raw: String): String = {
-      import scala.reflect.runtime.universe._
+      import scala.reflect.runtime.universe.{Constant, Literal}
       Literal(Constant(raw)).toString
     }
     val propertyStr = (removeLists(n.properties).map { case (k, v) =>

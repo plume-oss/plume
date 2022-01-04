@@ -5,10 +5,10 @@ import io.shiftleft.codepropertygraph.Cpg
 import io.shiftleft.codepropertygraph.generated.PropertyNames
 import io.shiftleft.codepropertygraph.generated.nodes.File
 import io.shiftleft.passes.DiffGraph
-import io.shiftleft.semanticcpg.language.{toFile, toNodeTypeStarters, toTypeDeclTraversalExtGen}
+import io.shiftleft.semanticcpg.language._
 import org.slf4j.{Logger, LoggerFactory}
 
-import scala.tools.nsc.io.JFile
+import java.io.{File => JFile}
 import scala.util.{Failure, Success, Try}
 
 /** Performs hash calculations on the files represented by the FILE nodes.

@@ -2,7 +2,7 @@ package io.github.plume.oss.drivers
 
 import org.slf4j.{Logger, LoggerFactory}
 
-import scala.tools.nsc.io.File
+import java.io.File
 import scala.util.Using
 
 /** The driver used to connect to an in-memory TinkerGraph instance.
@@ -56,7 +56,7 @@ class TinkerGraphDriver extends GremlinDriver {
         "Unsupported graph extension! Supported types are GraphML, GraphSON, and Gryo."
       )
     }
-    if (!File(filePath).exists) {
+    if (!new File(filePath).exists) {
       throw new RuntimeException(s"No existing serialized graph file was found at $filePath")
     }
     Using.resource(this.graph.traversal()) { g =>

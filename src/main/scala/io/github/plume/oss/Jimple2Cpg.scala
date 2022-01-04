@@ -2,25 +2,11 @@ package io.github.plume.oss
 
 import io.github.plume.oss.drivers.{IDriver, OverflowDbDriver}
 import io.github.plume.oss.passes._
-import io.github.plume.oss.passes.concurrent.{
-  PlumeCfgCreationPass,
-  PlumeContainsEdgePass,
-  PlumeDiffPass,
-  PlumeHashPass
-}
-import io.github.plume.oss.passes.parallel.{
-  AstCreationPass,
-  PlumeCdgPass,
-  PlumeCfgDominatorPass,
-  PlumeMethodStubCreator,
-  PlumeReachingDefPass
-}
+import io.github.plume.oss.passes.concurrent.{PlumeCfgCreationPass, PlumeContainsEdgePass, PlumeDiffPass, PlumeHashPass}
+import io.github.plume.oss.passes.parallel._
 import io.shiftleft.codepropertygraph.Cpg
 import io.shiftleft.codepropertygraph.generated.{NodeTypes, PropertyNames}
 import io.shiftleft.passes.CpgPassBase
-import io.shiftleft.semanticcpg.passes.base.{AstLinkerPass, TypeUsagePass}
-import io.shiftleft.semanticcpg.passes.callgraph.{MethodRefLinker, StaticCallLinker}
-import io.shiftleft.semanticcpg.passes.typerelations.{AliasLinkerPass, TypeHierarchyPass}
 import io.shiftleft.x2cpg.SourceFiles
 import io.shiftleft.x2cpg.X2Cpg.newEmptyCpg
 import org.slf4j.LoggerFactory
@@ -59,7 +45,7 @@ object Jimple2Cpg {
 
 class Jimple2Cpg {
 
-  import Jimple2Cpg._
+  import Jimple2Cpg.{getQualifiedClassPath, language}
 
   private val logger = LoggerFactory.getLogger(classOf[Jimple2Cpg])
 

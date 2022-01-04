@@ -4,13 +4,13 @@ version := "0.1.0"
 
 scalaVersion := "2.13.6"
 
-val cpgVersion         = "1.3.437"
-val joernVersion       = "1.1.358"
+val cpgVersion         = "1.3.477"
+val joernVersion       = "1.1.412"
 val sootVersion        = "4.2.1"
 val tinkerGraphVersion = "3.4.8"
-val neo4jVersion       = "4.3.4"
+val neo4jVersion       = "4.4.2"
 val tigerGraphVersion  = "3.1.0"
-val sttpVersion        = "3.3.16"
+val sttpVersion        = "3.3.17"
 val lz4Version         = "1.8.0"
 val slf4jVersion       = "1.7.32"
 val scalatestVersion   = "3.2.9"
@@ -47,6 +47,7 @@ libraryDependencies ++= Seq(
   "org.lz4"                        % "lz4-java"            % lz4Version,
   "org.slf4j"                      % "slf4j-api"           % slf4jVersion,
   "org.slf4j"                      % "slf4j-simple"        % slf4jVersion,
+  "org.scala-lang"                 % "scala-reflect"       % scalaVersion.value,
   "org.scalatest"                 %% "scalatest"           % scalatestVersion % Test
 ) ++ Seq(
   "io.circe" %% "circe-core",

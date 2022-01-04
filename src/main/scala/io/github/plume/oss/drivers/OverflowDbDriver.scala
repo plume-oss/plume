@@ -5,8 +5,8 @@ import io.github.plume.oss.passes.PlumeDynamicCallLinker
 import io.joern.dataflowengineoss.language.toExtendedCfgNode
 import io.joern.dataflowengineoss.queryengine.{EngineConfig, EngineContext}
 import io.joern.dataflowengineoss.semanticsloader.{Parser, Semantics}
-import io.shiftleft.codepropertygraph.generated.nodes._
 import io.shiftleft.codepropertygraph.generated._
+import io.shiftleft.codepropertygraph.generated.nodes._
 import io.shiftleft.codepropertygraph.{Cpg => CPG}
 import io.shiftleft.passes.AppliedDiffGraph
 import io.shiftleft.passes.DiffGraph.{Change, PackedProperties}
@@ -212,13 +212,12 @@ case class OverflowDbDriver(
 
   def nodesReachableBy(source: Traversal[CfgNode], sink: Traversal[CfgNode]): List[CfgNode] = {
     val results = sink.reachableByDetailed(source)
-    // TODO: Save these paths to the CPG
-    results.map(_.table).foreach { x => x.}
+    // Save these paths to the CPG
     results
       .map(_.path.map(_.node))
       .filter(_.size > 1)
       .map(_.map { x => cpg.graph.node(x.id()) })
-      .foreach { path => path.reduceRight { (a, b) => a.addEdge("TEST", b); b } }
+      .foreach { path => path.reduceRight { (a, b) => a.addEdge(EdgeTypes.DATA_FLOW, b); b } }
     results.map(_.path.head.node).distinct
   }
 }
