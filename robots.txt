@@ -1,8 +1,0 @@
-User-agent: *
-
-Disallow: /meta/
-
-
-
-Sitemap: https://plume-oss.github.io/plume/sitemap.xml
-
