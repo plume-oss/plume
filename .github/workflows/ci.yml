@@ -27,10 +27,10 @@ jobs:
 
       - name: Run unit and inmem database tests
         run: sbt test
-      - name: Run Neo4j integration tests
-        run: sbt "neoTest:test"
-      - name: Run TigerGraph integration tests
-        run: sbt "tgTest:test"
+#      - name: Run Neo4j integration tests
+#        run: sbt "neoTest:test"
+#      - name: Run TigerGraph integration tests
+#        run: sbt "tgTest:test"
 
       - name: Compile coverage report
         run: sbt coverageReport
@@ -38,3 +38,4 @@ jobs:
         uses: codecov/codecov-action@v1
         with:
           token: ${{ secrets.CODECOV_TOKEN }}
+          directory: ./target/scala-2.13/scoverage-report/
