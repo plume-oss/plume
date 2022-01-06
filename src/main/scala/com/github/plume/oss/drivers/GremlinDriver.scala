@@ -8,7 +8,7 @@ import io.shiftleft.proto.cpg.Cpg.DispatchTypes
 import org.apache.commons.configuration.BaseConfiguration
 import org.apache.tinkerpop.gremlin.process.traversal.P
 import org.apache.tinkerpop.gremlin.process.traversal.P.{neq, within}
-import org.apache.tinkerpop.gremlin.process.traversal.dsl.graph.__.has
+import org.apache.tinkerpop.gremlin.process.traversal.dsl.graph.__.{coalesce, constant, has, values}
 import org.apache.tinkerpop.gremlin.process.traversal.dsl.graph.{
   GraphTraversal,
   GraphTraversalSource,
@@ -205,10 +205,10 @@ abstract class GremlinDriver(txMax: Int = 50) extends IDriver {
         .hasLabel(nodeType)
         .project[Any](T.id.toString, keys: _*)
         .by(T.id)
-      keys.foreach(k => ptr = ptr.by(k))
+      keys.foreach(k => ptr = ptr.by(coalesce(values(k), constant("NULL"))))
       ptr.asScala
         .map(_.asScala.map { case (k, v) =>
-          if (v == null)
+          if (v == "NULL")
             k -> IDriver.getPropertyDefault(k)
           else
             k -> v
