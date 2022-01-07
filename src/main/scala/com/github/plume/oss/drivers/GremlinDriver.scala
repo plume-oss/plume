@@ -256,7 +256,7 @@ abstract class GremlinDriver(txMax: Int = 50) extends IDriver {
         )
         .project[Any]("id", dstFullNameKey)
         .by(T.id)
-        .by(dstFullNameKey)
+        .by(coalesce(values(dstFullNameKey), constant("NULL")))
         .asScala
         .map(_.asScala.toMap)
         .foreach { m =>
@@ -282,7 +282,7 @@ abstract class GremlinDriver(txMax: Int = 50) extends IDriver {
         .has(PropertyNames.DISPATCH_TYPE, DispatchTypes.STATIC_DISPATCH.name())
         .project[Any]("id", PropertyNames.METHOD_FULL_NAME)
         .by(T.id)
-        .by(PropertyNames.METHOD_FULL_NAME)
+        .by(coalesce(values(PropertyNames.METHOD_FULL_NAME), constant("NULL")))
         .asScala
         .map(_.asScala.toMap)
         .foreach { m =>
