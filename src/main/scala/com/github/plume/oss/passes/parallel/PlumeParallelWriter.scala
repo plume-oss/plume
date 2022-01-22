@@ -13,7 +13,7 @@ private class PlumeParallelWriter(
     baseLogger: Logger = LoggerFactory.getLogger(classOf[CpgPass])
 ) extends Runnable {
 
-  case class DiffGraphAndKeyPool(diffGraph: Option[DiffGraph], keyPool: Option[KeyPool])
+  final case class DiffGraphAndKeyPool(diffGraph: Option[DiffGraph], keyPool: Option[KeyPool])
 
   private val queue = new LinkedBlockingQueue[DiffGraphAndKeyPool]
 
@@ -33,6 +33,7 @@ private class PlumeParallelWriter(
           case DiffGraphAndKeyPool(None, _) =>
             baseLogger.debug("Shutting down WriterThread")
             terminate = true
+          case _ =>
         }
       }
     } catch {

@@ -22,7 +22,7 @@ import scala.util.Try
 
 /** The driver used to communicate to a remote TigerGraph instance. One must build a schema on the first use of the database.
   */
-class TigerGraphDriver(
+final class TigerGraphDriver(
     hostname: String = DEFAULT_HOSTNAME,
     restPpPort: Int = DEFAULT_RESTPP_PORT,
     gsqlPort: Int = DEFAULT_GSQL_PORT,
@@ -437,7 +437,7 @@ class TigerGraphDriver(
 
 /** The response specification for REST++ responses.
   */
-case class TigerGraphResponse(
+final case class TigerGraphResponse(
     version: VersionInfo,
     error: Boolean,
     message: String,
@@ -446,18 +446,18 @@ case class TigerGraphResponse(
 
 /** The version information response object.
   */
-case class VersionInfo(edition: String, api: String, schema: Int)
+final case class VersionInfo(edition: String, api: String, schema: Int)
 
 /** The payload body for upserting graph data.
   */
-case class PayloadBody(
+final case class PayloadBody(
     vertices: JsonObject = JsonObject.empty,
     edges: JsonObject = JsonObject.empty
 )
 
 /** Used to stop the JVM from passing System.exit commands.
   */
-class CodeControl {
+final class CodeControl {
   def disableSystemExit(): Unit = {
     val securityManager: SecurityManager = new StopExitSecurityManager()
     System.setSecurityManager(securityManager)
@@ -472,7 +472,7 @@ class CodeControl {
     }
   }
 
-  class StopExitSecurityManager extends SecurityManager() {
+  final class StopExitSecurityManager extends SecurityManager() {
     val _prevMgr: SecurityManager = System.getSecurityManager
 
     override def checkPermission(perm: Permission): Unit = {

@@ -9,7 +9,7 @@ import soot.Scene
 
 import java.util.concurrent.ConcurrentSkipListSet
 
-case class Global(
+final case class Global(
     usedTypes: ConcurrentSkipListSet[String] = new ConcurrentSkipListSet[String]()
 )
 

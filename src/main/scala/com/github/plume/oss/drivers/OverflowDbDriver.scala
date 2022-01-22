@@ -22,7 +22,7 @@ import scala.util.{Failure, Success, Try}
 
 /** Driver to create an OverflowDB database file.
   */
-case class OverflowDbDriver(
+final case class OverflowDbDriver(
     storageLocation: Option[String] = Option(
       JFile.createTempFile("plume-", ".odb").getAbsolutePath
     ),
@@ -172,7 +172,7 @@ case class OverflowDbDriver(
       srcNode
         .propertyOption(dstFullNameKey)
         .filter { dstFullName =>
-          dstFullName.isInstanceOf[Seq[String]] ||
+          dstFullName.isInstanceOf[Seq] ||
           (srcNode.propertyDefaultValue(dstFullNameKey) != null &&
             !srcNode.propertyDefaultValue(dstFullNameKey).equals(dstFullName))
         }

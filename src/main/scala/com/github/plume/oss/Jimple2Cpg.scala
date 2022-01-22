@@ -40,7 +40,7 @@ import scala.jdk.CollectionConverters.{CollectionHasAsScala, EnumerationHasAsSca
 import scala.util.{Failure, Success, Using}
 
 object Jimple2Cpg {
-  val language = "PLUME"
+  val language: String = "PLUME"
 
   /** Formats the file name the way Soot refers to classes within a class path. e.g.
     * /unrelated/paths/class/path/Foo.class => class.path.Foo
@@ -239,8 +239,7 @@ class Jimple2Cpg {
       zip
         .entries()
         .asScala
-        .filter(!_.isDirectory)
-        .filter(_.getName.contains(".class"))
+        .filter(x => !x.isDirectory && x.getName.contains(".class"))
         .flatMap(entry => {
           val sourceCodePathFile = new JFile(sourceCodePath)
           // Handle the case if the input source code path is an archive itself

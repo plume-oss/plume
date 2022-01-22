@@ -21,7 +21,7 @@ class NamespaceBlockTests extends Jimple2CpgFixture {
     val List(x) = cpg.namespaceBlock.filename(".*.class").l
     x.name shouldBe "bar"
     x.filename should not be ""
-    x.fullName shouldBe s"foo.bar"
+    x.fullName shouldBe "foo.bar"
     x.order shouldBe 1
   }
 

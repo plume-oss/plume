@@ -25,7 +25,7 @@ class ArithmeticOperationsTests extends Jimple2CpgFixture {
       | }
       |""".stripMargin
 
-  val vars = Seq(
+  val vars: Seq[(String, String)] = Seq(
     ("a", "byte"),
     ("b", "double"),
     ("c", "double"),

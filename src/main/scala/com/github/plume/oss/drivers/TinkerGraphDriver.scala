@@ -7,7 +7,7 @@ import scala.util.Using
 
 /** The driver used to connect to an in-memory TinkerGraph instance.
   */
-class TinkerGraphDriver extends GremlinDriver {
+final class TinkerGraphDriver extends GremlinDriver {
 
   override protected val logger: Logger = LoggerFactory.getLogger(classOf[TinkerGraphDriver])
 

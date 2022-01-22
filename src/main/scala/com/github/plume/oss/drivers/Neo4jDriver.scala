@@ -9,6 +9,7 @@ import org.neo4j.driver.{AuthTokens, GraphDatabase, Transaction}
 import org.slf4j.LoggerFactory
 
 import java.util.concurrent.atomic.AtomicBoolean
+import scala.collection.convert.ImplicitConversions.`list asScalaBuffer`
 import scala.collection.mutable
 import scala.jdk.CollectionConverters.CollectionHasAsScala
 import scala.util.{Failure, Success, Try, Using}
@@ -16,7 +17,7 @@ import scala.util.{Failure, Success, Try, Using}
 /** The driver used to connect to a remote Neo4j instance. Once can optionally call buildSchema to add indexes for
   * improved performance on larger graphs.
   */
-class Neo4jDriver(
+final class Neo4jDriver(
     hostname: String = DEFAULT_HOSTNAME,
     port: Int = DEFAULT_PORT,
     username: String = DEFAULT_USERNAME,
@@ -50,14 +51,14 @@ class Neo4jDriver(
 
   override def exists(nodeId: Long): Boolean = Using.resource(driver.session()) { session =>
     session.writeTransaction { tx =>
-      !tx
+      tx
         .run(s"""
                |MATCH (n)
                |WHERE n.id = $nodeId
                |RETURN n
                |""".stripMargin)
         .list
-        .isEmpty
+        .nonEmpty
     }
   }
 

@@ -14,7 +14,7 @@ import sttp.model.Uri
 import scala.jdk.CollectionConverters.CollectionHasAsScala
 import scala.util.Using
 
-class NeptuneDriver(
+final class NeptuneDriver(
     hostname: String,
     port: Int = DEFAULT_PORT,
     keyCertChainFile: String = "src/main/resources/conf/SFSRootCAC2.pem",
@@ -98,7 +98,7 @@ class NeptuneDriver(
             )
             .takeWhile {
               case Left(e)         => logger.warn("Unable to obtain instance status", e); true
-              case Right(response) => if (response.status == "healthy") false else true
+              case Right(response) => response.status != "healthy"
             }
             .foreach(_ => Thread.sleep(5000))
       }
@@ -136,14 +136,14 @@ object NeptuneDriver {
   private val DEFAULT_PORT = 8182
 }
 
-case class InitiateResetResponse(status: String, payload: TokenPayload)
-case class PerformResetResponse(status: String)
-case class TokenPayload(token: String)
-case class InstanceStatusResponse(
+final case class InitiateResetResponse(status: String, payload: TokenPayload)
+final case class PerformResetResponse(status: String)
+final case class TokenPayload(token: String)
+final case class InstanceStatusResponse(
     status: String,
     startTime: String,
     dbEngineVersion: String,
     role: String,
     gremlin: GremlinVersion
 )
-case class GremlinVersion(version: String)
+final case class GremlinVersion(version: String)
