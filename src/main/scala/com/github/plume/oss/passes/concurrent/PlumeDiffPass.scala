@@ -28,7 +28,7 @@ class PlumeDiffPass(filenames: List[String], driver: IDriver) {
       }
       .toMap
 
-  /** Returns all given filenames as [[File]] objects.
+  /** Returns all given filenames as java.io.File objects.
     */
   def partIterator: Iterator[File] = filenames.map(new File(_)).iterator
 

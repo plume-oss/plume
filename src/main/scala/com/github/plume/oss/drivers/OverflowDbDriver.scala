@@ -171,18 +171,19 @@ final case class OverflowDbDriver(
     Traversal(cpg.graph.nodes(srcLabels: _*)).foreach { srcNode =>
       srcNode
         .propertyOption(dstFullNameKey)
-        .filter { dstFullName =>
-          dstFullName.isInstanceOf[Seq] ||
-          (srcNode.propertyDefaultValue(dstFullNameKey) != null &&
-            !srcNode.propertyDefaultValue(dstFullNameKey).equals(dstFullName))
+        .filter {
+          case Seq(_*) => true
+          case dstFullName =>
+            srcNode.propertyDefaultValue(dstFullNameKey) != null &&
+              !srcNode.propertyDefaultValue(dstFullNameKey).equals(dstFullName)
         }
         .ifPresent { x =>
-          val ds = x match {
-            case dstFullName: String       => Seq(dstFullName)
-            case dstFullNames: Seq[String] => dstFullNames
-            case _                         => Seq()
-          }
-          ds.foreach { dstFullName =>
+          (x match {
+            case dstFullName: String  => Seq(dstFullName)
+            case dstFullNames: Seq[_] => dstFullNames
+            case _ => Seq()
+          }).collect { case x: String => x }
+            .foreach { dstFullName: String =>
             val src = srcNode.asInstanceOf[StoredNode]
             dstNodeMap.get(dstFullName) match {
               case Some(dstNodeId) =>

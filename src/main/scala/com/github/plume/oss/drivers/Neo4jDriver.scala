@@ -142,10 +142,11 @@ final class Neo4jDriver(
     val ss = ops
       .map { case Change.SetNodeProperty(node, k, v) =>
         val s = v match {
-          case x: String      => s""""$x""""
-          case x: Seq[String] => x.headOption.getOrElse("<empty>")
-          case x: Number      => x.toString
-          case x              => logger.warn(s"Unhandled property $x (${x.getClass}")
+          case x: String     => s""""$x""""
+          case Seq(head, _*) => head
+          case Seq()         => IDriver.STRING_DEFAULT
+          case x: Number     => x.toString
+          case x             => logger.warn(s"Unhandled property $x (${x.getClass}")
         }
         s"n${node.id()}.$k = $s"
       }

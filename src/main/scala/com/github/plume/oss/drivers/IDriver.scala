@@ -26,7 +26,7 @@ trait IDriver extends AutoCloseable {
     */
   def exists(srcId: Long, dstId: Long, edge: String): Boolean
 
-  /** Executes all changes contained within the given [[io.shiftleft.passes.AppliedDiffGraph]] as a (or set of) bulk
+  /** Executes all changes contained within the given io.shiftleft.passes.AppliedDiffGraph as a (or set of) bulk
     * transaction(s).
     */
   def bulkTx(dg: AppliedDiffGraph): Unit
@@ -43,8 +43,8 @@ trait IDriver extends AutoCloseable {
   protected def removeLists(properties: Map[String, Any]): Map[String, Any] = {
     properties.map { case (k, v) =>
       v match {
-        case is: Seq[String] => k -> is.head
-        case _               => k -> v
+        case Seq(head, _*) => k -> head
+        case _             => k -> v
       }
     }
   }

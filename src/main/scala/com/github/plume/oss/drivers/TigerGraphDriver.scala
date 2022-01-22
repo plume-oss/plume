@@ -119,7 +119,8 @@ final class TigerGraphDriver(
   private def nodePayload(id: Long, n: NewNode): JsonObject = {
     val attributes = removeLists(n.properties).flatMap { case (k, v) =>
       val vStr = v match {
-        case x: Seq[String] => x.headOption.getOrElse(IDriver.STRING_DEFAULT)
+        case Seq(head) => head
+        case Seq() => IDriver.STRING_DEFAULT
         case x if x == null => IDriver.getPropertyDefault(k)
         case x              => x
       }
@@ -457,7 +458,7 @@ final case class PayloadBody(
 
 /** Used to stop the JVM from passing System.exit commands.
   */
-final class CodeControl {
+class CodeControl {
   def disableSystemExit(): Unit = {
     val securityManager: SecurityManager = new StopExitSecurityManager()
     System.setSecurityManager(securityManager)
@@ -472,7 +473,7 @@ final class CodeControl {
     }
   }
 
-  final class StopExitSecurityManager extends SecurityManager() {
+  class StopExitSecurityManager extends SecurityManager() {
     val _prevMgr: SecurityManager = System.getSecurityManager
 
     override def checkPermission(perm: Permission): Unit = {

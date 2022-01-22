@@ -13,7 +13,7 @@ private class PlumeParallelWriter(
     baseLogger: Logger = LoggerFactory.getLogger(classOf[CpgPass])
 ) extends Runnable {
 
-  final case class DiffGraphAndKeyPool(diffGraph: Option[DiffGraph], keyPool: Option[KeyPool])
+  case class DiffGraphAndKeyPool(diffGraph: Option[DiffGraph], keyPool: Option[KeyPool])
 
   private val queue = new LinkedBlockingQueue[DiffGraphAndKeyPool]
 
