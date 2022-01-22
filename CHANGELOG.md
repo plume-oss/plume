@@ -5,6 +5,14 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](http://keepachangelog.com/)
 and this project adheres to [Semantic Versioning](http://semver.org/).
 
+## [Unreleased]
+
+### Fixed
+
+- Issue where if a single file was given, all surrounding files are checked to be included too
+- Warnings related to matching generics susceptible to type erasure issues
+- Performance and anti-patterns reported by DeepSource
+
 ## [1.0.2] - 2022-01-07
 
 ### Fixed

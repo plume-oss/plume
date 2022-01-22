@@ -83,11 +83,12 @@ class Jimple2Cpg {
     try {
       // Determine if the given path is a file or directory and sanitize accordingly
       val rawSourceCodeFile = new JFile(rawSourceCodePath)
+      val normSourceCodePath = rawSourceCodeFile.toPath.toAbsolutePath.normalize.toString
       val sourceCodePath = if (rawSourceCodeFile.isDirectory) {
-        rawSourceCodeFile.toPath.toAbsolutePath.normalize.toString
+        normSourceCodePath
       } else {
         Paths
-          .get(new JFile(rawSourceCodeFile.getAbsolutePath).getParentFile.getAbsolutePath)
+          .get(new JFile(normSourceCodePath).getParentFile.getAbsolutePath)
           .normalize
           .toString
       }
@@ -107,10 +108,12 @@ class Jimple2Cpg {
       val sourceFileExtensions  = Set(".class", ".jimple")
       val archiveFileExtensions = Set(".jar", ".war")
       // Unpack any archives on the path onto the source code path as project root
-      val archives = if (rawSourceCodeFile.isDirectory)
-        SourceFiles.determine(Set(sourceCodePath), archiveFileExtensions)
-      else
-        SourceFiles.determine(Set(rawSourceCodeFile.toPath.toAbsolutePath.normalize.toString), archiveFileExtensions)
+      val archives: List[String] =
+        if (rawSourceCodeFile.isDirectory)
+          SourceFiles.determine(Set(sourceCodePath), archiveFileExtensions)
+        else if (normSourceCodePath.endsWith(archiveFileExtensions))
+          List(normSourceCodePath)
+        else List()
       // Load source files and unpack archives if necessary
       val sourceFileNames = loadSourceFiles(sourceCodePath, sourceFileExtensions, archives)
 
@@ -156,7 +159,11 @@ class Jimple2Cpg {
     }
   }
 
-  private def loadSourceFiles(sourceCodePath: String, sourceFileExtensions: Set[String], archives: List[String]) = {
+  private def loadSourceFiles(
+      sourceCodePath: String,
+      sourceFileExtensions: Set[String],
+      archives: List[String]
+  ) = {
     (archives
       .map(new ZipFile(_))
       .flatMap(x => {
