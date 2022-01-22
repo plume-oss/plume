@@ -107,21 +107,12 @@ class Jimple2Cpg {
       val sourceFileExtensions  = Set(".class", ".jimple")
       val archiveFileExtensions = Set(".jar", ".war")
       // Unpack any archives on the path onto the source code path as project root
-      val archives = SourceFiles.determine(Set(sourceCodePath), archiveFileExtensions)
+      val archives = if (rawSourceCodeFile.isDirectory)
+        SourceFiles.determine(Set(sourceCodePath), archiveFileExtensions)
+      else
+        SourceFiles.determine(Set(rawSourceCodeFile.toPath.toAbsolutePath.normalize.toString), archiveFileExtensions)
       // Load source files and unpack archives if necessary
-      val sourceFileNames = (archives
-        .map(new ZipFile(_))
-        .flatMap(x => {
-          unzipArchive(x, sourceCodePath) match {
-            case Failure(e) =>
-              logger.error(s"Error extracting files from archive at ${x.getName}", e); null
-            case Success(value) => value
-          }
-        })
-        .map(_.getAbsolutePath) ++ SourceFiles.determine(
-        Set(sourceCodePath),
-        sourceFileExtensions
-      )).distinct
+      val sourceFileNames = loadSourceFiles(sourceCodePath, sourceFileExtensions, archives)
 
       val codeToProcess = new PlumeDiffPass(sourceFileNames, driver).createAndApply()
       // After the diff pass any changed types are removed. Remaining types should be black listed to avoid duplicates
@@ -163,6 +154,22 @@ class Jimple2Cpg {
     } finally {
       closeSoot()
     }
+  }
+
+  private def loadSourceFiles(sourceCodePath: String, sourceFileExtensions: Set[String], archives: List[String]) = {
+    (archives
+      .map(new ZipFile(_))
+      .flatMap(x => {
+        unzipArchive(x, sourceCodePath) match {
+          case Failure(e) =>
+            logger.error(s"Error extracting files from archive at ${x.getName}", e); null
+          case Success(value) => value
+        }
+      })
+      .map(_.getAbsolutePath) ++ SourceFiles.determine(
+      Set(sourceCodePath),
+      sourceFileExtensions
+    )).distinct
   }
 
   private def loadClassesIntoSoot(sourceCodePath: String, sourceFileNames: List[String]): Unit = {
