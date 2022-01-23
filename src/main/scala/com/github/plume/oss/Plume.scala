@@ -100,36 +100,39 @@ object Plume extends App {
     }
   }
 
-  X2Cpg.parseCommandLine(args, frontendSpecificOptions, Config()) match {
-    case Some(config) =>
-      if (config.inputPaths.size == 1) {
-        val (conf, driver) = parseDriverConfig()
-        if (driver == null) {
-          println("Unable to create driver, bailing out...")
-          System.exit(1)
-        }
-        if (conf != null && driver.isInstanceOf[TinkerGraphDriver]) {
-          val x          = driver.asInstanceOf[TinkerGraphDriver]
-          val importPath = conf.params.get("importPath")
-          if (importPath.isDefined) x.importGraph(importPath.get)
-        }
-        val cpg = new Jimple2Cpg().createCpg(
-          config.inputPaths.head,
-          Some(config.outputPath),
-          driver
-        )
-        if (conf != null && driver.isInstanceOf[TinkerGraphDriver]) {
-          val x          = driver.asInstanceOf[TinkerGraphDriver]
-          val exportPath = conf.params.get("exportPath")
-          if (exportPath.isDefined) x.exportGraph(exportPath.get)
-        }
-        cpg.close()
-      } else {
-        println("This frontend requires exactly one input path")
+  val configOption = X2Cpg.parseCommandLine(args, frontendSpecificOptions, Config())
+  if (configOption.isEmpty) {
+    System.exit(1)
+  } else if (configOption.get.inputPaths.size != 1) {
+    println("This frontend requires exactly one input path")
+    System.exit(1)
+  } else {
+    val config = configOption.get
+    if (config.inputPaths.size == 1) {
+      val (conf, driver) = parseDriverConfig()
+      if (driver == null) {
+        println("Unable to create driver, bailing out...")
         System.exit(1)
       }
-    case None =>
-      System.exit(1)
+      driver match {
+        case d: TinkerGraphDriver if conf != null =>
+          val importPath = conf.params.get("importPath")
+          if (importPath.isDefined) d.importGraph(importPath.get)
+        case _ =>
+      }
+      val cpg = new Jimple2Cpg().createCpg(
+        config.inputPaths.head,
+        Some(config.outputPath),
+        driver
+      )
+      driver match {
+        case d: TinkerGraphDriver if conf != null =>
+          val exportPath = conf.params.get("exportPath")
+          if (exportPath.isDefined) d.exportGraph(exportPath.get)
+        case _ =>
+      }
+      cpg.close()
+    }
   }
 
 }

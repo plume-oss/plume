@@ -181,18 +181,18 @@ final case class OverflowDbDriver(
           (x match {
             case dstFullName: String  => Seq(dstFullName)
             case dstFullNames: Seq[_] => dstFullNames
-            case _ => Seq()
+            case _                    => Seq()
           }).collect { case x: String => x }
             .foreach { dstFullName: String =>
-            val src = srcNode.asInstanceOf[StoredNode]
-            dstNodeMap.get(dstFullName) match {
-              case Some(dstNodeId) =>
-                val dst = cpg.graph.nodes(dstNodeId.asInstanceOf[Long]).next()
-                if (!src.out(edgeType).asScala.contains(dst))
-                  src.addEdge(edgeType, dst)
-              case None =>
+              val src = srcNode.asInstanceOf[StoredNode]
+              dstNodeMap.get(dstFullName) match {
+                case Some(dstNodeId) =>
+                  val dst = cpg.graph.nodes(dstNodeId.asInstanceOf[Long]).next()
+                  if (!src.out(edgeType).asScala.contains(dst))
+                    src.addEdge(edgeType, dst)
+                case None =>
+              }
             }
-          }
         }
     }
   }

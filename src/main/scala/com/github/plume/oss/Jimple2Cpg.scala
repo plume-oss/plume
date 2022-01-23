@@ -82,7 +82,7 @@ class Jimple2Cpg {
   ): Cpg = {
     try {
       // Determine if the given path is a file or directory and sanitize accordingly
-      val rawSourceCodeFile = new JFile(rawSourceCodePath)
+      val rawSourceCodeFile  = new JFile(rawSourceCodePath)
       val normSourceCodePath = rawSourceCodeFile.toPath.toAbsolutePath.normalize.toString
       val sourceCodePath = if (rawSourceCodeFile.isDirectory) {
         normSourceCodePath
