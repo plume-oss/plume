@@ -1,11 +1,21 @@
 name := "Plume"
-organization := "com.github.plume-oss"
-version := "1.0.3"
 
-scalaVersion := "2.13.6"
+inThisBuild(
+  List(
+    organization := "com.github.plume-oss",
+    version := "1.0.3",
+    scalaVersion := "2.13.7",
+    crossScalaVersions := Seq("2.13.7", "3.1.0"),
+    resolvers ++= Seq(
+      Resolver.mavenLocal,
+      Resolver.mavenCentral,
+      Resolver.JCenterRepository
+    ),
+  )
+)
 
-val cpgVersion         = "1.3.477"
-val joernVersion       = "1.1.412"
+val cpgVersion         = "1.3.493"
+val joernVersion       = "1.1.482"
 val sootVersion        = "4.2.1"
 val tinkerGraphVersion = "3.4.8"
 val neo4jVersion       = "4.4.2"
@@ -21,13 +31,7 @@ lazy val NeoIntTest        = config("neoTest") extend Test
 lazy val TigerGraphIntTest = config("tgTest") extend Test
 lazy val NeptuneIntTest    = config("nepTest") extend Test
 
-fork := true
 
-resolvers ++= Seq(
-  Resolver.mavenLocal,
-  Resolver.mavenCentral,
-  Resolver.JCenterRepository
-)
 
 trapExit := false
 

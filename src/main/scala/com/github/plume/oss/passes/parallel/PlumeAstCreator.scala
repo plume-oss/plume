@@ -380,15 +380,18 @@ class PlumeAstCreator(filename: String, global: Global) {
   }
 
   private def astForNewExpr(x: AnyNewExpr, order: Int, parentUnit: soot.Unit): Ast = {
-    Ast(
-      NewUnknown()
-        .typeFullName(registerType(x.getType.toQuotedString))
-        .code("new")
-        .order(order)
-        .argumentIndex(order)
-        .lineNumber(line(parentUnit))
-        .columnNumber(column(parentUnit))
-    )
+    parentUnit match {
+      case u: ArrayRef => astForUnaryExpr(Operators.arrayInitializer, x, u.getIndex, order, parentUnit)
+      case _ => Ast(
+        NewUnknown()
+          .typeFullName(registerType(x.getType.toQuotedString))
+          .code("new")
+          .order(order)
+          .argumentIndex(order)
+          .lineNumber(line(parentUnit))
+          .columnNumber(column(parentUnit))
+      )
+    }
   }
 
   private def astForUnaryExpr(
