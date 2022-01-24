@@ -40,7 +40,7 @@ import scala.jdk.CollectionConverters.{CollectionHasAsScala, EnumerationHasAsSca
 import scala.util.{Failure, Success, Using}
 
 object Jimple2Cpg {
-  val language = "PLUME"
+  val language: String = "PLUME"
 
   /** Formats the file name the way Soot refers to classes within a class path. e.g.
     * /unrelated/paths/class/path/Foo.class => class.path.Foo
@@ -82,12 +82,13 @@ class Jimple2Cpg {
   ): Cpg = {
     try {
       // Determine if the given path is a file or directory and sanitize accordingly
-      val rawSourceCodeFile = new JFile(rawSourceCodePath)
+      val rawSourceCodeFile  = new JFile(rawSourceCodePath)
+      val normSourceCodePath = rawSourceCodeFile.toPath.toAbsolutePath.normalize.toString
       val sourceCodePath = if (rawSourceCodeFile.isDirectory) {
-        rawSourceCodeFile.toPath.toAbsolutePath.normalize.toString
+        normSourceCodePath
       } else {
         Paths
-          .get(new JFile(rawSourceCodeFile.getAbsolutePath).getParentFile.getAbsolutePath)
+          .get(new JFile(normSourceCodePath).getParentFile.getAbsolutePath)
           .normalize
           .toString
       }
@@ -107,21 +108,14 @@ class Jimple2Cpg {
       val sourceFileExtensions  = Set(".class", ".jimple")
       val archiveFileExtensions = Set(".jar", ".war")
       // Unpack any archives on the path onto the source code path as project root
-      val archives = SourceFiles.determine(Set(sourceCodePath), archiveFileExtensions)
+      val archives: List[String] =
+        if (rawSourceCodeFile.isDirectory)
+          SourceFiles.determine(Set(sourceCodePath), archiveFileExtensions)
+        else if (normSourceCodePath.endsWith(archiveFileExtensions))
+          List(normSourceCodePath)
+        else List()
       // Load source files and unpack archives if necessary
-      val sourceFileNames = (archives
-        .map(new ZipFile(_))
-        .flatMap(x => {
-          unzipArchive(x, sourceCodePath) match {
-            case Failure(e) =>
-              logger.error(s"Error extracting files from archive at ${x.getName}", e); null
-            case Success(value) => value
-          }
-        })
-        .map(_.getAbsolutePath) ++ SourceFiles.determine(
-        Set(sourceCodePath),
-        sourceFileExtensions
-      )).distinct
+      val sourceFileNames = loadSourceFiles(sourceCodePath, sourceFileExtensions, archives)
 
       val codeToProcess = new PlumeDiffPass(sourceFileNames, driver).createAndApply()
       // After the diff pass any changed types are removed. Remaining types should be black listed to avoid duplicates
@@ -163,6 +157,26 @@ class Jimple2Cpg {
     } finally {
       closeSoot()
     }
+  }
+
+  private def loadSourceFiles(
+      sourceCodePath: String,
+      sourceFileExtensions: Set[String],
+      archives: List[String]
+  ) = {
+    (archives
+      .map(new ZipFile(_))
+      .flatMap(x => {
+        unzipArchive(x, sourceCodePath) match {
+          case Failure(e) =>
+            logger.error(s"Error extracting files from archive at ${x.getName}", e); null
+          case Success(value) => value
+        }
+      })
+      .map(_.getAbsolutePath) ++ SourceFiles.determine(
+      Set(sourceCodePath),
+      sourceFileExtensions
+    )).distinct
   }
 
   private def loadClassesIntoSoot(sourceCodePath: String, sourceFileNames: List[String]): Unit = {
@@ -239,8 +253,7 @@ class Jimple2Cpg {
       zip
         .entries()
         .asScala
-        .filter(!_.isDirectory)
-        .filter(_.getName.contains(".class"))
+        .filter(x => !x.isDirectory && x.getName.contains(".class"))
         .flatMap(entry => {
           val sourceCodePathFile = new JFile(sourceCodePath)
           // Handle the case if the input source code path is an archive itself

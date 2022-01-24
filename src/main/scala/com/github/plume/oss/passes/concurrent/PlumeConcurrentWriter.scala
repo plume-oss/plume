@@ -16,7 +16,8 @@ class PlumeConcurrentWriter(
     baseLogger: Logger = LoggerFactory.getLogger(classOf[CpgPass])
 ) extends Runnable {
 
-  val queue = new LinkedBlockingQueue[Option[DiffGraph]](PlumeConcurrentWriter.writerQueueCapacity)
+  val queue: LinkedBlockingQueue[Option[DiffGraph]] =
+    new LinkedBlockingQueue[Option[DiffGraph]](PlumeConcurrentWriter.writerQueueCapacity)
 
   override def run(): Unit = {
     try {

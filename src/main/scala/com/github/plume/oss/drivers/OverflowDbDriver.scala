@@ -22,7 +22,7 @@ import scala.util.{Failure, Success, Try}
 
 /** Driver to create an OverflowDB database file.
   */
-case class OverflowDbDriver(
+final case class OverflowDbDriver(
     storageLocation: Option[String] = Option(
       JFile.createTempFile("plume-", ".odb").getAbsolutePath
     ),
@@ -171,27 +171,33 @@ case class OverflowDbDriver(
     Traversal(cpg.graph.nodes(srcLabels: _*)).foreach { srcNode =>
       srcNode
         .propertyOption(dstFullNameKey)
-        .filter { dstFullName =>
-          dstFullName.isInstanceOf[Seq[String]] ||
-          (srcNode.propertyDefaultValue(dstFullNameKey) != null &&
-            !srcNode.propertyDefaultValue(dstFullNameKey).equals(dstFullName))
+        .filter {
+          case Seq(_*) => true
+          case dstFullName =>
+            srcNode.propertyDefaultValue(dstFullNameKey) != null &&
+              !srcNode.propertyDefaultValue(dstFullNameKey).equals(dstFullName)
         }
         .ifPresent { x =>
-          val ds = x match {
-            case dstFullName: String       => Seq(dstFullName)
-            case dstFullNames: Seq[String] => dstFullNames
-            case _                         => Seq()
-          }
-          ds.foreach { dstFullName =>
-            val src = srcNode.asInstanceOf[StoredNode]
-            dstNodeMap.get(dstFullName) match {
-              case Some(dstNodeId) =>
-                val dst = cpg.graph.nodes(dstNodeId.asInstanceOf[Long]).next()
-                if (!src.out(edgeType).asScala.contains(dst))
-                  src.addEdge(edgeType, dst)
-              case None =>
+          (x match {
+            case dstFullName: String  => Seq(dstFullName)
+            case dstFullNames: Seq[_] => dstFullNames
+            case _                    => Seq()
+          }).collect { case x: String => x }
+            .filter(dstNodeMap.contains)
+            .flatMap { dstFullName: String =>
+              dstNodeMap(dstFullName) match {
+                case x: Long => Some(x)
+                case _       => None
+              }
             }
-          }
+            .foreach { dstNodeId: Long =>
+              srcNode match {
+                case src: StoredNode =>
+                  val dst = cpg.graph.nodes(dstNodeId).next()
+                  if (!src.out(edgeType).asScala.contains(dst))
+                    src.addEdge(edgeType, dst)
+              }
+            }
         }
     }
   }

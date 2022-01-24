@@ -9,6 +9,7 @@ import org.neo4j.driver.{AuthTokens, GraphDatabase, Transaction}
 import org.slf4j.LoggerFactory
 
 import java.util.concurrent.atomic.AtomicBoolean
+import scala.collection.convert.ImplicitConversions.`list asScalaBuffer`
 import scala.collection.mutable
 import scala.jdk.CollectionConverters.CollectionHasAsScala
 import scala.util.{Failure, Success, Try, Using}
@@ -16,7 +17,7 @@ import scala.util.{Failure, Success, Try, Using}
 /** The driver used to connect to a remote Neo4j instance. Once can optionally call buildSchema to add indexes for
   * improved performance on larger graphs.
   */
-class Neo4jDriver(
+final class Neo4jDriver(
     hostname: String = DEFAULT_HOSTNAME,
     port: Int = DEFAULT_PORT,
     username: String = DEFAULT_USERNAME,
@@ -50,14 +51,14 @@ class Neo4jDriver(
 
   override def exists(nodeId: Long): Boolean = Using.resource(driver.session()) { session =>
     session.writeTransaction { tx =>
-      !tx
+      tx
         .run(s"""
                |MATCH (n)
                |WHERE n.id = $nodeId
                |RETURN n
                |""".stripMargin)
         .list
-        .isEmpty
+        .nonEmpty
     }
   }
 
@@ -141,10 +142,11 @@ class Neo4jDriver(
     val ss = ops
       .map { case Change.SetNodeProperty(node, k, v) =>
         val s = v match {
-          case x: String      => s""""$x""""
-          case x: Seq[String] => x.headOption.getOrElse("<empty>")
-          case x: Number      => x.toString
-          case x              => logger.warn(s"Unhandled property $x (${x.getClass}")
+          case x: String     => s""""$x""""
+          case Seq(head, _*) => head
+          case Seq()         => IDriver.STRING_DEFAULT
+          case x: Number     => x.toString
+          case x             => logger.warn(s"Unhandled property $x (${x.getClass}")
         }
         s"n${node.id()}.$k = $s"
       }

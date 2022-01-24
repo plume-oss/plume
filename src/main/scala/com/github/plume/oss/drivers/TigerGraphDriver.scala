@@ -22,7 +22,7 @@ import scala.util.Try
 
 /** The driver used to communicate to a remote TigerGraph instance. One must build a schema on the first use of the database.
   */
-class TigerGraphDriver(
+final class TigerGraphDriver(
     hostname: String = DEFAULT_HOSTNAME,
     restPpPort: Int = DEFAULT_RESTPP_PORT,
     gsqlPort: Int = DEFAULT_GSQL_PORT,
@@ -119,7 +119,8 @@ class TigerGraphDriver(
   private def nodePayload(id: Long, n: NewNode): JsonObject = {
     val attributes = removeLists(n.properties).flatMap { case (k, v) =>
       val vStr = v match {
-        case x: Seq[String] => x.headOption.getOrElse(IDriver.STRING_DEFAULT)
+        case Seq(head)      => head
+        case Seq()          => IDriver.STRING_DEFAULT
         case x if x == null => IDriver.getPropertyDefault(k)
         case x              => x
       }
@@ -437,7 +438,7 @@ class TigerGraphDriver(
 
 /** The response specification for REST++ responses.
   */
-case class TigerGraphResponse(
+final case class TigerGraphResponse(
     version: VersionInfo,
     error: Boolean,
     message: String,
@@ -446,11 +447,11 @@ case class TigerGraphResponse(
 
 /** The version information response object.
   */
-case class VersionInfo(edition: String, api: String, schema: Int)
+final case class VersionInfo(edition: String, api: String, schema: Int)
 
 /** The payload body for upserting graph data.
   */
-case class PayloadBody(
+final case class PayloadBody(
     vertices: JsonObject = JsonObject.empty,
     edges: JsonObject = JsonObject.empty
 )

@@ -33,6 +33,7 @@ private class PlumeParallelWriter(
           case DiffGraphAndKeyPool(None, _) =>
             baseLogger.debug("Shutting down WriterThread")
             terminate = true
+          case _ =>
         }
       }
     } catch {

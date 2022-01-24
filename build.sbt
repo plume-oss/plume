@@ -1,6 +1,6 @@
 name := "Plume"
 organization := "com.github.plume-oss"
-version := "1.0.2"
+version := "1.0.2-SNAPSHOT"
 
 scalaVersion := "2.13.6"
 

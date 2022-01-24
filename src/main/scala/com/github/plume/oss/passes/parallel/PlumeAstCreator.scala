@@ -801,13 +801,13 @@ object PlumeAstCreator {
     Option(node.getJavaSourceStartColumnNumber)
   }
 
-  def withOrder[T <: Any, X](nodeList: java.util.List[T])(f: (T, Int) => X): Seq[X] = {
+  def withOrder[T, X](nodeList: java.util.List[T])(f: (T, Int) => X): Seq[X] = {
     nodeList.asScala.zipWithIndex.map { case (x, i) =>
       f(x, i + 1)
     }.toSeq
   }
 
-  def withOrder[T <: Any, X](nodeList: Iterable[T])(f: (T, Int) => X): Seq[X] = {
+  def withOrder[T, X](nodeList: Iterable[T])(f: (T, Int) => X): Seq[X] = {
     nodeList.zipWithIndex.map { case (x, i) =>
       f(x, i + 1)
     }.toSeq

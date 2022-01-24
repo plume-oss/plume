@@ -122,9 +122,9 @@ object PlumeCpgPass {
   ): DiffGraph = {
     val newDg = DiffGraph.newBuilder
     dg.iterator.foreach {
-      case Change.CreateNode(node) =>
-        if (!blacklist.contains(node.properties.getOrElse(key, "").toString))
-          newDg.addNode(node)
+      case Change.CreateNode(node)
+          if !blacklist.contains(node.properties.getOrElse(key, "").toString) =>
+        newDg.addNode(node)
       case Change.CreateEdge(src, dst, x, _) =>
         val srcProperty = getPropertyFromAbstractNode[String](src, key)
         val dstProperty = getPropertyFromAbstractNode[String](dst, key)

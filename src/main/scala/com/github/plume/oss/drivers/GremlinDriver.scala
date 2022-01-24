@@ -264,11 +264,9 @@ abstract class GremlinDriver(txMax: Int = 50) extends IDriver {
           val dstFullName = m.getOrElse(dstFullNameKey, null).asInstanceOf[String]
           if (dstFullName != null) {
             dstNodeMap.get(dstFullName) match {
-              case Some(dstId: Any) =>
-                if (!exists(srcId, dstId.toString.toLong, edgeType)) {
-                  g.V(typedNodeId(srcId)).addE(edgeType).to(__.V(dstId)).iterate()
-                }
-              case None =>
+              case Some(dstId: Any) if !exists(srcId, dstId.toString.toLong, edgeType) =>
+                g.V(typedNodeId(srcId)).addE(edgeType).to(__.V(dstId)).iterate()
+              case _ =>
             }
           }
         }
@@ -290,11 +288,9 @@ abstract class GremlinDriver(txMax: Int = 50) extends IDriver {
           val dstFullName = m.getOrElse(PropertyNames.METHOD_FULL_NAME, null).asInstanceOf[String]
           if (dstFullName != null) {
             methodFullNameToNode.get(dstFullName) match {
-              case Some(dstId) =>
-                if (!exists(srcId, dstId.toString.toLong, EdgeTypes.CALL)) {
-                  g.V(typedNodeId(srcId)).addE(EdgeTypes.CALL).to(__.V(dstId)).iterate()
-                }
-              case None =>
+              case Some(dstId) if !exists(srcId, dstId.toString.toLong, EdgeTypes.CALL) =>
+                g.V(typedNodeId(srcId)).addE(EdgeTypes.CALL).to(__.V(dstId)).iterate()
+              case _ =>
             }
           }
         }
