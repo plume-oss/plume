@@ -100,7 +100,7 @@ object Plume extends App {
     }
   }
 
-  val configOption = X2Cpg.parseCommandLine(args, frontendSpecificOptions, Config())
+  private val configOption = X2Cpg.parseCommandLine(args, frontendSpecificOptions, Config())
   if (configOption.isEmpty) {
     System.exit(1)
   } else if (configOption.get.inputPaths.size != 1) {
