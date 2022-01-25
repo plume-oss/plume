@@ -94,29 +94,25 @@ class ArrayTests extends Jimple2CpgFixture {
     lvl2.code shouldBe "2"
   }
 
-  "should handle arrayIndexAccesses correctly" in {
+  "should handle arrayIndexAccesses correctly (3-address code form)" in {
     def m = cpg.method(".*baz.*")
 
-    val List(_, lhsAccess, rhsAccess) = m.assignment.l
+    val List(indexAccess: Call, rhsStub: Identifier) = m.assignment.codeExact("x[1] = $stack3").argument.l
+    indexAccess.name shouldBe Operators.indexAccess
+    indexAccess.methodFullName shouldBe Operators.indexAccess
 
     withClue("indexAccess on LHS of assignment") {
-      val List(indexAccess: Call, _: Literal) = lhsAccess.argument.l
-      indexAccess.name shouldBe Operators.indexAccess
-      indexAccess.methodFullName shouldBe Operators.indexAccess
       val List(arg1: Identifier, arg2: Literal) = indexAccess.argument.l
       arg1.code shouldBe "x"
       arg1.name shouldBe "x"
       arg1.typeFullName shouldBe "int[]"
-      arg2.code shouldBe "0"
+      arg2.code shouldBe "1"
     }
 
-    withClue("indexAccess in expr on RHS of assignment") {
-      val List(_, add: Call)                           = rhsAccess.argument.l
-      val List(access: Call, _: Literal)               = add.argument.l
-      val List(identifier: Identifier, index: Literal) = access.argument.l
-      identifier.name shouldBe "x"
-      identifier.typeFullName shouldBe "int[]"
-      index.code shouldBe "0"
+    withClue("placeholder in expr on RHS of assignment") {
+      rhsStub.name shouldBe "$stack3"
+      rhsStub.typeFullName shouldBe "int"
+      rhsStub.code shouldBe "$stack3"
     }
   }
 }
