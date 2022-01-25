@@ -39,7 +39,7 @@ libraryDependencies ++= Seq(
   "io.shiftleft"                  %% "codepropertygraph"   % cpgVersion,
   "io.shiftleft"                  %% "semanticcpg"         % cpgVersion,
   "io.joern"                      %% "dataflowengineoss"   % joernVersion,
-  "io.shiftleft"                  %% "semanticcpg-tests"   % "1.3.405"        % Test classifier "tests",
+  "io.shiftleft"                  %% "semanticcpg"         % cpgVersion % Test classifier "tests",
   "org.soot-oss"                   % "soot"                % sootVersion,
   "org.apache.tinkerpop"           % "tinkergraph-gremlin" % tinkerGraphVersion,
   "org.apache.tinkerpop"           % "gremlin-driver"      % tinkerGraphVersion,
