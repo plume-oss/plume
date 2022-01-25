@@ -382,7 +382,9 @@ class PlumeAstCreator(filename: String, global: Global) {
   private def astForNewExpr(x: AnyNewExpr, order: Int, parentUnit: soot.Unit): Ast = {
     x match {
       case u: NewArrayExpr =>
-        astForUnaryExpr(Operators.arrayInitializer, x, u.getSize, order, parentUnit)
+        astForArrayInitializeExpr(x, List(u.getSize), order, parentUnit)
+      case u: NewMultiArrayExpr =>
+        astForArrayInitializeExpr(x, u.getSizes.asScala, order, parentUnit)
       case _ =>
         Ast(
         NewUnknown()
@@ -394,6 +396,28 @@ class PlumeAstCreator(filename: String, global: Global) {
           .columnNumber(column(parentUnit))
       )
     }
+  }
+
+  private def astForArrayInitializeExpr(
+                                         arrayInitExpr: Expr,
+                                         sizes: Iterable[Value],
+                                         order: Int,
+                                         parentUnit: soot.Unit
+                             ): Ast = {
+    val callBlock = NewCall()
+      .name(Operators.arrayInitializer)
+      .methodFullName(Operators.arrayInitializer)
+      .code(arrayInitExpr.toString())
+      .dispatchType(DispatchTypes.STATIC_DISPATCH)
+      .order(order)
+      .typeFullName(registerType(arrayInitExpr.getType.toQuotedString))
+      .argumentIndex(order)
+      .lineNumber(line(parentUnit))
+      .columnNumber(column(parentUnit))
+    val valueAsts = withOrder(sizes) { (s, o) => astsForValue(s, o, parentUnit) }.flatten
+    Ast(callBlock)
+      .withChildren(valueAsts)
+      .withArgEdges(callBlock, valueAsts.flatMap(_.root))
   }
 
   private def astForUnaryExpr(
