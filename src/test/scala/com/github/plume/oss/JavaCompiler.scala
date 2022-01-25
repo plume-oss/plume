@@ -2,7 +2,7 @@ package com.github.plume.oss
 
 import java.io.File
 import java.util.Collections
-import javax.tools.{JavaCompiler, JavaFileObject, StandardLocation, ToolProvider}
+import javax.tools.{JavaCompiler => Javac, JavaFileObject, StandardLocation, ToolProvider}
 import scala.jdk.CollectionConverters
 
 /** Compiles a given source file.
@@ -39,7 +39,7 @@ object JavaCompiler {
 
   /** Programmatically obtains the system Java compiler.
     */
-  def getJavaCompiler: JavaCompiler = {
+  def getJavaCompiler: Javac = {
     Option(ToolProvider.getSystemJavaCompiler) match {
       case Some(javac) => javac
       case None        => throw new RuntimeException("Unable to find a Java compiler on the system!")
