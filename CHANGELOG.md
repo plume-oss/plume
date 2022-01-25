@@ -5,6 +5,22 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](http://keepachangelog.com/)
 and this project adheres to [Semantic Versioning](http://semver.org/).
 
+## [1.0.4] - 2022-01-25
+
+### Added
+
+- Support for multi-array creation added
+- Array tests derived from JavaSrc2Cpg included
+
+### Fixed
+
+- Fixed access path issue where array index accesses were reported to be invalid ASTs. This was just a change in AST children's `order` from `(0, 1)` to `(1, 2)`
+- Fixed bug where if a single file was specified then all files in the directory were loaded
+
+### Changed
+
+- Updated frontend to leverage `Call(<operator>.arrayInitializer)` instead of `Unknown(new)` vertices
+
 ## [1.0.3] - 2022-01-24
 
 ### Fixed
