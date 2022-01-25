@@ -307,7 +307,7 @@ class PlumeAstCreator(filename: String, global: Global) {
       .typeFullName(registerType(arrRef.getType.toQuotedString))
 
     val astChildren =
-      astsForValue(arrRef.getBase, 0, parentUnit) ++ astsForValue(arrRef.getIndex, 1, parentUnit)
+      astsForValue(arrRef.getBase, 1, parentUnit) ++ astsForValue(arrRef.getIndex, 2, parentUnit)
     Ast(indexAccess)
       .withChildren(astChildren)
       .withArgEdges(indexAccess, astChildren.flatMap(_.root))
