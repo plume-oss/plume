@@ -387,23 +387,23 @@ class PlumeAstCreator(filename: String, global: Global) {
         astForArrayInitializeExpr(x, u.getSizes.asScala, order, parentUnit)
       case _ =>
         Ast(
-        NewUnknown()
-          .typeFullName(registerType(x.getType.toQuotedString))
-          .code("new")
-          .order(order)
-          .argumentIndex(order)
-          .lineNumber(line(parentUnit))
-          .columnNumber(column(parentUnit))
-      )
+          NewUnknown()
+            .typeFullName(registerType(x.getType.toQuotedString))
+            .code("new")
+            .order(order)
+            .argumentIndex(order)
+            .lineNumber(line(parentUnit))
+            .columnNumber(column(parentUnit))
+        )
     }
   }
 
   private def astForArrayInitializeExpr(
-                                         arrayInitExpr: Expr,
-                                         sizes: Iterable[Value],
-                                         order: Int,
-                                         parentUnit: soot.Unit
-                             ): Ast = {
+      arrayInitExpr: Expr,
+      sizes: Iterable[Value],
+      order: Int,
+      parentUnit: soot.Unit
+  ): Ast = {
     val callBlock = NewCall()
       .name(Operators.arrayInitializer)
       .methodFullName(Operators.arrayInitializer)
