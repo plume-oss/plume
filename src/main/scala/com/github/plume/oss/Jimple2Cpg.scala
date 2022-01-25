@@ -83,7 +83,7 @@ class Jimple2Cpg {
     try {
       // Determine if the given path is a file or directory and sanitize accordingly
       val rawSourceCodeFile = new JFile(rawSourceCodePath)
-      val sourceTarget = rawSourceCodeFile.toPath.toAbsolutePath.normalize.toString
+      val sourceTarget      = rawSourceCodeFile.toPath.toAbsolutePath.normalize.toString
       val sourceCodeDir = if (rawSourceCodeFile.isDirectory) {
         sourceTarget
       } else {
@@ -160,7 +160,10 @@ class Jimple2Cpg {
 
   /** Retrieve parseable files from archive types.
     */
-  private def extractSourceFilesFromArchive(sourceCodeDir: String, archiveFileExtensions: Set[String]): List[String] = {
+  private def extractSourceFilesFromArchive(
+      sourceCodeDir: String,
+      archiveFileExtensions: Set[String]
+  ): List[String] = {
     val archives = if (new JFile(sourceCodeDir).isFile) {
       List(sourceCodeDir)
     } else {
@@ -178,14 +181,14 @@ class Jimple2Cpg {
   /** Load all source files from archive and/or source file types.
     */
   private def loadSourceFiles(
-                               sourceCodePath: String,
-                               sourceFileExtensions: Set[String],
-                               archiveFileExtensions: Set[String]
-                             ): List[String] = {
+      sourceCodePath: String,
+      sourceFileExtensions: Set[String],
+      archiveFileExtensions: Set[String]
+  ): List[String] = {
     (
       extractSourceFilesFromArchive(sourceCodePath, archiveFileExtensions) ++
         SourceFiles.determine(Set(sourceCodePath), sourceFileExtensions)
-      ).distinct
+    ).distinct
   }
 
   private def loadClassesIntoSoot(sourceCodePath: String, sourceFileNames: List[String]): Unit = {
