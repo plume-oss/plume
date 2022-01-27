@@ -148,7 +148,7 @@ class Jimple2Cpg {
 
       basePasses(cpg, driver, unchangedTypes, unchangedNamespaces).foreach(_.createAndApply(driver))
       controlFlowPasses(cpg).foreach(_.createAndApply(driver))
-      new PlumeReachingDefPass(cpg).createAndApply(driver)
+      new PlumeReachingDefPass(cpg, unchangedTypes = unchangedTypes).createAndApply(driver)
       new PlumeHashPass(cpg).createAndApply(driver)
 
       driver.buildInterproceduralEdges()

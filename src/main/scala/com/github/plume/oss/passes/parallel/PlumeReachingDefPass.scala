@@ -5,16 +5,26 @@ import com.github.plume.oss.passes.PlumeCpgPassBase
 import io.joern.dataflowengineoss.passes.reachingdef.ReachingDefPass
 import io.shiftleft.codepropertygraph.Cpg
 import io.shiftleft.codepropertygraph.generated.nodes.Method
-import io.shiftleft.passes.{KeyPool, ParallelIteratorExecutor}
+import io.shiftleft.passes.{DiffGraph, KeyPool, ParallelIteratorExecutor}
 
-class PlumeReachingDefPass(cpg: Cpg, keyPools: Option[Iterator[KeyPool]] = None)
-    extends ReachingDefPass(cpg)
+class PlumeReachingDefPass(
+    cpg: Cpg,
+    keyPools: Option[Iterator[KeyPool]] = None,
+    unchangedTypes: Set[String] = Set.empty[String]
+) extends ReachingDefPass(cpg)
     with PlumeCpgPassBase {
 
   override def createAndApply(driver: IDriver): Unit = {
     withWriter(driver) { writer =>
       enqueueInParallel(writer)
     }
+  }
+
+  override def runOnPart(method: Method): Iterator[DiffGraph] = {
+    val typeFullName = method.fullName.substring(0, method.fullName.lastIndexOf('.'))
+    // Skip running this on methods contained by unchanged types
+    if (unchangedTypes.contains(typeFullName)) Iterator()
+    else super.runOnPart(method)
   }
 
   private def withWriter[X](driver: IDriver)(f: PlumeParallelWriter => Unit): Unit = {
