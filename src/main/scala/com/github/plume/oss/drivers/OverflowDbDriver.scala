@@ -98,10 +98,12 @@ final case class OverflowDbDriver(
       methodSemantics: Option[BufferedSource] = None,
       initialCache: Option[ResultTable] = None
   ): Unit = {
+    val cache = if (initialCache.isDefined) initialCache else deserializeResultTable(table, cpg)
+
     context = if (methodSemantics.isDefined) {
       EngineContext(
         Semantics.fromList(semanticsParser.parse(methodSemantics.get.getLines().mkString("\n"))),
-        EngineConfig(maxCallDepth, initialCache)
+        EngineConfig(maxCallDepth, cache)
       )
     } else if (defaultSemantics.isSuccess) {
       logger.info(
@@ -109,7 +111,7 @@ final case class OverflowDbDriver(
       )
       EngineContext(
         Semantics.fromList(semanticsParser.parse(defaultSemantics.get.getLines().mkString("\n"))),
-        EngineConfig(maxCallDepth, initialCache)
+        EngineConfig(maxCallDepth, cache)
       )
     } else {
       logger.warn(
@@ -117,7 +119,7 @@ final case class OverflowDbDriver(
       )
       EngineContext(
         Semantics.fromList(List()),
-        EngineConfig(maxCallDepth, initialCache)
+        EngineConfig(maxCallDepth, cache)
       )
     }
   }
