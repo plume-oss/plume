@@ -1,9 +1,10 @@
 package com.github.plume.oss.drivers
 
-import OverflowDbDriver.newOverflowGraph
+import com.github.plume.oss.domain.{SerialReachableByResult, deserializeResultTable}
+import com.github.plume.oss.drivers.OverflowDbDriver.newOverflowGraph
 import com.github.plume.oss.passes.PlumeDynamicCallLinker
 import io.joern.dataflowengineoss.language.toExtendedCfgNode
-import io.joern.dataflowengineoss.queryengine.{EngineConfig, EngineContext}
+import io.joern.dataflowengineoss.queryengine._
 import io.joern.dataflowengineoss.semanticsloader.{Parser, Semantics}
 import io.shiftleft.codepropertygraph.generated._
 import io.shiftleft.codepropertygraph.generated.nodes._
@@ -12,13 +13,21 @@ import io.shiftleft.passes.AppliedDiffGraph
 import io.shiftleft.passes.DiffGraph.{Change, PackedProperties}
 import org.slf4j.LoggerFactory
 import overflowdb.traversal.{Traversal, jIteratortoTraversal}
-import overflowdb.{Config, Node}
+import overflowdb.{Config, Edge, Node}
 
-import java.io.{File => JFile}
+import java.io.{
+  FileInputStream,
+  FileOutputStream,
+  ObjectInputStream,
+  ObjectOutputStream,
+  File => JFile
+}
+import java.nio.file.{Files, Path, Paths}
+import java.util.concurrent.ConcurrentHashMap
 import scala.collection.mutable
-import scala.io.Source
+import scala.io.{BufferedSource, Source}
 import scala.jdk.CollectionConverters.IteratorHasAsScala
-import scala.util.{Failure, Success, Try}
+import scala.util.{Failure, Success, Try, Using}
 
 /** Driver to create an OverflowDB database file.
   */
@@ -28,14 +37,10 @@ final case class OverflowDbDriver(
     ),
     heapPercentageThreshold: Int = 80,
     serializationStatsEnabled: Boolean = false,
-    maxCallDepth: Int = 2
+    dataFlowCacheFile: Path = Paths.get("dataFlowCache.bin")
 ) extends IDriver {
 
-  private val logger          = LoggerFactory.getLogger(classOf[OverflowDbDriver])
-  private val semanticsParser = new Parser()
-  private val defaultSemantics =
-    Source.fromInputStream(getClass.getClassLoader.getResourceAsStream("default.semantics"))
-  implicit var context: EngineContext = loadDataflowContext(maxCallDepth)
+  private val logger = LoggerFactory.getLogger(classOf[OverflowDbDriver])
 
   private val odbConfig = Config
     .withDefaults()
@@ -45,19 +50,75 @@ final case class OverflowDbDriver(
     case None       => odbConfig.disableOverflow()
   }
   if (serializationStatsEnabled) odbConfig.withSerializationStatsEnabled()
+
+  /** A direct pointer to the code property graph object.
+    */
   val cpg: Cpg = newOverflowGraph(odbConfig)
 
-  def loadDataflowContext(maxCallDepth: Int): EngineContext = {
-    if (defaultSemantics != null) {
+  private val semanticsParser = new Parser()
+  private val defaultSemantics: Try[BufferedSource] = Try(
+    Source.fromInputStream(getClass.getClassLoader.getResourceAsStream("default.semantics"))
+  )
+
+  /** This stores results from the table property in ReachableByResult.
+    */
+  private val table: ConcurrentHashMap[Long, Vector[SerialReachableByResult]] =
+    if (Files.isRegularFile(dataFlowCacheFile))
+      Using.resource(new ObjectInputStream(new FileInputStream(dataFlowCacheFile.toFile))) { ois =>
+        ois.readObject.asInstanceOf[ConcurrentHashMap[Long, Vector[SerialReachableByResult]]]
+      }
+    else
+      new ConcurrentHashMap[Long, Vector[SerialReachableByResult]]()
+
+  private implicit var context: EngineContext =
+    EngineContext(
+      Semantics.fromList(List()),
+      EngineConfig(initialTable = deserializeResultTable(table, cpg))
+    )
+
+  /** Save dataflow paths on shutdown
+    */
+  Runtime.getRuntime.addShutdownHook(new Thread() {
+    override def run(): Unit = {
+      Using.resource(new ObjectOutputStream(new FileOutputStream(dataFlowCacheFile.toFile))) {
+        oos =>
+          oos.writeObject(table)
+      }
+    }
+  })
+
+  /** Sets the context for the data-flow engine when performing [[nodesReachableBy()]] queries.
+    *
+    * @param maxCallDepth the new method call depth.
+    * @param methodSemantics the file containing method semantics for external methods.
+    * @param initialCache an initializer for the data-flow cache containing pre-calculated paths.
+    */
+  def setDataflowContext(
+      maxCallDepth: Int,
+      methodSemantics: Option[BufferedSource] = None,
+      initialCache: Option[ResultTable] = None
+  ): Unit = {
+    context = if (methodSemantics.isDefined) {
       EngineContext(
-        Semantics.fromList(semanticsParser.parse(defaultSemantics.getLines().mkString("\n"))),
-        EngineConfig(maxCallDepth)
+        Semantics.fromList(semanticsParser.parse(methodSemantics.get.getLines().mkString("\n"))),
+        EngineConfig(maxCallDepth, initialCache)
+      )
+    } else if (defaultSemantics.isSuccess) {
+      logger.info(
+        "No specified method semantics file given. Using default semantics."
+      )
+      EngineContext(
+        Semantics.fromList(semanticsParser.parse(defaultSemantics.get.getLines().mkString("\n"))),
+        EngineConfig(maxCallDepth, initialCache)
       )
     } else {
       logger.warn(
         "No \"default.semantics\" file found under resources - data flow tracking may not perform correctly."
       )
-      EngineContext(Semantics.fromList(List()))
+      EngineContext(
+        Semantics.fromList(List()),
+        EngineConfig(maxCallDepth, initialCache)
+      )
     }
   }
 
@@ -219,15 +280,53 @@ final case class OverflowDbDriver(
     new PlumeDynamicCallLinker(CPG(cpg.graph)).createAndApply()
 
   def nodesReachableBy(source: Traversal[CfgNode], sink: Traversal[CfgNode]): List[CfgNode] = {
-    val results = sink.reachableByDetailed(source)
-    // Save these paths to the CPG
-    results
-      .map(_.path.map(_.node))
-      .filter(_.size > 1)
-      .map(_.map { x => cpg.graph.node(x.id()) })
-      .foreach { path => path.reduceRight { (a, b) => a.addEdge(EdgeTypes.DATA_FLOW, b); b } }
+    val results: List[ReachableByResult] = sink.reachableByDetailed(source)
+//    captureResultsGraph(results)
+    captureResultsBlob(results)
     results.map(_.path.head.node).distinct
   }
+
+  /** Primitive storage solution for saving path results. This will capture results in memory until shutdown after
+    * which everything will be saved to a blob.
+    * @param results a list of ReachableByResult paths calculated when calling reachableBy.
+    */
+  private def captureResultsBlob(results: List[ReachableByResult]): Unit = {
+    results
+      .map { x => x.table }
+      .foreach { t: ResultTable =>
+        t.keys.foreach { n: StoredNode =>
+          t.get(n) match {
+            case Some(v) =>
+              table.put(n.id(), v.map { rbr => SerialReachableByResult.apply(rbr, table) })
+            case None =>
+          }
+        }
+      }
+  }
+
+  /** TODO: Figure out how to store this in a way that will deserialize correctly.
+    * @param results a list of ReachableByResult paths calculated when calling reachableBy.
+    */
+  private def captureResultsGraph(results: List[ReachableByResult]): Unit = {
+    val CALL_SITE = "CALL_SITE"
+    // Save these paths to the CPG
+    results
+      .filter { x => x.path.size > 1 }
+      .map { x => (x, x.path.map { x => cpg.graph.node(x.node.id()) }) }
+      .foreach { case (result: ReachableByResult, resolvedPath: Seq[Node]) =>
+        resolvedPath.reduceLeft { (l: Node, r: Node) =>
+          val dfe: Edge =
+            if (l.out(EdgeTypes.DATA_FLOW).hasNext)
+              l.outE(EdgeTypes.DATA_FLOW).filter(_.inNode() == r).next()
+            else
+              l.addEdge(EdgeTypes.DATA_FLOW, r)
+          val cs: Seq[Call] = (dfe.property(CALL_SITE, Seq()) :+ result.callSite).flatten
+          dfe.setProperty(CALL_SITE, cs)
+          r
+        }
+      }
+  }
+
 }
 
 object OverflowDbDriver {

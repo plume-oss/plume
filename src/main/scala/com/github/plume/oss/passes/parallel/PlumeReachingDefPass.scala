@@ -5,7 +5,8 @@ import com.github.plume.oss.passes.PlumeCpgPassBase
 import io.joern.dataflowengineoss.passes.reachingdef.ReachingDefPass
 import io.shiftleft.codepropertygraph.Cpg
 import io.shiftleft.codepropertygraph.generated.nodes.Method
-import io.shiftleft.passes.{DiffGraph, KeyPool, ParallelIteratorExecutor}
+import io.shiftleft.passes.{KeyPool, ParallelIteratorExecutor}
+import io.shiftleft.semanticcpg.language._
 
 class PlumeReachingDefPass(
     cpg: Cpg,
@@ -20,11 +21,9 @@ class PlumeReachingDefPass(
     }
   }
 
-  override def runOnPart(method: Method): Iterator[DiffGraph] = {
-    val typeFullName = method.fullName.substring(0, method.fullName.lastIndexOf('.'))
-    // Skip running this on methods contained by unchanged types
-    if (unchangedTypes.contains(typeFullName)) Iterator()
-    else super.runOnPart(method)
+  override def partIterator: Iterator[Method] = cpg.method.internal.iterator.filterNot { m =>
+    val typeFullName = m.fullName.substring(0, m.fullName.lastIndexOf('.'))
+    unchangedTypes.contains(typeFullName)
   }
 
   private def withWriter[X](driver: IDriver)(f: PlumeParallelWriter => Unit): Unit = {
