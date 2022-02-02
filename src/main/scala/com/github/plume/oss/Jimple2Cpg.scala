@@ -12,7 +12,8 @@ import com.github.plume.oss.passes.parallel.{
   PlumeCdgPass,
   PlumeCfgDominatorPass,
   PlumeMethodStubCreator,
-  PlumeReachingDefPass
+  PlumeReachingDefPass,
+  PlumeRegenDataflowCachePass
 }
 import com.github.plume.oss.passes.{
   IncrementalKeyPool,
@@ -150,6 +151,10 @@ class Jimple2Cpg {
       controlFlowPasses(cpg).foreach(_.createAndApply(driver))
       new PlumeReachingDefPass(cpg, unchangedTypes = unchangedTypes).createAndApply(driver)
       new PlumeHashPass(cpg).createAndApply(driver)
+      driver match {
+        case x: OverflowDbDriver => x.removeExpiredPathsFromCache(unchangedTypes)
+        case _ =>
+      }
 
       driver.buildInterproceduralEdges()
       cpg

@@ -13,7 +13,7 @@ import io.shiftleft.passes.AppliedDiffGraph
 import io.shiftleft.passes.DiffGraph.{Change, PackedProperties}
 import org.slf4j.LoggerFactory
 import overflowdb.traversal.{Traversal, jIteratortoTraversal}
-import overflowdb.{Config, Edge, Node}
+import overflowdb.{Config, Node}
 
 import java.io.{
   FileInputStream,
@@ -26,10 +26,14 @@ import java.nio.file.{Files, Path, Paths}
 import java.util.concurrent.ConcurrentHashMap
 import scala.collection.mutable
 import scala.io.{BufferedSource, Source}
-import scala.jdk.CollectionConverters.IteratorHasAsScala
+import scala.jdk.CollectionConverters.{ConcurrentMapHasAsScala, IteratorHasAsScala}
 import scala.util.{Failure, Success, Try, Using}
 
 /** Driver to create an OverflowDB database file.
+  * @param storageLocation where the database will serialize to and deserialize from.
+  * @param heapPercentageThreshold the percentage of the JVM heap from when the database will begin swapping to disk.
+  * @param serializationStatsEnabled enables saving of serialization statistics.
+  * @param dataFlowCacheFile the path to the cache file where data-flow paths are saved to.
   */
 final case class OverflowDbDriver(
     storageLocation: Option[String] = Option(
@@ -281,9 +285,16 @@ final case class OverflowDbDriver(
   override def dynamicCallLinker(): Unit =
     new PlumeDynamicCallLinker(CPG(cpg.graph)).createAndApply()
 
+  /** Lists all of the source nodes that reach the given sinks. These results are cached between analysis runs.
+    *
+    * @param source the source query to match.
+    * @param sink the sink query to match.
+    * @return the source nodes whose data flows to the given sinks uninterrupted.
+    */
   def nodesReachableBy(source: Traversal[CfgNode], sink: Traversal[CfgNode]): List[CfgNode] = {
     val results: List[ReachableByResult] = sink.reachableByDetailed(source)
-//    captureResultsGraph(results)
+    // TODO: Right now the results are saved in a serializable format ready for a binary blob. We should look into
+    // storing these reliably on the graph.
     captureResultsBlob(results)
     results.map(_.path.head.node).distinct
   }
@@ -306,27 +317,35 @@ final case class OverflowDbDriver(
       }
   }
 
-  /** TODO: Figure out how to store this in a way that will deserialize correctly.
-    * @param results a list of ReachableByResult paths calculated when calling reachableBy.
+  /** Will traverse the deserialized cache and remove nodes belonging to types not in the given set of unchanged types.
+    * @param unchangedTypes the list of types which have not changed since the last graph database update.
     */
-  private def captureResultsGraph(results: List[ReachableByResult]): Unit = {
-    val CALL_SITE = "CALL_SITE"
-    // Save these paths to the CPG
-    results
-      .filter { x => x.path.size > 1 }
-      .map { x => (x, x.path.map { x => cpg.graph.node(x.node.id()) }) }
-      .foreach { case (result: ReachableByResult, resolvedPath: Seq[Node]) =>
-        resolvedPath.reduceLeft { (l: Node, r: Node) =>
-          val dfe: Edge =
-            if (l.out(EdgeTypes.DATA_FLOW).hasNext)
-              l.outE(EdgeTypes.DATA_FLOW).filter(_.inNode() == r).next()
-            else
-              l.addEdge(EdgeTypes.DATA_FLOW, r)
-          val cs: Seq[Call] = (dfe.property(CALL_SITE, Seq()) :+ result.callSite).flatten
-          dfe.setProperty(CALL_SITE, cs)
-          r
+  def removeExpiredPathsFromCache(unchangedTypes: Set[String]): Unit =
+    table.asScala
+      .filter { case (k: Long, _) => isNodeUnderTypes(k, unchangedTypes) }
+      .foreach { case (k: Long, v: Vector[SerialReachableByResult]) =>
+        val filteredPaths = v.filterNot { srbr =>
+          // Filter out paths where there exists a path element that is not under unchanged types
+          srbr.path.exists { spe => !isNodeUnderTypes(spe.nodeId, unchangedTypes) }
         }
+        table.put(k, filteredPaths)
       }
+
+  /** Will determine if the node ID is under the set of unchanged type full names based on method full name signature.
+    * @param nodeId the node ID to check.
+    * @param unchangedTypes a list of unchanged types.
+    * @return True if the ID is under a method contained by the list of unchanged types and false if otherwise. If the
+    *         given node ID is not in the database false will be returned.
+    */
+  private def isNodeUnderTypes(nodeId: Long, unchangedTypes: Set[String]): Boolean = {
+    cpg.graph.nodes(nodeId).next() match {
+      case n: Node =>
+        val m            = n.in(EdgeTypes.CONTAINS).collect { case x: Method => x }.next()
+        val typeFullName = m.fullName.substring(0, m.fullName.lastIndexOf('.'))
+        unchangedTypes.contains(typeFullName)
+      case _ =>
+        false
+    }
   }
 
 }
