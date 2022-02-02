@@ -12,8 +12,7 @@ import com.github.plume.oss.passes.parallel.{
   PlumeCdgPass,
   PlumeCfgDominatorPass,
   PlumeMethodStubCreator,
-  PlumeReachingDefPass,
-  PlumeRegenDataflowCachePass
+  PlumeReachingDefPass
 }
 import com.github.plume.oss.passes.{
   IncrementalKeyPool,
