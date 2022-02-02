@@ -153,7 +153,7 @@ class Jimple2Cpg {
       new PlumeHashPass(cpg).createAndApply(driver)
       driver match {
         case x: OverflowDbDriver => x.removeExpiredPathsFromCache(unchangedTypes)
-        case _ =>
+        case _                   =>
       }
 
       driver.buildInterproceduralEdges()

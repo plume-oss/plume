@@ -8,6 +8,8 @@ import org.slf4j.LoggerFactory
 import java.util.concurrent.ConcurrentHashMap
 import scala.jdk.CollectionConverters
 
+/** Contains case classes that can be used independently.
+  */
 package object domain {
 
   private val logger = LoggerFactory.getLogger("com.github.plume.oss.domain")
@@ -53,7 +55,16 @@ package object domain {
     }
   }
 
-  case class SerialReachableByResult(
+  /** A serializable version of ReachableByResult.
+    * @param path a path of nodes represented by [[SerialReachableByResult]]s.
+    * @param table a pointer to the global serializable result table.
+    * @param callSite the call site that was expanded to kick off the task. We require this to match call sites to
+    *                 exclude non-realizable paths through other callers
+    * @param callDepth the call depth of this result.
+    * @param partial indicate whether this result stands on its own or requires further analysis, e.g., by expanding
+    *                output arguments backwards into method output parameters.
+    */
+  final case class SerialReachableByResult(
       path: Vector[SerialPathElement],
       table: ConcurrentHashMap[Long, Vector[SerialReachableByResult]],
       callSite: Option[Long],
@@ -61,10 +72,17 @@ package object domain {
       partial: Boolean = false
   )
 
+  /** A serializable version of ReachableByResult.
+    */
   object SerialReachableByResult {
 
     private val logger = LoggerFactory.getLogger(classOf[SerialReachableByResult])
 
+    /** Creates a serializable version of ReachableByResult.
+      * @param rbr the ReachableByResult class.
+      * @param table a pointer to the global serializable result table.
+      * @return a serializable ReachableByResult.
+      */
     def apply(
         rbr: ReachableByResult,
         table: ConcurrentHashMap[Long, Vector[SerialReachableByResult]]
@@ -81,6 +99,12 @@ package object domain {
       )
     }
 
+    /** Deserializes a given of [[SerialReachableByResult]].
+      * @param srb the serial ReachableByResult class.
+      * @param cpg the code property graph pointer.
+      * @param table a pointer to the global serializable result table.
+      * @return a deserialized ReachableByResult.
+      */
     def unapply(srb: SerialReachableByResult, cpg: Cpg, table: ResultTable): ReachableByResult = {
       ReachableByResult(
         srb.path.map { sbr => SerialPathElement.unapply(sbr, cpg) },
@@ -101,17 +125,27 @@ package object domain {
     }
   }
 
-  case class SerialPathElement(
+  /** A serializable version of the SerialPathElement.
+    * @param nodeId the ID of the node this path element represents.
+    * @param visible whether this path element should be shown in the flow.
+    * @param resolved whether we have resolved the method call this argument belongs to.
+    * @param outEdgeLabel label of the outgoing DDG edge.
+    */
+  final case class SerialPathElement(
       nodeId: Long,
       visible: Boolean = true,
       resolved: Boolean = true,
       outEdgeLabel: String = ""
   )
 
+  /** A serializable version of the SerialPathElement.
+    */
   object SerialPathElement {
 
-    private val logger = LoggerFactory.getLogger(classOf[SerialPathElement])
-
+    /** Creates a [[SerialPathElement]] from a given PathElement.
+      * @param pe the PathElement to serialize.
+      * @return a serializable version of PathElement.
+      */
     def apply(pe: PathElement): SerialPathElement = {
       new SerialPathElement(
         pe.node.id(),
@@ -121,6 +155,11 @@ package object domain {
       )
     }
 
+    /** Deserializes the given [[SerialPathElement]].
+      * @param spe the serializable version of the representative PathElement.
+      * @param cpg the code property graph pointer.
+      * @return the deserialized PathElement.
+      */
     def unapply(spe: SerialPathElement, cpg: Cpg): PathElement = {
       PathElement(
         cpg.graph.nodes(spe.nodeId).next().asInstanceOf[CfgNode],
