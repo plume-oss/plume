@@ -68,7 +68,7 @@ package object domain {
     * @tparam T the type of the class to deserialize.
     * @return the deserialized object.
     */
-  def decompressFile[T](p: Path): T = {
+  def decompressFile[T: Manifest](p: Path): T = {
     Using.resource(Source.fromFile(p.toFile)) { deflatedStr =>
       objectMapper.readValue[T](
         decompress(deflatedStr.mkString)
