@@ -544,7 +544,7 @@ class PlumeAstCreator(filename: String, global: Global) {
     val totalTgts = switchStmt.getTargets.size()
     val switch = NewControlStructure()
       .controlStructureType(ControlStructureTypes.SWITCH)
-      .code(jimple.substring(0, jimple.indexOf("{") - 1))
+      .code(jimple.dropRight(jimple.length - jimple.indexOf("{") + 1))
       .lineNumber(line(switchStmt))
       .columnNumber(column(switchStmt))
       .order(order)
