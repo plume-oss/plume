@@ -5,11 +5,12 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](http://keepachangelog.com/)
 and this project adheres to [Semantic Versioning](http://semver.org/).
 
-## [Unreleased] - 2022-02-02
+## [1.0.5] - 2022-02-07
 
 ### Added
 
-- Data-flow paths are saved to a blob and are re-used on future runs. Only available on `OverflowDbDriver`.
+- Data-flow paths are saved to a GZIP compressed JSON and are re-used on future runs. 
+  Only available on `OverflowDbDriver`.
 
 ### Fixed
 

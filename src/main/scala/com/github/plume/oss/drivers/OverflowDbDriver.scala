@@ -40,7 +40,7 @@ final case class OverflowDbDriver(
     ),
     heapPercentageThreshold: Int = 80,
     serializationStatsEnabled: Boolean = false,
-    dataFlowCacheFile: Path = Paths.get("dataFlowCache.bin")
+    dataFlowCacheFile: Path = Paths.get("dataFlowCache.json.gzip")
 ) extends IDriver {
 
   private val logger = LoggerFactory.getLogger(classOf[OverflowDbDriver])
