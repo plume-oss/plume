@@ -1,13 +1,12 @@
 package com.github.plume.oss
 
 import com.github.plume.oss.drivers.OverflowDbDriver
-import io.shiftleft.codepropertygraph.Cpg
-import io.shiftleft.codepropertygraph.generated.{NodeTypes, PropertyNames}
+import io.shiftleft.codepropertygraph.generated.{Cpg, NodeTypes, PropertyNames}
+import io.shiftleft.codepropertygraph.{Cpg => CPG}
+import io.shiftleft.semanticcpg.language._
 import org.scalatest.BeforeAndAfterAll
 import org.scalatest.matchers.should.Matchers
 import org.scalatest.wordspec.AnyWordSpec
-import io.shiftleft.codepropertygraph.{Cpg => CPG}
-import io.shiftleft.semanticcpg.language._
 
 import java.io.{File, FileInputStream, FileOutputStream}
 import java.nio.file.Files
@@ -112,7 +111,7 @@ class DiffTests extends AnyWordSpec with Matchers with BeforeAndAfterAll {
     ly.get(PropertyNames.CODE) shouldBe Some("5")
   }
 
-  "should fail to re-use results on second data-flow query and take longer than the first" in {
+  "should succeed to re-use some data-flow results and take shorter time than the first" in {
     var cpg = CPG(driver.cpg.graph)
 
     val t1 = System.nanoTime
@@ -126,9 +125,31 @@ class DiffTests extends AnyWordSpec with Matchers with BeforeAndAfterAll {
 
     val t2 = System.nanoTime
     driver.nodesReachableBy(cpg.identifier("x"), cpg.call("bar"))
-    val d2 = System.nanoTime - t1
+    val d2 = System.nanoTime - t2
+    val speedup = 100.0 - d2 / (d1 + 0.0)
 
-    d1 should be <= d2
+    d1 should be >= d2
+    speedup should be < 99.999
+    speedup should be >= 99.800
+  }
+
+  "should succeed to re-use all data-flow results and take shorter time than the first" in {
+    var cpg = CPG(driver.cpg.graph)
+
+    val t1 = System.nanoTime
+    driver.nodesReachableBy(cpg.identifier("x"), cpg.call("bar"))
+    val d1 = System.nanoTime - t1
+
+    cpg = CPG(new Jimple2Cpg().createCpg(sandboxDir.getAbsolutePath, driver = driver).graph)
+
+    val t2 = System.nanoTime
+    driver.nodesReachableBy(cpg.identifier("x"), cpg.call("bar"))
+    val d2 = System.nanoTime - t2
+    val speedup = 100.0 - d2 / (d1 + 0.0)
+
+    d1 should be >= d2
+    speedup should be < 99.999
+    speedup should be >= 99.900
   }
 
 }

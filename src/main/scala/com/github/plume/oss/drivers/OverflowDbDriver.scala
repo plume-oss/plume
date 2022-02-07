@@ -138,7 +138,10 @@ final case class OverflowDbDriver(
     }
   }
 
-  override def clear(): Unit = cpg.graph.nodes.asScala.foreach(_.remove())
+  override def clear(): Unit = {
+    cpg.graph.nodes.asScala.foreach(_.remove())
+    dataFlowCacheFile.toFile.delete()
+  }
 
   override def exists(nodeId: Long): Boolean = cpg.graph.node(nodeId) != null
 
