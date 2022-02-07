@@ -6,6 +6,8 @@ import io.shiftleft.codepropertygraph.generated.{NodeTypes, PropertyNames}
 import org.scalatest.BeforeAndAfterAll
 import org.scalatest.matchers.should.Matchers
 import org.scalatest.wordspec.AnyWordSpec
+import io.shiftleft.codepropertygraph.{Cpg => CPG}
+import io.shiftleft.semanticcpg.language._
 
 import java.io.{File, FileInputStream, FileOutputStream}
 import java.nio.file.Files
@@ -108,6 +110,25 @@ class DiffTests extends AnyWordSpec with Matchers with BeforeAndAfterAll {
       }
     lx.get(PropertyNames.CODE) shouldBe Some("3")
     ly.get(PropertyNames.CODE) shouldBe Some("5")
+  }
+
+  "should fail to re-use results on second data-flow query and take longer than the first" in {
+    var cpg = CPG(driver.cpg.graph)
+
+    val t1 = System.nanoTime
+    driver.nodesReachableBy(cpg.identifier("x"), cpg.call("bar"))
+    val d1 = System.nanoTime - t1
+
+    rewriteFileContents(bar, bar1)
+    rewriteFileContents(foo, foo2)
+    JavaCompiler.compileJava(foo, bar)
+    cpg = CPG(new Jimple2Cpg().createCpg(sandboxDir.getAbsolutePath, driver = driver).graph)
+
+    val t2 = System.nanoTime
+    driver.nodesReachableBy(cpg.identifier("x"), cpg.call("bar"))
+    val d2 = System.nanoTime - t1
+
+    d1 should be <= d2
   }
 
 }

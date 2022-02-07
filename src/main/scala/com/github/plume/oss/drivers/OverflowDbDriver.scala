@@ -340,7 +340,7 @@ final case class OverflowDbDriver(
   private def isNodeUnderTypes(nodeId: Long, unchangedTypes: Set[String]): Boolean = {
     cpg.graph.nodes(nodeId).next() match {
       case n: Node =>
-        val m            = n.in(EdgeTypes.CONTAINS).collect { case x: Method => x }.next()
+        val m            = n.in(EdgeTypes.CONTAINS, EdgeTypes.AST).collect { case x: Method => x }.next()
         val typeFullName = m.fullName.substring(0, m.fullName.lastIndexOf('.'))
         unchangedTypes.contains(typeFullName)
       case _ =>
