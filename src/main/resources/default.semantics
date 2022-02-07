@@ -23,7 +23,7 @@
 "<operator>.indexAccess" 1->-1
 "<operator>.indirectComputedMemberAccess" 1->-1
 "<operator>.indirectFieldAccess" 1->-1
-"<operator>.indirectIndexAccess" 1->-1
+"<operator>.indirectIndexAccess" 1->-1 2->-1
 "<operator>.indirectMemberAccess" 1->-1
 "<operator>.indirection" 1->-1
 "<operator>.memberAccess" 1->-1
@@ -33,4 +33,3 @@
 "<operator>.preDecrement" 1->1
 "<operator>.preIncrement" 1->1
 "<operator>.sizeOf"
-"<operator>.lengthOf"

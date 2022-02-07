@@ -1,14 +1,15 @@
 package com.github.plume.oss
 
 import com.github.plume.oss.drivers.OverflowDbDriver
-import io.shiftleft.codepropertygraph.Cpg
-import io.shiftleft.codepropertygraph.generated.{NodeTypes, PropertyNames}
+import io.shiftleft.codepropertygraph.generated.{Cpg, NodeTypes, PropertyNames}
+import io.shiftleft.codepropertygraph.{Cpg => CPG}
+import io.shiftleft.semanticcpg.language._
 import org.scalatest.BeforeAndAfterAll
 import org.scalatest.matchers.should.Matchers
 import org.scalatest.wordspec.AnyWordSpec
 
 import java.io.{File, FileInputStream, FileOutputStream}
-import java.nio.file.Files
+import java.nio.file.{Files, Paths}
 import scala.util.Using
 
 /** Used to make sure that incremental change detection works correctly.
@@ -40,19 +41,25 @@ class DiffTests extends AnyWordSpec with Matchers with BeforeAndAfterAll {
   private val sandboxDir: File = Files.createTempDirectory("plume").toFile
   private val foo              = new File(s"${sandboxDir.getAbsolutePath}${File.separator}Foo.java")
   private val bar              = new File(s"${sandboxDir.getAbsolutePath}${File.separator}Bar.java")
-  private val driver           = new OverflowDbDriver()
+  private var driver           = new OverflowDbDriver()
   private var cpg: Option[Cpg] = None
+  private val storage = Some("./cpg_test.odb")
 
   override def beforeAll(): Unit = {
     rewriteFileContents(foo, foo1)
     rewriteFileContents(bar, bar1)
     JavaCompiler.compileJava(foo, bar)
     driver.clear()
+    driver.close()
+    driver = new OverflowDbDriver(storage)
     cpg = Some(new Jimple2Cpg().createCpg(sandboxDir.getAbsolutePath, driver = driver))
     sandboxDir.listFiles().foreach(_.delete())
   }
 
-  override def afterAll(): Unit = driver.clear()
+  override def afterAll(): Unit = {
+    driver.clear()
+    Paths.get(storage.get).toFile.delete()
+  }
 
   "should have all necessary nodes on first pass" in {
     driver.propertyFromNodes(NodeTypes.TYPE_DECL).size shouldBe 7
@@ -108,6 +115,52 @@ class DiffTests extends AnyWordSpec with Matchers with BeforeAndAfterAll {
       }
     lx.get(PropertyNames.CODE) shouldBe Some("3")
     ly.get(PropertyNames.CODE) shouldBe Some("5")
+  }
+
+  "should succeed to re-use some data-flow results and take shorter time than the first" in {
+    var cpg = CPG(driver.cpg.graph)
+
+    val t1 = System.nanoTime
+    driver.nodesReachableBy(cpg.identifier("x"), cpg.call("bar"))
+    val d1 = System.nanoTime - t1
+
+    rewriteFileContents(bar, bar1)
+    rewriteFileContents(foo, foo2)
+    JavaCompiler.compileJava(foo, bar)
+
+    driver.close()
+    driver = new OverflowDbDriver(storage)
+    cpg = CPG(new Jimple2Cpg().createCpg(sandboxDir.getAbsolutePath, driver = driver).graph)
+
+    val t2 = System.nanoTime
+    driver.nodesReachableBy(cpg.identifier("x"), cpg.call("bar"))
+    val d2 = System.nanoTime - t2
+    val speedup = 100.0 - d2 / (d1 + 0.0)
+
+    d1 should be >= d2
+    speedup should be < 99.999
+    speedup should be >= 99.800
+  }
+
+  "should succeed to re-use all data-flow results and take shorter time than the first" in {
+    var cpg = CPG(driver.cpg.graph)
+
+    val t1 = System.nanoTime
+    driver.nodesReachableBy(cpg.identifier("x"), cpg.call("bar"))
+    val d1 = System.nanoTime - t1
+
+    driver.close()
+    driver = new OverflowDbDriver(storage)
+    cpg = CPG(new Jimple2Cpg().createCpg(sandboxDir.getAbsolutePath, driver = driver).graph)
+
+    val t2 = System.nanoTime
+    driver.nodesReachableBy(cpg.identifier("x"), cpg.call("bar"))
+    val d2 = System.nanoTime - t2
+    val speedup = 100.0 - d2 / (d1 + 0.0)
+
+    d1 should be >= d2
+    speedup should be < 99.999
+    speedup should be >= 99.900
   }
 
 }

@@ -15,15 +15,15 @@ inThisBuild(
 )
 
 val cpgVersion         = "1.3.493"
-val joernVersion       = "1.1.488"
+val joernVersion       = "1.1.502"
 val sootVersion        = "4.2.1"
 val tinkerGraphVersion = "3.4.8"
-val neo4jVersion       = "4.4.2"
+val neo4jVersion       = "4.4.3"
 val tigerGraphVersion  = "3.1.0"
-val sttpVersion        = "3.3.17"
+val sttpVersion        = "3.4.1"
 val scalajHttpVersion  = "2.4.2"
 val lz4Version         = "1.8.0"
-val slf4jVersion       = "1.7.33"
+val slf4jVersion       = "1.7.35"
 val scalatestVersion   = "3.2.9"
 val circeVersion       = "0.14.1"
 
@@ -36,23 +36,25 @@ trapExit := false
 Test / fork := true
 
 libraryDependencies ++= Seq(
-  "io.shiftleft"                  %% "codepropertygraph"   % cpgVersion,
-  "io.shiftleft"                  %% "semanticcpg"         % cpgVersion,
-  "io.joern"                      %% "dataflowengineoss"   % joernVersion,
-  "io.shiftleft"                  %% "semanticcpg"         % cpgVersion       % Test classifier "tests",
-  "org.soot-oss"                   % "soot"                % sootVersion,
-  "org.apache.tinkerpop"           % "tinkergraph-gremlin" % tinkerGraphVersion,
-  "org.apache.tinkerpop"           % "gremlin-driver"      % tinkerGraphVersion,
-  "org.neo4j.driver"               % "neo4j-java-driver"   % neo4jVersion,
-  "com.tigergraph.client"          % "gsql_client"         % tigerGraphVersion,
-  "com.softwaremill.sttp.client3" %% "core"                % sttpVersion,
-  "com.softwaremill.sttp.client3" %% "circe"               % sttpVersion,
-  "org.scalaj"                     % "scalaj-http_2.13"    % scalajHttpVersion,
-  "org.lz4"                        % "lz4-java"            % lz4Version,
-  "org.slf4j"                      % "slf4j-api"           % slf4jVersion,
-  "org.slf4j"                      % "slf4j-simple"        % slf4jVersion,
-  "org.scala-lang"                 % "scala-reflect"       % scalaVersion.value,
-  "org.scalatest"                 %% "scalatest"           % scalatestVersion % Test
+  "io.shiftleft"                  %% "codepropertygraph"    % cpgVersion,
+  "io.shiftleft"                  %% "semanticcpg"          % cpgVersion,
+  "io.joern"                      %% "dataflowengineoss"    % joernVersion,
+  "io.shiftleft"                  %% "semanticcpg"          % cpgVersion       % Test classifier "tests",
+  "org.soot-oss"                   % "soot"                 % sootVersion,
+  "org.apache.tinkerpop"           % "tinkergraph-gremlin"  % tinkerGraphVersion,
+  "org.apache.tinkerpop"           % "gremlin-driver"       % tinkerGraphVersion,
+  "org.neo4j.driver"               % "neo4j-java-driver"    % neo4jVersion,
+  "com.tigergraph.client"          % "gsql_client"          % tigerGraphVersion,
+  "com.softwaremill.sttp.client3" %% "core"                 % sttpVersion,
+  "com.softwaremill.sttp.client3" %% "circe"                % sttpVersion,
+  "com.fasterxml.jackson.core"     % "jackson-databind"     % "2.13.1",
+  "com.fasterxml.jackson.module"  %% "jackson-module-scala" % "2.13.1",
+  "org.scalaj"                     % "scalaj-http_2.13"     % scalajHttpVersion,
+  "org.lz4"                        % "lz4-java"             % lz4Version,
+  "org.slf4j"                      % "slf4j-api"            % slf4jVersion,
+  "org.slf4j"                      % "slf4j-simple"         % slf4jVersion,
+  "org.scala-lang"                 % "scala-reflect"        % scalaVersion.value,
+  "org.scalatest"                 %% "scalatest"            % scalatestVersion % Test
 ) ++ Seq(
   "io.circe" %% "circe-core",
   "io.circe" %% "circe-generic",

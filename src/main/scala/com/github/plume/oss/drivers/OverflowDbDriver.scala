@@ -1,9 +1,15 @@
 package com.github.plume.oss.drivers
 
-import OverflowDbDriver.newOverflowGraph
+import com.github.plume.oss.domain.{
+  SerialReachableByResult,
+  compressToFile,
+  decompressFile,
+  deserializeResultTable
+}
+import com.github.plume.oss.drivers.OverflowDbDriver.newOverflowGraph
 import com.github.plume.oss.passes.PlumeDynamicCallLinker
 import io.joern.dataflowengineoss.language.toExtendedCfgNode
-import io.joern.dataflowengineoss.queryengine.{EngineConfig, EngineContext}
+import io.joern.dataflowengineoss.queryengine._
 import io.joern.dataflowengineoss.semanticsloader.{Parser, Semantics}
 import io.shiftleft.codepropertygraph.generated._
 import io.shiftleft.codepropertygraph.generated.nodes._
@@ -15,12 +21,18 @@ import overflowdb.traversal.{Traversal, jIteratortoTraversal}
 import overflowdb.{Config, Node}
 
 import java.io.{File => JFile}
+import java.nio.file.{Files, Path, Paths}
+import java.util.concurrent.ConcurrentHashMap
 import scala.collection.mutable
-import scala.io.Source
-import scala.jdk.CollectionConverters.IteratorHasAsScala
+import scala.io.{BufferedSource, Source}
+import scala.jdk.CollectionConverters.{ConcurrentMapHasAsScala, IteratorHasAsScala}
 import scala.util.{Failure, Success, Try}
 
 /** Driver to create an OverflowDB database file.
+  * @param storageLocation where the database will serialize to and deserialize from.
+  * @param heapPercentageThreshold the percentage of the JVM heap from when the database will begin swapping to disk.
+  * @param serializationStatsEnabled enables saving of serialization statistics.
+  * @param dataFlowCacheFile the path to the cache file where data-flow paths are saved to.
   */
 final case class OverflowDbDriver(
     storageLocation: Option[String] = Option(
@@ -28,14 +40,10 @@ final case class OverflowDbDriver(
     ),
     heapPercentageThreshold: Int = 80,
     serializationStatsEnabled: Boolean = false,
-    maxCallDepth: Int = 2
+    dataFlowCacheFile: Path = Paths.get("dataFlowCache.bin")
 ) extends IDriver {
 
-  private val logger          = LoggerFactory.getLogger(classOf[OverflowDbDriver])
-  private val semanticsParser = new Parser()
-  private val defaultSemantics =
-    Source.fromInputStream(getClass.getClassLoader.getResourceAsStream("default.semantics"))
-  implicit var context: EngineContext = loadDataflowContext(maxCallDepth)
+  private val logger = LoggerFactory.getLogger(classOf[OverflowDbDriver])
 
   private val odbConfig = Config
     .withDefaults()
@@ -45,19 +53,66 @@ final case class OverflowDbDriver(
     case None       => odbConfig.disableOverflow()
   }
   if (serializationStatsEnabled) odbConfig.withSerializationStatsEnabled()
+
+  /** A direct pointer to the code property graph object.
+    */
   val cpg: Cpg = newOverflowGraph(odbConfig)
 
-  def loadDataflowContext(maxCallDepth: Int): EngineContext = {
-    if (defaultSemantics != null) {
+  private val semanticsParser = new Parser()
+  private val defaultSemantics: Try[BufferedSource] = Try(
+    Source.fromInputStream(getClass.getClassLoader.getResourceAsStream("default.semantics"))
+  )
+
+  /** This stores results from the table property in ReachableByResult.
+    */
+  private val table: ConcurrentHashMap[Long, Vector[SerialReachableByResult]] =
+    if (Files.isRegularFile(dataFlowCacheFile))
+      decompressFile[ConcurrentHashMap[Long, Vector[SerialReachableByResult]]](dataFlowCacheFile)
+    else
+      new ConcurrentHashMap[Long, Vector[SerialReachableByResult]]()
+
+  private implicit var context: EngineContext =
+    EngineContext(
+      Semantics.fromList(List()),
+      EngineConfig(initialTable = deserializeResultTable(table, cpg))
+    )
+
+  private def saveDataflowCache(): Unit = compressToFile(table, dataFlowCacheFile)
+
+  /** Sets the context for the data-flow engine when performing [[nodesReachableBy()]] queries.
+    *
+    * @param maxCallDepth the new method call depth.
+    * @param methodSemantics the file containing method semantics for external methods.
+    * @param initialCache an initializer for the data-flow cache containing pre-calculated paths.
+    */
+  def setDataflowContext(
+      maxCallDepth: Int,
+      methodSemantics: Option[BufferedSource] = None,
+      initialCache: Option[ResultTable] = None
+  ): Unit = {
+    val cache = if (initialCache.isDefined) initialCache else deserializeResultTable(table, cpg)
+
+    context = if (methodSemantics.isDefined) {
       EngineContext(
-        Semantics.fromList(semanticsParser.parse(defaultSemantics.getLines().mkString("\n"))),
-        EngineConfig(maxCallDepth)
+        Semantics.fromList(semanticsParser.parse(methodSemantics.get.getLines().mkString("\n"))),
+        EngineConfig(maxCallDepth, cache)
+      )
+    } else if (defaultSemantics.isSuccess) {
+      logger.info(
+        "No specified method semantics file given. Using default semantics."
+      )
+      EngineContext(
+        Semantics.fromList(semanticsParser.parse(defaultSemantics.get.getLines().mkString("\n"))),
+        EngineConfig(maxCallDepth, cache)
       )
     } else {
       logger.warn(
         "No \"default.semantics\" file found under resources - data flow tracking may not perform correctly."
       )
-      EngineContext(Semantics.fromList(List()))
+      EngineContext(
+        Semantics.fromList(List()),
+        EngineConfig(maxCallDepth, cache)
+      )
     }
   }
 
@@ -65,13 +120,16 @@ final case class OverflowDbDriver(
 
   override def close(): Unit = {
     Try(cpg.close()) match {
-      case Success(_) => // nothing
+      case Success(_) => saveDataflowCache()
       case Failure(e) =>
         logger.warn("Exception thrown while attempting to close graph.", e)
     }
   }
 
-  override def clear(): Unit = cpg.graph.nodes.asScala.foreach(_.remove())
+  override def clear(): Unit = {
+    cpg.graph.nodes.asScala.foreach(_.remove())
+    dataFlowCacheFile.toFile.delete()
+  }
 
   override def exists(nodeId: Long): Boolean = cpg.graph.node(nodeId) != null
 
@@ -218,16 +276,69 @@ final case class OverflowDbDriver(
   override def dynamicCallLinker(): Unit =
     new PlumeDynamicCallLinker(CPG(cpg.graph)).createAndApply()
 
+  /** Lists all of the source nodes that reach the given sinks. These results are cached between analysis runs.
+    *
+    * @param source the source query to match.
+    * @param sink the sink query to match.
+    * @return the source nodes whose data flows to the given sinks uninterrupted.
+    */
   def nodesReachableBy(source: Traversal[CfgNode], sink: Traversal[CfgNode]): List[CfgNode] = {
-    val results = sink.reachableByDetailed(source)
-    // Save these paths to the CPG
-    results
-      .map(_.path.map(_.node))
-      .filter(_.size > 1)
-      .map(_.map { x => cpg.graph.node(x.id()) })
-      .foreach { path => path.reduceRight { (a, b) => a.addEdge(EdgeTypes.DATA_FLOW, b); b } }
+    val results: List[ReachableByResult] = sink.reachableByDetailed(source)
+    // TODO: Right now the results are saved in a serializable format ready for a binary blob. We should look into
+    // storing these reliably on the graph.
+    captureResultsBlob(results)
     results.map(_.path.head.node).distinct
   }
+
+  /** Primitive storage solution for saving path results. This will capture results in memory until shutdown after
+    * which everything will be saved to a blob.
+    * @param results a list of ReachableByResult paths calculated when calling reachableBy.
+    */
+  private def captureResultsBlob(results: List[ReachableByResult]): Unit = {
+    results
+      .map { x => x.table }
+      .foreach { t: ResultTable =>
+        t.keys.foreach { n: StoredNode =>
+          t.get(n) match {
+            case Some(v) =>
+              table.put(n.id(), v.map(SerialReachableByResult.apply))
+            case None =>
+          }
+        }
+      }
+  }
+
+  /** Will traverse the deserialized cache and remove nodes belonging to types not in the given set of unchanged types.
+    * @param unchangedTypes the list of types which have not changed since the last graph database update.
+    */
+  def removeExpiredPathsFromCache(unchangedTypes: Set[String]): Unit =
+    table.asScala
+      .filter { case (k: Long, _) => isNodeUnderTypes(k, unchangedTypes) }
+      .foreach { case (k: Long, v: Vector[SerialReachableByResult]) =>
+        val filteredPaths = v.filterNot { srbr =>
+          // Filter out paths where there exists a path element that is not under unchanged types
+          srbr.path.exists { spe => !isNodeUnderTypes(spe.nodeId, unchangedTypes) }
+        }
+        table.put(k, filteredPaths)
+      }
+
+  /** Will determine if the node ID is under the set of unchanged type full names based on method full name signature.
+    * @param nodeId the node ID to check.
+    * @param unchangedTypes a list of unchanged types.
+    * @return True if the ID is under a method contained by the list of unchanged types and false if otherwise. If the
+    *         given node ID is not in the database false will be returned.
+    */
+  private def isNodeUnderTypes(nodeId: Long, unchangedTypes: Set[String]): Boolean = {
+    cpg.graph.nodes(nodeId).next() match {
+      case n: Node =>
+        val m            = n.in(EdgeTypes.CONTAINS, EdgeTypes.AST).collect { case x: Method => x }.next()
+        val typeFullName = m.fullName.substring(0, m.fullName.lastIndexOf('.'))
+        unchangedTypes.contains(typeFullName)
+      case _ =>
+        false
+    }
+  }
+
 }
 
 object OverflowDbDriver {

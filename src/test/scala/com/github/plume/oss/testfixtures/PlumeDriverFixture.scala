@@ -37,7 +37,8 @@ class PlumeDriverFixture(val driver: IDriver)
     val adg =
       DiffGraph.Applier.applyDiff(diffGraph.build(), cpg.graph, undoable = false, Option(keyPool))
     driver.bulkTx(adg)
-    val List(m: Map[String, Any]) = driver.propertyFromNodes(METHOD, NAME, ORDER, DYNAMIC_TYPE_HINT_FULL_NAME)
+    val List(m: Map[String, Any]) =
+      driver.propertyFromNodes(METHOD, NAME, ORDER, DYNAMIC_TYPE_HINT_FULL_NAME)
     m.get(NAME) shouldBe Some("foo")
     m.get(ORDER) shouldBe Some(1)
     val List(b: Map[String, Any]) = driver.propertyFromNodes(BLOCK, ORDER)
@@ -238,7 +239,8 @@ class PlumeDriverFixture(val driver: IDriver)
 
     driver.buildInterproceduralEdges()
     val List(_: Map[String, Any], _: Map[String, Any], barBar: Map[String, Any]) =
-      driver.propertyFromNodes(METHOD, FULL_NAME)
+      driver
+        .propertyFromNodes(METHOD, FULL_NAME)
         .sortBy { a => a(FULL_NAME).asInstanceOf[String] }
         .reverse
     val List(_: Map[String, Any], barCall: Map[String, Any]) = driver

@@ -3,6 +3,7 @@
 #  storageLocation: cpg.odb
 #  heapPercentageThreshold: 80
 #  serializationStatsEnabled: false
+#  maxCallDepth: 2
 
 database: TinkerGraph
 params:

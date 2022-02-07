@@ -5,6 +5,16 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](http://keepachangelog.com/)
 and this project adheres to [Semantic Versioning](http://semver.org/).
 
+## [Unreleased] - 2022-02-02
+
+### Added
+
+- Data-flow paths are saved to a blob and are re-used on future runs. Only available on `OverflowDbDriver`.
+
+### Fixed
+
+- Unchanged methods no longer have REACHABLE_BY edges regenerated/duplicated
+
 ## [1.0.4] - 2022-01-25
 
 ### Added
@@ -14,7 +24,8 @@ and this project adheres to [Semantic Versioning](http://semver.org/).
 
 ### Fixed
 
-- Fixed access path issue where array index accesses were reported to be invalid ASTs. This was just a change in AST children's `order` from `(0, 1)` to `(1, 2)`
+- Fixed access path issue where array index accesses were reported to be invalid ASTs. This was just a change in AST 
+  children's `order` from `(0, 1)` to `(1, 2)`
 - Fixed bug where if a single file was specified then all files in the directory were loaded
 
 ### Changed

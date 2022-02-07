@@ -60,12 +60,14 @@ object Plume extends App {
   private def createDriver(conf: DriverConfig): IDriver = {
     conf match {
       case _ if conf.database == "OverflowDB" =>
-        new OverflowDbDriver(
+        val d = new OverflowDbDriver(
           storageLocation = Option(conf.params.getOrElse("storageLocation", "cpg.odb")),
           heapPercentageThreshold = conf.params.getOrElse("heapPercentageThreshold", "80").toInt,
           serializationStatsEnabled =
             conf.params.getOrElse("serializationStatsEnabled", "false").toBoolean
         )
+        d.setDataflowContext(conf.params.getOrElse("maxCallDepth", "2").toInt)
+        d
       case _ if conf.database == "TinkerGraph" => new TinkerGraphDriver()
       case _ if conf.database == "Neo4j" =>
         new Neo4jDriver(
