@@ -1,18 +1,80 @@
 package com.github.plume.oss
 
+import com.fasterxml.jackson.databind.ObjectMapper
+import com.fasterxml.jackson.module.scala.{DefaultScalaModule, ScalaObjectMapper}
 import io.joern.dataflowengineoss.queryengine.{PathElement, ReachableByResult, ResultTable}
 import io.shiftleft.codepropertygraph.generated.Cpg
 import io.shiftleft.codepropertygraph.generated.nodes.{Call, CfgNode, StoredNode}
+import org.apache.commons.codec.binary.Base64
+import org.apache.commons.io.IOUtils
+import org.apache.commons.io.output.ByteArrayOutputStream
 import org.slf4j.LoggerFactory
 
+import java.io.ByteArrayInputStream
+import java.nio.charset.StandardCharsets
+import java.nio.file.{Files, Path}
 import java.util.concurrent.ConcurrentHashMap
+import java.util.zip.{GZIPInputStream, GZIPOutputStream}
+import scala.io.Source
 import scala.jdk.CollectionConverters
+import scala.util.Using
 
 /** Contains case classes that can be used independently.
   */
 package object domain {
 
-  private val logger = LoggerFactory.getLogger("com.github.plume.oss.domain")
+  private val logger       = LoggerFactory.getLogger("com.github.plume.oss.domain")
+  private val objectMapper = new ObjectMapper() with ScalaObjectMapper
+  objectMapper.registerModule(DefaultScalaModule)
+
+  /** Serializes a given object as JSON and then returns the GZIP compressed base 64 encoded string.
+    * @param o object to serialize.
+    * @return the GZIP compressed base 64 encoded string.
+    */
+  def compress(o: Any): String = {
+    val str = objectMapper.writeValueAsString(o)
+    if (str == null || str.isEmpty) return str
+    val out = new ByteArrayOutputStream()
+    Using.resource(new GZIPOutputStream(out)) { gzip =>
+      gzip.write(str.getBytes)
+    }
+    Base64.encodeBase64String(out.toByteArray)
+  }
+
+  /** Given an object and a path, will serialize and compress the object to the given path
+    * using [[compress()]].
+    * @param o object to serialize.
+    * @param p path to write serialized data to.
+    */
+  def compressToFile(o: Any, p: Path): Unit = {
+    val deflatedStr = compress(o)
+    Files.write(p, deflatedStr.getBytes(StandardCharsets.UTF_8))
+  }
+
+  /** Deserializes a given object from GZIP compressed base 64 encoded to JSON string.
+    * @param deflatedTxt object to deserialize.
+    * @return the GZIP compressed base 64 encoded string.
+    */
+  def decompress(deflatedTxt: String): String = {
+    val bytes = Base64.decodeBase64(deflatedTxt)
+    Using.resource(new GZIPInputStream(new ByteArrayInputStream(bytes))) { zis =>
+      IOUtils.toString(zis, "UTF-8")
+    }
+  }
+
+  /** Given a path, will deserialize and decompress the file at the given path
+    * using [[decompress()]].
+    * @param p path to read deserialized data from.
+    * @tparam T the type of the class to deserialize.
+    * @return the deserialized object.
+    */
+  def decompressFile[T](p: Path): T = {
+    Using.resource(Source.fromFile(p.toFile)) { deflatedStr =>
+      objectMapper.readValue[T](
+        decompress(deflatedStr.mkString)
+      )
+    }
+  }
 
   /** Converts serialized path results to deserialized ReachableByResults. This is assumed to be called before any nodes
     * are removed from the graph since these results were serialized.

@@ -1,9 +1,11 @@
 package com.github.plume.oss.drivers
 
-import com.fasterxml.jackson.databind.ObjectMapper
-import com.fasterxml.jackson.module.scala.DefaultScalaModule
-import com.fasterxml.jackson.module.scala.ScalaObjectMapper
-import com.github.plume.oss.domain.{SerialReachableByResult, deserializeResultTable}
+import com.github.plume.oss.domain.{
+  SerialReachableByResult,
+  compressToFile,
+  decompressFile,
+  deserializeResultTable
+}
 import com.github.plume.oss.drivers.OverflowDbDriver.newOverflowGraph
 import com.github.plume.oss.passes.PlumeDynamicCallLinker
 import io.joern.dataflowengineoss.language.toExtendedCfgNode
@@ -18,20 +20,13 @@ import org.slf4j.LoggerFactory
 import overflowdb.traversal.{Traversal, jIteratortoTraversal}
 import overflowdb.{Config, Node}
 
-import java.io.{
-  FileInputStream,
-  FileOutputStream,
-  ObjectInputStream,
-  ObjectOutputStream,
-  File => JFile
-}
-import java.nio.ByteBuffer
+import java.io.{File => JFile}
 import java.nio.file.{Files, Path, Paths}
 import java.util.concurrent.ConcurrentHashMap
 import scala.collection.mutable
 import scala.io.{BufferedSource, Source}
 import scala.jdk.CollectionConverters.{ConcurrentMapHasAsScala, IteratorHasAsScala}
-import scala.util.{Failure, Success, Try, Using}
+import scala.util.{Failure, Success, Try}
 
 /** Driver to create an OverflowDB database file.
   * @param storageLocation where the database will serialize to and deserialize from.
@@ -68,17 +63,12 @@ final case class OverflowDbDriver(
     Source.fromInputStream(getClass.getClassLoader.getResourceAsStream("default.semantics"))
   )
 
-  val objectMapper = new ObjectMapper() with ScalaObjectMapper
-  objectMapper.registerModule(DefaultScalaModule)
-
   /** This stores results from the table property in ReachableByResult.
     */
   private val table: ConcurrentHashMap[Long, Vector[SerialReachableByResult]] =
-    if (Files.isRegularFile(dataFlowCacheFile)) {
-      objectMapper.readValue[ConcurrentHashMap[Long, Vector[SerialReachableByResult]]](
-        dataFlowCacheFile.toFile
-      )
-    } else
+    if (Files.isRegularFile(dataFlowCacheFile))
+      decompressFile[ConcurrentHashMap[Long, Vector[SerialReachableByResult]]](dataFlowCacheFile)
+    else
       new ConcurrentHashMap[Long, Vector[SerialReachableByResult]]()
 
   private implicit var context: EngineContext =
@@ -87,11 +77,7 @@ final case class OverflowDbDriver(
       EngineConfig(initialTable = deserializeResultTable(table, cpg))
     )
 
-  private def saveDataflowCache(): Unit = {
-    Using.resource(new FileOutputStream(dataFlowCacheFile.toFile)) { oos =>
-      objectMapper.writeValue(oos, table)
-    }
-  }
+  private def saveDataflowCache(): Unit = compressToFile(table, dataFlowCacheFile)
 
   /** Sets the context for the data-flow engine when performing [[nodesReachableBy()]] queries.
     *

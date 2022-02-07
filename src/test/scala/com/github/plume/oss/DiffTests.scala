@@ -57,7 +57,7 @@ class DiffTests extends AnyWordSpec with Matchers with BeforeAndAfterAll {
   }
 
   override def afterAll(): Unit = {
-//    driver.clear()
+    driver.clear()
     Paths.get(storage.get).toFile.delete()
   }
 
