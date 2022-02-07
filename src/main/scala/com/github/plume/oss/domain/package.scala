@@ -31,7 +31,7 @@ package object domain {
         .MapHasAsScala(serTab)
         .asScala
         .map { case (id, vec) =>
-          if (cpg.graph.nodes(id).hasNext)
+          if (!cpg.graph.nodes(id).hasNext)
             throw new RuntimeException(
               """Current database does not contain references to previous ReachableByResults cache. Unable to re-use
                 |old cache.""".stripMargin
@@ -66,7 +66,6 @@ package object domain {
     */
   final case class SerialReachableByResult(
       path: Vector[SerialPathElement],
-      table: ConcurrentHashMap[Long, Vector[SerialReachableByResult]],
       callSite: Option[Long],
       callDepth: Int = 0,
       partial: Boolean = false
@@ -84,12 +83,10 @@ package object domain {
       * @return a serializable ReachableByResult.
       */
     def apply(
-        rbr: ReachableByResult,
-        table: ConcurrentHashMap[Long, Vector[SerialReachableByResult]]
+        rbr: ReachableByResult
     ): SerialReachableByResult = {
       new SerialReachableByResult(
         rbr.path.map(SerialPathElement.apply),
-        table,
         rbr.callSite match {
           case Some(call) => Some(call.id())
           case None       => None

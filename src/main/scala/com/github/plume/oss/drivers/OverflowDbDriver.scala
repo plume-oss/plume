@@ -1,5 +1,8 @@
 package com.github.plume.oss.drivers
 
+import com.fasterxml.jackson.databind.ObjectMapper
+import com.fasterxml.jackson.module.scala.DefaultScalaModule
+import com.fasterxml.jackson.module.scala.ScalaObjectMapper
 import com.github.plume.oss.domain.{SerialReachableByResult, deserializeResultTable}
 import com.github.plume.oss.drivers.OverflowDbDriver.newOverflowGraph
 import com.github.plume.oss.passes.PlumeDynamicCallLinker
@@ -22,6 +25,7 @@ import java.io.{
   ObjectOutputStream,
   File => JFile
 }
+import java.nio.ByteBuffer
 import java.nio.file.{Files, Path, Paths}
 import java.util.concurrent.ConcurrentHashMap
 import scala.collection.mutable
@@ -64,14 +68,17 @@ final case class OverflowDbDriver(
     Source.fromInputStream(getClass.getClassLoader.getResourceAsStream("default.semantics"))
   )
 
+  val objectMapper = new ObjectMapper() with ScalaObjectMapper
+  objectMapper.registerModule(DefaultScalaModule)
+
   /** This stores results from the table property in ReachableByResult.
     */
   private val table: ConcurrentHashMap[Long, Vector[SerialReachableByResult]] =
-    if (Files.isRegularFile(dataFlowCacheFile))
-      Using.resource(new ObjectInputStream(new FileInputStream(dataFlowCacheFile.toFile))) { ois =>
-        ois.readObject.asInstanceOf[ConcurrentHashMap[Long, Vector[SerialReachableByResult]]]
-      }
-    else
+    if (Files.isRegularFile(dataFlowCacheFile)) {
+      objectMapper.readValue[ConcurrentHashMap[Long, Vector[SerialReachableByResult]]](
+        dataFlowCacheFile.toFile
+      )
+    } else
       new ConcurrentHashMap[Long, Vector[SerialReachableByResult]]()
 
   private implicit var context: EngineContext =
@@ -80,16 +87,11 @@ final case class OverflowDbDriver(
       EngineConfig(initialTable = deserializeResultTable(table, cpg))
     )
 
-  /** Save dataflow paths on shutdown
-    */
-  Runtime.getRuntime.addShutdownHook(new Thread() {
-    override def run(): Unit = {
-      Using.resource(new ObjectOutputStream(new FileOutputStream(dataFlowCacheFile.toFile))) {
-        oos =>
-          oos.writeObject(table)
-      }
+  private def saveDataflowCache(): Unit = {
+    Using.resource(new FileOutputStream(dataFlowCacheFile.toFile)) { oos =>
+      objectMapper.writeValue(oos, table)
     }
-  })
+  }
 
   /** Sets the context for the data-flow engine when performing [[nodesReachableBy()]] queries.
     *
@@ -132,7 +134,7 @@ final case class OverflowDbDriver(
 
   override def close(): Unit = {
     Try(cpg.close()) match {
-      case Success(_) => // nothing
+      case Success(_) => saveDataflowCache()
       case Failure(e) =>
         logger.warn("Exception thrown while attempting to close graph.", e)
     }
@@ -313,7 +315,7 @@ final case class OverflowDbDriver(
         t.keys.foreach { n: StoredNode =>
           t.get(n) match {
             case Some(v) =>
-              table.put(n.id(), v.map { rbr => SerialReachableByResult.apply(rbr, table) })
+              table.put(n.id(), v.map(SerialReachableByResult.apply))
             case None =>
           }
         }
