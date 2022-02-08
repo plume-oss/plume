@@ -32,7 +32,8 @@ import scala.util.{Failure, Success, Try}
   * @param storageLocation where the database will serialize to and deserialize from.
   * @param heapPercentageThreshold the percentage of the JVM heap from when the database will begin swapping to disk.
   * @param serializationStatsEnabled enables saving of serialization statistics.
-  * @param dataFlowCacheFile the path to the cache file where data-flow paths are saved to.
+  * @param dataFlowCacheFile the path to the cache file where data-flow paths are saved to. If None then data flow
+  *                          results will not be saved.
   */
 final case class OverflowDbDriver(
     storageLocation: Option[String] = Option(
@@ -40,7 +41,7 @@ final case class OverflowDbDriver(
     ),
     heapPercentageThreshold: Int = 80,
     serializationStatsEnabled: Boolean = false,
-    dataFlowCacheFile: Path = Paths.get("dataFlowCache.json.gzip")
+    dataFlowCacheFile: Option[Path] = Some(Paths.get("dataFlowCache.json.gzip"))
 ) extends IDriver {
 
   private val logger = LoggerFactory.getLogger(classOf[OverflowDbDriver])
@@ -65,11 +66,15 @@ final case class OverflowDbDriver(
 
   /** This stores results from the table property in ReachableByResult.
     */
-  private val table: ConcurrentHashMap[Long, Vector[SerialReachableByResult]] =
-    if (Files.isRegularFile(dataFlowCacheFile))
-      decompressFile[ConcurrentHashMap[Long, Vector[SerialReachableByResult]]](dataFlowCacheFile)
-    else
-      new ConcurrentHashMap[Long, Vector[SerialReachableByResult]]()
+  private val table: Option[ConcurrentHashMap[Long, Vector[SerialReachableByResult]]] =
+    dataFlowCacheFile match {
+      case Some(filePath) =>
+        if (Files.isRegularFile(filePath))
+          Some(decompressFile[ConcurrentHashMap[Long, Vector[SerialReachableByResult]]](filePath))
+        else
+          Some(new ConcurrentHashMap[Long, Vector[SerialReachableByResult]]())
+      case None => None
+    }
 
   private implicit var context: EngineContext =
     EngineContext(
@@ -77,7 +82,10 @@ final case class OverflowDbDriver(
       EngineConfig(initialTable = deserializeResultTable(table, cpg))
     )
 
-  private def saveDataflowCache(): Unit = compressToFile(table, dataFlowCacheFile)
+  private def saveDataflowCache(): Unit = dataFlowCacheFile match {
+    case Some(filePath) => compressToFile(table, filePath)
+    case None           => // Do nothing
+  }
 
   /** Sets the context for the data-flow engine when performing [[nodesReachableBy()]] queries.
     *
@@ -128,7 +136,10 @@ final case class OverflowDbDriver(
 
   override def clear(): Unit = {
     cpg.graph.nodes.asScala.foreach(_.remove())
-    dataFlowCacheFile.toFile.delete()
+    dataFlowCacheFile match {
+      case Some(filePath) => filePath.toFile.delete()
+      case None           => // Do nothing
+    }
   }
 
   override def exists(nodeId: Long): Boolean = cpg.graph.node(nodeId) != null
@@ -295,32 +306,41 @@ final case class OverflowDbDriver(
     * @param results a list of ReachableByResult paths calculated when calling reachableBy.
     */
   private def captureResultsBlob(results: List[ReachableByResult]): Unit = {
-    results
-      .map { x => x.table }
-      .foreach { t: ResultTable =>
-        t.keys.foreach { n: StoredNode =>
-          t.get(n) match {
-            case Some(v) =>
-              table.put(n.id(), v.map(SerialReachableByResult.apply))
-            case None =>
+    table match {
+      case Some(tab) =>
+        results
+          .map { x => x.table }
+          .foreach { t: ResultTable =>
+            t.keys.foreach { n: StoredNode =>
+              t.get(n) match {
+                case Some(v) =>
+                  tab.put(n.id(), v.map(SerialReachableByResult.apply))
+                case None =>
+              }
+            }
           }
-        }
-      }
+      case None => // Do nothing
+    }
   }
 
   /** Will traverse the deserialized cache and remove nodes belonging to types not in the given set of unchanged types.
     * @param unchangedTypes the list of types which have not changed since the last graph database update.
     */
-  def removeExpiredPathsFromCache(unchangedTypes: Set[String]): Unit =
-    table.asScala
-      .filter { case (k: Long, _) => isNodeUnderTypes(k, unchangedTypes) }
-      .foreach { case (k: Long, v: Vector[SerialReachableByResult]) =>
-        val filteredPaths = v.filterNot { srbr =>
-          // Filter out paths where there exists a path element that is not under unchanged types
-          srbr.path.exists { spe => !isNodeUnderTypes(spe.nodeId, unchangedTypes) }
-        }
-        table.put(k, filteredPaths)
-      }
+  def removeExpiredPathsFromCache(unchangedTypes: Set[String]): Unit = {
+    table match {
+      case Some(tab) =>
+        tab.asScala
+          .filter { case (k: Long, _) => isNodeUnderTypes(k, unchangedTypes) }
+          .foreach { case (k: Long, v: Vector[SerialReachableByResult]) =>
+            val filteredPaths = v.filterNot { srbr =>
+              // Filter out paths where there exists a path element that is not under unchanged types
+              srbr.path.exists { spe => !isNodeUnderTypes(spe.nodeId, unchangedTypes) }
+            }
+            tab.put(k, filteredPaths)
+          }
+      case None => // Do nothing
+    }
+  }
 
   /** Will determine if the node ID is under the set of unchanged type full names based on method full name signature.
     * @param nodeId the node ID to check.

@@ -5,6 +5,13 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](http://keepachangelog.com/)
 and this project adheres to [Semantic Versioning](http://semver.org/).
 
+## [Unreleased]
+
+### Changed
+
+- `OverflowDbDriver(dataflowCachePath)` property is now `Option[Path]`
+- If `dataFlowCachePath` is `None` then data-flow results are not saved
+
 ## [1.0.5] - 2022-02-07
 
 ### Added
