@@ -12,7 +12,7 @@ import scala.util.Using
 
 class PlumeFrontend extends LanguageFrontend {
 
-  val driver: OverflowDbDriver = new OverflowDbDriver()
+  val driver: OverflowDbDriver = new OverflowDbDriver(dataFlowCacheFile = None)
   override val fileSuffix: String = ".java"
 
   override def execute(sourceCodeFile: File): Cpg = {

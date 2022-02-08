@@ -83,37 +83,41 @@ package object domain {
     * @return deserialized ReachableByResults table.
     */
   def deserializeResultTable(
-      serTab: ConcurrentHashMap[Long, Vector[SerialReachableByResult]],
+      serTab: Option[ConcurrentHashMap[Long, Vector[SerialReachableByResult]]],
       cpg: Cpg
   ): Option[ResultTable] = {
-    val resultTable = new ResultTable()
+    serTab match {
+      case Some(tab) =>
+        val resultTable = new ResultTable()
 
-    try {
-      CollectionConverters
-        .MapHasAsScala(serTab)
-        .asScala
-        .map { case (id, vec) =>
-          if (!cpg.graph.nodes(id).hasNext)
-            throw new RuntimeException(
-              """Current database does not contain references to previous ReachableByResults cache. Unable to re-use
-                |old cache.""".stripMargin
-            )
-          (
-            cpg.graph.nodes(id).next(),
-            vec.map { f: SerialReachableByResult =>
-              SerialReachableByResult.unapply(f, cpg, resultTable)
+        try {
+          CollectionConverters
+            .MapHasAsScala(tab)
+            .asScala
+            .map { case (id, vec) =>
+              if (!cpg.graph.nodes(id).hasNext)
+                throw new RuntimeException(
+                  """Current database does not contain references to previous ReachableByResults cache. Unable to re-use
+                    |old cache.""".stripMargin
+                )
+              (
+                cpg.graph.nodes(id).next(),
+                vec.map { f: SerialReachableByResult =>
+                  SerialReachableByResult.unapply(f, cpg, resultTable)
+                }
+              )
             }
-          )
+            .foreach { case (k, v) => resultTable.table.put(k.asInstanceOf[StoredNode], v) }
+          Some(resultTable)
+        } catch {
+          case e: RuntimeException =>
+            logger.warn(e.getMessage)
+            None
+          case e: Exception =>
+            logger.error("Unable to deserialize results table.", e)
+            None
         }
-        .foreach { case (k, v) => resultTable.table.put(k.asInstanceOf[StoredNode], v) }
-      Some(resultTable)
-    } catch {
-      case e: RuntimeException =>
-        logger.warn(e.getMessage)
-        None
-      case e: Exception =>
-        logger.error("Unable to deserialize results table.", e)
-        None
+      case None => None
     }
   }
 
