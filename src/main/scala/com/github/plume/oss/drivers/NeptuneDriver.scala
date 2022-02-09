@@ -3,6 +3,14 @@ package com.github.plume.oss.drivers
 import io.circe.generic.semiauto.deriveDecoder
 import io.circe.{Decoder, jawn}
 import NeptuneDriver.DEFAULT_PORT
+import com.github.plume.oss.PlumeStatistics
+import com.github.plume.oss.domain.{
+  GremlinVersion,
+  InitiateResetResponse,
+  InstanceStatusResponse,
+  PerformResetResponse,
+  TokenPayload
+}
 import org.apache.tinkerpop.gremlin.driver.Cluster
 import org.apache.tinkerpop.gremlin.driver.remote.DriverRemoteConnection
 import org.apache.tinkerpop.gremlin.process.traversal.AnonymousTraversalSource
@@ -36,7 +44,8 @@ final class NeptuneDriver(
 
   private var cluster = connectToCluster
 
-  private def connectToCluster =
+  private def connectToCluster = PlumeStatistics.time(
+    PlumeStatistics.TIME_OPEN_DRIVER,
     Cluster
       .build()
       .addContactPoints(hostname)
@@ -44,6 +53,7 @@ final class NeptuneDriver(
       .enableSsl(true)
       .keyCertChainFile(keyCertChainFile)
       .create()
+  )
 
   override def traversal(): GraphTraversalSource =
     AnonymousTraversalSource.traversal().withRemote(DriverRemoteConnection.using(cluster))
@@ -120,12 +130,14 @@ final class NeptuneDriver(
         .toSet
     }
 
-  override def close(): Unit =
+  override def close(): Unit = PlumeStatistics.time(
+    PlumeStatistics.TIME_CLOSE_DRIVER,
     try {
       cluster.close()
     } catch {
       case e: Exception => logger.error("Exception thrown while attempting to close graph.", e)
     }
+  )
 
 }
 
@@ -135,15 +147,3 @@ object NeptuneDriver {
     */
   private val DEFAULT_PORT = 8182
 }
-
-final case class InitiateResetResponse(status: String, payload: TokenPayload)
-final case class PerformResetResponse(status: String)
-final case class TokenPayload(token: String)
-final case class InstanceStatusResponse(
-    status: String,
-    startTime: String,
-    dbEngineVersion: String,
-    role: String,
-    gremlin: GremlinVersion
-)
-final case class GremlinVersion(version: String)

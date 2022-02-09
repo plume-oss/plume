@@ -1,10 +1,11 @@
 package com.github.plume.oss.testfixtures
 
-import com.github.plume.oss.Jimple2Cpg
+import com.github.plume.oss.{Jimple2Cpg, PlumeStatistics}
 import com.github.plume.oss.drivers.OverflowDbDriver
 import com.github.plume.oss.JavaCompiler.compileJava
 import io.shiftleft.codepropertygraph.Cpg
 import io.shiftleft.semanticcpg.testfixtures.{CodeToCpgFixture, LanguageFrontend}
+import org.slf4j.LoggerFactory
 
 import java.io.{File, PrintWriter}
 import java.nio.file.Files
@@ -12,11 +13,14 @@ import scala.util.Using
 
 class PlumeFrontend extends LanguageFrontend {
 
+  private val logger = LoggerFactory.getLogger(classOf[PlumeFrontend])
   val driver: OverflowDbDriver = new OverflowDbDriver(dataFlowCacheFile = None)
   override val fileSuffix: String = ".java"
 
   override def execute(sourceCodeFile: File): Cpg = {
+    PlumeStatistics.reset()
     new Jimple2Cpg().createCpg(sourceCodeFile.getAbsolutePath, driver = driver)
+    logger.info(s"Plume statistics from last test: ${PlumeStatistics.results()}")
     Cpg(driver.cpg.graph)
   }
 }

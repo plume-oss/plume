@@ -1,5 +1,6 @@
 package com.github.plume.oss.drivers
 
+import com.github.plume.oss.PlumeStatistics
 import org.slf4j.{Logger, LoggerFactory}
 
 import java.io.File
@@ -36,9 +37,12 @@ final class TinkerGraphDriver extends GremlinDriver {
         "Unsupported graph extension! Supported types are GraphML, GraphSON, and Gryo."
       )
     }
-    Using.resource(this.graph.traversal()) { g =>
-      g.io[Any](filePath).write().iterate()
-    }
+    PlumeStatistics.time(
+      PlumeStatistics.TIME_CLOSE_DRIVER,
+      Using.resource(this.graph.traversal()) { g =>
+        g.io[Any](filePath).write().iterate()
+      }
+    )
   }
 
   /** Imports a .xml, .json, or .kryo TinkerGraph file into the currently connected graph.
@@ -59,9 +63,12 @@ final class TinkerGraphDriver extends GremlinDriver {
     if (!new File(filePath).exists) {
       throw new RuntimeException(s"No existing serialized graph file was found at $filePath")
     }
-    Using.resource(this.graph.traversal()) { g =>
-      g.io[Any](filePath).read().iterate()
-    }
+    PlumeStatistics.time(
+      PlumeStatistics.TIME_OPEN_DRIVER,
+      Using.resource(this.graph.traversal()) { g =>
+        g.io[Any](filePath).read().iterate()
+      }
+    )
   }
 
   /** Determines if the extension of the given file path is supported by TinkerGraph I/O.

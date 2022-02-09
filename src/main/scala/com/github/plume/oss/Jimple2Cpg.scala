@@ -7,23 +7,8 @@ import com.github.plume.oss.passes.concurrent.{
   PlumeDiffPass,
   PlumeHashPass
 }
-import com.github.plume.oss.passes.parallel.{
-  AstCreationPass,
-  PlumeCdgPass,
-  PlumeCfgDominatorPass,
-  PlumeMethodStubCreator,
-  PlumeReachingDefPass
-}
-import com.github.plume.oss.passes.{
-  IncrementalKeyPool,
-  PlumeCpgPassBase,
-  PlumeFileCreationPass,
-  PlumeMetaDataPass,
-  PlumeMethodDecoratorPass,
-  PlumeNamespaceCreator,
-  PlumeTypeDeclStubCreator,
-  PlumeTypeNodePass
-}
+import com.github.plume.oss.passes.parallel._
+import com.github.plume.oss.passes._
 import io.shiftleft.codepropertygraph.Cpg
 import io.shiftleft.codepropertygraph.generated.{NodeTypes, PropertyNames}
 import io.shiftleft.passes.CpgPassBase
@@ -63,6 +48,8 @@ object Jimple2Cpg {
   }
 }
 
+/** The main entrypoint for converting JVM bytecode/Jimple to a code property graph representation.
+  */
 class Jimple2Cpg {
 
   import Jimple2Cpg.{getQualifiedClassPath, language}
@@ -79,88 +66,93 @@ class Jimple2Cpg {
       rawSourceCodePath: String,
       outputPath: Option[String] = Option(JFile.createTempFile("plume-", ".odb").getAbsolutePath),
       driver: IDriver = new OverflowDbDriver()
-  ): Cpg = {
-    try {
-      // Determine if the given path is a file or directory and sanitize accordingly
-      val rawSourceCodeFile = new JFile(rawSourceCodePath)
-      val sourceTarget      = rawSourceCodeFile.toPath.toAbsolutePath.normalize.toString
-      val sourceCodeDir = if (rawSourceCodeFile.isDirectory) {
-        sourceTarget
-      } else {
-        Paths
-          .get(new JFile(sourceTarget).getParentFile.getAbsolutePath)
-          .normalize
-          .toString
-      }
+  ): Cpg = PlumeStatistics.time(
+    PlumeStatistics.TIME_EXTRACTION, {
+      try {
+        // Determine if the given path is a file or directory and sanitize accordingly
+        val rawSourceCodeFile = new JFile(rawSourceCodePath)
+        val sourceTarget      = rawSourceCodeFile.toPath.toAbsolutePath.normalize.toString
+        val sourceCodeDir = if (rawSourceCodeFile.isDirectory) {
+          sourceTarget
+        } else {
+          Paths
+            .get(new JFile(sourceTarget).getParentFile.getAbsolutePath)
+            .normalize
+            .toString
+        }
 
-      configureSoot(sourceCodeDir)
-      val cpg = newEmptyCpg(outputPath)
+        configureSoot(sourceCodeDir)
+        val cpg = newEmptyCpg(outputPath)
 
-      val metaDataKeyPool = new IncrementalKeyPool(1, 100, driver.idInterval(1, 100))
-      val typesKeyPool    = new IncrementalKeyPool(101, 1000100, driver.idInterval(101, 1000100))
-      val methodKeyPool =
-        new IncrementalKeyPool(
-          20001001,
-          Long.MaxValue,
-          driver.idInterval(20001001, Long.MaxValue)
+        val metaDataKeyPool = new IncrementalKeyPool(1, 100, driver.idInterval(1, 100))
+        val typesKeyPool    = new IncrementalKeyPool(101, 1000100, driver.idInterval(101, 1000100))
+        val methodKeyPool =
+          new IncrementalKeyPool(
+            20001001,
+            Long.MaxValue,
+            driver.idInterval(20001001, Long.MaxValue)
+          )
+
+        val sourceFileExtensions  = Set(".class", ".jimple")
+        val archiveFileExtensions = Set(".jar", ".war")
+        // Load source files and unpack archives if necessary
+        val sourceFileNames = if (sourceTarget == sourceCodeDir) {
+          // Load all source files in a directory
+          loadSourceFiles(sourceCodeDir, sourceFileExtensions, archiveFileExtensions)
+        } else {
+          // Load single file that was specified
+          loadSourceFiles(sourceTarget, sourceFileExtensions, archiveFileExtensions)
+        }
+
+        val codeToProcess = new PlumeDiffPass(sourceFileNames, driver).createAndApply()
+        // After the diff pass any changed types are removed. Remaining types should be black listed to avoid duplicates
+        val unchangedTypes = driver
+          .propertyFromNodes(NodeTypes.TYPE_DECL, PropertyNames.FULL_NAME)
+          .flatMap(_.get(PropertyNames.FULL_NAME))
+          .map(_.toString)
+          .toSet[String]
+        val unchangedNamespaces = driver
+          .propertyFromNodes(NodeTypes.NAMESPACE_BLOCK, PropertyNames.NAME)
+          .flatMap(_.get(PropertyNames.NAME))
+          .map(_.toString)
+          .toSet[String]
+
+        new PlumeMetaDataPass(cpg, language, Some(metaDataKeyPool), unchangedTypes)
+          .createAndApply(driver)
+
+        // Load classes into Soot
+        loadClassesIntoSoot(sourceCodeDir, sourceFileNames)
+        // Project Soot classes
+        val astCreator =
+          new AstCreationPass(sourceCodeDir, codeToProcess.toList, cpg, methodKeyPool)
+        astCreator.createAndApply(driver)
+        // Clear classes from Soot
+        closeSoot()
+        new PlumeTypeNodePass(
+          astCreator.global.usedTypes.asScala.toList,
+          cpg,
+          Some(typesKeyPool),
+          unchangedTypes
+        ).createAndApply(driver)
+
+        basePasses(cpg, driver, unchangedTypes, unchangedNamespaces).foreach(
+          _.createAndApply(driver)
         )
+        controlFlowPasses(cpg).foreach(_.createAndApply(driver))
+        new PlumeReachingDefPass(cpg, unchangedTypes = unchangedTypes).createAndApply(driver)
+        new PlumeHashPass(cpg).createAndApply(driver)
+        driver match {
+          case x: OverflowDbDriver => x.removeExpiredPathsFromCache(unchangedTypes)
+          case _                   =>
+        }
 
-      val sourceFileExtensions  = Set(".class", ".jimple")
-      val archiveFileExtensions = Set(".jar", ".war")
-      // Load source files and unpack archives if necessary
-      val sourceFileNames = if (sourceTarget == sourceCodeDir) {
-        // Load all source files in a directory
-        loadSourceFiles(sourceCodeDir, sourceFileExtensions, archiveFileExtensions)
-      } else {
-        // Load single file that was specified
-        loadSourceFiles(sourceTarget, sourceFileExtensions, archiveFileExtensions)
+        driver.buildInterproceduralEdges()
+        cpg
+      } finally {
+        closeSoot()
       }
-
-      val codeToProcess = new PlumeDiffPass(sourceFileNames, driver).createAndApply()
-      // After the diff pass any changed types are removed. Remaining types should be black listed to avoid duplicates
-      val unchangedTypes = driver
-        .propertyFromNodes(NodeTypes.TYPE_DECL, PropertyNames.FULL_NAME)
-        .flatMap(_.get(PropertyNames.FULL_NAME))
-        .map(_.toString)
-        .toSet[String]
-      val unchangedNamespaces = driver
-        .propertyFromNodes(NodeTypes.NAMESPACE_BLOCK, PropertyNames.NAME)
-        .flatMap(_.get(PropertyNames.NAME))
-        .map(_.toString)
-        .toSet[String]
-
-      new PlumeMetaDataPass(cpg, language, Some(metaDataKeyPool), unchangedTypes)
-        .createAndApply(driver)
-
-      // Load classes into Soot
-      loadClassesIntoSoot(sourceCodeDir, sourceFileNames)
-      // Project Soot classes
-      val astCreator = new AstCreationPass(sourceCodeDir, codeToProcess.toList, cpg, methodKeyPool)
-      astCreator.createAndApply(driver)
-      // Clear classes from Soot
-      closeSoot()
-      new PlumeTypeNodePass(
-        astCreator.global.usedTypes.asScala.toList,
-        cpg,
-        Some(typesKeyPool),
-        unchangedTypes
-      ).createAndApply(driver)
-
-      basePasses(cpg, driver, unchangedTypes, unchangedNamespaces).foreach(_.createAndApply(driver))
-      controlFlowPasses(cpg).foreach(_.createAndApply(driver))
-      new PlumeReachingDefPass(cpg, unchangedTypes = unchangedTypes).createAndApply(driver)
-      new PlumeHashPass(cpg).createAndApply(driver)
-      driver match {
-        case x: OverflowDbDriver => x.removeExpiredPathsFromCache(unchangedTypes)
-        case _                   =>
-      }
-
-      driver.buildInterproceduralEdges()
-      cpg
-    } finally {
-      closeSoot()
     }
-  }
+  )
 
   /** Retrieve parseable files from archive types.
     */
