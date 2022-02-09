@@ -265,9 +265,12 @@ abstract class GremlinDriver(txMax: Int = 50) extends IDriver {
         .asScala
         .map(_.asScala.toMap)
         .foreach { m =>
-          val srcId       = m.getOrElse("id", null).toString.toLong
-          val dstFullName = m.getOrElse(dstFullNameKey, null).asInstanceOf[String]
-          if (dstFullName != null) {
+          val srcId = m.getOrElse("id", null).toString.toLong
+          val dstFullNames = m.getOrElse(dstFullNameKey, null) match {
+            case x          => Seq(x)
+            case xs: Seq[_] => xs
+          }
+          dstFullNames.collect { case x: String => x }.foreach { dstFullName =>
             dstNodeMap.get(dstFullName) match {
               case Some(dstId: Any) if !exists(srcId, dstId.toString.toLong, edgeType) =>
                 g.V(typedNodeId(srcId)).addE(edgeType).to(__.V(dstId)).iterate()
