@@ -34,4 +34,8 @@ object PlumeStatistics extends Enumeration {
     */
   def results(): Map[PlumeStatistic, Long] = time.toMap
 
+  /** Sets all the clocks back to 0.
+    */
+  def reset(): Unit = time.clear()
+
 }

@@ -4,7 +4,13 @@ import io.circe.generic.semiauto.deriveDecoder
 import io.circe.{Decoder, jawn}
 import NeptuneDriver.DEFAULT_PORT
 import com.github.plume.oss.PlumeStatistics
-import com.github.plume.oss.domain.{GremlinVersion, InitiateResetResponse, InstanceStatusResponse, PerformResetResponse, TokenPayload}
+import com.github.plume.oss.domain.{
+  GremlinVersion,
+  InitiateResetResponse,
+  InstanceStatusResponse,
+  PerformResetResponse,
+  TokenPayload
+}
 import org.apache.tinkerpop.gremlin.driver.Cluster
 import org.apache.tinkerpop.gremlin.driver.remote.DriverRemoteConnection
 import org.apache.tinkerpop.gremlin.process.traversal.AnonymousTraversalSource
