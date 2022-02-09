@@ -7,10 +7,15 @@ and this project adheres to [Semantic Versioning](http://semver.org/).
 
 ## [Unreleased]
 
+### Added
+
+- `PlumeStatistics` now captures library performance.
+
 ### Changed
 
-- `OverflowDbDriver(dataflowCachePath)` property is now `Option[Path]`
-- If `dataFlowCachePath` is `None` then data-flow results are not saved
+- `OverflowDbDriver(dataflowCachePath)` property is now `Option[Path]`.
+- If `dataFlowCachePath` is `None` then data-flow results are not saved.
+- Moved HTTP response case classes to `domain.HttpResponse`.
 
 ## [1.0.5] - 2022-02-07
 
