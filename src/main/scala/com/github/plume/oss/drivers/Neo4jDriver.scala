@@ -150,11 +150,11 @@ final class Neo4jDriver(
     val ss = ops
       .map { case Change.SetNodeProperty(node, k, v) =>
         val s = v match {
-          case x: String     => "\"" + x + "\""
-          case Seq()         => IDriver.STRING_DEFAULT
-          case xs: Seq[_] => "[" + xs.map { x => s"\"$x\"" }.mkString(",") + "]"
-          case x: Number     => x.toString
-          case x             => logger.warn(s"Unhandled property $x (${x.getClass}")
+          case x: String  => "\"" + x + "\""
+          case Seq()      => IDriver.STRING_DEFAULT
+          case xs: Seq[_] => "[" + xs.map { x => Seq("\"", x, "\"").mkString }.mkString(",") + "]"
+          case x: Number  => x.toString
+          case x          => logger.warn(s"Unhandled property $x (${x.getClass}")
         }
         s"n${node.id()}.$k = $s"
       }
@@ -369,9 +369,11 @@ final class Neo4jDriver(
             .flatMap { record =>
               val dstFullNames: Iterable[Object] = record.get(dstFullNameKey).`type`() match {
                 case x if x == typeSystem.LIST() => record.get(dstFullNameKey).asList().asScala
-                case x => List(x)
+                case x                           => List(x)
               }
-              dstFullNames.map { fullName => record.get("id").asLong() -> dstNodeMap.get(fullName.toString) }
+              dstFullNames.map { fullName =>
+                record.get("id").asLong() -> dstNodeMap.get(fullName.toString)
+              }
             }
             .foreach { case (srcId: Long, maybeDst: Option[Any]) =>
               maybeDst match {
