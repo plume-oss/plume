@@ -1,6 +1,7 @@
 package com.github.plume.oss.drivers
 
 import Neo4jDriver._
+import com.github.plume.oss.PlumeStatistics
 import io.shiftleft.codepropertygraph.generated.nodes.NewNode
 import io.shiftleft.codepropertygraph.generated.{EdgeTypes, NodeTypes, PropertyNames}
 import io.shiftleft.passes.AppliedDiffGraph
@@ -9,7 +10,6 @@ import org.neo4j.driver.{AuthTokens, GraphDatabase, Transaction}
 import org.slf4j.LoggerFactory
 
 import java.util.concurrent.atomic.AtomicBoolean
-import scala.collection.convert.ImplicitConversions.`list asScalaBuffer`
 import scala.collection.mutable
 import scala.jdk.CollectionConverters.CollectionHasAsScala
 import scala.util.{Failure, Success, Try, Using}
@@ -29,7 +29,10 @@ final class Neo4jDriver(
   private val logger    = LoggerFactory.getLogger(classOf[Neo4jDriver])
   private val connected = new AtomicBoolean(true)
   private val driver =
-    GraphDatabase.driver(s"bolt://$hostname:$port", AuthTokens.basic(username, password))
+    PlumeStatistics.time(
+      PlumeStatistics.TIME_OPEN_DRIVER,
+      GraphDatabase.driver(s"bolt://$hostname:$port", AuthTokens.basic(username, password))
+    )
 
   override def isConnected: Boolean = connected.get()
 
@@ -44,21 +47,25 @@ final class Neo4jDriver(
     }
   }
 
-  override def close(): Unit = Try(driver.close()) match {
-    case Failure(e) => logger.warn("Exception thrown while attempting to close graph.", e)
-    case Success(_) => connected.set(false)
-  }
+  override def close(): Unit = PlumeStatistics.time(
+    PlumeStatistics.TIME_CLOSE_DRIVER,
+    Try(driver.close()) match {
+      case Failure(e) => logger.warn("Exception thrown while attempting to close graph.", e)
+      case Success(_) => connected.set(false)
+    }
+  )
 
   override def exists(nodeId: Long): Boolean = Using.resource(driver.session()) { session =>
     session.writeTransaction { tx =>
-      tx
-        .run(s"""
+      CollectionHasAsScala(
+        tx
+          .run(s"""
                |MATCH (n)
                |WHERE n.id = $nodeId
                |RETURN n
                |""".stripMargin)
-        .list
-        .nonEmpty
+          .list
+      ).asScala.nonEmpty
     }
   }
 

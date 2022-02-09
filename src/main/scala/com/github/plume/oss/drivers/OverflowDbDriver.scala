@@ -1,5 +1,6 @@
 package com.github.plume.oss.drivers
 
+import com.github.plume.oss.PlumeStatistics
 import com.github.plume.oss.domain.{
   SerialReachableByResult,
   compressToFile,
@@ -57,7 +58,7 @@ final case class OverflowDbDriver(
 
   /** A direct pointer to the code property graph object.
     */
-  val cpg: Cpg = newOverflowGraph(odbConfig)
+  val cpg: Cpg = PlumeStatistics.time(PlumeStatistics.TIME_OPEN_DRIVER, newOverflowGraph(odbConfig))
 
   private val semanticsParser = new Parser()
   private val defaultSemantics: Try[BufferedSource] = Try(
@@ -126,13 +127,14 @@ final case class OverflowDbDriver(
 
   override def isConnected: Boolean = !cpg.graph.isClosed
 
-  override def close(): Unit = {
+  override def close(): Unit = PlumeStatistics.time(
+    PlumeStatistics.TIME_CLOSE_DRIVER,
     Try(cpg.close()) match {
       case Success(_) => saveDataflowCache()
       case Failure(e) =>
         logger.warn("Exception thrown while attempting to close graph.", e)
     }
-  }
+  )
 
   override def clear(): Unit = {
     cpg.graph.nodes.asScala.foreach(_.remove())
@@ -293,13 +295,16 @@ final case class OverflowDbDriver(
     * @param sink the sink query to match.
     * @return the source nodes whose data flows to the given sinks uninterrupted.
     */
-  def nodesReachableBy(source: Traversal[CfgNode], sink: Traversal[CfgNode]): List[CfgNode] = {
-    val results: List[ReachableByResult] = sink.reachableByDetailed(source)
-    // TODO: Right now the results are saved in a serializable format ready for a binary blob. We should look into
-    // storing these reliably on the graph.
-    captureResultsBlob(results)
-    results.map(_.path.head.node).distinct
-  }
+  def nodesReachableBy(source: Traversal[CfgNode], sink: Traversal[CfgNode]): List[CfgNode] =
+    PlumeStatistics.time(
+      PlumeStatistics.TIME_REACHABLE_BY_QUERYING, {
+        val results: List[ReachableByResult] = sink.reachableByDetailed(source)
+        // TODO: Right now the results are saved in a serializable format ready for a binary blob. We should look into
+        // storing these reliably on the graph.
+        captureResultsBlob(results)
+        results.map(_.path.head.node).distinct
+      }
+    )
 
   /** Primitive storage solution for saving path results. This will capture results in memory until shutdown after
     * which everything will be saved to a blob.

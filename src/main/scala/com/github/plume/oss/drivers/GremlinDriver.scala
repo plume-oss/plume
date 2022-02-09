@@ -1,5 +1,6 @@
 package com.github.plume.oss.drivers
 
+import com.github.plume.oss.PlumeStatistics
 import io.shiftleft.codepropertygraph.generated.nodes.{AbstractNode, NewNode, StoredNode}
 import io.shiftleft.codepropertygraph.generated.{EdgeTypes, NodeTypes, PropertyNames}
 import io.shiftleft.passes.AppliedDiffGraph
@@ -34,17 +35,21 @@ abstract class GremlinDriver(txMax: Int = 50) extends IDriver {
     "org.apache.tinkerpop.gremlin.tinkergraph.structure.TinkerGraph"
   )
   config.setProperty("gremlin.tinkergraph.vertexIdManager", "LONG")
-  protected val graph: Graph = TinkerGraph.open(config)
-  private val connected      = new AtomicBoolean(true)
+  protected val graph: Graph =
+    PlumeStatistics.time(PlumeStatistics.TIME_OPEN_DRIVER, { TinkerGraph.open(config) })
+  private val connected = new AtomicBoolean(true)
 
   override def isConnected: Boolean = connected.get()
 
-  override def close(): Unit = Try(graph.close()) match {
-    case Success(_) => connected.set(false)
-    case Failure(e) =>
-      logger.warn("Exception thrown while attempting to close graph.", e)
-      connected.set(false)
-  }
+  override def close(): Unit = PlumeStatistics.time(
+    PlumeStatistics.TIME_CLOSE_DRIVER,
+    Try(graph.close()) match {
+      case Success(_) => connected.set(false)
+      case Failure(e) =>
+        logger.warn("Exception thrown while attempting to close graph.", e)
+        connected.set(false)
+    }
+  )
 
   protected def traversal(): GraphTraversalSource = graph.traversal()
 

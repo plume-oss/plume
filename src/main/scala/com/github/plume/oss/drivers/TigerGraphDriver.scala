@@ -1,10 +1,11 @@
 package com.github.plume.oss.drivers
 
+import com.github.plume.oss.domain.TigerGraphResponse
+import com.github.plume.oss.drivers.TigerGraphDriver._
 import io.circe
 import io.circe.generic.auto._
 import io.circe.syntax._
 import io.circe.{Encoder, Json, JsonObject}
-import TigerGraphDriver._
 import io.shiftleft.codepropertygraph.generated.nodes._
 import io.shiftleft.codepropertygraph.generated.{EdgeTypes, NodeTypes, PropertyNames}
 import io.shiftleft.passes.AppliedDiffGraph
@@ -435,19 +436,6 @@ final class TigerGraphDriver(
     out.toString()
   }
 }
-
-/** The response specification for REST++ responses.
-  */
-final case class TigerGraphResponse(
-    version: VersionInfo,
-    error: Boolean,
-    message: String,
-    results: Seq[Json]
-)
-
-/** The version information response object.
-  */
-final case class VersionInfo(edition: String, api: String, schema: Int)
 
 /** The payload body for upserting graph data.
   */
