@@ -416,7 +416,7 @@ final class TigerGraphDriver(
       logger.debug(s"Posting payload:\n$payload")
       codeControl.disableSystemExit()
       val output = executeGsqlClient(args)
-      logger.debug(output)
+      logger.info(output)
     } catch {
       case e: Exception => logger.error(s"Unable to post GSQL payload! Payload $payload", e)
     }

@@ -271,7 +271,7 @@ abstract class GremlinDriver(txMax: Int = 50) extends IDriver {
         .asScala
         .map(_.asScala.toMap)
         .foreach { m =>
-          val n = deserializeLists(m)
+          val n     = deserializeLists(m)
           val srcId = n.getOrElse("id", null).toString.toLong
           (n.getOrElse(dstFullNameKey, null) match {
             case xs: Seq[_] => xs
