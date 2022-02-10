@@ -6,7 +6,7 @@ import io.shiftleft.codepropertygraph.generated.nodes.NewNode
 import io.shiftleft.codepropertygraph.generated.{EdgeTypes, NodeTypes, PropertyNames}
 import io.shiftleft.passes.AppliedDiffGraph
 import io.shiftleft.passes.DiffGraph.Change
-import org.neo4j.driver.{AuthTokens, GraphDatabase, Transaction}
+import org.neo4j.driver.{AuthTokens, GraphDatabase, Transaction, Value}
 import org.slf4j.LoggerFactory
 
 import java.util.concurrent.atomic.AtomicBoolean
@@ -367,12 +367,17 @@ final class Neo4jDriver(
             .list()
             .asScala
             .flatMap { record =>
-              val dstFullNames: Iterable[Object] = record.get(dstFullNameKey).`type`() match {
-                case x if x == typeSystem.LIST() => record.get(dstFullNameKey).asList().asScala
-                case x                           => List(x)
-              }
-              dstFullNames.map { fullName =>
-                record.get("id").asLong() -> dstNodeMap.get(fullName.toString)
+              (record.get(dstFullNameKey) match {
+                case x if x.`type`() == typeSystem.LIST() =>
+                  record
+                    .get(dstFullNameKey)
+                    .asList()
+                    .asScala
+                    .collect { case y: Value => y }
+                    .map(_.asString())
+                case x => List(x.asString())
+              }).map { fullName =>
+                record.get("id").asLong() -> dstNodeMap.get(fullName)
               }
             }
             .foreach { case (srcId: Long, maybeDst: Option[Any]) =>
@@ -387,7 +392,6 @@ final class Neo4jDriver(
                 case None =>
               }
             }
-
         } catch {
           case e: Exception =>
             logger.error(s"Unable to obtain AST nodes to link: $payload", e)
