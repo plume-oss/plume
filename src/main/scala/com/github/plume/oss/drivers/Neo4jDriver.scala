@@ -1,12 +1,12 @@
 package com.github.plume.oss.drivers
 
-import Neo4jDriver._
 import com.github.plume.oss.PlumeStatistics
+import com.github.plume.oss.drivers.Neo4jDriver._
 import io.shiftleft.codepropertygraph.generated.nodes.NewNode
 import io.shiftleft.codepropertygraph.generated.{EdgeTypes, NodeTypes, PropertyNames}
 import io.shiftleft.passes.AppliedDiffGraph
 import io.shiftleft.passes.DiffGraph.Change
-import org.neo4j.driver.{AuthTokens, GraphDatabase, Transaction}
+import org.neo4j.driver.{AuthTokens, GraphDatabase, Transaction, Value}
 import org.slf4j.LoggerFactory
 
 import java.util.concurrent.atomic.AtomicBoolean
@@ -33,6 +33,7 @@ final class Neo4jDriver(
       PlumeStatistics.TIME_OPEN_DRIVER,
       GraphDatabase.driver(s"bolt://$hostname:$port", AuthTokens.basic(username, password))
     )
+  private val typeSystem = driver.defaultTypeSystem()
 
   override def isConnected: Boolean = connected.get()
 
@@ -89,10 +90,12 @@ final class Neo4jDriver(
       import scala.reflect.runtime.universe.{Constant, Literal}
       Literal(Constant(raw)).toString
     }
-    val propertyStr = (removeLists(n.properties).map { case (k, v) =>
+    val propertyStr = (n.properties.map { case (k, v) =>
       val vStr = v match {
         case x: String => escape(x)
-        case x         => x
+        case xs: Seq[_] =>
+          "[" + xs.map(x => escape(x.toString)).mkString(",") + "]"
+        case x => x
       }
       s"$k:$vStr"
     }.toList :+ s"id:$id")
@@ -149,11 +152,11 @@ final class Neo4jDriver(
     val ss = ops
       .map { case Change.SetNodeProperty(node, k, v) =>
         val s = v match {
-          case x: String     => s""""$x""""
-          case Seq(head, _*) => head
-          case Seq()         => IDriver.STRING_DEFAULT
-          case x: Number     => x.toString
-          case x             => logger.warn(s"Unhandled property $x (${x.getClass}")
+          case x: String  => "\"" + x + "\""
+          case Seq()      => IDriver.STRING_DEFAULT
+          case xs: Seq[_] => "[" + xs.map { x => Seq("\"", x, "\"").mkString }.mkString(",") + "]"
+          case x: Number  => x.toString
+          case x          => logger.warn(s"Unhandled property $x (${x.getClass}")
         }
         s"n${node.id()}.$k = $s"
       }
@@ -297,7 +300,6 @@ final class Neo4jDriver(
 
   override def propertyFromNodes(nodeType: String, keys: String*): List[Map[String, Any]] =
     Using.resource(driver.session()) { session =>
-      val typeSystem = driver.defaultTypeSystem()
       session.writeTransaction { tx =>
         tx
           .run(s"""
@@ -319,6 +321,8 @@ final class Neo4jDriver(
                 Some(k -> v.asBoolean(IDriver.BOOL_DEFAULT))
               } else if (v.hasType(typeSystem.STRING())) {
                 Some(k -> v.asString(IDriver.STRING_DEFAULT))
+              } else if (v.hasType(typeSystem.LIST())) {
+                Some(k -> v.asList())
               } else {
                 None
               }
@@ -364,10 +368,16 @@ final class Neo4jDriver(
           tx.run(payload)
             .list()
             .asScala
-            .map(record =>
-              record.get("id").asLong() -> dstNodeMap.get(record.get(dstFullNameKey).asString())
-            )
-            .foreach { case (srcId, maybeDst) =>
+            .flatMap { record =>
+              (record.get(dstFullNameKey) match {
+                case x: Value if x.`type`() == typeSystem.LIST() =>
+                  x.asList().asScala.collect { case y: String => y }.toSeq
+                case x: Value => Seq(x.asString())
+              }).map { fullName =>
+                record.get("id").asLong() -> dstNodeMap.get(fullName)
+              }
+            }
+            .foreach { case (srcId: Long, maybeDst: Option[Any]) =>
               maybeDst match {
                 case Some(dstId) =>
                   val astLinkPayload = s"""
@@ -379,7 +389,6 @@ final class Neo4jDriver(
                 case None =>
               }
             }
-
         } catch {
           case e: Exception =>
             logger.error(s"Unable to obtain AST nodes to link: $payload", e)

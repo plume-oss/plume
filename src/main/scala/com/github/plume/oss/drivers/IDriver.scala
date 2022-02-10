@@ -40,11 +40,30 @@ trait IDriver extends AutoCloseable {
     */
   def propertyFromNodes(nodeType: String, keys: String*): List[Map[String, Any]]
 
-  protected def removeLists(properties: Map[String, Any]): Map[String, Any] = {
+  /** To handle the case where databases don't support lists, we simply serialize these as a comma-separated string.
+    * @param properties the property map.
+    * @return a property map where lists are serialized as strings.
+    */
+  protected def serializeLists(properties: Map[String, Any]): Map[String, Any] = {
     properties.map { case (k, v) =>
       v match {
-        case Seq(head, _*) => k -> head
-        case _             => k -> v
+        case xs: Seq[_] => k -> xs.mkString(",")
+        case _          => k -> v
+      }
+    }
+  }
+
+  /** Where former list properties were serialized as strings, they will be deserialized as [[Seq]].
+    * @param properties the serialized property map.
+    * @return a property map where comma-separated strings are made [[Seq]] objects.
+    */
+  protected def deserializeLists(properties: Map[String, Any]): Map[String, Any] = {
+    properties.map { case (k, v) =>
+      v match {
+        case xs: String
+            if k == PropertyNames.OVERLAYS || k == PropertyNames.INHERITS_FROM_TYPE_FULL_NAME =>
+          k -> xs.split(",").toSeq
+        case _ => k -> v
       }
     }
   }
@@ -211,33 +230,36 @@ trait ISchemaSafeDriver extends IDriver {
 }
 
 object IDriver {
-  val STRING_DEFAULT: String = "<empty>"
-  val INT_DEFAULT: Int       = -1
-  val LONG_DEFAULT: Long     = -1L
-  val BOOL_DEFAULT: Boolean  = false
+  val STRING_DEFAULT: String    = "<empty>"
+  val INT_DEFAULT: Int          = -1
+  val LONG_DEFAULT: Long        = -1L
+  val BOOL_DEFAULT: Boolean     = false
+  val LIST_DEFAULT: Seq[String] = Seq.empty[String]
 
   /** Given a property, returns its known default.
     */
   def getPropertyDefault(prop: String): Any = {
     import PropertyNames._
     prop match {
-      case AST_PARENT_TYPE      => STRING_DEFAULT
-      case AST_PARENT_FULL_NAME => STRING_DEFAULT
-      case NAME                 => STRING_DEFAULT
-      case CODE                 => STRING_DEFAULT
-      case ORDER                => INT_DEFAULT
-      case SIGNATURE            => ""
-      case ARGUMENT_INDEX       => INT_DEFAULT
-      case FULL_NAME            => STRING_DEFAULT
-      case TYPE_FULL_NAME       => STRING_DEFAULT
-      case TYPE_DECL_FULL_NAME  => STRING_DEFAULT
-      case IS_EXTERNAL          => BOOL_DEFAULT
-      case DISPATCH_TYPE        => STRING_DEFAULT
-      case LINE_NUMBER          => INT_DEFAULT
-      case COLUMN_NUMBER        => INT_DEFAULT
-      case LINE_NUMBER_END      => INT_DEFAULT
-      case COLUMN_NUMBER_END    => INT_DEFAULT
-      case _                    => STRING_DEFAULT
+      case AST_PARENT_TYPE              => STRING_DEFAULT
+      case AST_PARENT_FULL_NAME         => STRING_DEFAULT
+      case NAME                         => STRING_DEFAULT
+      case CODE                         => STRING_DEFAULT
+      case ORDER                        => INT_DEFAULT
+      case SIGNATURE                    => ""
+      case ARGUMENT_INDEX               => INT_DEFAULT
+      case FULL_NAME                    => STRING_DEFAULT
+      case TYPE_FULL_NAME               => STRING_DEFAULT
+      case TYPE_DECL_FULL_NAME          => STRING_DEFAULT
+      case IS_EXTERNAL                  => BOOL_DEFAULT
+      case DISPATCH_TYPE                => STRING_DEFAULT
+      case LINE_NUMBER                  => INT_DEFAULT
+      case COLUMN_NUMBER                => INT_DEFAULT
+      case LINE_NUMBER_END              => INT_DEFAULT
+      case COLUMN_NUMBER_END            => INT_DEFAULT
+      case OVERLAYS                     => LIST_DEFAULT
+      case INHERITS_FROM_TYPE_FULL_NAME => LIST_DEFAULT
+      case _                            => STRING_DEFAULT
     }
   }
 }

@@ -101,6 +101,7 @@ final class TigerGraphDriver(
       case x: String  => Option(Json.fromString(x))
       case x: Int     => Option(Json.fromInt(x))
       case x: Boolean => Option(Json.fromBoolean(x))
+      case xs: Seq[_] => Option(Json.fromString(xs.mkString(",")))
       case _          => None
     }
   }
@@ -118,10 +119,9 @@ final class TigerGraphDriver(
   }
 
   private def nodePayload(id: Long, n: NewNode): JsonObject = {
-    val attributes = removeLists(n.properties).flatMap { case (k, v) =>
+    val attributes = n.properties.flatMap { case (k, v) =>
       val vStr = v match {
-        case Seq(head)      => head
-        case Seq()          => IDriver.STRING_DEFAULT
+        case xs: Seq[_]     => xs.mkString(",")
         case x if x == null => IDriver.getPropertyDefault(k)
         case x              => x
       }
@@ -272,6 +272,7 @@ final class TigerGraphDriver(
       }
       .groupBy { m => m("id").asInstanceOf[Long] }
       .map { case (_: Long, ps: Seq[Map[String, Any]]) => ps.reduce { (a, b) => a ++ b } }
+      .map(deserializeLists)
       .toList
   }
 
@@ -297,7 +298,7 @@ final class TigerGraphDriver(
         endpoint,
         srcLabels.map { x =>
           ("src_labels", s"${x}_")
-        } :+ ("dst_value", key) :+ ("dst", id.toString) :+ ("dst.type", s"${dstNodeType}_")
+        } :+ ("dst_value", s"%$key%") :+ ("dst", id.toString) :+ ("dst.type", s"${dstNodeType}_")
       )
     }
   }
@@ -415,9 +416,9 @@ final class TigerGraphDriver(
       logger.debug(s"Posting payload:\n$payload")
       codeControl.disableSystemExit()
       val output = executeGsqlClient(args)
-      logger.debug(output)
+      logger.info(output)
     } catch {
-      case e: Throwable => logger.error(s"Unable to post GSQL payload! Payload $payload", e)
+      case e: Exception => logger.error(s"Unable to post GSQL payload! Payload $payload", e)
     }
     codeControl.enableSystemExit()
   }
@@ -636,8 +637,9 @@ object TigerGraphDriver {
   private def VERTICES: String = {
     def propToTg(x: String) = {
       val default = IDriver.getPropertyDefault(x) match {
-        case x: String  => s""""$x""""
-        case x: Boolean => s""""$x""""
+        case x: String  => "\"" + x + "\""
+        case x: Boolean => "\"" + x + "\""
+        case _: Seq[_]  => "\"" + "" + "\""
         case x          => x
       }
       s"_$x ${odbToTgType(x)} DEFAULT $default"
@@ -779,7 +781,7 @@ object TigerGraphDriver {
         |  seed = {ANY};
         |  temp = SELECT src
         |         FROM seed:src
-        |         WHERE src.type IN src_labels AND src._$p == dst_value
+        |         WHERE src.type IN src_labels AND src._$p LIKE dst_value
         |         ACCUM INSERT INTO _$e VALUES (src, dst);
         |}
         |""".stripMargin
