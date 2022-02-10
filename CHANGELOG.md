@@ -7,6 +7,8 @@ and this project adheres to [Semantic Versioning](http://semver.org/).
 
 ## [Unreleased]
 
+## [1.0.7] - 2022-02-10
+
 ### Added
 
 - Interfaces are now recognized and treated as types with implementation represented by `INHERITS_FROM`.
