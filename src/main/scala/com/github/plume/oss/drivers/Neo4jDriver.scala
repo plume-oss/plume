@@ -90,10 +90,12 @@ final class Neo4jDriver(
       import scala.reflect.runtime.universe.{Constant, Literal}
       Literal(Constant(raw)).toString
     }
-    val propertyStr = (removeLists(n.properties).map { case (k, v) =>
+    val propertyStr = (n.properties.map { case (k, v) =>
       val vStr = v match {
         case x: String => escape(x)
-        case x         => x
+        case xs: Seq[_] =>
+          "[" + xs.map { x => Seq("\"", escape(x.toString), "\"").mkString }.mkString(",") + "]"
+        case x => x
       }
       s"$k:$vStr"
     }.toList :+ s"id:$id")

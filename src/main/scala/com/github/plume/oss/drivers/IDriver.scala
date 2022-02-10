@@ -40,11 +40,30 @@ trait IDriver extends AutoCloseable {
     */
   def propertyFromNodes(nodeType: String, keys: String*): List[Map[String, Any]]
 
-  protected def removeLists(properties: Map[String, Any]): Map[String, Any] = {
+  /** To handle the case where databases don't support lists, we simply serialize these as a comma-separated string.
+    * @param properties the property map.
+    * @return a property map where lists are serialized as strings.
+    */
+  protected def serializeLists(properties: Map[String, Any]): Map[String, Any] = {
     properties.map { case (k, v) =>
       v match {
-        case Seq(head, _*) => k -> head
-        case _             => k -> v
+        case xs: Seq[_] => k -> xs.mkString(",")
+        case _          => k -> v
+      }
+    }
+  }
+
+  /** Where former list properties were serialized as strings, they will be deserialized as [[Seq]].
+    * @param properties the serialized property map.
+    * @return a property map where comma-separated strings are made [[Seq]] objects.
+    */
+  protected def deserializeLists(properties: Map[String, Any]): Map[String, Any] = {
+    properties.map { case (k, v) =>
+      v match {
+        case xs: String
+            if k == PropertyNames.OVERLAYS || k == PropertyNames.INHERITS_FROM_TYPE_FULL_NAME =>
+          k -> xs.split(",").toSeq
+        case _ => k -> v
       }
     }
   }

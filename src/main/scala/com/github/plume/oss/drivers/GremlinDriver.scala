@@ -99,15 +99,19 @@ abstract class GremlinDriver(txMax: Int = 50) extends IDriver {
         ptr match {
           case Some(p) =>
             ptr = Some(p.addV(node.label).property(T.id, id(node, dg)))
-            removeLists(node.properties).foreach { case (k, v) => p.property(k, v) }
+            serializeLists(node.properties).foreach { case (k, v) => p.property(k, v) }
           case None =>
             ptr = Some(g.addV(node.label).property(T.id, id(node, dg)))
-            removeLists(node.properties).foreach { case (k, v) => ptr.get.property(k, v) }
+            serializeLists(node.properties).foreach { case (k, v) => ptr.get.property(k, v) }
         }
       case Change.SetNodeProperty(node, key, value) =>
+        val v =
+          if (key == PropertyNames.INHERITS_FROM_TYPE_FULL_NAME || key == PropertyNames.OVERLAYS)
+            value.toString.split(",")
+          else value
         ptr match {
-          case Some(p) => ptr = Some(p.V(typedNodeId(node.id())).property(key, value))
-          case None    => ptr = Some(g.V(typedNodeId(node.id())).property(key, value))
+          case Some(p) => ptr = Some(p.V(typedNodeId(node.id())).property(key, v))
+          case None    => ptr = Some(g.V(typedNodeId(node.id())).property(key, v))
         }
       case Change.RemoveNode(rawNodeId) =>
         val nodeId = typedNodeId(rawNodeId)
@@ -215,6 +219,8 @@ abstract class GremlinDriver(txMax: Int = 50) extends IDriver {
         .map(_.asScala.map { case (k, v) =>
           if (v == "NULL")
             k -> IDriver.getPropertyDefault(k)
+          else if (v == PropertyNames.OVERLAYS || v == PropertyNames.INHERITS_FROM_TYPE_FULL_NAME)
+            k -> v.toString.split(",").toSeq
           else
             k -> v
         }.toMap)
