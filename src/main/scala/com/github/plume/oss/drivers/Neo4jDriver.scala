@@ -94,7 +94,7 @@ final class Neo4jDriver(
       val vStr = v match {
         case x: String => escape(x)
         case xs: Seq[_] =>
-          "[" + xs.map { x => Seq("\"", escape(x.toString), "\"").mkString }.mkString(",") + "]"
+          "[" + xs.map(x => escape(x.toString)).mkString(",") + "]"
         case x => x
       }
       s"$k:$vStr"
@@ -370,14 +370,9 @@ final class Neo4jDriver(
             .asScala
             .flatMap { record =>
               (record.get(dstFullNameKey) match {
-                case x if x.`type`() == typeSystem.LIST() =>
-                  record
-                    .get(dstFullNameKey)
-                    .asList()
-                    .asScala
-                    .collect { case y: Value => y }
-                    .map(_.asString())
-                case x => List(x.asString())
+                case x: Value if x.`type`() == typeSystem.LIST() =>
+                  x.asList().asScala.collect { case y: String => y }.toSeq
+                case x: Value => Seq(x.asString())
               }).map { fullName =>
                 record.get("id").asLong() -> dstNodeMap.get(fullName)
               }
