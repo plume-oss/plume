@@ -225,7 +225,7 @@ class Jimple2Cpg {
     Options.v().set_keep_line_number(true)
     Options.v().set_keep_offset(true)
     // ignore library code
-    Options.v().set_no_bodies_for_excluded(true) // TODO: This may be an issue
+    Options.v().set_no_bodies_for_excluded(true)
     Options.v().set_allow_phantom_refs(true)
     // keep variable names
     PhaseOptions.v().setPhaseOption("jb", "use-original-names:true")

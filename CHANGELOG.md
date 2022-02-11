@@ -12,6 +12,10 @@ and this project adheres to [Semantic Versioning](http://semver.org/).
 - Created `util` package to contain `HashUtil` and `ProgramHandlingUtil`
 - All input files are unpacked to a temporary directory.
 
+### Fixed
+
+- Methods are checked to be concrete before retrieving method body.
+
 ## [1.0.7] - 2022-02-10
 
 ### Added
