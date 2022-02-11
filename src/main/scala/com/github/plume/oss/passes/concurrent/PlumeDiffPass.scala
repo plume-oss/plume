@@ -1,7 +1,7 @@
 package com.github.plume.oss.passes.concurrent
 
-import com.github.plume.oss.HashUtil
 import com.github.plume.oss.drivers.IDriver
+import com.github.plume.oss.util.HashUtil
 import io.shiftleft.codepropertygraph.generated.{NodeTypes, PropertyNames}
 import org.slf4j.{Logger, LoggerFactory}
 

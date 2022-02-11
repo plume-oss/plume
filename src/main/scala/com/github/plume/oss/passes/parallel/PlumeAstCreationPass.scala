@@ -7,6 +7,7 @@ import io.shiftleft.passes.DiffGraph
 import org.slf4j.LoggerFactory
 import soot.Scene
 
+import java.nio.file.Paths
 import java.util.concurrent.ConcurrentSkipListSet
 
 final case class Global(
@@ -16,7 +17,6 @@ final case class Global(
 /** Creates the AST layer from the given class file and stores all types in the given global parameter.
   */
 class AstCreationPass(
-    codePath: String,
     filenames: List[String],
     cpg: Cpg,
     keyPool: IncrementalKeyPool
@@ -28,7 +28,7 @@ class AstCreationPass(
   override def partIterator: Iterator[String] = filenames.iterator
 
   override def runOnPart(filename: String): Iterator[DiffGraph] = {
-    val qualifiedClassName = Jimple2Cpg.getQualifiedClassPath(codePath, filename)
+    val qualifiedClassName = Jimple2Cpg.getQualifiedClassPath(filename)
     try {
       val sootClass = Scene.v().loadClassAndSupport(qualifiedClassName)
       sootClass.setApplicationClass()

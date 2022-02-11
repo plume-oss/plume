@@ -1,6 +1,6 @@
 package com.github.plume.oss.passes.concurrent
 
-import com.github.plume.oss.HashUtil
+import com.github.plume.oss.util.HashUtil
 import io.shiftleft.codepropertygraph.Cpg
 import io.shiftleft.codepropertygraph.generated.PropertyNames
 import io.shiftleft.codepropertygraph.generated.nodes.File

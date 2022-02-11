@@ -1,6 +1,7 @@
 package com.github.plume.oss
 
 import com.github.plume.oss.drivers.{IDriver, OverflowDbDriver}
+import com.github.plume.oss.passes._
 import com.github.plume.oss.passes.concurrent.{
   PlumeCfgCreationPass,
   PlumeContainsEdgePass,
@@ -8,7 +9,8 @@ import com.github.plume.oss.passes.concurrent.{
   PlumeHashPass
 }
 import com.github.plume.oss.passes.parallel._
-import com.github.plume.oss.passes._
+import com.github.plume.oss.util.ProgramHandlingUtil
+import com.github.plume.oss.util.ProgramHandlingUtil.{extractSourceFilesFromArchive, moveClassFiles}
 import io.shiftleft.codepropertygraph.Cpg
 import io.shiftleft.codepropertygraph.generated.{NodeTypes, PropertyNames}
 import io.shiftleft.passes.CpgPassBase
@@ -19,10 +21,8 @@ import soot.options.Options
 import soot.{G, PhaseOptions, Scene, SootClass}
 
 import java.io.{File => JFile}
-import java.nio.file.{Files, Paths}
-import java.util.zip.ZipFile
-import scala.jdk.CollectionConverters.{CollectionHasAsScala, EnumerationHasAsScala}
-import scala.util.{Failure, Success, Using}
+import java.nio.file.Paths
+import scala.jdk.CollectionConverters.CollectionHasAsScala
 
 object Jimple2Cpg {
   val language: String = "PLUME"
@@ -30,16 +30,15 @@ object Jimple2Cpg {
   /** Formats the file name the way Soot refers to classes within a class path. e.g.
     * /unrelated/paths/class/path/Foo.class => class.path.Foo
     *
-    * @param codePath the parent directory
     * @param filename the file name to transform.
     * @return the correctly formatted class path.
     */
-  def getQualifiedClassPath(codePath: String, filename: String): String = {
-    val pathFile = new JFile(codePath)
-    val codeDir: String = if (pathFile.isDirectory) {
-      pathFile.toPath.toAbsolutePath.normalize.toString
+  def getQualifiedClassPath(filename: String): String = {
+    val codePath = ProgramHandlingUtil.TEMP_DIR
+    val codeDir: String = if (codePath.toFile.isDirectory) {
+      codePath.toAbsolutePath.normalize.toString
     } else {
-      Paths.get(pathFile.getParentFile.getAbsolutePath).normalize.toString
+      Paths.get(codePath.toFile.getParentFile.getAbsolutePath).normalize.toString
     }
     filename
       .replace(codeDir + JFile.separator, "")
@@ -81,7 +80,7 @@ class Jimple2Cpg {
             .toString
         }
 
-        configureSoot(sourceCodeDir)
+        configureSoot()
         val cpg = newEmptyCpg(outputPath)
 
         val metaDataKeyPool = new IncrementalKeyPool(1, 100, driver.idInterval(1, 100))
@@ -104,7 +103,14 @@ class Jimple2Cpg {
           loadSourceFiles(sourceTarget, sourceFileExtensions, archiveFileExtensions)
         }
 
+        logger.info(s"Loading ${sourceFileNames.size} program files")
+        logger.debug(s"Source files are: $sourceFileNames")
+
         val codeToProcess = new PlumeDiffPass(sourceFileNames, driver).createAndApply()
+
+        logger.info(s"Processing ${codeToProcess.size} new or changed program files")
+        logger.debug(s"Files to process are: $sourceFileNames")
+
         // After the diff pass any changed types are removed. Remaining types should be black listed to avoid duplicates
         val unchangedTypes = driver
           .propertyFromNodes(NodeTypes.TYPE_DECL, PropertyNames.FULL_NAME)
@@ -121,13 +127,12 @@ class Jimple2Cpg {
           .createAndApply(driver)
 
         // Load classes into Soot
-        loadClassesIntoSoot(sourceCodeDir, sourceFileNames)
+        loadClassesIntoSoot(sourceFileNames)
         // Project Soot classes
-        val astCreator =
-          new AstCreationPass(sourceCodeDir, codeToProcess.toList, cpg, methodKeyPool)
+        val astCreator = new AstCreationPass(codeToProcess.toList, cpg, methodKeyPool)
         astCreator.createAndApply(driver)
         // Clear classes from Soot
-        closeSoot()
+        G.reset()
         new PlumeTypeNodePass(
           astCreator.global.usedTypes.asScala.toList,
           cpg,
@@ -149,30 +154,10 @@ class Jimple2Cpg {
         driver.buildInterproceduralEdges()
         cpg
       } finally {
-        closeSoot()
+        clean()
       }
     }
   )
-
-  /** Retrieve parseable files from archive types.
-    */
-  private def extractSourceFilesFromArchive(
-      sourceCodeDir: String,
-      archiveFileExtensions: Set[String]
-  ): List[String] = {
-    val archives = if (new JFile(sourceCodeDir).isFile) {
-      List(sourceCodeDir)
-    } else {
-      SourceFiles.determine(Set(sourceCodeDir), archiveFileExtensions)
-    }
-    archives.flatMap { x =>
-      unzipArchive(new ZipFile(x), sourceCodeDir) match {
-        case Failure(e) =>
-          throw new RuntimeException(s"Error extracting files from archive at $x", e)
-        case Success(files) => files
-      }
-    }
-  }
 
   /** Load all source files from archive and/or source file types.
     */
@@ -183,18 +168,17 @@ class Jimple2Cpg {
   ): List[String] = {
     (
       extractSourceFilesFromArchive(sourceCodePath, archiveFileExtensions) ++
-        SourceFiles.determine(Set(sourceCodePath), sourceFileExtensions)
+        moveClassFiles(SourceFiles.determine(Set(sourceCodePath), sourceFileExtensions))
     ).distinct
   }
 
-  private def loadClassesIntoSoot(sourceCodePath: String, sourceFileNames: List[String]): Unit = {
+  private def loadClassesIntoSoot(sourceFileNames: List[String]): Unit = {
     sourceFileNames
-      .map { fName =>
-        val cp = getQualifiedClassPath(sourceCodePath, fName)
+      .map(getQualifiedClassPath)
+      .foreach { cp =>
         Scene.v().addBasicClass(cp, SootClass.BODIES)
-        cp
+        Scene.v().loadClassAndSupport(cp).setApplicationClass()
       }
-      .foreach(Scene.v().loadClassAndSupport(_).setApplicationClass())
     Scene.v().loadNecessaryClasses()
   }
 
@@ -230,72 +214,26 @@ class Jimple2Cpg {
     new PlumeCdgPass(cpg)
   ).collect { case pass: CpgPassBase with PlumeCpgPassBase => pass }
 
-  private def configureSoot(sourceCodePath: String): Unit = {
+  private def configureSoot(): Unit = {
     // set application mode
     Options.v().set_app(true)
     Options.v().set_whole_program(true)
     // make sure classpath is configured correctly
-    Options.v().set_soot_classpath(sourceCodePath)
+    Options.v().set_soot_classpath(ProgramHandlingUtil.TEMP_DIR.toString)
     Options.v().set_prepend_classpath(true)
     // keep debugging info
     Options.v().set_keep_line_number(true)
     Options.v().set_keep_offset(true)
     // ignore library code
-    Options.v().set_no_bodies_for_excluded(true)
+    Options.v().set_no_bodies_for_excluded(true) // TODO: This may be an issue
     Options.v().set_allow_phantom_refs(true)
     // keep variable names
     PhaseOptions.v().setPhaseOption("jb", "use-original-names:true")
   }
 
-  private def closeSoot(): Unit = {
+  private def clean(): Unit = {
     G.reset()
-  }
-
-  /** Unzips a ZIP file into a sequence of files. All files unpacked are deleted at the end of CPG construction.
-    *
-    * @param zf             The ZIP file to extract.
-    * @param sourceCodePath The project root path to unpack to.
-    */
-  private def unzipArchive(zf: ZipFile, sourceCodePath: String) = scala.util.Try {
-    Using.resource(zf) { zip: ZipFile =>
-      // Copy zipped files across
-      zip
-        .entries()
-        .asScala
-        .filter(f => !f.isDirectory && f.getName.contains(".class"))
-        .flatMap(entry => {
-          val sourceCodePathFile = new JFile(sourceCodePath)
-          // Handle the case if the input source code path is an archive itself
-          val destFile = if (sourceCodePathFile.isDirectory) {
-            new JFile(sourceCodePath + JFile.separator + entry.getName)
-          } else {
-            new JFile(
-              sourceCodePathFile.getParentFile.getAbsolutePath + JFile.separator + entry.getName
-            )
-          }
-          // dirName accounts for nested directories as a result of JAR package structure
-          val dirName = destFile.getAbsolutePath
-            .substring(0, destFile.getAbsolutePath.lastIndexOf(JFile.separator))
-          // Create directory path
-          new JFile(dirName).mkdirs()
-          try {
-            if (destFile.exists()) destFile.delete()
-            Using.resource(zip.getInputStream(entry)) { input =>
-              Files.copy(input, destFile.toPath)
-            }
-            destFile.deleteOnExit()
-            Option(destFile.getAbsolutePath)
-          } catch {
-            case e: Exception =>
-              logger.warn(
-                s"Encountered an error while extracting entry ${entry.getName} from archive ${zip.getName}.",
-                e
-              )
-              Option.empty
-          }
-        })
-        .toSeq
-    }
+    ProgramHandlingUtil.clean()
   }
 
 }
