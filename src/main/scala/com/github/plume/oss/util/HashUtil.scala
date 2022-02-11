@@ -1,4 +1,4 @@
-package com.github.plume.oss
+package com.github.plume.oss.util
 
 import net.jpountz.xxhash.{StreamingXXHash32, XXHashFactory}
 

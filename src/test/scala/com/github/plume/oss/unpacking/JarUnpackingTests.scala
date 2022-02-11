@@ -1,6 +1,7 @@
 package com.github.plume.oss.unpacking
 
 import com.github.plume.oss.Jimple2Cpg
+import com.github.plume.oss.util.ProgramHandlingUtil
 import io.shiftleft.codepropertygraph.Cpg
 import io.shiftleft.semanticcpg.language.{toMethodTraversalExtGen, toNodeTypeStarters, toTypeDeclTraversalExtGen}
 import org.scalatest.BeforeAndAfterAll
@@ -25,12 +26,13 @@ class JarUnpackingTests extends AnyWordSpec with Matchers with BeforeAndAfterAll
     }
   }
 
-  "should extract files" in {
+  "should extract files and clean up temp directory" in {
     Try(getClass.getResource("/unpacking")) match {
       case Success(x) =>
         val fs = File(x.getPath).toDirectory.walk.toSeq
+        val cs = File(ProgramHandlingUtil.TEMP_DIR.toString).toDirectory.walk.toSeq
         fs.filter(_.name.contains(".jar")).map(_.name).toList shouldBe List("HelloWorld.jar")
-        fs.count(_.name.contains(".class")) shouldBe 2
+        cs.count(_.name.contains(".class")) shouldBe 0
       case Failure(x: Throwable) =>
         fail("Unable to view test repository", x)
     }

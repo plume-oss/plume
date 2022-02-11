@@ -11,7 +11,7 @@ import soot.{Local => _, _}
 
 import scala.collection.mutable
 import scala.jdk.CollectionConverters.CollectionHasAsScala
-import scala.util.Try
+import scala.util.{Failure, Success, Try}
 
 /** Manages the creation of the AST layer from the given class file and stores all types in the given global parameter.
   */
@@ -153,14 +153,22 @@ class PlumeAstCreator(filename: String, global: Global) {
     val methodNode = createMethodNode(methodDeclaration, typeDecl, childNum)
     val lastOrder  = 2 + methodDeclaration.getParameterCount
     try {
-      val methodBody = methodDeclaration.retrieveActiveBody()
-      val parameterAsts = withOrder(methodBody.getParameterLocals) { (p, order) =>
-        astForParameter(p, order, methodDeclaration)
+      if (!methodDeclaration.isConcrete) {
+        Ast(methodNode)
+          .withChild(astForMethodReturn(methodDeclaration))
+      } else {
+        val methodBody = Try(methodDeclaration.getActiveBody) match {
+          case Failure(_)    => methodDeclaration.retrieveActiveBody()
+          case Success(body) => body
+        }
+        val parameterAsts = withOrder(methodBody.getParameterLocals) { (p, order) =>
+          astForParameter(p, order, methodDeclaration)
+        }
+        Ast(methodNode)
+          .withChildren(parameterAsts)
+          .withChild(astForMethodBody(methodBody, lastOrder))
+          .withChild(astForMethodReturn(methodDeclaration))
       }
-      Ast(methodNode)
-        .withChildren(parameterAsts)
-        .withChild(astForMethodBody(methodBody, lastOrder))
-        .withChild(astForMethodReturn(methodDeclaration))
     } catch {
       case e: RuntimeException =>
         logger.warn(s"Unable to parse method body. ${e.getMessage}")
