@@ -158,7 +158,7 @@ class PlumeAstCreator(filename: String, global: Global) {
           .withChild(astForMethodReturn(methodDeclaration))
       } else {
         val methodBody = Try(methodDeclaration.getActiveBody) match {
-          case Failure(_) => methodDeclaration.retrieveActiveBody()
+          case Failure(_)    => methodDeclaration.retrieveActiveBody()
           case Success(body) => body
         }
         val parameterAsts = withOrder(methodBody.getParameterLocals) { (p, order) =>
