@@ -137,7 +137,10 @@ final case class OverflowDbDriver(
   )
 
   override def clear(): Unit = {
-    cpg.graph.nodes.asScala.foreach(_.remove())
+    Try(cpg.graph.nodes.asScala.foreach(_.remove())) match {
+      case Failure(e) => logger.error("Encountered an exception while clearing database.", e)
+      case Success(_) =>
+    }
     dataFlowCacheFile match {
       case Some(filePath) => filePath.toFile.delete()
       case None           => // Do nothing

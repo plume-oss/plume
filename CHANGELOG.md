@@ -5,6 +5,15 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](http://keepachangelog.com/)
 and this project adheres to [Semantic Versioning](http://semver.org/).
 
+## [1.0.9] - 2022-02-14
+
+### Changed
+
+- `PlumeDynamicCallLinker` more generous with trying static call linking as a fallback
+  before reporting an issue.
+- Now wrapped `OverflowDb::clear` in a `Try` to prevent a `unable to calculate occurrenceCount` runtime
+  exception.
+
 ## [1.0.8] - 2022-02-11
 
 ### Changed
