@@ -3,7 +3,7 @@ name := "Plume"
 inThisBuild(
   List(
     organization := "com.github.plume-oss",
-    version := "1.0.10",
+    version := "1.0.11",
     scalaVersion := "2.13.7",
     crossScalaVersions := Seq("2.13.7", "3.1.0"),
     resolvers ++= Seq(
@@ -21,6 +21,7 @@ val tinkerGraphVersion = "3.4.8"
 val neo4jVersion       = "4.4.3"
 val tigerGraphVersion  = "3.1.0"
 val sttpVersion        = "3.4.1"
+val jacksonVersion     = "2.13.1"
 val scalajHttpVersion  = "2.4.2"
 val lz4Version         = "1.8.0"
 val slf4jVersion       = "1.7.35"
@@ -47,8 +48,8 @@ libraryDependencies ++= Seq(
   "com.tigergraph.client"          % "gsql_client"          % tigerGraphVersion,
   "com.softwaremill.sttp.client3" %% "core"                 % sttpVersion,
   "com.softwaremill.sttp.client3" %% "circe"                % sttpVersion,
-  "com.fasterxml.jackson.core"     % "jackson-databind"     % "2.13.1",
-  "com.fasterxml.jackson.module"  %% "jackson-module-scala" % "2.13.1",
+  "com.fasterxml.jackson.core"     % "jackson-databind"     % jacksonVersion,
+  "com.fasterxml.jackson.module"  %% "jackson-module-scala" % jacksonVersion,
   "org.scalaj"                     % "scalaj-http_2.13"     % scalajHttpVersion,
   "org.lz4"                        % "lz4-java"             % lz4Version,
   "org.slf4j"                      % "slf4j-api"            % slf4jVersion,
