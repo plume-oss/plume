@@ -58,7 +58,8 @@ final case class OverflowDbDriver(
 
   /** A direct pointer to the code property graph object.
     */
-  val cpg: Cpg = PlumeStatistics.time(PlumeStatistics.TIME_OPEN_DRIVER, newOverflowGraph(odbConfig))
+  val cpg: Cpg =
+    PlumeStatistics.time(PlumeStatistics.TIME_OPEN_DRIVER, { newOverflowGraph(odbConfig) })
 
   private val semanticsParser = new Parser()
   private val defaultSemantics: Try[BufferedSource] = Try(
@@ -128,11 +129,12 @@ final case class OverflowDbDriver(
   override def isConnected: Boolean = !cpg.graph.isClosed
 
   override def close(): Unit = PlumeStatistics.time(
-    PlumeStatistics.TIME_CLOSE_DRIVER,
-    Try(cpg.close()) match {
-      case Success(_) => saveDataflowCache()
-      case Failure(e) =>
-        logger.warn("Exception thrown while attempting to close graph.", e)
+    PlumeStatistics.TIME_CLOSE_DRIVER, {
+      Try(cpg.close()) match {
+        case Success(_) => saveDataflowCache()
+        case Failure(e) =>
+          logger.warn("Exception thrown while attempting to close graph.", e)
+      }
     }
   )
 

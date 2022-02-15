@@ -41,15 +41,13 @@ abstract class GremlinDriver(txMax: Int = 50) extends IDriver {
 
   override def isConnected: Boolean = connected.get()
 
-  override def close(): Unit = PlumeStatistics.time(
-    PlumeStatistics.TIME_CLOSE_DRIVER,
-    Try(graph.close()) match {
+  override def close(): Unit =
+    Try(PlumeStatistics.time(PlumeStatistics.TIME_CLOSE_DRIVER, { graph.close() })) match {
       case Success(_) => connected.set(false)
       case Failure(e) =>
         logger.warn("Exception thrown while attempting to close graph.", e)
         connected.set(false)
     }
-  )
 
   protected def traversal(): GraphTraversalSource = graph.traversal()
 

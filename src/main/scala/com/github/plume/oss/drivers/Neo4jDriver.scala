@@ -31,7 +31,7 @@ final class Neo4jDriver(
   private val driver =
     PlumeStatistics.time(
       PlumeStatistics.TIME_OPEN_DRIVER,
-      GraphDatabase.driver(s"bolt://$hostname:$port", AuthTokens.basic(username, password))
+      { GraphDatabase.driver(s"bolt://$hostname:$port", AuthTokens.basic(username, password)) }
     )
   private val typeSystem = driver.defaultTypeSystem()
 
@@ -49,10 +49,11 @@ final class Neo4jDriver(
   }
 
   override def close(): Unit = PlumeStatistics.time(
-    PlumeStatistics.TIME_CLOSE_DRIVER,
-    Try(driver.close()) match {
-      case Failure(e) => logger.warn("Exception thrown while attempting to close graph.", e)
-      case Success(_) => connected.set(false)
+    PlumeStatistics.TIME_CLOSE_DRIVER, {
+      Try(driver.close()) match {
+        case Failure(e) => logger.warn("Exception thrown while attempting to close graph.", e)
+        case Success(_) => connected.set(false)
+      }
     }
   )
 

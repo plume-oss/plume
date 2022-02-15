@@ -139,7 +139,7 @@ class DiffTests extends AnyWordSpec with Matchers with BeforeAndAfterAll {
 
     d1 should be >= d2
     speedup should be < 99.999
-    speedup should be >= 99.800
+    speedup should be >= 99.700
   }
 
   "should succeed to re-use all data-flow results and take shorter time than the first" in {
@@ -160,7 +160,7 @@ class DiffTests extends AnyWordSpec with Matchers with BeforeAndAfterAll {
 
     d1 should be >= d2
     speedup should be < 99.999
-    speedup should be >= 99.900
+    speedup should be >= 99.800
   }
 
 }

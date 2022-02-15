@@ -45,14 +45,15 @@ final class NeptuneDriver(
   private var cluster = connectToCluster
 
   private def connectToCluster = PlumeStatistics.time(
-    PlumeStatistics.TIME_OPEN_DRIVER,
-    Cluster
-      .build()
-      .addContactPoints(hostname)
-      .port(port)
-      .enableSsl(true)
-      .keyCertChainFile(keyCertChainFile)
-      .create()
+    PlumeStatistics.TIME_OPEN_DRIVER, {
+      Cluster
+        .build()
+        .addContactPoints(hostname)
+        .port(port)
+        .enableSsl(true)
+        .keyCertChainFile(keyCertChainFile)
+        .create()
+    }
   )
 
   override def traversal(): GraphTraversalSource =
@@ -131,11 +132,12 @@ final class NeptuneDriver(
     }
 
   override def close(): Unit = PlumeStatistics.time(
-    PlumeStatistics.TIME_CLOSE_DRIVER,
-    try {
-      cluster.close()
-    } catch {
-      case e: Exception => logger.error("Exception thrown while attempting to close graph.", e)
+    PlumeStatistics.TIME_CLOSE_DRIVER, {
+      try {
+        cluster.close()
+      } catch {
+        case e: Exception => logger.error("Exception thrown while attempting to close graph.", e)
+      }
     }
   )
 
