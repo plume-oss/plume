@@ -36,6 +36,9 @@ object PlumeStatistics extends Enumeration {
 
   /** Sets all the clocks back to 0.
     */
-  def reset(): Unit = time.clear()
+  def reset(): Unit = {
+    time.clear()
+    PlumeStatistics.values.map((_, 0L)).foreach { case (v, t) => time.put(v, t) }
+  }
 
 }

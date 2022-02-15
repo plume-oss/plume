@@ -38,9 +38,10 @@ final class TinkerGraphDriver extends GremlinDriver {
       )
     }
     PlumeStatistics.time(
-      PlumeStatistics.TIME_CLOSE_DRIVER,
-      Using.resource(this.graph.traversal()) { g =>
-        g.io[Any](filePath).write().iterate()
+      PlumeStatistics.TIME_CLOSE_DRIVER, {
+        Using.resource(this.graph.traversal()) { g =>
+          g.io[Any](filePath).write().iterate()
+        }
       }
     )
   }
@@ -64,9 +65,10 @@ final class TinkerGraphDriver extends GremlinDriver {
       throw new RuntimeException(s"No existing serialized graph file was found at $filePath")
     }
     PlumeStatistics.time(
-      PlumeStatistics.TIME_OPEN_DRIVER,
-      Using.resource(this.graph.traversal()) { g =>
-        g.io[Any](filePath).read().iterate()
+      PlumeStatistics.TIME_OPEN_DRIVER, {
+        Using.resource(this.graph.traversal()) { g =>
+          g.io[Any](filePath).read().iterate()
+        }
       }
     )
   }

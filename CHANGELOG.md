@@ -5,6 +5,16 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](http://keepachangelog.com/)
 and this project adheres to [Semantic Versioning](http://semver.org/).
 
+## [1.0.10] - 2022-02-15
+
+### Added
+
+- `Jimple2Cpg::createCpg` can now enable an experimental "Soot only" build
+
+### Fixed
+
+- `PlumeStatistics::reset` now actually sets all values for keys to `0L` instead of just clearing.
+
 ## [1.0.9] - 2022-02-14
 
 ### Changed
