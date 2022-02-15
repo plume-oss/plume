@@ -57,7 +57,7 @@ final class TigerGraphDriver(
     case _: Exception => false
   }
 
-  override def clear(): Unit = NodeTypes.ALL.forEach { nodeType =>
+  override def clear(): Unit = NODES_IN_SCHEMA.foreach { nodeType =>
     Try(delete(s"graph/cpg/delete_by_type/vertices/${nodeType}_"))
   }
 
@@ -292,13 +292,15 @@ final class TigerGraphDriver(
       dstFullNameKey: String,
       dstNodeType: String
   ): Unit = {
+    def escape(raw: String): String =
+      raw.replace("[]", "\\[\\]").replace("_", "\\_")
     val endpoint = s"query/cpg/link_ast_${edgeType.toLowerCase}_${dstFullNameKey.toLowerCase}"
     dstNodeMap.foreach { case (key, id) =>
       get(
         endpoint,
         srcLabels.map { x =>
           ("src_labels", s"${x}_")
-        } :+ ("dst_value", s"%$key%") :+ ("dst", id.toString) :+ ("dst.type", s"${dstNodeType}_")
+        } :+ ("dst_value", s"%${escape(key)}%") :+ ("dst", id.toString) :+ ("dst.type", s"${dstNodeType}_")
       )
     }
   }
@@ -343,7 +345,7 @@ final class TigerGraphDriver(
       ]
   ) = {
     response.body match {
-      case Left(e) => throw e
+      case Left(e: ResponseException[_, _]) => throw unpackUnboxingException(e)
       case Right(body) =>
         if (body.error) {
           throw new IOException(
@@ -352,6 +354,17 @@ final class TigerGraphDriver(
         } else {
           body.results
         }
+    }
+  }
+
+  private def unpackUnboxingException(e: ResponseException[String, circe.Error]): Exception = {
+    e match {
+      case HttpError(body, statusCode) =>
+        logger.error(s"HTTP Error $statusCode: $body")
+        e
+      case DeserializationException(body, error) =>
+        logger.error(s"Failed to deserialize response: $body. $error")
+        e
     }
   }
 
@@ -507,7 +520,7 @@ object TigerGraphDriver {
 
   /** Default timeout for HTTP requests.
     */
-  private val DEFAULT_TIMEOUT = 30 * 100
+  private val DEFAULT_TIMEOUT = 30 * 1000
 
   /** Default maximum number of transactions to bundle in a single transaction
     */
@@ -597,6 +610,35 @@ object TigerGraphDriver {
 
     fromCheck && toCheck
   }
+
+  private def NODES_IN_SCHEMA: Seq[String] = Seq(
+    MetaData.Label,
+    File.Label,
+    Method.Label,
+    MethodParameterIn.Label,
+    MethodParameterOut.Label,
+    MethodReturn.Label,
+    Modifier.Label,
+    Type.Label,
+    TypeDecl.Label,
+    TypeParameter.Label,
+    TypeArgument.Label,
+    Member.Label,
+    Namespace.Label,
+    NamespaceBlock.Label,
+    Literal.Label,
+    Call.Label,
+    Local.Label,
+    Identifier.Label,
+    FieldIdentifier.Label,
+    Return.Label,
+    Block.Label,
+    MethodRef.Label,
+    TypeRef.Label,
+    JumpTarget.Label,
+    ControlStructure.Label,
+    Unknown.Label
+  )
 
   /** Edges as a schema string. Each edge is prepended with "_" to escape
     * reserved words.

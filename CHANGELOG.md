@@ -5,11 +5,19 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](http://keepachangelog.com/)
 and this project adheres to [Semantic Versioning](http://semver.org/).
 
+## [1.0.11] - 2022-02-15
+
+### Fixed
+
+- `TigerGraphDriver` default transaction limit was 3 instead of 30 seconds.
+- AST linking in `TigerGraphDriver` did not escape `[]` or `_` but now does.
+- Diversified error handling on exceptions on `TigerGraphDriver` HTTP requests.
+
 ## [1.0.10] - 2022-02-15
 
 ### Added
 
-- `Jimple2Cpg::createCpg` can now enable an experimental "Soot only" build
+- `Jimple2Cpg::createCpg` can now enable an experimental "Soot only" build.
 
 ### Fixed
 
