@@ -3,12 +3,15 @@ package com.github.plume.oss.drivers
 import io.shiftleft.codepropertygraph.generated.nodes.{AbstractNode, NewNode, StoredNode}
 import io.shiftleft.codepropertygraph.generated.{EdgeTypes, NodeTypes, PropertyNames}
 import io.shiftleft.passes.AppliedDiffGraph
+import org.slf4j.LoggerFactory
 
 import scala.collection.mutable
 
 /** The interface for all methods that should be implemented by the driver's underlying database query language.
   */
 trait IDriver extends AutoCloseable {
+
+  private val logger = LoggerFactory.getLogger(IDriver.getClass)
 
   /** Will return true if the database is connected, false if otherwise.
     */
@@ -82,6 +85,7 @@ trait IDriver extends AutoCloseable {
   def buildInterproceduralEdges(): Unit = {
     initMaps()
     astLinker()
+    logger.info("Linking call graph")
     staticCallLinker()
     dynamicCallLinker()
     clearMaps()
@@ -95,6 +99,7 @@ trait IDriver extends AutoCloseable {
     */
   protected def astLinker(): Unit = {
     // Link NAMESPACE and NAMESPACE_BLOCK
+    logger.info("Linking NAMESPACE and NAMESPACE_BLOCK nodes by REF edges")
     linkAstNodes(
       srcLabels = List(NodeTypes.NAMESPACE_BLOCK),
       edgeType = EdgeTypes.REF,
@@ -103,6 +108,7 @@ trait IDriver extends AutoCloseable {
       dstNodeType = NodeTypes.NAMESPACE
     )
     // Create REF edges between TYPE and TYPE_DECL
+    logger.info("Linking TYPE and TYPE_DECL nodes by REF edges")
     linkAstNodes(
       srcLabels = List(NodeTypes.TYPE),
       edgeType = EdgeTypes.REF,
@@ -112,6 +118,7 @@ trait IDriver extends AutoCloseable {
     )
     // Create EVAL_TYPE edges from nodes of various types
     // to TYPE
+    logger.info("Linking TYPE and AST nodes by EVAL_TYPE edges")
     linkAstNodes(
       srcLabels = List(
         NodeTypes.METHOD_PARAMETER_IN,
@@ -134,6 +141,7 @@ trait IDriver extends AutoCloseable {
     )
     // Create REF edges from METHOD_REFs to
     // METHOD
+    logger.info("Linking METHOD_REFs and METHOD nodes by REF edges")
     linkAstNodes(
       srcLabels = List(NodeTypes.METHOD_REF),
       edgeType = EdgeTypes.REF,
@@ -143,6 +151,7 @@ trait IDriver extends AutoCloseable {
     )
     // Create INHERITS_FROM nodes from TYPE_DECL
     // nodes to TYPE
+    logger.info("Linking INHERITS_FROM and TYPE_DECL nodes by INHERITS_FROM edges")
     linkAstNodes(
       srcLabels = List(NodeTypes.TYPE_DECL),
       edgeType = EdgeTypes.INHERITS_FROM,
@@ -152,6 +161,7 @@ trait IDriver extends AutoCloseable {
     )
     // Create ALIAS_OF edges from TYPE_DECL nodes to
     // TYPE
+    logger.info("Linking TYPE_DECL and TYPE_DECL nodes by ALIAS_OF edges")
     linkAstNodes(
       srcLabels = List(NodeTypes.TYPE_DECL),
       edgeType = EdgeTypes.ALIAS_OF,
