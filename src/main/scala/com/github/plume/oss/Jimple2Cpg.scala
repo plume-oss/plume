@@ -57,14 +57,18 @@ class Jimple2Cpg {
 
   /** Creates a CPG from Jimple.
     *
-    * @param rawSourceCodePath The path to the Jimple code or code that can be transformed into Jimple.
-    * @param outputPath     The path to store the CPG. If `outputPath` is `None`, the CPG is created in-memory.
+    * @param rawSourceCodePath  The path to the Jimple code or code that can be transformed into Jimple.
+    * @param outputPath         The path to store the CPG. If `outputPath` is `None`, the CPG is created in-memory.
+    * @param driver             The driver used to interact with the backend database.
+    * @param sootOnlyBuild      (Experimental) Used to determine how many resources are used when only loading files
+    *                           into Soot.
     * @return The constructed CPG.
     */
   def createCpg(
       rawSourceCodePath: String,
       outputPath: Option[String] = Option(JFile.createTempFile("plume-", ".odb").getAbsolutePath),
-      driver: IDriver = new OverflowDbDriver()
+      driver: IDriver = new OverflowDbDriver(),
+      sootOnlyBuild: Boolean = false
   ): Cpg = PlumeStatistics.time(
     PlumeStatistics.TIME_EXTRACTION, {
       try {
@@ -106,6 +110,10 @@ class Jimple2Cpg {
         logger.info(s"Loading ${sourceFileNames.size} program files")
         logger.debug(s"Source files are: $sourceFileNames")
 
+        // Load classes into Soot
+        loadClassesIntoSoot(sourceFileNames)
+        if (sootOnlyBuild) return cpg
+
         val codeToProcess = new PlumeDiffPass(sourceFileNames, driver).createAndApply()
 
         logger.info(s"Processing ${codeToProcess.size} new or changed program files")
@@ -126,8 +134,6 @@ class Jimple2Cpg {
         new PlumeMetaDataPass(cpg, language, Some(metaDataKeyPool), unchangedTypes)
           .createAndApply(driver)
 
-        // Load classes into Soot
-        loadClassesIntoSoot(sourceFileNames)
         // Project Soot classes
         val astCreator = new AstCreationPass(codeToProcess.toList, cpg, methodKeyPool)
         astCreator.createAndApply(driver)
