@@ -5,6 +5,12 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](http://keepachangelog.com/)
 and this project adheres to [Semantic Versioning](http://semver.org/).
 
+## [Unreleased]
+
+### Fixed
+
+- Generate `<operator>.assignment` call node's `code` property from child argument `code`.
+
 ## [1.0.11] - 2022-02-15
 
 ### Fixed
