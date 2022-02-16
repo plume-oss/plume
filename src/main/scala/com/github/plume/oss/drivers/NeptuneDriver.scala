@@ -14,7 +14,6 @@ import scalaj.http.{Http, HttpOptions}
 import sttp.model.Uri
 
 import scala.jdk.CollectionConverters.CollectionHasAsScala
-import scala.util.Using
 
 final class NeptuneDriver(
     hostname: String,
@@ -50,11 +49,12 @@ final class NeptuneDriver(
     }
   )
 
-  override def traversal(): GraphTraversalSource = {
+  override def g(): GraphTraversalSource = {
     traversalSource match {
       case Some(conn) => conn
       case None =>
-        val conn = AnonymousTraversalSource.traversal().withRemote(DriverRemoteConnection.using(cluster))
+        val conn =
+          AnonymousTraversalSource.traversal().withRemote(DriverRemoteConnection.using(cluster))
         traversalSource = Some(conn)
         conn
     }
@@ -63,16 +63,14 @@ final class NeptuneDriver(
   override def isConnected: Boolean = !cluster.isClosed
 
   override def clear(): Unit = {
-    Using.resource(traversal()) { g => g.V().count().next() } match {
+    g().V().count().next() match {
       case noVs if noVs == 0L => // do nothing
       case noVs if noVs < 10000L =>
-        Using.resource(traversal()) { g =>
-          var deleted = 0L
-          val step    = 100
-          while (deleted < noVs) {
-            g.V().sample(step).drop().iterate()
-            deleted += step
-          }
+        var deleted = 0L
+        val step    = 100
+        while (deleted < noVs) {
+          g().V().sample(step).drop().iterate()
+          deleted += step
         }
       case _ =>
         cluster.close()
@@ -123,15 +121,14 @@ final class NeptuneDriver(
     nodeId.toString
 
   override def idInterval(lower: Long, upper: Long): Set[Long] =
-    Using.resource(traversal()) { g =>
-      g.V()
-        .id()
-        .toSet
-        .asScala
-        .map(_.toString.toLong)
-        .filter { x => x >= lower - 1 && x <= upper }
-        .toSet
-    }
+    g()
+      .V()
+      .id()
+      .toSet
+      .asScala
+      .map(_.toString.toLong)
+      .filter { x => x >= lower - 1 && x <= upper }
+      .toSet
 
   override def close(): Unit = PlumeStatistics.time(
     PlumeStatistics.TIME_CLOSE_DRIVER, {

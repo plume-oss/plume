@@ -10,11 +10,7 @@ import org.apache.commons.configuration.BaseConfiguration
 import org.apache.tinkerpop.gremlin.process.traversal.P
 import org.apache.tinkerpop.gremlin.process.traversal.P.{neq, within}
 import org.apache.tinkerpop.gremlin.process.traversal.dsl.graph.__.{coalesce, constant, has, values}
-import org.apache.tinkerpop.gremlin.process.traversal.dsl.graph.{
-  GraphTraversal,
-  GraphTraversalSource,
-  __
-}
+import org.apache.tinkerpop.gremlin.process.traversal.dsl.graph.{GraphTraversal, GraphTraversalSource, __}
 import org.apache.tinkerpop.gremlin.structure.{Edge, Graph, T, Vertex}
 import org.apache.tinkerpop.gremlin.tinkergraph.structure.TinkerGraph
 import org.slf4j.{Logger, LoggerFactory}
@@ -22,7 +18,7 @@ import org.slf4j.{Logger, LoggerFactory}
 import java.util.concurrent.atomic.AtomicBoolean
 import scala.collection.mutable
 import scala.jdk.CollectionConverters.{CollectionHasAsScala, IteratorHasAsScala, MapHasAsScala}
-import scala.util.{Failure, Success, Try, Using}
+import scala.util.{Failure, Success, Try}
 
 /** The driver used by databases implementing Gremlin.
   */
@@ -38,7 +34,7 @@ abstract class GremlinDriver(txMax: Int = 50) extends IDriver {
   protected val graph: Graph =
     PlumeStatistics.time(PlumeStatistics.TIME_OPEN_DRIVER, { TinkerGraph.open(config) })
   protected var traversalSource: Option[GraphTraversalSource] = None
-  private val connected = new AtomicBoolean(true)
+  private val connected                                       = new AtomicBoolean(true)
 
   override def isConnected: Boolean = connected.get()
 
@@ -50,11 +46,10 @@ abstract class GremlinDriver(txMax: Int = 50) extends IDriver {
         connected.set(false)
     }
 
-  /**
-    * Gives a graph traversal source if available or generates a re-usable one if none is available yet.
+  /** Gives a graph traversal source if available or generates a re-usable one if none is available yet.
     * @return a Gremlin graph traversal source.
     */
-  protected def traversal(): GraphTraversalSource = {
+  protected def g(): GraphTraversalSource = {
     traversalSource match {
       case Some(conn) => conn
       case None =>
@@ -64,16 +59,12 @@ abstract class GremlinDriver(txMax: Int = 50) extends IDriver {
     }
   }
 
-  override def clear(): Unit = Using.resource(traversal()) { g => g.V().drop().iterate() }
+  override def clear(): Unit = g().V().drop().iterate()
 
-  override def exists(nodeId: Long): Boolean = Using.resource(traversal()) { g =>
-    g.V(typedNodeId(nodeId)).hasNext
-  }
+  override def exists(nodeId: Long): Boolean = g().V(typedNodeId(nodeId)).hasNext
 
   override def exists(srcId: Long, dstId: Long, edge: String): Boolean =
-    Using.resource(traversal()) { g =>
-      g.V(typedNodeId(srcId)).out(edge).asScala.filter(v => v.id() == typedNodeId(dstId)).hasNext
-    }
+    g().V(typedNodeId(srcId)).out(edge).asScala.filter(v => v.id() == typedNodeId(dstId)).hasNext
 
   override def bulkTx(dg: AppliedDiffGraph): Unit = {
     // Do node operations first in groups operations
@@ -84,9 +75,7 @@ abstract class GremlinDriver(txMax: Int = 50) extends IDriver {
         case x: Change.RemoveNode      => x
       }
       .grouped(txMax)
-      .foreach { ops: Seq[Change] =>
-        Using.resource(traversal()) { g => bulkNodeTx(g, ops, dg) }
-      }
+      .foreach { ops: Seq[Change] => bulkNodeTx(g(), ops, dg) }
     // Now that all nodes are in, do edges
     dg.diffGraph.iterator
       .collect {
@@ -94,9 +83,7 @@ abstract class GremlinDriver(txMax: Int = 50) extends IDriver {
         case x: Change.RemoveEdge => x
       }
       .grouped(txMax)
-      .foreach { ops: Seq[Change] =>
-        Using.resource(traversal()) { g => bulkEdgeTx(g, ops, dg) }
-      }
+      .foreach { ops: Seq[Change] => bulkEdgeTx(g(), ops, dg) }
   }
 
   private def bulkNodeTx(
@@ -181,62 +168,61 @@ abstract class GremlinDriver(txMax: Int = 50) extends IDriver {
   }
 
   override def removeSourceFiles(filenames: String*): Unit = {
-    Using.resource(traversal()) { g =>
-      val fs = g
-        .V()
-        .hasLabel(NodeTypes.FILE)
-        .filter(__.has(PropertyNames.NAME, within[String](filenames: _*)))
-        .id()
-        .toSet
-        .asScala
-        .toSeq
+    val fs = g()
+      .V()
+      .hasLabel(NodeTypes.FILE)
+      .filter(__.has(PropertyNames.NAME, within[String](filenames: _*)))
+      .id()
+      .toSet
+      .asScala
+      .toSeq
 
-      g.V(fs: _*)
-        .in(EdgeTypes.SOURCE_FILE)
-        .filter(__.hasLabel(NodeTypes.TYPE_DECL))
-        .in(EdgeTypes.REF)
-        .drop()
-        .iterate()
+    g()
+      .V(fs: _*)
+      .in(EdgeTypes.SOURCE_FILE)
+      .filter(__.hasLabel(NodeTypes.TYPE_DECL))
+      .in(EdgeTypes.REF)
+      .drop()
+      .iterate()
 
-      g.V(fs: _*)
-        .in(EdgeTypes.SOURCE_FILE)
-        .hasLabel(NodeTypes.NAMESPACE_BLOCK)
-        .aggregate("x")
-        .repeat(__.out(EdgeTypes.AST, EdgeTypes.CONDITION))
-        .emit()
-        .barrier()
-        .aggregate("x")
-        .select[Vertex]("x")
-        .unfold[Vertex]()
-        .dedup()
-        .drop()
-        .iterate()
+    g()
+      .V(fs: _*)
+      .in(EdgeTypes.SOURCE_FILE)
+      .hasLabel(NodeTypes.NAMESPACE_BLOCK)
+      .aggregate("x")
+      .repeat(__.out(EdgeTypes.AST, EdgeTypes.CONDITION))
+      .emit()
+      .barrier()
+      .aggregate("x")
+      .select[Vertex]("x")
+      .unfold[Vertex]()
+      .dedup()
+      .drop()
+      .iterate()
 
-      g.V(fs: _*)
-        .drop()
-        .iterate()
-    }
+    g()
+      .V(fs: _*)
+      .drop()
+      .iterate()
   }
 
   override def propertyFromNodes(nodeType: String, keys: String*): List[Map[String, Any]] = {
-    Using.resource(traversal()) { g =>
-      var ptr = g
-        .V()
-        .hasLabel(nodeType)
-        .project[Any](T.id.toString, keys: _*)
-        .by(T.id)
-      keys.foreach(k => ptr = ptr.by(coalesce(values(k), constant("NULL"))))
-      ptr.asScala
-        .map(_.asScala.map { case (k, v) =>
-          if (v == "NULL")
-            k -> IDriver.getPropertyDefault(k)
-          else if (v == PropertyNames.OVERLAYS || v == PropertyNames.INHERITS_FROM_TYPE_FULL_NAME)
-            k -> v.toString.split(",").toSeq
-          else
-            k -> v
-        }.toMap)
-        .toList
-    }
+    var ptr = g()
+      .V()
+      .hasLabel(nodeType)
+      .project[Any](T.id.toString, keys: _*)
+      .by(T.id)
+    keys.foreach(k => ptr = ptr.by(coalesce(values(k), constant("NULL"))))
+    ptr.asScala
+      .map(_.asScala.map { case (k, v) =>
+        if (v == "NULL")
+          k -> IDriver.getPropertyDefault(k)
+        else if (v == PropertyNames.OVERLAYS || v == PropertyNames.INHERITS_FROM_TYPE_FULL_NAME)
+          k -> v.toString.split(",").toSeq
+        else
+          k -> v
+      }.toMap)
+      .toList
   }
 
   @inline
@@ -251,14 +237,13 @@ abstract class GremlinDriver(txMax: Int = 50) extends IDriver {
     }
 
   override def idInterval(lower: Long, upper: Long): Set[Long] =
-    Using.resource(traversal()) { g =>
-      g.V()
-        .filter(has(T.id, P.gte(lower - 1)).and(has(T.id, P.lte(upper))))
-        .id()
-        .asScala
-        .map(_.toString.toLong)
-        .toSet
-    }
+    g()
+      .V()
+      .filter(has(T.id, P.gte(lower - 1)).and(has(T.id, P.lte(upper))))
+      .id()
+      .asScala
+      .map(_.toString.toLong)
+      .toSet
 
   override def linkAstNodes(
       srcLabels: List[String],
@@ -266,61 +251,56 @@ abstract class GremlinDriver(txMax: Int = 50) extends IDriver {
       dstNodeMap: mutable.Map[String, Any],
       dstFullNameKey: String,
       dstNodeType: String
-  ): Unit = {
-    Using.resource(traversal()) { g =>
-      g
-        .V()
-        .hasLabel(srcLabels.head, srcLabels.drop(1): _*)
-        .filter(
-          has(dstFullNameKey)
-            .and(has(dstFullNameKey, neq(IDriver.INT_DEFAULT)))
-            .and(has(dstFullNameKey, neq(IDriver.STRING_DEFAULT)))
-        )
-        .project[Any]("id", dstFullNameKey)
-        .by(T.id)
-        .by(coalesce(values(dstFullNameKey), constant("NULL")))
-        .asScala
-        .map(_.asScala.toMap)
-        .foreach { m =>
-          val n     = deserializeLists(m)
-          val srcId = n.getOrElse("id", null).toString.toLong
-          (n.getOrElse(dstFullNameKey, null) match {
-            case xs: Seq[_] => xs
-            case x          => Seq(x)
-          }).collect { case x: String => x }.foreach { dstFullName =>
-            dstNodeMap.get(dstFullName) match {
-              case Some(dstId: Any) if !exists(srcId, dstId.toString.toLong, edgeType) =>
-                g.V(typedNodeId(srcId)).addE(edgeType).to(__.V(dstId)).iterate()
-              case _ =>
-            }
+  ): Unit =
+    g()
+      .V()
+      .hasLabel(srcLabels.head, srcLabels.drop(1): _*)
+      .filter(
+        has(dstFullNameKey)
+          .and(has(dstFullNameKey, neq(IDriver.INT_DEFAULT)))
+          .and(has(dstFullNameKey, neq(IDriver.STRING_DEFAULT)))
+      )
+      .project[Any]("id", dstFullNameKey)
+      .by(T.id)
+      .by(coalesce(values(dstFullNameKey), constant("NULL")))
+      .asScala
+      .map(_.asScala.toMap)
+      .foreach { m =>
+        val n     = deserializeLists(m)
+        val srcId = n.getOrElse("id", null).toString.toLong
+        (n.getOrElse(dstFullNameKey, null) match {
+          case xs: Seq[_] => xs
+          case x          => Seq(x)
+        }).collect { case x: String => x }.foreach { dstFullName =>
+          dstNodeMap.get(dstFullName) match {
+            case Some(dstId: Any) if !exists(srcId, dstId.toString.toLong, edgeType) =>
+              g.V(typedNodeId(srcId)).addE(edgeType).to(__.V(dstId)).iterate()
+            case _ =>
           }
         }
-    }
-  }
+      }
 
-  override def staticCallLinker(): Unit = {
-    Using.resource(traversal()) { g =>
-      g.V()
-        .hasLabel(NodeTypes.CALL)
-        .has(PropertyNames.DISPATCH_TYPE, DispatchTypes.STATIC_DISPATCH.name())
-        .project[Any]("id", PropertyNames.METHOD_FULL_NAME)
-        .by(T.id)
-        .by(coalesce(values(PropertyNames.METHOD_FULL_NAME), constant("NULL")))
-        .asScala
-        .map(_.asScala.toMap)
-        .foreach { m =>
-          val srcId       = m.getOrElse("id", null).toString.toLong
-          val dstFullName = m.getOrElse(PropertyNames.METHOD_FULL_NAME, null).asInstanceOf[String]
-          if (dstFullName != null) {
-            methodFullNameToNode.get(dstFullName) match {
-              case Some(dstId) if !exists(srcId, dstId.toString.toLong, EdgeTypes.CALL) =>
-                g.V(typedNodeId(srcId)).addE(EdgeTypes.CALL).to(__.V(dstId)).iterate()
-              case _ =>
-            }
+  override def staticCallLinker(): Unit =
+    g()
+      .V()
+      .hasLabel(NodeTypes.CALL)
+      .has(PropertyNames.DISPATCH_TYPE, DispatchTypes.STATIC_DISPATCH.name())
+      .project[Any]("id", PropertyNames.METHOD_FULL_NAME)
+      .by(T.id)
+      .by(coalesce(values(PropertyNames.METHOD_FULL_NAME), constant("NULL")))
+      .asScala
+      .map(_.asScala.toMap)
+      .foreach { m =>
+        val srcId       = m.getOrElse("id", null).toString.toLong
+        val dstFullName = m.getOrElse(PropertyNames.METHOD_FULL_NAME, null).asInstanceOf[String]
+        if (dstFullName != null) {
+          methodFullNameToNode.get(dstFullName) match {
+            case Some(dstId) if !exists(srcId, dstId.toString.toLong, EdgeTypes.CALL) =>
+              g.V(typedNodeId(srcId)).addE(EdgeTypes.CALL).to(__.V(dstId)).iterate()
+            case _ =>
           }
         }
-    }
-  }
+      }
 
   override def dynamicCallLinker(): Unit = {}
 
