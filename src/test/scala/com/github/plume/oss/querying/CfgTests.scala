@@ -11,7 +11,7 @@ class CfgTests extends Jimple2CpgFixture {
       | int foo(int x, int y) {
       |  if (y < 10)
       |    return -1;
-      |  if (x < 10) {
+      |  if (x < 5) {
       |   sink(x);
       |  }
       |  System.out.println("foo");
@@ -28,7 +28,7 @@ class CfgTests extends Jimple2CpgFixture {
   "should find that sink is control dependent on condition" in {
     val controllers = cpg.call("sink").controlledBy.isCall.toSet
     controllers.map(_.code) should contain("y >= 10")
-    controllers.map(_.code) should contain("x >= 10")
+    controllers.map(_.code) should contain("x >= 5")
   }
 
   // No control structure node on flat ast
@@ -40,13 +40,13 @@ class CfgTests extends Jimple2CpgFixture {
   //    cpg.call("sink").dominates.l.size shouldBe 0
   //  }
 
-  "should find sink(x) is dominated by `x<10` and `y < 10`" in {
+  "should find sink(x) is dominated by `x < 5` and `y < 10`" in {
     cpg.call("sink").dominatedBy.isCall.code.toSet shouldBe Set(
-      "y = @parameter1: int",
-      "x >= 10",
+      "x >= 5",
+      "this = this",
+      "x = @parameter0",
       "y >= 10",
-      "this = @this: Foo",
-      "x = @parameter0: int"
+      "y = @parameter1"
     )
   }
 

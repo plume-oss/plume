@@ -515,15 +515,18 @@ class PlumeAstCreator(filename: String, global: Global) {
       case x: FieldRef   => Seq(astForFieldRef(x, 1, assignStmt))
       case x             => astsForValue(x, 1, assignStmt)
     }
+    val initAsts = astsForValue(initializer, 2, assignStmt)
+    val assignmentRhsCode = initAsts
+      .flatMap(_.root)
+      .map(_.properties.getOrElse(PropertyNames.CODE, ""))
+      .mkString(", ")
     val assignment = NewCall()
       .name(Operators.assignment)
-      .code(s"$name = ${initializer.toString()}")
+      .code(s"$name = $assignmentRhsCode")
       .dispatchType(DispatchTypes.STATIC_DISPATCH)
       .order(order)
       .argumentIndex(order)
       .typeFullName(registerType(assignStmt.getLeftOp.getType.toQuotedString))
-
-    val initAsts       = astsForValue(initializer, 2, assignStmt)
     val initializerAst = Seq(callAst(assignment, identifier ++ initAsts))
     Seq(
       Ast(
