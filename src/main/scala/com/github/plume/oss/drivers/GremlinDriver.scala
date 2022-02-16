@@ -37,6 +37,7 @@ abstract class GremlinDriver(txMax: Int = 50) extends IDriver {
   config.setProperty("gremlin.tinkergraph.vertexIdManager", "LONG")
   protected val graph: Graph =
     PlumeStatistics.time(PlumeStatistics.TIME_OPEN_DRIVER, { TinkerGraph.open(config) })
+  protected var traversalSource: Option[GraphTraversalSource] = None
   private val connected = new AtomicBoolean(true)
 
   override def isConnected: Boolean = connected.get()
@@ -49,7 +50,19 @@ abstract class GremlinDriver(txMax: Int = 50) extends IDriver {
         connected.set(false)
     }
 
-  protected def traversal(): GraphTraversalSource = graph.traversal()
+  /**
+    * Gives a graph traversal source if available or generates a re-usable one if none is available yet.
+    * @return a Gremlin graph traversal source.
+    */
+  protected def traversal(): GraphTraversalSource = {
+    traversalSource match {
+      case Some(conn) => conn
+      case None =>
+        val conn = graph.traversal()
+        traversalSource = Some(conn)
+        conn
+    }
+  }
 
   override def clear(): Unit = Using.resource(traversal()) { g => g.V().drop().iterate() }
 

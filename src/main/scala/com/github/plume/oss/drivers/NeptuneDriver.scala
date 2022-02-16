@@ -50,8 +50,15 @@ final class NeptuneDriver(
     }
   )
 
-  override def traversal(): GraphTraversalSource =
-    AnonymousTraversalSource.traversal().withRemote(DriverRemoteConnection.using(cluster))
+  override def traversal(): GraphTraversalSource = {
+    traversalSource match {
+      case Some(conn) => conn
+      case None =>
+        val conn = AnonymousTraversalSource.traversal().withRemote(DriverRemoteConnection.using(cluster))
+        traversalSource = Some(conn)
+        conn
+    }
+  }
 
   override def isConnected: Boolean = !cluster.isClosed
 
@@ -132,6 +139,8 @@ final class NeptuneDriver(
         cluster.close()
       } catch {
         case e: Exception => logger.error("Exception thrown while attempting to close graph.", e)
+      } finally {
+        traversalSource = None
       }
     }
   )
