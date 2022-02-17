@@ -9,6 +9,7 @@ import io.shiftleft.passes.DiffGraph.Change
 import org.neo4j.driver.{AuthTokens, GraphDatabase, Transaction, Value}
 import org.slf4j.LoggerFactory
 
+import java.util
 import java.util.concurrent.atomic.AtomicBoolean
 import scala.collection.mutable
 import scala.jdk.CollectionConverters.CollectionHasAsScala
@@ -61,11 +62,16 @@ final class Neo4jDriver(
     session.writeTransaction { tx =>
       CollectionHasAsScala(
         tx
-          .run(s"""
+          .run(
+            s"""
                |MATCH (n)
-               |WHERE n.id = $nodeId
+               |WHERE n.id = $$nodeId
                |RETURN n
-               |""".stripMargin)
+               |""".stripMargin,
+            new util.HashMap[String, Object](1) {
+              put("nodeId", nodeId.asInstanceOf[Object])
+            }
+          )
           .list
       ).asScala.nonEmpty
     }
@@ -75,11 +81,17 @@ final class Neo4jDriver(
     Using.resource(driver.session()) { session =>
       session.writeTransaction { tx =>
         tx
-          .run(s"""
+          .run(
+            s"""
                 |MATCH (a), (b)
-                |WHERE a.id = $srcId AND b.id = $dstId
+                |WHERE a.id = $$srcId AND b.id = $$dstId
                 |RETURN EXISTS ((a)-[:$edge]->(b)) as edge_exists
-                |""".stripMargin)
+                |""".stripMargin,
+            new util.HashMap[String, Object](2) {
+              put("srcId", srcId.asInstanceOf[Object])
+              put("dstId", dstId.asInstanceOf[Object])
+            }
+          )
           .next()
           .get("edge_exists")
           .asBoolean(false)
@@ -348,7 +360,6 @@ final class Neo4jDriver(
           .toSet
       }
   }
-  // TODO: USE PARAMATERS FOR PERF
   override def linkAstNodes(
       srcLabels: List[String],
       edgeType: String,
