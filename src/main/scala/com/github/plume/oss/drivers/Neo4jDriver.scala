@@ -281,7 +281,7 @@ final class Neo4jDriver(
       session.writeTransaction { tx =>
         val filePayload = s"""
              |MATCH (f:${NodeTypes.FILE})
-             |OPTIONAL MATCH (f)<-[:${EdgeTypes.SOURCE_FILE}]-(td:${NodeTypes.TYPE_DECL})<-[:${EdgeTypes.REF}]-(t)
+             |MATCH (f)<-[:${EdgeTypes.SOURCE_FILE}]-(td:${NodeTypes.TYPE_DECL})<-[:${EdgeTypes.REF}]-(t)
              |WHERE f.NAME IN [$fileSet]
              |DETACH DELETE f, t
              |""".stripMargin
@@ -348,7 +348,7 @@ final class Neo4jDriver(
           .toSet
       }
   }
-
+  // TODO: USE PARAMATERS FOR PERF
   override def linkAstNodes(
       srcLabels: List[String],
       edgeType: String,
@@ -404,7 +404,7 @@ final class Neo4jDriver(
         val payload =
           s"""
              |MATCH (call:${NodeTypes.CALL})
-             |OPTIONAL MATCH (method:${NodeTypes.METHOD} {${PropertyNames.FULL_NAME}: call.${PropertyNames.METHOD_FULL_NAME}})
+             |MATCH (method:${NodeTypes.METHOD} {${PropertyNames.FULL_NAME}: call.${PropertyNames.METHOD_FULL_NAME}})
              |WHERE NOT EXISTS((call)-[:${EdgeTypes.CALL}]->(method))
              |CREATE (call)-[r:${EdgeTypes.CALL}]->(method)
              |""".stripMargin
