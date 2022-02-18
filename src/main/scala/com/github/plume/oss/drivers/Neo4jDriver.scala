@@ -6,13 +6,14 @@ import io.shiftleft.codepropertygraph.generated.nodes.NewNode
 import io.shiftleft.codepropertygraph.generated.{EdgeTypes, NodeTypes, PropertyNames}
 import io.shiftleft.passes.AppliedDiffGraph
 import io.shiftleft.passes.DiffGraph.Change
-import org.neo4j.driver.{AuthTokens, GraphDatabase, Transaction, Value}
+import org.neo4j.driver.{AuthTokens, GraphDatabase, Transaction, TransactionConfig, Value}
 import org.slf4j.LoggerFactory
 
 import java.io.{BufferedWriter, File, FileInputStream, FileOutputStream, FileWriter}
 import java.util
 import java.util.concurrent.atomic.AtomicBoolean
 import scala.collection.mutable
+import scala.jdk.CollectionConverters
 import scala.jdk.CollectionConverters.CollectionHasAsScala
 import scala.util.{Failure, Success, Try, Using}
 
@@ -43,13 +44,8 @@ final class Neo4jDriver(
     session.writeTransaction { tx =>
       tx.run(
         """
-          |CALL apoc.periodic.commit(
-          | "MATCH (n)
-          |  LIMIT {limit}
-          |  DETACH DELETE n
-          |  ",
-          |  {limit:10000}
-          |)
+          |MATCH (n)
+          |DETACH DELETE n
           |""".stripMargin
       )
     }
@@ -104,34 +100,21 @@ final class Neo4jDriver(
       }
     }
 
-  private def escape(raw: String): String = {
-    import scala.reflect.runtime.universe.{Constant, Literal}
-    Literal(Constant(raw)).toString
-  }
-
-  private def nodePayload(id: Long, n: NewNode): String = {
-
-    val propertyStr = (n.properties.map { case (k, v) =>
-      val vStr = v match {
-        case x: String => escape(x)
-        case xs: Seq[_] =>
-          "[" + xs.map(x => escape(x.toString)).mkString(",") + "]"
-        case x => x
-      }
-      s"$k:$vStr"
-    }.toList :+ s"id:$id")
-      .mkString(",")
-    s"CREATE (n$id:${n.label} {$propertyStr})"
-  }
-
-  private def nodeToMap(id: Long, n: NewNode): Map[String, Option[Any]] =
-    n.properties.map { case (k: String, v: Any) =>
+  private def nodePayload(id: Long, n: NewNode): (util.Map[String, Object], String) = {
+    val pMap = n.properties.map { case (k, v) =>
       k -> (v match {
+        case x: String => x
         case xs: Seq[_] =>
-          Some("[" + xs.mkString(",") + "]")
-        case x => Some(x)
+          "[" + xs.mkString(",") + "]"
+        case x => x
       })
-    } ++ Map("id" -> Some(id), "label" -> Some(n.label))
+    } ++ Map("id" -> id)
+
+    val pString = pMap.map { case (k, _) => s"$k:$$$k" }.mkString(",")
+    val jpMap   = new util.HashMap[String, Object](pMap.size)
+    pMap.foreach { case (x, y) => jpMap.put(x, y.asInstanceOf[Object]) }
+    (jpMap, pString)
+  }
 
   private def bulkDeleteNode(ops: Seq[Change.RemoveNode]): Unit = {
     val m = ops
@@ -160,23 +143,23 @@ final class Neo4jDriver(
     }
   }
 
-  private def bulkCreateNode(ops: Seq[Change.CreateNode], dg: AppliedDiffGraph): Unit = {
-    val ns = ops
-      .map { case Change.CreateNode(node) => nodePayload(dg.nodeToGraphId(node), node) }
-      .mkString("\n")
+  private def bulkCreateNode(ops: Seq[Change.CreateNode], dg: AppliedDiffGraph): Unit =
     Using.resource(driver.session()) { session =>
-      try {
-        session.writeTransaction { tx => tx.run(
-          s"""
-            |
-            |
-            |$ns
-            |""".stripMargin) }
-      } catch {
-        case e: Exception => logger.error(s"Unable to write bulk create node transaction $ns", e)
+      session.writeTransaction { tx =>
+        ops
+          .map { case Change.CreateNode(node) =>
+            val (params, pString) = nodePayload(dg.nodeToGraphId(node), node)
+            params -> s"MERGE (n:${node.label} {$pString})"
+          }
+          .foreach { case (params: util.Map[String, Object], query: String) =>
+            Try(tx.run(query, params)) match {
+              case Failure(e) =>
+                logger.error(s"Unable to write bulk create node transaction $query", e)
+              case Success(_) =>
+            }
+          }
       }
     }
-  }
 
   private def bulkNodeSetProperty(ops: Seq[Change.SetNodeProperty]): Unit = {
     val ms = ops
@@ -336,7 +319,7 @@ final class Neo4jDriver(
 
   override def propertyFromNodes(nodeType: String, keys: String*): List[Map[String, Any]] =
     Using.resource(driver.session()) { session =>
-      session.writeTransaction { tx =>
+      session.readTransaction { tx =>
         tx
           .run(s"""
                   |MATCH (n: $nodeType)
@@ -370,7 +353,7 @@ final class Neo4jDriver(
 
   override def idInterval(lower: Long, upper: Long): Set[Long] = Using.resource(driver.session()) {
     session =>
-      session.writeTransaction { tx =>
+      session.readTransaction { tx =>
         tx
           .run(s"""
                 |MATCH (n)
@@ -391,6 +374,7 @@ final class Neo4jDriver(
       dstNodeType: String
   ): Unit = {
     Using.resource(driver.session()) { session =>
+      // todo: Split the read and write parts
       session.writeTransaction { tx =>
         val payload = s"""
                            |MATCH (n:${srcLabels.mkString(":")})
