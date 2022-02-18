@@ -1,10 +1,14 @@
 version: '3'
 services:
   neo4j:
-    image: bitnami/neo4j:4.3.6
-    container_name: plume-neo4j
+    image: neo4j:4.3.6
+    container_name: neo4j-plume-benchmark
     environment:
-      NEO4J_PASSWORD: "neo4j"
+      NEO4J_AUTH: "neo4j/neo4j123"
+      NEO4J_apoc_export_file_enabled: "true"
+      NEO4J_apoc_import_file_enabled: "true"
+      NEO4J_apoc_import_file_use__neo4j__config: "true"
+      NEO4JLABS_PLUGINS: "[\"apoc\"]"
     ports:
       - "7687:7687"
       - "7474:7474"
@@ -13,5 +17,12 @@ services:
       interval: 5s
       timeout: 10s
       retries: 5
+    volumes:
+      - 'neo4j-data:/data'
+      - 'neo4j-plugins:/plugins'
     stdin_open: true
     tty: true
+
+volumes:
+  neo4j-data:
+  neo4j-plugins:

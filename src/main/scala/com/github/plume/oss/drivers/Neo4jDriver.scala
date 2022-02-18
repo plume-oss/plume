@@ -9,6 +9,7 @@ import io.shiftleft.passes.DiffGraph.Change
 import org.neo4j.driver.{AuthTokens, GraphDatabase, Transaction, Value}
 import org.slf4j.LoggerFactory
 
+import java.io.{BufferedWriter, File, FileInputStream, FileOutputStream, FileWriter}
 import java.util
 import java.util.concurrent.atomic.AtomicBoolean
 import scala.collection.mutable
@@ -42,8 +43,13 @@ final class Neo4jDriver(
     session.writeTransaction { tx =>
       tx.run(
         """
-          |MATCH (n)
-          |DETACH DELETE n
+          |CALL apoc.periodic.commit(
+          | "MATCH (n)
+          |  LIMIT {limit}
+          |  DETACH DELETE n
+          |  ",
+          |  {limit:10000}
+          |)
           |""".stripMargin
       )
     }
@@ -98,11 +104,13 @@ final class Neo4jDriver(
       }
     }
 
+  private def escape(raw: String): String = {
+    import scala.reflect.runtime.universe.{Constant, Literal}
+    Literal(Constant(raw)).toString
+  }
+
   private def nodePayload(id: Long, n: NewNode): String = {
-    def escape(raw: String): String = {
-      import scala.reflect.runtime.universe.{Constant, Literal}
-      Literal(Constant(raw)).toString
-    }
+
     val propertyStr = (n.properties.map { case (k, v) =>
       val vStr = v match {
         case x: String => escape(x)
@@ -115,6 +123,15 @@ final class Neo4jDriver(
       .mkString(",")
     s"CREATE (n$id:${n.label} {$propertyStr})"
   }
+
+  private def nodeToMap(id: Long, n: NewNode): Map[String, Option[Any]] =
+    n.properties.map { case (k: String, v: Any) =>
+      k -> (v match {
+        case xs: Seq[_] =>
+          Some("[" + xs.mkString(",") + "]")
+        case x => Some(x)
+      })
+    } ++ Map("id" -> Some(id), "label" -> Some(n.label))
 
   private def bulkDeleteNode(ops: Seq[Change.RemoveNode]): Unit = {
     val m = ops
@@ -149,7 +166,12 @@ final class Neo4jDriver(
       .mkString("\n")
     Using.resource(driver.session()) { session =>
       try {
-        session.writeTransaction { tx => tx.run(ns) }
+        session.writeTransaction { tx => tx.run(
+          s"""
+            |
+            |
+            |$ns
+            |""".stripMargin) }
       } catch {
         case e: Exception => logger.error(s"Unable to write bulk create node transaction $ns", e)
       }
@@ -247,6 +269,7 @@ final class Neo4jDriver(
     }
   }
 
+  //TODO: Look at writing this to csv and using IMPORT CSV scripts
   override def bulkTx(dg: AppliedDiffGraph): Unit = {
     // Node operations
     dg.diffGraph.iterator
