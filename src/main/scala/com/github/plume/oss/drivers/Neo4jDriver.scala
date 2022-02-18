@@ -103,10 +103,9 @@ final class Neo4jDriver(
   private def nodePayload(id: Long, n: NewNode): (util.Map[String, Object], String) = {
     val pMap = n.properties.map { case (k, v) =>
       k -> (v match {
-        case x: String => x
-        case xs: Seq[_] =>
-          "[" + xs.mkString(",") + "]"
-        case x => x
+        case x: String  => x
+        case xs: Seq[_] => CollectionConverters.IterableHasAsJava(xs.toList).asJava
+        case x          => x
       })
     } ++ Map("id" -> id)
 
@@ -224,31 +223,28 @@ final class Neo4jDriver(
   /** This does not add edge properties as they are often not used in the CPG.
     */
   private def bulkCreateEdge(ops: Seq[Change.CreateEdge], dg: AppliedDiffGraph): Unit = {
-    val ms = ops
-      .flatMap { case Change.CreateEdge(src, dst, _, _) =>
-        val srcId = id(src, dg)
-        val dstId = id(dst, dg)
-        Seq(s"(n$srcId {id: $srcId})", s"(n$dstId {id: $dstId})")
-      }
-      .toSet
-      .mkString(",")
-    val cs = ops.zipWithIndex
-      .map { case (Change.CreateEdge(src, dst, label, _), i) =>
-        val srcId = id(src, dg)
-        val dstId = id(dst, dg)
-        s"(n$srcId)-[r$i:$label]->(n$dstId)"
-      }
-      .mkString(",")
     Using.resource(driver.session()) { session =>
-      val payload = s"""
-                       |MATCH $ms
-                       |CREATE $cs
-                       |""".stripMargin
-      try {
-        session.writeTransaction { tx => tx.run(payload) }
-      } catch {
-        case e: Exception =>
-          logger.error(s"Unable to write bulk create edge transaction $payload", e)
+      Using.resource(session.beginTransaction()) { tx =>
+        ops.foreach { case Change.CreateEdge(src, dst, label, _) =>
+          val query = s"""
+                         |MATCH (src:${src.label} {id: $$srcId}), (dst:${dst.label} {id: $$dstId})
+                         |CREATE (src)-[:$label]->(dst)
+                         |""".stripMargin
+          Try(
+            tx.run(
+              query,
+              new util.HashMap[String, Object](2) {
+                put("srcId", id(src, dg).asInstanceOf[Object])
+                put("dstId", id(dst, dg).asInstanceOf[Object])
+              }
+            )
+          ) match {
+            case Failure(e) =>
+              logger.error(s"Unable to write bulk create edge transaction $query", e)
+            case Success(_) =>
+          }
+        }
+        tx.commit()
       }
     }
   }
@@ -310,9 +306,13 @@ final class Neo4jDriver(
     filenames.foreach(deleteNamespaceBlockWithAstChildrenByFilename)
   }
 
-  private def runPayload(tx: Transaction, filePayload: String) = {
+  private def runPayload(
+      tx: Transaction,
+      filePayload: String,
+      params: util.HashMap[String, Object] = new util.HashMap[String, Object](0)
+  ) = {
     try {
-      tx.run(filePayload)
+      tx.run(filePayload, params)
     } catch {
       case e: Exception => logger.error(s"Unable to link AST nodes: $filePayload", e)
     }
@@ -375,7 +375,6 @@ final class Neo4jDriver(
       dstNodeType: String
   ): Unit = {
     Using.resource(driver.session()) { session =>
-      // todo: Split the read and write parts
       session.writeTransaction { tx =>
         val payload = s"""
                            |MATCH (n:${srcLabels.mkString(":")})
@@ -401,11 +400,18 @@ final class Neo4jDriver(
               maybeDst match {
                 case Some(dstId) =>
                   val astLinkPayload = s"""
-                                          | MATCH (n {id: $srcId}), (m {id: $dstId})
+                                          | MATCH (n {id: $$srcId}), (m {id: $$dstId})
                                           | WHERE NOT EXISTS((n)-[:$edgeType]->(m))
                                           | CREATE (n)-[r:$edgeType]->(m)
                                           |""".stripMargin
-                  runPayload(tx, astLinkPayload)
+                  runPayload(
+                    tx,
+                    astLinkPayload,
+                    new util.HashMap[String, Object](2) {
+                      put("srcId", srcId.asInstanceOf[Object])
+                      put("dstId", dstId.asInstanceOf[Object])
+                    }
+                  )
                 case None =>
               }
             }
@@ -449,13 +455,13 @@ final class Neo4jDriver(
   }
 
   override def buildSchemaPayload(): String = {
-    val btree = NodeTypes.ALL.asScala
-      .map(l =>
-        s"CREATE BTREE INDEX ${l.toLowerCase}_id_btree_index IF NOT EXISTS FOR (n:$l) ON (n.id)"
-      )
+    val btreeAndConstraints = NODES_IN_SCHEMA
+      .map(l => s"""
+          |CREATE BTREE INDEX ${l.toLowerCase}_id_btree_index IF NOT EXISTS FOR (n:$l) ON (n.id)
+          |""".stripMargin.trim)
       .mkString("\n")
     s"""CREATE LOOKUP INDEX node_label_lookup_index IF NOT EXISTS FOR (n) ON EACH labels(n)
-      |$btree""".stripMargin
+      |$btreeAndConstraints""".stripMargin
   }
 }
 

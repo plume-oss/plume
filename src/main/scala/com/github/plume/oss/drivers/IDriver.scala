@@ -1,6 +1,36 @@
 package com.github.plume.oss.drivers
 
-import io.shiftleft.codepropertygraph.generated.nodes.{AbstractNode, NewNode, StoredNode}
+import io.shiftleft.codepropertygraph.generated.nodes.{
+  AbstractNode,
+  Block,
+  Call,
+  ControlStructure,
+  FieldIdentifier,
+  File,
+  Identifier,
+  JumpTarget,
+  Literal,
+  Local,
+  Member,
+  MetaData,
+  Method,
+  MethodParameterIn,
+  MethodParameterOut,
+  MethodRef,
+  MethodReturn,
+  Modifier,
+  Namespace,
+  NamespaceBlock,
+  NewNode,
+  Return,
+  StoredNode,
+  Type,
+  TypeArgument,
+  TypeDecl,
+  TypeParameter,
+  TypeRef,
+  Unknown
+}
 import io.shiftleft.codepropertygraph.generated.{EdgeTypes, NodeTypes, PropertyNames}
 import io.shiftleft.passes.AppliedDiffGraph
 import org.slf4j.LoggerFactory
@@ -222,6 +252,35 @@ trait IDriver extends AutoCloseable {
       case n: StoredNode => n.id()
       case _             => throw new RuntimeException(s"Unable to obtain ID for $node")
     }
+
+  protected def NODES_IN_SCHEMA: Seq[String] = Seq(
+    MetaData.Label,
+    File.Label,
+    Method.Label,
+    MethodParameterIn.Label,
+    MethodParameterOut.Label,
+    MethodReturn.Label,
+    Modifier.Label,
+    Type.Label,
+    TypeDecl.Label,
+    TypeParameter.Label,
+    TypeArgument.Label,
+    Member.Label,
+    Namespace.Label,
+    NamespaceBlock.Label,
+    Literal.Label,
+    Call.Label,
+    Local.Label,
+    Identifier.Label,
+    FieldIdentifier.Label,
+    Return.Label,
+    Block.Label,
+    MethodRef.Label,
+    TypeRef.Label,
+    JumpTarget.Label,
+    ControlStructure.Label,
+    Unknown.Label
+  )
 
 }
 
