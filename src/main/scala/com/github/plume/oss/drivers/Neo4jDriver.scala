@@ -145,7 +145,7 @@ final class Neo4jDriver(
 
   private def bulkCreateNode(ops: Seq[Change.CreateNode], dg: AppliedDiffGraph): Unit =
     Using.resource(driver.session()) { session =>
-      session.writeTransaction { tx =>
+      Using.resource(session.beginTransaction()) { tx =>
         ops
           .map { case Change.CreateNode(node) =>
             val (params, pString) = nodePayload(dg.nodeToGraphId(node), node)
@@ -158,6 +158,7 @@ final class Neo4jDriver(
               case Success(_) =>
             }
           }
+        tx.commit()
       }
     }
 
