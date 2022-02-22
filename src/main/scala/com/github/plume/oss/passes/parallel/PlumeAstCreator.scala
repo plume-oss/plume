@@ -162,8 +162,6 @@ class PlumeAstCreator(filename: String, global: Global) {
           case Failure(_)    => methodDeclaration.retrieveActiveBody()
           case Success(body) => body
         }
-        if (methodDeclaration.toString.contains("test1"))
-          println(methodBody)
         val parameterAsts =
           Seq(createThisNode(methodDeclaration, NewMethodParameterIn())) ++ withOrder(
             methodBody.getParameterLocals
@@ -865,15 +863,13 @@ class PlumeAstCreator(filename: String, global: Global) {
       childNum: Int
   ) = {
     val fullName = methodFullName(typeDecl, methodDeclaration)
-    val name =
-      if (!methodDeclaration.isConstructor) methodDeclaration.getName else typeDecl.getClassName
     val code = if (!methodDeclaration.isConstructor) {
       s"${methodDeclaration.getReturnType.toQuotedString} ${methodDeclaration.getName}${paramListSignature(methodDeclaration, withParams = true)}"
     } else {
       s"public ${typeDecl.getClassName}${paramListSignature(methodDeclaration, withParams = true)}"
     }
     NewMethod()
-      .name(name)
+      .name(methodDeclaration.getName)
       .fullName(fullName)
       .code(code)
       .signature(
