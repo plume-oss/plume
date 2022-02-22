@@ -7,6 +7,8 @@ and this project adheres to [Semantic Versioning](http://semver.org/).
 
 ## [Unreleased]
 
+## [1.0.14] - 2022-02-22
+
 ### Fixed
 
 - Fixed instances where `.fieldRef.getField` would return a `null` and crash method body parsing.
