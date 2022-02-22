@@ -611,35 +611,6 @@ object TigerGraphDriver {
     fromCheck && toCheck
   }
 
-  private def NODES_IN_SCHEMA: Seq[String] = Seq(
-    MetaData.Label,
-    File.Label,
-    Method.Label,
-    MethodParameterIn.Label,
-    MethodParameterOut.Label,
-    MethodReturn.Label,
-    Modifier.Label,
-    Type.Label,
-    TypeDecl.Label,
-    TypeParameter.Label,
-    TypeArgument.Label,
-    Member.Label,
-    Namespace.Label,
-    NamespaceBlock.Label,
-    Literal.Label,
-    Call.Label,
-    Local.Label,
-    Identifier.Label,
-    FieldIdentifier.Label,
-    Return.Label,
-    Block.Label,
-    MethodRef.Label,
-    TypeRef.Label,
-    JumpTarget.Label,
-    ControlStructure.Label,
-    Unknown.Label
-  )
-
   /** Edges as a schema string. Each edge is prepended with "_" to escape
     * reserved words.
     */
