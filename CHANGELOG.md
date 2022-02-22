@@ -7,6 +7,14 @@ and this project adheres to [Semantic Versioning](http://semver.org/).
 
 ## [Unreleased]
 
+### Added
+
+- Methods now have modifier nodes.
+
+### Changed
+
+- Made constructors a bit friendlier to work with and they now have `this` parameters.
+
 ## [1.0.14] - 2022-02-22
 
 ### Fixed
