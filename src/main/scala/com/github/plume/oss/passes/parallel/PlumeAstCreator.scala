@@ -174,7 +174,10 @@ class PlumeAstCreator(filename: String, global: Global) {
       }
     } catch {
       case e: RuntimeException =>
-        logger.warn(s"Unexpected exception while parsing method body! Will stub the method ${methodNode.fullName}", e)
+        logger.warn(
+          s"Unexpected exception while parsing method body! Will stub the method ${methodNode.fullName}",
+          e
+        )
         Ast(methodNode)
           .withChild(astForMethodReturn(methodDeclaration))
     } finally {
