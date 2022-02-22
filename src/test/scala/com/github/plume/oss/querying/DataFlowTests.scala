@@ -46,7 +46,7 @@ class DataFlowTests extends Jimple2CpgFixture {
 
   "should find that System.out.println in sink is reached by both x parameters" in {
     val cpg = CPG(driver.cpg.graph)
-    val List(fooX: MethodParameterIn, sinkX: MethodParameterIn) =
+    val List(sinkX: MethodParameterIn, fooX: MethodParameterIn) =
       driver.nodesReachableBy(cpg.parameter("x"), cpg.call("println"))
     fooX.name shouldBe "x"
     fooX.method.name shouldBe "foo"
