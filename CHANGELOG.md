@@ -5,6 +5,13 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](http://keepachangelog.com/)
 and this project adheres to [Semantic Versioning](http://semver.org/).
 
+[Unreleased]
+
+### Fixed
+
+- Fixed performance issues in Gremlin drivers related to not re-using traversal objects.
+- Fixed performance issues in Neo4j's driver by using more parameterized and re-usable queries.
+
 ## [1.0.12] - 2022-02-16
 
 ### Fixed
