@@ -6,10 +6,9 @@ import io.shiftleft.codepropertygraph.generated.nodes.NewNode
 import io.shiftleft.codepropertygraph.generated.{EdgeTypes, NodeTypes, PropertyNames}
 import io.shiftleft.passes.AppliedDiffGraph
 import io.shiftleft.passes.DiffGraph.Change
-import org.neo4j.driver.{AuthTokens, GraphDatabase, Transaction, TransactionConfig, Value}
+import org.neo4j.driver.{AuthTokens, GraphDatabase, Transaction, Value}
 import org.slf4j.LoggerFactory
 
-import java.io.{BufferedWriter, File, FileInputStream, FileOutputStream, FileWriter}
 import java.util
 import java.util.concurrent.atomic.AtomicBoolean
 import scala.collection.mutable
@@ -115,32 +114,36 @@ final class Neo4jDriver(
     (jpMap, pString)
   }
 
-  private def bulkDeleteNode(ops: Seq[Change.RemoveNode]): Unit = {
-    val m = ops
-      .map {
-        case Change.RemoveNode(nodeId) => s"(n$nodeId {id: $nodeId})"
-        case _                         =>
-      }
-      .mkString(",")
-    val d = ops
-      .map {
-        case Change.RemoveNode(nodeId) => s"n$nodeId"
-        case _                         =>
-      }
-      .mkString(",")
-    val payload = s"""
-                |MATCH $m
-                |DETACH DELETE $d
-                |""".stripMargin
+  private def bulkDeleteNode(ops: Seq[Change.RemoveNode]): Unit =
     Using.resource(driver.session()) { session =>
-      try {
-        session.writeTransaction { tx => tx.run(payload) }
-      } catch {
-        case e: Exception =>
-          logger.error(s"Unable to write bulk delete node transaction $payload", e)
+      Using.resource(session.beginTransaction()) { tx =>
+        ops
+          .map { case Change.RemoveNode(nodeId) =>
+            (
+              """
+              |MATCH (n {id:$nodeId})
+              |DETACH DELETE (n)
+              |""".stripMargin,
+              nodeId
+            )
+          }
+          .foreach { case (query, nodeId) =>
+            Try(
+              tx.run(
+                query,
+                new util.HashMap[String, Object](1) {
+                  put("nodeId", nodeId.asInstanceOf[Object])
+                }
+              )
+            ) match {
+              case Failure(e) =>
+                logger.error(s"Unable to write bulk delete node transaction $query", e)
+              case Success(_) =>
+            }
+          }
+        tx.commit()
       }
     }
-  }
 
   private def bulkCreateNode(ops: Seq[Change.CreateNode], dg: AppliedDiffGraph): Unit =
     Using.resource(driver.session()) { session =>
@@ -161,64 +164,69 @@ final class Neo4jDriver(
       }
     }
 
-  private def bulkNodeSetProperty(ops: Seq[Change.SetNodeProperty]): Unit = {
-    val ms = ops
-      .map { case Change.SetNodeProperty(node, _, _) =>
-        s"(n${node.id()}:${node.label} {id:${node.id()}})"
-      }
-      .mkString(",")
-    val ss = ops
-      .map { case Change.SetNodeProperty(node, k, v) =>
-        val s = v match {
-          case x: String  => "\"" + x + "\""
-          case Seq()      => IDriver.STRING_DEFAULT
-          case xs: Seq[_] => "[" + xs.map { x => Seq("\"", x, "\"").mkString }.mkString(",") + "]"
-          case x: Number  => x.toString
-          case x          => logger.warn(s"Unhandled property $x (${x.getClass}")
-        }
-        s"n${node.id()}.$k = $s"
-      }
-      .mkString(",")
-    val payload =
-      s"""
-        | MATCH $ms
-        | SET $ss
-        |""".stripMargin
+  private def bulkNodeSetProperty(ops: Seq[Change.SetNodeProperty]): Unit =
     Using.resource(driver.session()) { session =>
-      try {
-        session.writeTransaction { tx => tx.run(payload) }
-      } catch {
-        case e: Exception => logger.error(s"Unable to write bulk set node transaction $payload", e)
+      Using.resource(session.beginTransaction()) { tx =>
+        ops
+          .map { case Change.SetNodeProperty(node, k, v) =>
+            val newV = v match {
+              case x: String => "\"" + x + "\""
+              case Seq()     => IDriver.STRING_DEFAULT
+              case xs: Seq[_] =>
+                "[" + xs.map { x => Seq("\"", x, "\"").mkString }.mkString(",") + "]"
+              case x: Number => x.toString
+              case x         => logger.warn(s"Unhandled property $x (${x.getClass}")
+            }
+            (
+              new util.HashMap[String, Object](2) {
+                put("nodeId", node.id().asInstanceOf[Object])
+                put("newV", newV.asInstanceOf[Object])
+              },
+              s"""
+               |MATCH (n:${node.label} {id: $$nodeId})
+               |SET n.$k = $$newV
+               |""".stripMargin
+            )
+          }
+          .foreach { case (params: util.Map[String, Object], query: String) =>
+            Try(tx.run(query, params)) match {
+              case Failure(e) =>
+                logger.error(s"Unable to write bulk set node property transaction $query", e)
+              case Success(_) =>
+            }
+          }
+        tx.commit()
       }
     }
-  }
 
-  private def bulkRemoveEdge(ops: Seq[Change.RemoveEdge]): Unit = {
-    val ms = ops.zipWithIndex
-      .map { case (Change.RemoveEdge(edge), i) =>
-        val srcId    = edge.outNode().id()
-        val srcLabel = edge.outNode().label()
-        val dstId    = edge.inNode().id()
-        val dstLabel = edge.inNode().label()
-        s"(n$srcId:$srcLabel {id: $srcId})-[r$i:${edge.label()}]->(n$dstId:$dstLabel {id: $dstId})"
-      }
-      .mkString(",")
-    val rs = ops.zipWithIndex
-      .map { case (Change.RemoveEdge(_), i) => s"r$i" }
-      .mkString(",")
+  private def bulkRemoveEdge(ops: Seq[Change.RemoveEdge]): Unit =
     Using.resource(driver.session()) { session =>
-      val payload = s"""
-                       |MATCH $ms
-                       |DELETE $rs
-                       |""".stripMargin
-      try {
-        session.writeTransaction { tx => tx.run(payload) }
-      } catch {
-        case e: Exception =>
-          logger.error(s"Unable to write bulk remove edge transaction $payload", e)
+      Using.resource(session.beginTransaction()) { tx =>
+        ops
+          .map { case Change.RemoveEdge(edge) =>
+            val srcLabel = edge.outNode().label()
+            val dstLabel = edge.inNode().label()
+            (
+              new util.HashMap[String, Object](2) {
+                put("srcId", edge.outNode().id().asInstanceOf[Object])
+                put("dstId", edge.inNode().id().asInstanceOf[Object])
+              },
+              s"""
+                 |MATCH (n:$srcLabel {id: $$srcId})-[r:${edge.label()}]->(m:$dstLabel {id: $$dstId})
+                 |DELETE r
+                 |""".stripMargin
+            )
+          }
+          .foreach { case (params: util.Map[String, Object], query: String) =>
+            Try(tx.run(query, params)) match {
+              case Failure(e) =>
+                logger.error(s"Unable to write bulk remove edge property transaction $query", e)
+              case Success(_) =>
+            }
+          }
+        tx.commit()
       }
     }
-  }
 
   /** This does not add edge properties as they are often not used in the CPG.
     */
@@ -249,7 +257,6 @@ final class Neo4jDriver(
     }
   }
 
-  //TODO: Look at writing this to csv and using IMPORT CSV scripts
   override def bulkTx(dg: AppliedDiffGraph): Unit = {
     // Node operations
     dg.diffGraph.iterator
@@ -281,26 +288,35 @@ final class Neo4jDriver(
     Using.resource(driver.session()) { session =>
       session.writeTransaction { tx =>
         tx
-          .run(s"""
+          .run(
+            s"""
                 |MATCH (a:${NodeTypes.NAMESPACE_BLOCK})-[r:${EdgeTypes.AST}*]->(t)
-                |WHERE a.${PropertyNames.FILENAME} = \'$filename\'
+                |WHERE a.${PropertyNames.FILENAME} = $$filename
                 |FOREACH (x IN r | DELETE x)
                 |DETACH DELETE a, t
-                |""".stripMargin)
+                |""".stripMargin,
+            new util.HashMap[String, Object](1) { put("filename", filename.asInstanceOf[Object]) }
+          )
       }
     }
 
   override def removeSourceFiles(filenames: String*): Unit = {
     Using.resource(driver.session()) { session =>
-      val fileSet = filenames.map(x => "\"" + x + "\"").mkString(",")
+      val fileSet = CollectionConverters.IterableHasAsJava(filenames.toSeq).asJava
       session.writeTransaction { tx =>
         val filePayload = s"""
              |MATCH (f:${NodeTypes.FILE})
              |MATCH (f)<-[:${EdgeTypes.SOURCE_FILE}]-(td:${NodeTypes.TYPE_DECL})<-[:${EdgeTypes.REF}]-(t)
-             |WHERE f.NAME IN [$fileSet]
+             |WHERE f.NAME IN $$fileSet
              |DETACH DELETE f, t
              |""".stripMargin
-        runPayload(tx, filePayload)
+        runPayload(
+          tx,
+          filePayload,
+          new util.HashMap[String, Object](1) {
+            put("fileSet", fileSet)
+          }
+        )
       }
     }
     filenames.foreach(deleteNamespaceBlockWithAstChildrenByFilename)
@@ -356,11 +372,17 @@ final class Neo4jDriver(
     session =>
       session.readTransaction { tx =>
         tx
-          .run(s"""
+          .run(
+            s"""
                 |MATCH (n)
-                |WHERE n.id >= $lower AND n.id <= $upper
+                |WHERE n.id >= $$lower AND n.id <= $$upper
                 |RETURN n.id as id
-                |""".stripMargin)
+                |""".stripMargin,
+            new util.HashMap[String, Object](2) {
+              put("lower", lower.asInstanceOf[Object])
+              put("upper", upper.asInstanceOf[Object])
+            }
+          )
           .list()
           .asScala
           .map(record => record.get("id").asLong())
