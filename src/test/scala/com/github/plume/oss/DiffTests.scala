@@ -66,7 +66,7 @@ class DiffTests extends AnyWordSpec with Matchers with BeforeAndAfterAll {
     driver.propertyFromNodes(NodeTypes.METHOD).size shouldBe 7
     driver.propertyFromNodes(NodeTypes.TYPE, PropertyNames.FULL_NAME).size shouldBe 7
     driver.propertyFromNodes(NodeTypes.NAMESPACE_BLOCK, PropertyNames.FULL_NAME).size shouldBe 3
-    driver.propertyFromNodes(NodeTypes.METHOD_PARAMETER_IN, PropertyNames.FULL_NAME).size shouldBe 7
+    driver.propertyFromNodes(NodeTypes.METHOD_PARAMETER_IN, PropertyNames.FULL_NAME).size shouldBe 9
     driver.propertyFromNodes(NodeTypes.LOCAL, PropertyNames.FULL_NAME).size shouldBe 7
 
     val List(barM, fooM) = driver
@@ -97,7 +97,7 @@ class DiffTests extends AnyWordSpec with Matchers with BeforeAndAfterAll {
     driver.propertyFromNodes(NodeTypes.METHOD).size shouldBe 7
     driver.propertyFromNodes(NodeTypes.TYPE, PropertyNames.FULL_NAME).size shouldBe 7
     driver.propertyFromNodes(NodeTypes.NAMESPACE_BLOCK, PropertyNames.FULL_NAME).size shouldBe 3
-    driver.propertyFromNodes(NodeTypes.METHOD_PARAMETER_IN, PropertyNames.FULL_NAME).size shouldBe 7
+    driver.propertyFromNodes(NodeTypes.METHOD_PARAMETER_IN, PropertyNames.FULL_NAME).size shouldBe 9
     driver.propertyFromNodes(NodeTypes.LOCAL, PropertyNames.FULL_NAME).size shouldBe 7
 
     val List(barM, fooM) = driver

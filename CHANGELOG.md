@@ -7,9 +7,13 @@ and this project adheres to [Semantic Versioning](http://semver.org/).
 
 ## [Unreleased]
 
+### Added
+- Method parameters now have correct evaluation strategies
+
 ### Fixed
 
 - Fixed performance issues in Gremlin drivers related to not re-using traversal objects.
+- Fixed instance in methods where `this` parameter was not passed through on dynamic calls.
 - Fixed performance issues in Neo4j's driver by using more parameterized and re-usable queries.
 
 ## [1.0.12] - 2022-02-16
