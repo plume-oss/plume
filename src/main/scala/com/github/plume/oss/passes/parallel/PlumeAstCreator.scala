@@ -174,7 +174,7 @@ class PlumeAstCreator(filename: String, global: Global) {
       }
     } catch {
       case e: RuntimeException =>
-        logger.warn(s"Unable to parse method body. ${e.getMessage}")
+        logger.warn(s"Unexpected exception while parsing method body! Will stub the method ${methodNode.fullName}", e)
         Ast(methodNode)
           .withChild(astForMethodReturn(methodDeclaration))
     } finally {
@@ -702,7 +702,7 @@ class PlumeAstCreator(filename: String, global: Global) {
     }
     val fieldAccessBlock = NewCall()
       .name(Operators.fieldAccess)
-      .code(s"${leftOpType.toQuotedString}.${fieldRef.getField.getName}")
+      .code(s"${leftOpType.toQuotedString}.${fieldRef.getFieldRef.name()}")
       .typeFullName(registerType(fieldRef.getType.toQuotedString))
       .methodFullName(Operators.fieldAccess)
       .dispatchType(DispatchTypes.STATIC_DISPATCH)
@@ -725,8 +725,8 @@ class PlumeAstCreator(filename: String, global: Global) {
         .argumentIndex(2)
         .lineNumber(line(parentUnit))
         .columnNumber(column(parentUnit))
-        .canonicalName(fieldRef.getField.getSignature)
-        .code(fieldRef.getField.getName)
+        .canonicalName(fieldRef.getFieldRef.getSignature)
+        .code(fieldRef.getFieldRef.name())
     ).map(Ast(_))
 
     Ast(fieldAccessBlock)
