@@ -7,10 +7,15 @@ and this project adheres to [Semantic Versioning](http://semver.org/).
 
 ## [Unreleased]
 
+### Fixed
+
+- Fixed instances where `.fieldRef.getField` would return a `null` and crash method body parsing.
+
 ## [1.0.13] - 2022-02-22
 
 ### Added
-- Method parameters now have correct evaluation strategies
+
+- Method parameters now have correct evaluation strategies.
 
 ### Fixed
 
