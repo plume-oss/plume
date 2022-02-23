@@ -10,6 +10,7 @@ and this project adheres to [Semantic Versioning](http://semver.org/).
 ### Added
 
 - Methods now have modifier nodes.
+- Using `<operator>.alloc` for initial `new` assignments to objects and this has been added to `default.semantics`.
 
 ### Changed
 

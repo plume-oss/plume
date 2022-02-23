@@ -2,6 +2,7 @@
 # 1->-1 first parameter mapped to return value (-1)
 "<operator>.addition" 1->-1 2->-1
 "<operator>.addressOf" 1->-1
+"<operator>.alloc" 1->-1 2->-1
 "<operator>.assignment" 2->1
 "<operator>.assignmentAnd" 2->1 1->1
 "<operator>.assignmentArithmeticShiftRight" 2->1 1->1

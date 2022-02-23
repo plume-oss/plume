@@ -2,18 +2,13 @@ package com.github.plume.oss.querying
 
 import com.github.plume.oss.testfixtures.Jimple2CpgFixture
 import io.shiftleft.codepropertygraph.generated.Operators
-import io.shiftleft.codepropertygraph.generated.nodes.{
-  Block,
-  Call,
-  Identifier,
-  Literal,
-  Local,
-  Method,
-  Return
-}
+import io.shiftleft.codepropertygraph.generated.nodes._
 import io.shiftleft.proto.cpg.Cpg.DispatchTypes
 import io.shiftleft.semanticcpg.language._
 
+/** These tests are based off of those found in javasrc2cpg but modified to fit to Jimple's 3-address code rule and flat
+  * AST.
+  */
 class ConstructorInvocationTests extends Jimple2CpgFixture {
 
   override val code: String =
@@ -184,25 +179,29 @@ class ConstructorInvocationTests extends Jimple2CpgFixture {
   }
 
   "it should create `alloc` and `init` calls in a block for complex assignments" in {
-    // TODO
     cpg.typeDecl.name("Bar").method.name("test3").l match {
       case List(method) =>
-        val assignCall                                      = method.call.nameExact("<operator>.assignment").head
-        val consBlock                                       = assignCall.argument(2).asInstanceOf[Block]
-        val List(assign: Call, init: Call, ret: Identifier) = consBlock.astChildren.l
-
-        val List(temp: Identifier, alloc: Call) = assign.argument.l
-        temp.name shouldBe "$obj3"
+        val List(
+          assignParam: Call,
+          allocAssign: Call,
+          init: Call,
+          assign: Call,
+          _: Call,
+          indexAccess: Call
+        )                                             = method.call.l
+        val List(arrayAccess: Call, temp: Identifier) = assign.argument.l
+        temp.name shouldBe "$stack1"
         temp.typeFullName shouldBe "Bar"
-        temp.order shouldBe 1
-        temp.argumentIndex shouldBe 1
-        temp.code shouldBe "$obj3"
+        temp.order shouldBe 2
+        temp.argumentIndex shouldBe 2
+        temp.code shouldBe "$stack1"
 
+        val alloc = allocAssign.argument(2).asInstanceOf[Call]
         alloc.name shouldBe "<operator>.alloc"
         alloc.methodFullName shouldBe "<operator>.alloc"
         alloc.order shouldBe 2
         alloc.argumentIndex shouldBe 2
-        alloc.code shouldBe "new Bar(42)"
+        alloc.code shouldBe "new Bar"
         alloc.dispatchType shouldBe DispatchTypes.STATIC_DISPATCH.toString
         alloc.typeFullName shouldBe "Bar"
         alloc.argument.size shouldBe 0
@@ -211,15 +210,15 @@ class ConstructorInvocationTests extends Jimple2CpgFixture {
         init.methodFullName shouldBe "Bar.<init>:void(int)"
         init.callOut.head.fullName shouldBe "Bar.<init>:void(int)"
         init.signature shouldBe "void(int)"
-        init.code shouldBe "new Bar(42)"
+        init.code shouldBe "Bar(42)"
         init.dispatchType shouldBe DispatchTypes.STATIC_DISPATCH.toString
 
         init.argument.size shouldBe 2
-        val List(obj: Identifier, initArg1: Literal) = init.argument.l
-        obj.order shouldBe 0
-        obj.argumentIndex shouldBe 0
-        obj.name shouldBe "$obj3"
-        obj.typeFullName shouldBe "Bar"
+        val List(receiver: Identifier, initArg1: Literal) = init.argument.l
+        receiver.order shouldBe 0
+        receiver.argumentIndex shouldBe 0
+        receiver.name shouldBe "this"
+        receiver.typeFullName shouldBe "Bar"
 
         initArg1.code shouldBe "42"
 
@@ -230,20 +229,36 @@ class ConstructorInvocationTests extends Jimple2CpgFixture {
   "it should create only `init` call for direct invocation using `this`" in {
     cpg.typeDecl.name("Bar").method.fullNameExact("Bar.<init>:void(int,int)").l match {
       case List(method) =>
-        val List(init: Call) = method.astChildren.isBlock.astChildren.l
+        val List(
+          assignThis: Call,
+          assignParam1: Call,
+          assignParam2: Call,
+          assignAddition: Call,
+          init: Call,
+          addition: Call
+        ) = method.call.l
+
         init.name shouldBe "<init>"
         init.methodFullName shouldBe "Bar.<init>:void(int)"
         init.dispatchType shouldBe DispatchTypes.STATIC_DISPATCH.toString
         init.typeFullName shouldBe "void"
         init.signature shouldBe "void(int)"
 
-        val List(obj: Identifier, initArg1: Call) = init.argument.l
+        val List(temp: Identifier, add: Call) = assignAddition.argument.l
+        temp.name shouldBe "$stack3"
+        temp.order shouldBe 1
+        temp.argumentIndex shouldBe 1
+        temp.typeFullName shouldBe "int"
+
+        add.code shouldBe "x + y"
+
+        val List(obj: Identifier, additionResultPointer: Identifier) = init.argument.l
         obj.name shouldBe "this"
         obj.order shouldBe 0
         obj.argumentIndex shouldBe 0
         obj.typeFullName shouldBe "Bar"
 
-        initArg1.code shouldBe "x + y"
+        additionResultPointer.code shouldBe "$stack3"
 
       case res => fail(s"Expected Bar constructor but found $res")
     }
@@ -252,21 +267,21 @@ class ConstructorInvocationTests extends Jimple2CpgFixture {
   "it should create only `init` call for direct invocation using `super`" in {
     cpg.typeDecl.name("Bar").method.fullNameExact("Bar.<init>:void(int)").l match {
       case List(method) =>
-        val List(init: Call) = method.astChildren.isBlock.astChildren.l
-        init.name shouldBe "<init>"
-        init.methodFullName shouldBe "Foo.<init>:void(int)"
-        init.dispatchType shouldBe DispatchTypes.STATIC_DISPATCH.toString
-        init.typeFullName shouldBe "void"
-        init.signature shouldBe "void(int)"
+        val List(assignThis: Call, paramAssign: Call, alloc: Call) = method.call.l
+        alloc.name shouldBe "<init>"
+        alloc.methodFullName shouldBe "Foo.<init>:void(int)"
+        alloc.dispatchType shouldBe DispatchTypes.STATIC_DISPATCH.toString
+        alloc.typeFullName shouldBe "void"
+        alloc.signature shouldBe "void(int)"
 
-        val List(obj: Identifier, initArg: Identifier) = init.argument.l
-        obj.name shouldBe "this"
-        obj.typeFullName shouldBe "Bar"
-        obj.argumentIndex shouldBe 0
-        obj.order shouldBe 0
-        obj.code shouldBe "this"
+        val List(thisNode: Identifier, thisParam: Identifier) = assignThis.astChildren.l
+        thisNode.name shouldBe "this"
+        thisNode.typeFullName shouldBe "Bar"
+        thisNode.argumentIndex shouldBe 0
+        thisNode.order shouldBe 0
+        thisNode.code shouldBe "this"
 
-        initArg.code shouldBe "x"
+        alloc.argument(1).code shouldBe "x"
 
       case res => fail(s"Expected Bar constructor but found $res")
     }
