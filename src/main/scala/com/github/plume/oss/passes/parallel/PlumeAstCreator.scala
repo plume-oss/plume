@@ -182,6 +182,7 @@ class PlumeAstCreator(filename: String, global: Global) {
           e
         )
         Ast(methodNode)
+          .withChildren(astsForModifiers(methodDeclaration))
           .withChild(astForMethodReturn(methodDeclaration))
     } finally {
       // Join all targets with CFG edges - this seems to work from what is seen on DotFiles
