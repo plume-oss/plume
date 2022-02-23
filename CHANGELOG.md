@@ -7,6 +7,15 @@ and this project adheres to [Semantic Versioning](http://semver.org/).
 
 ## [Unreleased]
 
+### Added
+
+- Methods now have modifier nodes.
+- Using `<operator>.alloc` for initial `new` assignments to objects and this has been added to `default.semantics`.
+
+### Changed
+
+- Made constructors a bit friendlier to work with and they now have `this` parameters.
+
 ## [1.0.14] - 2022-02-22
 
 ### Fixed
