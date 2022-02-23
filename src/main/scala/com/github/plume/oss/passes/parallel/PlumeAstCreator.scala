@@ -830,7 +830,7 @@ class PlumeAstCreator(filename: String, global: Global) {
       .withArgEdges(rootNode, args.flatMap(_.root))
   }
 
-  def astsForModifiers(methodDeclaration: SootMethod): Seq[Ast] = {
+  private def astsForModifiers(methodDeclaration: SootMethod): Seq[Ast] = {
     Seq(
       if (methodDeclaration.isStatic) Some(ModifierTypes.STATIC) else None,
       if (methodDeclaration.isPublic) Some(ModifierTypes.PUBLIC) else None,
@@ -867,7 +867,7 @@ class PlumeAstCreator(filename: String, global: Global) {
     val code = if (!methodDeclaration.isConstructor) {
       s"${methodDeclaration.getReturnType.toQuotedString} ${methodDeclaration.getName}${paramListSignature(methodDeclaration, withParams = true)}"
     } else {
-      s"public ${typeDecl.getClassName}${paramListSignature(methodDeclaration, withParams = true)}"
+      s"${typeDecl.getClassName}${paramListSignature(methodDeclaration, withParams = true)}"
     }
     NewMethod()
       .name(methodDeclaration.getName)
