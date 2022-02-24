@@ -2,7 +2,10 @@ package com.github.plume.oss.passes.parallel
 
 import com.github.plume.oss.drivers.IDriver
 import com.github.plume.oss.passes.PlumeCpgPassBase
-import com.github.plume.oss.passes.parallel.PlumeParallelCpgPass.{parallelEnqueue, parallelWithWriter}
+import com.github.plume.oss.passes.parallel.PlumeParallelCpgPass.{
+  parallelEnqueue,
+  parallelWithWriter
+}
 import io.shiftleft.codepropertygraph.Cpg
 import io.shiftleft.passes.{DiffGraph, KeyPool, ParallelCpgPass, ParallelIteratorExecutor}
 import org.slf4j.Logger
