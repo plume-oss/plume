@@ -185,6 +185,7 @@ class Jimple2Cpg {
         Scene.v().addBasicClass(cp, SootClass.BODIES)
         Scene.v().loadClassAndSupport(cp).setApplicationClass()
       }
+    Scene.v().loadDynamicClasses()
     Scene.v().loadNecessaryClasses()
   }
 

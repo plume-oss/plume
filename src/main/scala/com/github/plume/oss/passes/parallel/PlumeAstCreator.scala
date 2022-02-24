@@ -378,17 +378,17 @@ class PlumeAstCreator(filename: String, global: Global) {
   }
 
   private def astForInvokeExpr(invokeExpr: InvokeExpr, order: Int, parentUnit: soot.Unit): Ast = {
-    val dispatchType = invokeExpr match {
-      case x if x.getMethod.isConstructor => DispatchTypes.STATIC_DISPATCH
-      case _: DynamicInvokeExpr           => DispatchTypes.DYNAMIC_DISPATCH
-      case _: InstanceInvokeExpr          => DispatchTypes.DYNAMIC_DISPATCH
-      case _                              => DispatchTypes.STATIC_DISPATCH
-    }
     val method = invokeExpr.getMethod
+    val dispatchType = invokeExpr match {
+      case _ if method.isConstructor => DispatchTypes.STATIC_DISPATCH
+      case _: DynamicInvokeExpr      => DispatchTypes.DYNAMIC_DISPATCH
+      case _: InstanceInvokeExpr     => DispatchTypes.DYNAMIC_DISPATCH
+      case _                         => DispatchTypes.STATIC_DISPATCH
+    }
     val signature =
       s"${method.getReturnType.toQuotedString}(${(for (i <- 0 until method.getParameterCount)
         yield method.getParameterType(i).toQuotedString).mkString(",")})"
-    val thisAsts = Seq(createThisNode(invokeExpr.getMethod, NewIdentifier()))
+    val thisAsts = Seq(createThisNode(method, NewIdentifier()))
 
     val methodName =
       if (method.isConstructor)
@@ -397,7 +397,7 @@ class PlumeAstCreator(filename: String, global: Global) {
         method.getName
 
     val callType =
-      if (invokeExpr.getMethod.isConstructor) "void"
+      if (method.isConstructor) "void"
       else registerType(method.getDeclaringClass.getType.toQuotedString)
 
     val callNode = NewCall()
