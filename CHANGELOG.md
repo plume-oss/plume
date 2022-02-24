@@ -7,6 +7,8 @@ and this project adheres to [Semantic Versioning](http://semver.org/).
 
 ## [Unreleased]
 
+## [1.0.15] - 2022-02-24
+
 ### Added
 
 - Methods now have modifier nodes.
