@@ -2,6 +2,7 @@ package com.github.plume.oss.passes.parallel
 
 import com.github.plume.oss.drivers.IDriver
 import com.github.plume.oss.passes.PlumeCpgPassBase
+import com.github.plume.oss.passes.parallel.PlumeParallelCpgPass.parallelWithWriter
 import io.joern.dataflowengineoss.passes.reachingdef.ReachingDefPass
 import io.shiftleft.codepropertygraph.Cpg
 import io.shiftleft.codepropertygraph.generated.nodes.Method
@@ -26,21 +27,8 @@ class PlumeReachingDefPass(
     unchangedTypes.contains(typeFullName)
   }
 
-  private def withWriter[X](driver: IDriver)(f: PlumeParallelWriter => Unit): Unit = {
-    val writer       = new PlumeParallelWriter(driver, cpg)
-    val writerThread = new Thread(writer)
-    writerThread.setName("Writer")
-    writerThread.start()
-    try {
-      f(writer)
-    } catch {
-      case exception: Exception =>
-        baseLogger.warn("pass failed", exception)
-    } finally {
-      writer.enqueue(None, None)
-      writerThread.join()
-    }
-  }
+  private def withWriter[X](driver: IDriver)(f: PlumeParallelWriter => Unit): Unit =
+    parallelWithWriter(driver, f, cpg, baseLogger)
 
   private def enqueueInParallel(writer: PlumeParallelWriter): Unit = {
     withStartEndTimesLogged {
