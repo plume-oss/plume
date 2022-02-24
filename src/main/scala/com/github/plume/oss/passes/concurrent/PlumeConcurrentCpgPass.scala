@@ -1,9 +1,11 @@
 package com.github.plume.oss.passes.concurrent
 
 import com.github.plume.oss.drivers.IDriver
+import com.github.plume.oss.passes.concurrent.PlumeConcurrentCpgPass.concurrentCreateApply
 import io.shiftleft.codepropertygraph.Cpg
 import io.shiftleft.codepropertygraph.generated.nodes.AstNode
 import io.shiftleft.passes.{ConcurrentWriterCpgPass, DiffGraph}
+import org.slf4j.Logger
 
 import scala.collection.mutable
 import scala.concurrent.ExecutionContext.Implicits.global
@@ -21,6 +23,36 @@ abstract class PlumeConcurrentCpgPass[T <: AstNode](cpg: Cpg)
 
   def createApplySerializeAndStore(driver: IDriver): Unit = {
     import PlumeConcurrentCpgPass.producerQueueCapacity
+    concurrentCreateApply[T](
+      producerQueueCapacity,
+      driver,
+      name,
+      baseLogger,
+      _ => init(),
+      _ => generateParts(),
+      cpg,
+      (x: DiffGraph.Builder, y: T) => runOnPart(x, y),
+      _ => finish()
+    )
+  }
+
+  override def runOnPart(builder: DiffGraph.Builder, part: T): Unit
+}
+
+object PlumeConcurrentCpgPass {
+  private val producerQueueCapacity = 2 + 4 * Runtime.getRuntime.availableProcessors()
+
+  def concurrentCreateApply[T](
+      producerQueueCapacity: Long,
+      driver: IDriver,
+      name: String,
+      baseLogger: Logger,
+      init: Unit => Unit,
+      generateParts: Unit => Array[_ <: AstNode],
+      cpg: Cpg,
+      runOnPart: (DiffGraph.Builder, T) => Unit,
+      finish: Unit => Unit
+  ): Unit = {
     baseLogger.info(s"Start of enhancement: $name")
     val nanosStart = System.nanoTime()
     var nParts     = 0
@@ -70,10 +102,4 @@ abstract class PlumeConcurrentCpgPass[T <: AstNode](cpg: Cpg)
       )
     }
   }
-
-  override def runOnPart(builder: DiffGraph.Builder, part: T): Unit
-}
-
-object PlumeConcurrentCpgPass {
-  private val producerQueueCapacity = 2 + 4 * Runtime.getRuntime.availableProcessors()
 }

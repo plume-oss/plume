@@ -2,8 +2,15 @@ package com.github.plume.oss.passes.parallel
 
 import com.github.plume.oss.drivers.IDriver
 import com.github.plume.oss.passes.PlumeCpgPassBase
+import com.github.plume.oss.passes.parallel.PlumeParallelCpgPass.{
+  parallelEnqueue,
+  parallelWithWriter
+}
 import io.shiftleft.codepropertygraph.Cpg
-import io.shiftleft.passes.{KeyPool, ParallelCpgPass, ParallelIteratorExecutor}
+import io.shiftleft.passes.{DiffGraph, KeyPool, ParallelCpgPass, ParallelIteratorExecutor}
+import org.slf4j.Logger
+
+import scala.concurrent.ExecutionContext.Implicits.global
 
 abstract class PlumeParallelCpgPass[T](
     cpg: Cpg,
@@ -17,7 +24,31 @@ abstract class PlumeParallelCpgPass[T](
     }
   }
 
-  private def withWriter[X](driver: IDriver)(f: PlumeParallelWriter => Unit): Unit = {
+  private def withWriter[X](driver: IDriver)(f: PlumeParallelWriter => Unit): Unit =
+    parallelWithWriter[X](driver, f, cpg, baseLogger)
+
+  private def enqueueInParallel(writer: PlumeParallelWriter): Unit =
+    withStartEndTimesLogged {
+      init()
+      parallelEnqueue[T](
+        baseLogger,
+        name,
+        writer,
+        (part: T) => runOnPart(part),
+        keyPools,
+        partIterator
+      )
+    }
+
+}
+
+object PlumeParallelCpgPass {
+  def parallelWithWriter[X](
+      driver: IDriver,
+      f: PlumeParallelWriter => Unit,
+      cpg: Cpg,
+      baseLogger: Logger
+  ): Unit = {
     val writer       = new PlumeParallelWriter(driver, cpg)
     val writerThread = new Thread(writer)
     writerThread.setName("Writer")
@@ -33,22 +64,36 @@ abstract class PlumeParallelCpgPass[T](
     }
   }
 
-  private def enqueueInParallel(writer: PlumeParallelWriter): Unit = {
-    withStartEndTimesLogged {
-      try {
-        init()
-        val it = new ParallelIteratorExecutor(itWithKeyPools()).map { case (part, keyPool) =>
-          runOnPart(part).foreach(diffGraph => writer.enqueue(Some(diffGraph), keyPool))
-        }
-        consume(it)
-      } catch {
-        case exception: Exception =>
-          baseLogger.warn(s"Exception in parallel CPG pass $name:", exception)
+  def parallelEnqueue[T](
+      baseLogger: Logger,
+      name: String,
+      writer: PlumeParallelWriter,
+      runOnPart: T => Iterator[DiffGraph],
+      keyPools: Option[Iterator[KeyPool]],
+      partIterator: Iterator[T]
+  ): Unit = {
+    try {
+      val it = new ParallelIteratorExecutor(
+        parallelItWithKeyPools[T](
+          baseLogger,
+          keyPools,
+          partIterator
+        )
+      ).map { case (part, keyPool) =>
+        runOnPart(part).foreach(diffGraph => writer.enqueue(Some(diffGraph), keyPool))
       }
+      consume(it)
+    } catch {
+      case exception: Exception =>
+        baseLogger.warn(s"Exception in parallel CPG pass $name:", exception)
     }
   }
 
-  private def itWithKeyPools(): Iterator[(T, Option[KeyPool])] = {
+  def parallelItWithKeyPools[T](
+      baseLogger: Logger,
+      keyPools: Option[Iterator[KeyPool]],
+      partIterator: Iterator[T]
+  ): Iterator[(T, Option[KeyPool])] =
     if (keyPools.isEmpty) {
       partIterator.map(p => (p, None))
     } else {
@@ -65,7 +110,6 @@ abstract class PlumeParallelCpgPass[T](
         )
       }
     }
-  }
 
   private def consume(it: Iterator[_]): Unit = {
     while (it.hasNext) {
