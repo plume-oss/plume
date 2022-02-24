@@ -187,6 +187,7 @@ class Jimple2Cpg {
       }
     Scene.v().loadDynamicClasses()
     Scene.v().loadNecessaryClasses()
+    Scene.v().addBasicClass("soot.dummy.InvokeDynamic", SootClass.SIGNATURES)
   }
 
   private def basePasses(
