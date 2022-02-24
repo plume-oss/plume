@@ -1,7 +1,11 @@
 package com.github.plume.oss.passes.parallel
 
 import com.github.plume.oss.drivers.IDriver
-import com.github.plume.oss.passes.parallel.PlumeParallelCpgPass.parallelWithWriter
+import com.github.plume.oss.passes.parallel.PlumeParallelCpgPass.{
+  parallelEnqueue,
+  parallelItWithKeyPools,
+  parallelWithWriter
+}
 import com.github.plume.oss.passes.{IncrementalKeyPool, PlumeCpgPassBase}
 import io.shiftleft.codepropertygraph.Cpg
 import io.shiftleft.passes.{DiffGraph, KeyPool, ParallelIteratorExecutor}
@@ -41,46 +45,19 @@ class PlumeMethodStubCreator(
   }
 
   private def withWriter[X](driver: IDriver)(f: PlumeParallelWriter => Unit): Unit =
-    parallelWithWriter(driver, f, cpg, baseLogger)
+    parallelWithWriter[X](driver, f, cpg, baseLogger)
 
-  private def enqueueInParallel(writer: PlumeParallelWriter): Unit = {
+  private def enqueueInParallel(writer: PlumeParallelWriter): Unit =
     withStartEndTimesLogged {
-      try {
-        init()
-        val it = new ParallelIteratorExecutor(itWithKeyPools()).map { case (part, keyPool) =>
-          runOnPart(part).foreach(diffGraph => writer.enqueue(Some(diffGraph), keyPool))
-        }
-        consume(it)
-      } catch {
-        case exception: Exception =>
-          baseLogger.warn(s"Exception in parallel CPG pass $name:", exception)
-      }
+      init()
+      parallelEnqueue(
+        baseLogger,
+        name,
+        writer,
+        (x: (NameAndSignature, Int)) => runOnPart(x),
+        keyPools,
+        partIterator
+      )
     }
-  }
-
-  private def itWithKeyPools(): Iterator[((NameAndSignature, Int), Option[KeyPool])] = {
-    if (keyPools.isEmpty) {
-      partIterator.map(p => (p, None))
-    } else {
-      val pools = keyPools.get
-      partIterator.map { p =>
-        (
-          p,
-          pools.nextOption() match {
-            case Some(pool) => Some(pool)
-            case None =>
-              baseLogger.warn("Not enough key pools provided. Ids may not be constant across runs")
-              None
-          }
-        )
-      }
-    }
-  }
-
-  private def consume(it: Iterator[_]): Unit = {
-    while (it.hasNext) {
-      it.next()
-    }
-  }
 
 }

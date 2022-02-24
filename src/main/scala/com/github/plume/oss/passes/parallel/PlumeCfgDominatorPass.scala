@@ -23,10 +23,10 @@ class PlumeCfgDominatorPass(cpg: Cpg, keyPools: Option[Iterator[KeyPool]] = None
 
   private def enqueueInParallel(writer: PlumeParallelWriter): Unit =
     withStartEndTimesLogged {
+      init()
       parallelEnqueue[Method](
         baseLogger,
         name,
-        _ => init(),
         writer,
         (part: Method) => runOnPart(part),
         keyPools,

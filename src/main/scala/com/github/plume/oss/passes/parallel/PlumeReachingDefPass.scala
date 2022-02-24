@@ -32,10 +32,10 @@ class PlumeReachingDefPass(
 
   private def enqueueInParallel(writer: PlumeParallelWriter): Unit =
     withStartEndTimesLogged {
+      init()
       parallelEnqueue[Method](
         baseLogger,
         name,
-        _ => init(),
         writer,
         (part: Method) => runOnPart(part),
         keyPools,

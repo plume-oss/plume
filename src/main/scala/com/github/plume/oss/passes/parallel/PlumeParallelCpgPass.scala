@@ -26,10 +26,10 @@ abstract class PlumeParallelCpgPass[T](
 
   private def enqueueInParallel(writer: PlumeParallelWriter): Unit =
     withStartEndTimesLogged {
+      init()
       parallelEnqueue[T](
         baseLogger,
         name,
-        _ => init(),
         writer,
         (part: T) => runOnPart(part),
         keyPools,
@@ -64,14 +64,12 @@ object PlumeParallelCpgPass {
   def parallelEnqueue[T](
       baseLogger: Logger,
       name: String,
-      init: Unit => Unit,
       writer: PlumeParallelWriter,
       runOnPart: T => Iterator[DiffGraph],
       keyPools: Option[Iterator[KeyPool]],
       partIterator: Iterator[T]
   ): Unit = {
     try {
-      init()
       val it = new ParallelIteratorExecutor(
         parallelItWithKeyPools[T](
           baseLogger,
@@ -88,7 +86,7 @@ object PlumeParallelCpgPass {
     }
   }
 
-  private def parallelItWithKeyPools[T](
+  def parallelItWithKeyPools[T](
       baseLogger: Logger,
       keyPools: Option[Iterator[KeyPool]],
       partIterator: Iterator[T]
