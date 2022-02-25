@@ -7,6 +7,14 @@ and this project adheres to [Semantic Versioning](http://semver.org/).
 
 ## [Unreleased]
 
+### Fixed
+
+- Issue in `TigerGraphDriver` where HTTP client would timeout.
+
+### Changed
+
+- Using an explicit `GRAPHBINARY_V1D0` serializer for `NeptuneDriver` queries.
+
 ## [1.0.15] - 2022-02-24
 
 ### Added
