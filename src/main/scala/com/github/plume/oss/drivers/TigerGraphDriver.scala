@@ -307,11 +307,7 @@ final class TigerGraphDriver(
     }
   }
 
-  override def staticCallLinker(): Unit = {
-    println("Before static call linker")
-    get("query/cpg/static_call_linker")
-    println("After static call linker")
-  }
+  override def staticCallLinker(): Unit = get("query/cpg/static_call_linker")
 
   override def dynamicCallLinker(): Unit = {}
 
