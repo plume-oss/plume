@@ -7,6 +7,7 @@ import io.circe.generic.semiauto.deriveDecoder
 import io.circe.{Decoder, jawn}
 import org.apache.tinkerpop.gremlin.driver.Cluster
 import org.apache.tinkerpop.gremlin.driver.remote.DriverRemoteConnection
+import org.apache.tinkerpop.gremlin.driver.ser.Serializers
 import org.apache.tinkerpop.gremlin.process.traversal.AnonymousTraversalSource
 import org.apache.tinkerpop.gremlin.process.traversal.dsl.graph.GraphTraversalSource
 import org.slf4j.{Logger, LoggerFactory}
@@ -44,6 +45,9 @@ final class NeptuneDriver(
         .addContactPoints(hostname)
         .port(port)
         .enableSsl(true)
+        .maxInProcessPerConnection(32)
+        .maxSimultaneousUsagePerConnection(32)
+        .serializer(Serializers.GRAPHBINARY_V1D0)
         .keyCertChainFile(keyCertChainFile)
         .create()
     }
