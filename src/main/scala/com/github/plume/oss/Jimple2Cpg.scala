@@ -112,52 +112,56 @@ class Jimple2Cpg {
 
         // Load classes into Soot
         loadClassesIntoSoot(sourceFileNames)
-        if (!sootOnlyBuild) {
-          val codeToProcess = new PlumeDiffPass(sourceFileNames, driver).createAndApply()
+        if (sootOnlyBuild) return cpg
+        val codeToProcess = new PlumeDiffPass(sourceFileNames, driver).createAndApply()
 
+        if (codeToProcess.isEmpty) {
+          logger.info("No files have changed since last update. Exiting...")
+          return cpg
+        } else {
           logger.info(s"Processing ${codeToProcess.size} new or changed program files")
           logger.debug(s"Files to process are: $sourceFileNames")
-
-          // After the diff pass any changed types are removed. Remaining types should be black listed to avoid duplicates
-          val unchangedTypes = driver
-            .propertyFromNodes(NodeTypes.TYPE_DECL, PropertyNames.FULL_NAME)
-            .flatMap(_.get(PropertyNames.FULL_NAME))
-            .map(_.toString)
-            .toSet[String]
-          val unchangedNamespaces = driver
-            .propertyFromNodes(NodeTypes.NAMESPACE_BLOCK, PropertyNames.NAME)
-            .flatMap(_.get(PropertyNames.NAME))
-            .map(_.toString)
-            .toSet[String]
-
-          new PlumeMetaDataPass(cpg, language, Some(metaDataKeyPool), unchangedTypes)
-            .createAndApply(driver)
-
-          // Project Soot classes
-          val astCreator = new AstCreationPass(codeToProcess.toList, cpg, methodKeyPool)
-          astCreator.createAndApply(driver)
-          // Clear classes from Soot
-          G.reset()
-          new PlumeTypeNodePass(
-            astCreator.global.usedTypes.asScala.toList,
-            cpg,
-            Some(typesKeyPool),
-            unchangedTypes
-          ).createAndApply(driver)
-
-          basePasses(cpg, driver, unchangedTypes, unchangedNamespaces).foreach(
-            _.createAndApply(driver)
-          )
-          controlFlowPasses(cpg).foreach(_.createAndApply(driver))
-          new PlumeReachingDefPass(cpg, unchangedTypes = unchangedTypes).createAndApply(driver)
-          new PlumeHashPass(cpg).createAndApply(driver)
-          driver match {
-            case x: OverflowDbDriver => x.removeExpiredPathsFromCache(unchangedTypes)
-            case _                   =>
-          }
-
-          driver.buildInterproceduralEdges()
         }
+
+        // After the diff pass any changed types are removed. Remaining types should be black listed to avoid duplicates
+        val unchangedTypes = driver
+          .propertyFromNodes(NodeTypes.TYPE_DECL, PropertyNames.FULL_NAME)
+          .flatMap(_.get(PropertyNames.FULL_NAME))
+          .map(_.toString)
+          .toSet[String]
+        val unchangedNamespaces = driver
+          .propertyFromNodes(NodeTypes.NAMESPACE_BLOCK, PropertyNames.NAME)
+          .flatMap(_.get(PropertyNames.NAME))
+          .map(_.toString)
+          .toSet[String]
+
+        new PlumeMetaDataPass(cpg, language, Some(metaDataKeyPool), unchangedTypes)
+          .createAndApply(driver)
+
+        // Project Soot classes
+        val astCreator = new AstCreationPass(codeToProcess.toList, cpg, methodKeyPool)
+        astCreator.createAndApply(driver)
+        // Clear classes from Soot
+        G.reset()
+        new PlumeTypeNodePass(
+          astCreator.global.usedTypes.asScala.toList,
+          cpg,
+          Some(typesKeyPool),
+          unchangedTypes
+        ).createAndApply(driver)
+
+        basePasses(cpg, driver, unchangedTypes, unchangedNamespaces).foreach(
+          _.createAndApply(driver)
+        )
+        controlFlowPasses(cpg).foreach(_.createAndApply(driver))
+        new PlumeReachingDefPass(cpg, unchangedTypes = unchangedTypes).createAndApply(driver)
+        new PlumeHashPass(cpg).createAndApply(driver)
+        driver match {
+          case x: OverflowDbDriver => x.removeExpiredPathsFromCache(unchangedTypes)
+          case _                   =>
+        }
+
+        driver.buildInterproceduralEdges()
         cpg
       } finally {
         clean()
