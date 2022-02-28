@@ -68,8 +68,9 @@ final class NeptuneDriver(
 
   override def clear(): Unit = {
     g().V().count().next() match {
-      case noVs if noVs == 0L => // do nothing
+      case noVs if noVs == 0L => println("Clear is on do nothing step")// do nothing
       case noVs if noVs < 10000L =>
+        println("Clear is on < 10000L step")
         var deleted = 0L
         val step    = 100
         while (deleted < noVs) {
@@ -77,46 +78,57 @@ final class NeptuneDriver(
           deleted += step
         }
       case _ =>
+        println("Clear is on other step")
         cluster.close()
+        println("Cluster closed")
         val systemUri =
           Uri("https", hostname, port)
             .addPath(Seq("system"))
+        println(s"HTTPS requests to ${systemUri.toString()} initiate reset")
         val initResetResponse = Http(systemUri.toString())
           .postForm(Seq("action" -> "initiateDatabaseReset"))
-          .option(HttpOptions.readTimeout(10000))
+          .option(HttpOptions.readTimeout(80000))
           .asString
         val token: String = jawn.decode[InitiateResetResponse](initResetResponse.body) match {
           case Left(e) =>
+            e.printStackTrace()
             throw new RuntimeException(s"Unable to initiate database reset! $e")
           case Right(resetResponse: InitiateResetResponse) => resetResponse.payload.token
         }
+        println(s"Database reset token $token, performing reset")
         val performResetResponse = Http(systemUri.toString())
           .postForm(Seq("action" -> "performDatabaseReset", "token" -> token))
-          .option(HttpOptions.readTimeout(10000))
+          .option(HttpOptions.readTimeout(80000))
           .asString
         jawn.decode[PerformResetResponse](performResetResponse.body) match {
           case Left(e) =>
+            e.printStackTrace()
             logger.error("Unable to perform database reset!")
             throw e
           case Right(resetResponse) =>
-            if (!resetResponse.status.contains("200"))
+            if (!resetResponse.status.contains("200")) {
+              println(s"Error, $resetResponse")
               throw new RuntimeException("Unable to perform database reset!")
+            }
+
             val statusUri = Uri("https", hostname, port).addPath(Seq("status"))
             Iterator
-              .continually(
+              .continually({
+                println(s"Asking for status")
                 jawn.decode[InstanceStatusResponse](
                   Http(statusUri.toString())
-                    .option(HttpOptions.readTimeout(10000))
+                    .option(HttpOptions.readTimeout(80000))
                     .asString
                     .body
-                )
+              )}
               )
               .takeWhile {
-                case Left(e)         => logger.warn("Unable to obtain instance status", e); true
+                case Left(e)         => e.printStackTrace(); logger.warn("Unable to obtain instance status", e); true
                 case Right(response) => response.status != "healthy"
               }
               .foreach(_ => Thread.sleep(5000))
         }
+        println("reset complete, connecting to cluster")
         cluster = connectToCluster
     }
   }
