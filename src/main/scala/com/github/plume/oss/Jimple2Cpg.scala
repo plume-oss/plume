@@ -88,12 +88,12 @@ class Jimple2Cpg {
         val cpg = newEmptyCpg(outputPath)
 
         val metaDataKeyPool = new IncrementalKeyPool(1, 100, driver.idInterval(1, 100))
-        val typesKeyPool    = new IncrementalKeyPool(101, 1000100, driver.idInterval(101, 1000100))
+        val typesKeyPool    = new IncrementalKeyPool(101, 2_000_100, driver.idInterval(101, 2_000_100))
         val methodKeyPool =
           new IncrementalKeyPool(
-            20001001,
+            30_001_001,
             Long.MaxValue,
-            driver.idInterval(20001001, Long.MaxValue)
+            driver.idInterval(30_001_001, Long.MaxValue)
           )
 
         val sourceFileExtensions  = Set(".class", ".jimple")
@@ -112,53 +112,59 @@ class Jimple2Cpg {
 
         // Load classes into Soot
         loadClassesIntoSoot(sourceFileNames)
-        if (!sootOnlyBuild) {
-          val codeToProcess = new PlumeDiffPass(sourceFileNames, driver).createAndApply()
+        if (sootOnlyBuild) return cpg
+        val codeToProcess = new PlumeDiffPass(sourceFileNames, driver).createAndApply()
 
+        if (codeToProcess.isEmpty) {
+          logger.info("No files have changed since last update. Exiting...")
+          return cpg
+        } else {
           logger.info(s"Processing ${codeToProcess.size} new or changed program files")
           logger.debug(s"Files to process are: $sourceFileNames")
-
-          // After the diff pass any changed types are removed. Remaining types should be black listed to avoid duplicates
-          val unchangedTypes = driver
-            .propertyFromNodes(NodeTypes.TYPE_DECL, PropertyNames.FULL_NAME)
-            .flatMap(_.get(PropertyNames.FULL_NAME))
-            .map(_.toString)
-            .toSet[String]
-          val unchangedNamespaces = driver
-            .propertyFromNodes(NodeTypes.NAMESPACE_BLOCK, PropertyNames.NAME)
-            .flatMap(_.get(PropertyNames.NAME))
-            .map(_.toString)
-            .toSet[String]
-
-          new PlumeMetaDataPass(cpg, language, Some(metaDataKeyPool), unchangedTypes)
-            .createAndApply(driver)
-
-          // Project Soot classes
-          val astCreator = new AstCreationPass(codeToProcess.toList, cpg, methodKeyPool)
-          astCreator.createAndApply(driver)
-          // Clear classes from Soot
-          G.reset()
-          new PlumeTypeNodePass(
-            astCreator.global.usedTypes.asScala.toList,
-            cpg,
-            Some(typesKeyPool),
-            unchangedTypes
-          ).createAndApply(driver)
-
-          basePasses(cpg, driver, unchangedTypes, unchangedNamespaces).foreach(
-            _.createAndApply(driver)
-          )
-          controlFlowPasses(cpg).foreach(_.createAndApply(driver))
-          new PlumeReachingDefPass(cpg, unchangedTypes = unchangedTypes).createAndApply(driver)
-          new PlumeHashPass(cpg).createAndApply(driver)
-          driver match {
-            case x: OverflowDbDriver => x.removeExpiredPathsFromCache(unchangedTypes)
-            case _                   =>
-          }
-
-          driver.buildInterproceduralEdges()
         }
+
+        // After the diff pass any changed types are removed. Remaining types should be black listed to avoid duplicates
+        val unchangedTypes = driver
+          .propertyFromNodes(NodeTypes.TYPE_DECL, PropertyNames.FULL_NAME)
+          .flatMap(_.get(PropertyNames.FULL_NAME))
+          .map(_.toString)
+          .toSet[String]
+        val unchangedNamespaces = driver
+          .propertyFromNodes(NodeTypes.NAMESPACE_BLOCK, PropertyNames.NAME)
+          .flatMap(_.get(PropertyNames.NAME))
+          .map(_.toString)
+          .toSet[String]
+
+        new PlumeMetaDataPass(cpg, language, Some(metaDataKeyPool), unchangedTypes)
+          .createAndApply(driver)
+
+        // Project Soot classes
+        val astCreator = new AstCreationPass(codeToProcess.toList, cpg, methodKeyPool)
+        astCreator.createAndApply(driver)
+        // Clear classes from Soot
+        G.reset()
+        new PlumeTypeNodePass(
+          astCreator.global.usedTypes.asScala.toList,
+          cpg,
+          Some(typesKeyPool),
+          unchangedTypes
+        ).createAndApply(driver)
+
+        basePasses(cpg, driver, unchangedTypes, unchangedNamespaces).foreach(
+          _.createAndApply(driver)
+        )
+        controlFlowPasses(cpg).foreach(_.createAndApply(driver))
+        new PlumeReachingDefPass(cpg, unchangedTypes = unchangedTypes).createAndApply(driver)
+        new PlumeHashPass(cpg).createAndApply(driver)
+        driver match {
+          case x: OverflowDbDriver => x.removeExpiredPathsFromCache(unchangedTypes)
+          case _                   =>
+        }
+
+        driver.buildInterproceduralEdges()
         cpg
+      } catch {
+        case e: Exception => e.printStackTrace(); throw e;
       } finally {
         clean()
       }
@@ -197,15 +203,15 @@ class Jimple2Cpg {
       nBlacklist: Set[String]
   ): Seq[PlumeCpgPassBase] = {
     val namespaceKeyPool =
-      new IncrementalKeyPool(1000101, 2000200, driver.idInterval(1000101, 2000200))
+      new IncrementalKeyPool(1_000_101, 2_000_200, driver.idInterval(1_000_101, 2_000_200))
     val filesKeyPool =
-      new IncrementalKeyPool(2000201, 3000200, driver.idInterval(2000201, 3000200))
+      new IncrementalKeyPool(2_000_201, 3_000_200, driver.idInterval(2_000_201, 3_000_200))
     val typeDeclKeyPool =
-      new IncrementalKeyPool(3000201, 4000200, driver.idInterval(3000201, 4000200))
+      new IncrementalKeyPool(3_000_201, 4_000_200, driver.idInterval(3_000_201, 4_000_200))
     val methodStubKeyPool =
-      new IncrementalKeyPool(4000101, 10001000, driver.idInterval(4000101, 10001000))
+      new IncrementalKeyPool(4_000_101, 10_001_000, driver.idInterval(4_000_101, 10_001_000))
     val methodDecoratorKeyPool =
-      new IncrementalKeyPool(10001001, 20001000, driver.idInterval(10001001, 20001000))
+      new IncrementalKeyPool(10_001_001, 30_001_000, driver.idInterval(10_001_001, 30_001_000))
     Seq(
       new PlumeFileCreationPass(cpg, Some(filesKeyPool)),
       new PlumeNamespaceCreator(cpg, Some(namespaceKeyPool), nBlacklist),

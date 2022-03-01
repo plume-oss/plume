@@ -7,6 +7,7 @@ import io.circe.generic.semiauto.deriveDecoder
 import io.circe.{Decoder, jawn}
 import org.apache.tinkerpop.gremlin.driver.Cluster
 import org.apache.tinkerpop.gremlin.driver.remote.DriverRemoteConnection
+import org.apache.tinkerpop.gremlin.driver.ser.Serializers
 import org.apache.tinkerpop.gremlin.process.traversal.AnonymousTraversalSource
 import org.apache.tinkerpop.gremlin.process.traversal.dsl.graph.GraphTraversalSource
 import org.slf4j.{Logger, LoggerFactory}
@@ -14,6 +15,7 @@ import scalaj.http.{Http, HttpOptions}
 import sttp.model.Uri
 
 import scala.jdk.CollectionConverters.CollectionHasAsScala
+import scala.util.{Failure, Success, Try}
 
 final class NeptuneDriver(
     hostname: String,
@@ -44,6 +46,9 @@ final class NeptuneDriver(
         .addContactPoints(hostname)
         .port(port)
         .enableSsl(true)
+        .maxInProcessPerConnection(32)
+        .maxSimultaneousUsagePerConnection(32)
+        .serializer(Serializers.GRAPHBINARY_V1D0)
         .keyCertChainFile(keyCertChainFile)
         .create()
     }
@@ -77,42 +82,54 @@ final class NeptuneDriver(
         val systemUri =
           Uri("https", hostname, port)
             .addPath(Seq("system"))
+        logger.info("Initiating database reset...")
         val initResetResponse = Http(systemUri.toString())
           .postForm(Seq("action" -> "initiateDatabaseReset"))
-          .option(HttpOptions.readTimeout(10000))
+          .option(HttpOptions.readTimeout(80000))
           .asString
         val token: String = jawn.decode[InitiateResetResponse](initResetResponse.body) match {
           case Left(e) =>
+            e.printStackTrace()
             throw new RuntimeException(s"Unable to initiate database reset! $e")
           case Right(resetResponse: InitiateResetResponse) => resetResponse.payload.token
         }
+        logger.info("Reset token acquired, performing database reset...")
         val performResetResponse = Http(systemUri.toString())
           .postForm(Seq("action" -> "performDatabaseReset", "token" -> token))
-          .option(HttpOptions.readTimeout(10000))
+          .option(HttpOptions.readTimeout(80000))
           .asString
         jawn.decode[PerformResetResponse](performResetResponse.body) match {
           case Left(e) =>
-            logger.error("Unable to perform database reset!")
+            logger.error("Unable to perform database reset!", e)
             throw e
           case Right(resetResponse) =>
-            if (!resetResponse.status.contains("200"))
-              throw new RuntimeException("Unable to perform database reset!")
+            if (!resetResponse.status.contains("200")) {
+              throw new RuntimeException(s"Unable to perform database reset! $resetResponse")
+            }
+
             val statusUri = Uri("https", hostname, port).addPath(Seq("status"))
             Iterator
               .continually(
-                jawn.decode[InstanceStatusResponse](
-                  Http(statusUri.toString())
-                    .option(HttpOptions.readTimeout(10000))
-                    .asString
-                    .body
-                )
+                Try(
+                  jawn.decode[InstanceStatusResponse](
+                    Http(statusUri.toString())
+                      .option(HttpOptions.readTimeout(80000))
+                      .asString
+                      .body
+                  )
+                ) match {
+                  case Failure(exception) => Left(exception)
+                  case Success(value)     => value
+                }
               )
               .takeWhile {
-                case Left(e)         => logger.warn("Unable to obtain instance status", e); true
+                case Left(e) =>
+                  e.printStackTrace(); logger.warn("Unable to obtain instance status", e); true
                 case Right(response) => response.status != "healthy"
               }
               .foreach(_ => Thread.sleep(5000))
         }
+        logger.info("Database reset complete, re-connecting to cluster.")
         cluster = connectToCluster
     }
   }

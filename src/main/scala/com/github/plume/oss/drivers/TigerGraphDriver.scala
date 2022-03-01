@@ -18,8 +18,9 @@ import sttp.model.{MediaType, Uri}
 import java.io.{ByteArrayOutputStream, IOException, PrintStream}
 import java.security.Permission
 import scala.collection.mutable
+import scala.concurrent.duration.{Duration, DurationInt}
 import scala.jdk.CollectionConverters.CollectionHasAsScala
-import scala.util.Try
+import scala.util.{Failure, Success, Try}
 
 /** The driver used to communicate to a remote TigerGraph instance. One must build a schema on the first use of the database.
   */
@@ -30,16 +31,17 @@ final class TigerGraphDriver(
     username: String = DEFAULT_USERNAME,
     password: String = DEFAULT_PASSWORD,
     timeout: Int = DEFAULT_TIMEOUT,
-    secure: Boolean = false,
+    scheme: String = "http",
     txMax: Int = DEFAULT_TX_MAX,
     authKey: String = ""
 ) extends IDriver
     with ISchemaSafeDriver {
 
-  private val logger                              = LoggerFactory.getLogger(classOf[TigerGraphDriver])
-  private val scheme                              = if (secure) "https" else "http"
-  private val api                                 = Uri(scheme, hostname, restPpPort)
-  private val backend: SttpBackend[Identity, Any] = HttpURLConnectionBackend()
+  private val logger = LoggerFactory.getLogger(classOf[TigerGraphDriver])
+  private val api    = Uri(scheme, hostname, restPpPort)
+  private val backend: SttpBackend[Identity, Any] = HttpURLConnectionBackend(
+    SttpBackendOptions.connectionTimeout(timeout.milliseconds)
+  )
 
   implicit val payloadEncoder: Encoder[PayloadBody] =
     Encoder.forProduct2("vertices", "edges")(u => (u.vertices, u.edges))
@@ -358,6 +360,7 @@ final class TigerGraphDriver(
   }
 
   private def unpackUnboxingException(e: ResponseException[String, circe.Error]): Exception = {
+    e.printStackTrace()
     e match {
       case HttpError(body, statusCode) =>
         logger.error(s"HTTP Error $statusCode: $body")
@@ -373,11 +376,16 @@ final class TigerGraphDriver(
       params: Seq[(String, String)]
   ): Seq[Json] = {
     val uri = buildUri(endpoint).addParams(params: _*)
-    val response = request()
-      .get(uri)
-      .response(asJson[TigerGraphResponse])
-      .send(backend)
-    unboxResponse(response)
+    Try(
+      request()
+        .get(uri)
+        .readTimeout(Duration.Inf)
+        .response(asJson[TigerGraphResponse])
+        .send(backend)
+    ) match {
+      case Failure(e)        => logger.error(s"HTTP GET Request error.", e); throw e
+      case Success(response) => unboxResponse(response)
+    }
   }
 
   private def get(
@@ -385,11 +393,16 @@ final class TigerGraphDriver(
       params: Map[String, Any] = Map.empty[String, Any]
   ): Seq[Json] = {
     val uri = buildUri(endpoint, params)
-    val response = request()
-      .get(uri)
-      .response(asJson[TigerGraphResponse])
-      .send(backend)
-    unboxResponse(response)
+    Try(
+      request()
+        .get(uri)
+        .readTimeout(Duration.Inf)
+        .response(asJson[TigerGraphResponse])
+        .send(backend)
+    ) match {
+      case Failure(e)        => logger.error(s"HTTP GET Request error.", e); throw e
+      case Success(response) => unboxResponse(response)
+    }
   }
 
   private def post(endpoint: String, payload: PayloadBody): Seq[Json] = {

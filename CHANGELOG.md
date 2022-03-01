@@ -7,6 +7,20 @@ and this project adheres to [Semantic Versioning](http://semver.org/).
 
 ## [Unreleased]
 
+### Added
+
+- More logging to the `clear` method in `NeptuneDriver`.
+
+### Fixed
+
+- Issue in `TigerGraphDriver` where HTTP client would timeout.
+- Removed `slf4j.simple` from build that goes into JAR.
+
+### Changed
+
+- Using an explicit `GRAPHBINARY_V1D0` serializer for `NeptuneDriver` queries.
+- Catching HTTP request failure when checking for node status in `NeptuneDriver`.
+
 ## [1.0.15] - 2022-02-24
 
 ### Added

@@ -12,7 +12,7 @@ class IncrementalKeyPool(val first: Long, val last: Long, private val usedIds: S
       throw new IllegalStateException("Call to `next` on invalidated IncrementalKeyPool.")
     }
     var n = cur.incrementAndGet()
-    while (n < last) {
+    while (n <= last) {
       if (!usedIds.contains(n)) return n
       else n = cur.incrementAndGet()
     }
