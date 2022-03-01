@@ -24,7 +24,7 @@ val sttpVersion        = "3.4.1"
 val jacksonVersion     = "2.13.1"
 val scalajHttpVersion  = "2.4.2"
 val lz4Version         = "1.8.0"
-val slf4jVersion       = "1.7.35"
+val slf4jVersion       = "1.7.36"
 val scalatestVersion   = "3.2.9"
 val circeVersion       = "0.14.1"
 
