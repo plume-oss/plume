@@ -25,6 +25,7 @@ val jacksonVersion     = "2.13.1"
 val scalajHttpVersion  = "2.4.2"
 val lz4Version         = "1.8.0"
 val slf4jVersion       = "1.7.36"
+val logbackVersion     = "1.2.10"
 val scalatestVersion   = "3.2.9"
 val circeVersion       = "0.14.1"
 
@@ -53,8 +54,8 @@ libraryDependencies ++= Seq(
   "org.scalaj"                     % "scalaj-http_2.13"     % scalajHttpVersion,
   "org.lz4"                        % "lz4-java"             % lz4Version,
   "org.slf4j"                      % "slf4j-api"            % slf4jVersion,
-  "org.slf4j"                      % "slf4j-simple"         % slf4jVersion,
   "org.scala-lang"                 % "scala-reflect"        % scalaVersion.value,
+  "ch.qos.logback"                 % "logback-classic"      % logbackVersion   % Test,
   "org.scalatest"                 %% "scalatest"            % scalatestVersion % Test
 ) ++ Seq(
   "io.circe" %% "circe-core",
