@@ -88,12 +88,12 @@ class Jimple2Cpg {
         val cpg = newEmptyCpg(outputPath)
 
         val metaDataKeyPool = new IncrementalKeyPool(1, 100, driver.idInterval(1, 100))
-        val typesKeyPool    = new IncrementalKeyPool(101, 1000100, driver.idInterval(101, 1000100))
+        val typesKeyPool    = new IncrementalKeyPool(101, 2_000_100, driver.idInterval(101, 2_000_100))
         val methodKeyPool =
           new IncrementalKeyPool(
-            20001001,
+            30_001_001,
             Long.MaxValue,
-            driver.idInterval(20001001, Long.MaxValue)
+            driver.idInterval(30_001_001, Long.MaxValue)
           )
 
         val sourceFileExtensions  = Set(".class", ".jimple")
@@ -163,6 +163,8 @@ class Jimple2Cpg {
 
         driver.buildInterproceduralEdges()
         cpg
+      } catch {
+        case e: Exception => e.printStackTrace(); throw e;
       } finally {
         clean()
       }
@@ -201,15 +203,15 @@ class Jimple2Cpg {
       nBlacklist: Set[String]
   ): Seq[PlumeCpgPassBase] = {
     val namespaceKeyPool =
-      new IncrementalKeyPool(1000101, 2000200, driver.idInterval(1000101, 2000200))
+      new IncrementalKeyPool(1_000_101, 2_000_200, driver.idInterval(1_000_101, 2_000_200))
     val filesKeyPool =
-      new IncrementalKeyPool(2000201, 3000200, driver.idInterval(2000201, 3000200))
+      new IncrementalKeyPool(2_000_201, 3_000_200, driver.idInterval(2_000_201, 3_000_200))
     val typeDeclKeyPool =
-      new IncrementalKeyPool(3000201, 4000200, driver.idInterval(3000201, 4000200))
+      new IncrementalKeyPool(3_000_201, 4_000_200, driver.idInterval(3_000_201, 4_000_200))
     val methodStubKeyPool =
-      new IncrementalKeyPool(4000101, 10001000, driver.idInterval(4000101, 10001000))
+      new IncrementalKeyPool(4_000_101, 10_001_000, driver.idInterval(4_000_101, 10_001_000))
     val methodDecoratorKeyPool =
-      new IncrementalKeyPool(10001001, 20001000, driver.idInterval(10001001, 20001000))
+      new IncrementalKeyPool(10_001_001, 30_001_000, driver.idInterval(10_001_001, 30_001_000))
     Seq(
       new PlumeFileCreationPass(cpg, Some(filesKeyPool)),
       new PlumeNamespaceCreator(cpg, Some(namespaceKeyPool), nBlacklist),

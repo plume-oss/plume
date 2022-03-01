@@ -45,7 +45,7 @@ class PlumeDiffPass(filenames: List[String], driver: IDriver) {
       .map(_.getAbsolutePath)
       .toSeq
     if (changedFiles.nonEmpty) {
-      logger.info(s"Detected changes in the following files: ${changedFiles.mkString(", ")}")
+      logger.debug(s"Detected changes in the following files: ${changedFiles.mkString(", ")}")
       driver.removeSourceFiles(changedFiles: _*)
     }
     val newFiles = partIterator
