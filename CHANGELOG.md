@@ -7,6 +7,8 @@ and this project adheres to [Semantic Versioning](http://semver.org/).
 
 ## [Unreleased]
 
+## [1.0.16] - 2022-03-01
+
 ### Added
 
 - More logging to the `clear` method in `NeptuneDriver`.
