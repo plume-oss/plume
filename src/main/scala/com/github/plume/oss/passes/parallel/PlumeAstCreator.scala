@@ -378,7 +378,7 @@ class PlumeAstCreator(filename: String, global: Global) {
   }
 
   private def astForInvokeExpr(invokeExpr: InvokeExpr, order: Int, parentUnit: soot.Unit): Ast = {
-    val method = invokeExpr.getMethod
+    val method = invokeExpr.getMethodRef
     val dispatchType = invokeExpr match {
       case _ if method.isConstructor => DispatchTypes.STATIC_DISPATCH
       case _: DynamicInvokeExpr      => DispatchTypes.DYNAMIC_DISPATCH
@@ -386,7 +386,7 @@ class PlumeAstCreator(filename: String, global: Global) {
       case _                         => DispatchTypes.STATIC_DISPATCH
     }
     val signature =
-      s"${method.getReturnType.toQuotedString}(${(for (i <- 0 until method.getParameterCount)
+      s"${method.getReturnType.toQuotedString}(${(for (i <- 0 until method.getParameterTypes().size())
         yield method.getParameterType(i).toQuotedString).mkString(",")})"
     val thisAsts = Seq(createThisNode(method, NewIdentifier()))
 
@@ -506,7 +506,10 @@ class PlumeAstCreator(filename: String, global: Global) {
     )
   }
 
-  private def createThisNode(method: SootMethod, builder: NewNode): Ast = {
+  private def createThisNode(method: SootMethod, builder: NewNode): Ast =
+    createThisNode(method.makeRef(), builder)
+
+  private def createThisNode(method: SootMethodRef, builder: NewNode): Ast = {
     if (!method.isStatic || method.isConstructor) {
       val parentType = registerType(method.getDeclaringClass.getType.toQuotedString)
       Ast(
@@ -521,7 +524,7 @@ class PlumeAstCreator(filename: String, global: Global) {
           case x: NewMethodParameterIn =>
             x.name("this")
               .code("this")
-              .lineNumber(line(method))
+              .lineNumber(line(method.tryResolve()))
               .typeFullName(parentType)
               .order(0)
               .evaluationStrategy(EvaluationStrategies.BY_SHARING)
@@ -911,11 +914,15 @@ class PlumeAstCreator(filename: String, global: Global) {
 
 object PlumeAstCreator {
   def line(node: Host): Option[Integer] = {
-    Option(node.getJavaSourceStartLineNumber)
+    if (node == null) None
+    else if (node.getJavaSourceStartLineNumber == -1) None
+    else Option(node.getJavaSourceStartLineNumber)
   }
 
   def column(node: Host): Option[Integer] = {
-    Option(node.getJavaSourceStartColumnNumber)
+    if (node == null) None
+    else if (node.getJavaSourceStartColumnNumber == -1) None
+    else Option(node.getJavaSourceStartColumnNumber)
   }
 
   def withOrder[T, X](nodeList: java.util.List[T])(f: (T, Int) => X): Seq[X] = {
