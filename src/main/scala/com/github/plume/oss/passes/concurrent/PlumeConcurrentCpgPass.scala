@@ -100,12 +100,10 @@ object PlumeConcurrentCpgPass {
           }
         }
       } finally {
-        try {
-          if (writer.raisedException == null) writer.queue.put(None)
-          writerThread.join()
-          if (writer.raisedException != null)
-            throw new RuntimeException("Failure in diffgraph application", writer.raisedException)
-        }
+        if (writer.raisedException == null) writer.queue.put(None)
+        writerThread.join()
+        if (writer.raisedException != null)
+          throw new RuntimeException("Failure in diffgraph application", writer.raisedException)
       }
     } finally {
       val nanosStop = System.nanoTime()

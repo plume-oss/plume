@@ -208,8 +208,9 @@ final case class OverflowDbDriver(
             }
           case None =>
         }
-      case c: BatchedUpdate.RemoveNode      =>
+      case c: BatchedUpdate.RemoveNode => cpg.graph.node(c.node.id()).remove()
       case c: BatchedUpdate.SetNodeProperty =>
+        cpg.graph.node(c.node.id()).setProperty(c.label, c.value)
     }
   }
 
