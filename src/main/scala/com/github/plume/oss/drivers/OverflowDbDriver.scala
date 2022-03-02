@@ -16,11 +16,13 @@ import io.shiftleft.codepropertygraph.generated._
 import io.shiftleft.codepropertygraph.generated.nodes._
 import io.shiftleft.codepropertygraph.{Cpg => CPG}
 import io.shiftleft.passes.AppliedDiffGraph
+import io.shiftleft.passes.DiffGraph.Change.CreateEdge
 import io.shiftleft.passes.DiffGraph.{Change, PackedProperties}
 import org.slf4j.LoggerFactory
 import overflowdb.BatchedUpdate.AppliedDiff
 import overflowdb.traversal.{Traversal, jIteratortoTraversal}
-import overflowdb.{Config, Node}
+import overflowdb.util.PropertyHelper
+import overflowdb.{BatchedUpdate, Config, Node}
 
 import java.io.{File => JFile}
 import java.nio.file.{Files, Path, Paths}
@@ -161,12 +163,12 @@ final case class OverflowDbDriver(
       case Change.RemoveNode(nodeId) =>
         cpg.graph.node(nodeId).remove()
       case Change.RemoveNodeProperty(nodeId, propertyKey) =>
-        cpg.graph.nodes(nodeId).next().removeProperty(propertyKey)
+        cpg.graph.node(nodeId).removeProperty(propertyKey)
       case Change.CreateNode(node) =>
         val newNode = cpg.graph.addNode(dg.nodeToGraphId(node), node.label)
         node.properties.foreach { case (k, v) => newNode.setProperty(k, v) }
       case Change.SetNodeProperty(node, key, value) =>
-        cpg.graph.nodes(node.id()).next().setProperty(key, value)
+        cpg.graph.node(node.id()).setProperty(key, value)
       case _ => // do nothing
     }
     // Now that all nodes are in, connect/remove edges
@@ -181,7 +183,7 @@ final case class OverflowDbDriver(
         val srcId: Long = id(src, dg).asInstanceOf[Long]
         val dstId: Long = id(dst, dg).asInstanceOf[Long]
         val e: overflowdb.Edge =
-          cpg.graph.nodes(srcId).next().addEdge(label, cpg.graph.nodes(dstId).next())
+          cpg.graph.node(srcId).addEdge(label, cpg.graph.node(dstId))
         PackedProperties.unpack(packedProperties).foreach { case (k: String, v: Any) =>
           e.setProperty(k, v)
         }
@@ -189,7 +191,27 @@ final case class OverflowDbDriver(
     }
   }
 
-  override def bulkTx(dg: AppliedDiff): Unit = {}
+  override def bulkTx(dg: AppliedDiff): Unit = {
+    dg.getDiffGraph.iterator().forEachRemaining {
+      case c: BatchedUpdate.CreateEdge =>
+        val srcId = c.src.asInstanceOf[Node].id()
+        val dstId = c.dst.asInstanceOf[Node].id()
+        val e     = cpg.graph.node(srcId).addEdge(c.label, cpg.graph.node(dstId))
+        Option(c.propertiesAndKeys) match {
+          case Some(edgeKeyValues) =>
+            for {
+              i <- edgeKeyValues.indices by 2
+            } {
+              val key   = edgeKeyValues(i).asInstanceOf[String]
+              val value = edgeKeyValues(i + 1)
+              e.setProperty(key, value)
+            }
+          case None =>
+        }
+      case c: BatchedUpdate.RemoveNode      =>
+      case c: BatchedUpdate.SetNodeProperty =>
+    }
+  }
 
   private def dfsDelete(
       n: Node,
