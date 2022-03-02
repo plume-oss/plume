@@ -1,7 +1,6 @@
 package com.github.plume.oss.passes.concurrent
 
 import com.github.plume.oss.drivers.IDriver
-import com.github.plume.oss.passes.concurrent.PlumeConcurrentCpgPass.nDiffT
 import io.shiftleft.codepropertygraph.Cpg
 import io.shiftleft.passes.{CpgPass, KeyPool}
 import org.slf4j.{Logger, LoggerFactory, MDC}
@@ -17,7 +16,8 @@ class PlumeConcurrentWriter(
     cpg: Cpg,
     baseLogger: Logger = LoggerFactory.getLogger(classOf[CpgPass]),
     keyPool: Option[KeyPool] = None,
-    mdc: java.util.Map[String, String]
+    mdc: java.util.Map[String, String],
+    setDiffT: Int => Int
 ) extends Runnable {
 
   val queue: LinkedBlockingQueue[Option[DiffGraph]] =
@@ -27,7 +27,7 @@ class PlumeConcurrentWriter(
 
   override def run(): Unit = {
     try {
-      nDiffT = 0
+      var nDiffT = setDiffT(0)
       MDC.setContextMap(mdc)
       var terminate = false
       while (!terminate) {
@@ -39,8 +39,10 @@ class PlumeConcurrentWriter(
             val appliedDiffGraph = overflowdb.BatchedUpdate
               .applyDiff(cpg.graph, diffGraph, keyPool.orNull, null)
 
-            nDiffT += appliedDiffGraph
-              .transitiveModifications()
+            nDiffT = setDiffT(
+              nDiffT + appliedDiffGraph
+                .transitiveModifications()
+            )
             driver.bulkTx(appliedDiffGraph)
         }
       }

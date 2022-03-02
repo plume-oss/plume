@@ -29,7 +29,11 @@ class PlumeCfgCreationPass(cpg: Cpg) extends CfgCreationPass(cpg) with PlumeCpgP
         generateParts(),
         cpg,
         (x: DiffGraphBuilder, y: Method) => runOnPart(x, y),
-        None
+        None,
+        (newDiff: Int) => {
+          nDiffT = newDiff
+          nDiffT
+        }
       )
     } finally {
       finish()

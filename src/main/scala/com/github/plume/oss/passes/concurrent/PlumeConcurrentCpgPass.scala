@@ -34,7 +34,11 @@ abstract class PlumeConcurrentCpgPass[T <: AstNode](cpg: Cpg, keyPool: Option[Ke
         generateParts(),
         cpg,
         (x: DiffGraphBuilder, y: T) => runOnPart(x, y),
-        keyPool
+        keyPool,
+        (newDiff: Int) => {
+          nDiffT = newDiff
+          nDiffT
+        }
       )
     } finally {
       finish()
@@ -47,8 +51,6 @@ abstract class PlumeConcurrentCpgPass[T <: AstNode](cpg: Cpg, keyPool: Option[Ke
 object PlumeConcurrentCpgPass {
   private val producerQueueCapacity = 2 + 4 * Runtime.getRuntime.availableProcessors()
 
-  @volatile var nDiffT: Int = -1
-
   def concurrentCreateApply[T](
       producerQueueCapacity: Long,
       driver: IDriver,
@@ -57,19 +59,19 @@ object PlumeConcurrentCpgPass {
       parts: Array[_ <: AstNode],
       cpg: Cpg,
       runOnPart: (DiffGraphBuilder, T) => Unit,
-      keyPool: Option[KeyPool]
+      keyPool: Option[KeyPool],
+      setDiff: Int => Int
   ): Unit = {
     baseLogger.info(s"Start of enhancement: $name")
     val nanosStart = System.nanoTime()
     var nParts     = 0
-    var nDiff      = 0
-    nDiffT = -1
+    var nDiff      = setDiff(0)
     // init is called outside of this method
     nParts = parts.length
     val partIter        = parts.iterator
     val completionQueue = mutable.ArrayDeque[Future[DiffGraph]]()
     val writer =
-      new PlumeConcurrentWriter(driver, cpg, baseLogger, keyPool, MDC.getCopyOfContextMap)
+      new PlumeConcurrentWriter(driver, cpg, baseLogger, keyPool, MDC.getCopyOfContextMap, setDiff)
     val writerThread = new Thread(writer)
     writerThread.setName("Writer")
     writerThread.start()
@@ -91,7 +93,7 @@ object PlumeConcurrentCpgPass {
           } else if (completionQueue.nonEmpty) {
             val future = completionQueue.removeHead()
             val res    = Await.result(future, Duration.Inf)
-            nDiff += res.size
+            nDiff = setDiff(nDiff + res.size)
             writer.queue.put(Some(res))
           } else {
             done = true

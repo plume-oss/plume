@@ -29,7 +29,11 @@ class PlumeContainsEdgePass(cpg: Cpg) extends ContainsEdgePass(cpg) with PlumeCp
         generateParts(),
         cpg,
         (x: DiffGraphBuilder, y: AstNode) => runOnPart(x, y),
-        None
+        None,
+        (newDiff: Int) => {
+          nDiffT = newDiff
+          nDiffT
+        }
       )
     } finally {
       finish()
