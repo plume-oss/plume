@@ -34,6 +34,7 @@ import io.shiftleft.codepropertygraph.generated.nodes.{
 import io.shiftleft.codepropertygraph.generated.{EdgeTypes, NodeTypes, PropertyNames}
 import io.shiftleft.passes.AppliedDiffGraph
 import org.slf4j.LoggerFactory
+import overflowdb.BatchedUpdate.AppliedDiff
 
 import scala.collection.mutable
 
@@ -63,6 +64,11 @@ trait IDriver extends AutoCloseable {
     * transaction(s).
     */
   def bulkTx(dg: AppliedDiffGraph): Unit
+
+  /** Executes all changes contained within the given overflowdb.BatchedUpdate.AppliedDiff as a (or set of)
+    * bulk transaction(s).
+    */
+  def bulkTx(dg: AppliedDiff): Unit
 
   /** Given filenames, will remove related TYPE, TYPE_DECL, METHOD (with AST children), and NAMESPACE_BLOCK.
     */

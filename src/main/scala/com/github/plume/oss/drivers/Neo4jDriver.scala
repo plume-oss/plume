@@ -8,6 +8,7 @@ import io.shiftleft.passes.AppliedDiffGraph
 import io.shiftleft.passes.DiffGraph.Change
 import org.neo4j.driver.{AuthTokens, GraphDatabase, Transaction, Value}
 import org.slf4j.LoggerFactory
+import overflowdb.BatchedUpdate.AppliedDiff
 
 import java.util
 import java.util.concurrent.atomic.AtomicBoolean
@@ -281,6 +282,8 @@ final class Neo4jDriver(
       .grouped(txMax)
       .foreach(bulkCreateEdge(_, dg))
   }
+
+  override def bulkTx(dg: AppliedDiff): Unit = {}
 
   /** Removes the namespace block with all of its AST children specified by the given FILENAME property.
     */

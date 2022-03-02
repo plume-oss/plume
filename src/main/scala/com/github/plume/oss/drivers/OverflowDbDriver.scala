@@ -18,6 +18,7 @@ import io.shiftleft.codepropertygraph.{Cpg => CPG}
 import io.shiftleft.passes.AppliedDiffGraph
 import io.shiftleft.passes.DiffGraph.{Change, PackedProperties}
 import org.slf4j.LoggerFactory
+import overflowdb.BatchedUpdate.AppliedDiff
 import overflowdb.traversal.{Traversal, jIteratortoTraversal}
 import overflowdb.{Config, Node}
 
@@ -187,6 +188,8 @@ final case class OverflowDbDriver(
       case _ => // do nothing
     }
   }
+
+  override def bulkTx(dg: AppliedDiff): Unit = {}
 
   private def dfsDelete(
       n: Node,

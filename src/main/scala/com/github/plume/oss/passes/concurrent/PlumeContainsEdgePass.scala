@@ -5,7 +5,6 @@ import com.github.plume.oss.passes.PlumeCpgPassBase
 import com.github.plume.oss.passes.concurrent.PlumeConcurrentCpgPass.concurrentCreateApply
 import io.shiftleft.codepropertygraph.Cpg
 import io.shiftleft.codepropertygraph.generated.nodes.AstNode
-import io.shiftleft.passes.DiffGraph
 import io.shiftleft.semanticcpg.passes.base.ContainsEdgePass
 
 object PlumeContainsEdgePass {
@@ -20,16 +19,20 @@ class PlumeContainsEdgePass(cpg: Cpg) extends ContainsEdgePass(cpg) with PlumeCp
 
   def createApplySerializeAndStore(driver: IDriver): Unit = {
     import PlumeContainsEdgePass.producerQueueCapacity
-    concurrentCreateApply[AstNode](
-      producerQueueCapacity,
-      driver,
-      name,
-      baseLogger,
-      _ => init(),
-      _ => generateParts(),
-      cpg,
-      (x: DiffGraph.Builder, y: AstNode) => runOnPart(x, y),
-      _ => finish()
-    )
+    try {
+      init()
+      concurrentCreateApply[AstNode](
+        producerQueueCapacity,
+        driver,
+        name,
+        baseLogger,
+        generateParts(),
+        cpg,
+        (x: DiffGraphBuilder, y: AstNode) => runOnPart(x, y),
+        None
+      )
+    } finally {
+      finish()
+    }
   }
 }

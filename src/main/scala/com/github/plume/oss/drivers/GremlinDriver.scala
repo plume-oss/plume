@@ -18,6 +18,7 @@ import org.apache.tinkerpop.gremlin.process.traversal.dsl.graph.{
 import org.apache.tinkerpop.gremlin.structure.{Edge, Graph, T, Vertex}
 import org.apache.tinkerpop.gremlin.tinkergraph.structure.TinkerGraph
 import org.slf4j.{Logger, LoggerFactory}
+import overflowdb.BatchedUpdate.AppliedDiff
 
 import java.util.concurrent.atomic.AtomicBoolean
 import scala.collection.mutable
@@ -89,6 +90,8 @@ abstract class GremlinDriver(txMax: Int = 50) extends IDriver {
       .grouped(txMax)
       .foreach { ops: Seq[Change] => bulkEdgeTx(g(), ops, dg) }
   }
+
+  override def bulkTx(dg: AppliedDiff): Unit = {}
 
   private def bulkNodeTx(
       g: GraphTraversalSource,

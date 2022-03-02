@@ -14,8 +14,8 @@ inThisBuild(
   )
 )
 
-val cpgVersion         = "1.3.493"
-val joernVersion       = "1.1.502"
+val cpgVersion         = "1.3.505"
+val joernVersion       = "1.1.581"
 val sootVersion        = "4.2.1"
 val tinkerGraphVersion = "3.4.8"
 val neo4jVersion       = "4.4.3"
@@ -41,6 +41,7 @@ libraryDependencies ++= Seq(
   "io.shiftleft"                  %% "codepropertygraph"    % cpgVersion,
   "io.shiftleft"                  %% "semanticcpg"          % cpgVersion,
   "io.joern"                      %% "dataflowengineoss"    % joernVersion,
+  "io.joern"                      %% "x2cpg"                % joernVersion,
   "io.shiftleft"                  %% "semanticcpg"          % cpgVersion       % Test classifier "tests",
   "org.soot-oss"                   % "soot"                 % sootVersion,
   "org.apache.tinkerpop"           % "tinkergraph-gremlin"  % tinkerGraphVersion,

@@ -11,6 +11,7 @@ import io.shiftleft.codepropertygraph.generated.{EdgeTypes, NodeTypes, PropertyN
 import io.shiftleft.passes.AppliedDiffGraph
 import io.shiftleft.passes.DiffGraph.Change
 import org.slf4j.LoggerFactory
+import overflowdb.BatchedUpdate.AppliedDiff
 import sttp.client3._
 import sttp.client3.circe._
 import sttp.model.{MediaType, Uri}
@@ -181,6 +182,8 @@ final class TigerGraphDriver(
       .grouped(txMax)
       .foreach(bulkCreateEdge(_, dg))
   }
+
+  override def bulkTx(dg: AppliedDiff): Unit = {}
 
   private def bulkDeleteNode(ops: Seq[Change.RemoveNode]): Unit = {
     val ids = ops.flatMap {

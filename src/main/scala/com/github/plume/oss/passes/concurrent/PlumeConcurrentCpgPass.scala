@@ -4,15 +4,16 @@ import com.github.plume.oss.drivers.IDriver
 import com.github.plume.oss.passes.concurrent.PlumeConcurrentCpgPass.concurrentCreateApply
 import io.shiftleft.codepropertygraph.Cpg
 import io.shiftleft.codepropertygraph.generated.nodes.AstNode
-import io.shiftleft.passes.{ConcurrentWriterCpgPass, DiffGraph}
-import org.slf4j.Logger
+import io.shiftleft.passes.{ConcurrentWriterCpgPass, KeyPool}
+import io.shiftleft.utils.ExecutionContextProvider
+import org.slf4j.{Logger, MDC}
+import overflowdb.BatchedUpdate.{DiffGraph, DiffGraphBuilder}
 
 import scala.collection.mutable
-import scala.concurrent.ExecutionContext.Implicits.global
 import scala.concurrent.duration.Duration
-import scala.concurrent.{Await, Future}
+import scala.concurrent.{Await, ExecutionContext, Future}
 
-abstract class PlumeConcurrentCpgPass[T <: AstNode](cpg: Cpg)
+abstract class PlumeConcurrentCpgPass[T <: AstNode](cpg: Cpg, keyPool: Option[KeyPool])
     extends ConcurrentWriterCpgPass[T](cpg) {
 
   override def generateParts(): Array[_ <: AstNode] = Array[AstNode](null)
@@ -23,58 +24,67 @@ abstract class PlumeConcurrentCpgPass[T <: AstNode](cpg: Cpg)
 
   def createApplySerializeAndStore(driver: IDriver): Unit = {
     import PlumeConcurrentCpgPass.producerQueueCapacity
-    concurrentCreateApply[T](
-      producerQueueCapacity,
-      driver,
-      name,
-      baseLogger,
-      _ => init(),
-      _ => generateParts(),
-      cpg,
-      (x: DiffGraph.Builder, y: T) => runOnPart(x, y),
-      _ => finish()
-    )
+    try {
+      init()
+      concurrentCreateApply[T](
+        producerQueueCapacity,
+        driver,
+        name,
+        baseLogger,
+        generateParts(),
+        cpg,
+        (x: DiffGraphBuilder, y: T) => runOnPart(x, y),
+        keyPool
+      )
+    } finally {
+      finish()
+    }
   }
 
-  override def runOnPart(builder: DiffGraph.Builder, part: T): Unit
+  override def runOnPart(builder: DiffGraphBuilder, part: T): Unit
 }
 
 object PlumeConcurrentCpgPass {
   private val producerQueueCapacity = 2 + 4 * Runtime.getRuntime.availableProcessors()
+
+  @volatile var nDiffT: Int = -1
 
   def concurrentCreateApply[T](
       producerQueueCapacity: Long,
       driver: IDriver,
       name: String,
       baseLogger: Logger,
-      init: Unit => Unit,
-      generateParts: Unit => Array[_ <: AstNode],
+      parts: Array[_ <: AstNode],
       cpg: Cpg,
-      runOnPart: (DiffGraph.Builder, T) => Unit,
-      finish: Unit => Unit
+      runOnPart: (DiffGraphBuilder, T) => Unit,
+      keyPool: Option[KeyPool]
   ): Unit = {
     baseLogger.info(s"Start of enhancement: $name")
     val nanosStart = System.nanoTime()
     var nParts     = 0
     var nDiff      = 0
-
-    init()
-    val parts = generateParts()
+    nDiffT = -1
+    // init is called outside of this method
     nParts = parts.length
     val partIter        = parts.iterator
     val completionQueue = mutable.ArrayDeque[Future[DiffGraph]]()
-    val writer          = new PlumeConcurrentWriter(driver, cpg)
-    val writerThread    = new Thread(writer)
+    val writer =
+      new PlumeConcurrentWriter(driver, cpg, baseLogger, keyPool, MDC.getCopyOfContextMap)
+    val writerThread = new Thread(writer)
     writerThread.setName("Writer")
     writerThread.start()
+    implicit val ec: ExecutionContext = ExecutionContextProvider.getExecutionContext
     try {
       try {
         var done = false
-        while (!done) {
+        while (!done && writer.raisedException == null) {
+          if (writer.raisedException != null)
+            throw writer.raisedException
+
           if (completionQueue.size < producerQueueCapacity && partIter.hasNext) {
             val next = partIter.next()
             completionQueue.append(Future.apply {
-              val builder = DiffGraph.newBuilder
+              val builder = new DiffGraphBuilder
               runOnPart(builder, next.asInstanceOf[T])
               builder.build()
             })
@@ -89,10 +99,10 @@ object PlumeConcurrentCpgPass {
         }
       } finally {
         try {
-          writer.queue.put(None)
+          if (writer.raisedException == null) writer.queue.put(None)
           writerThread.join()
-        } finally {
-          finish()
+          if (writer.raisedException != null)
+            throw new RuntimeException("Failure in diffgraph application", writer.raisedException)
         }
       }
     } finally {
