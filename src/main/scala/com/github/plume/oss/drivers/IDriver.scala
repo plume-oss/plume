@@ -85,17 +85,27 @@ trait IDriver extends AutoCloseable {
     }
   }
 
+  /** By determines what kind of node object is given, will extract its label.
+    * @param data either detached node data or node object.
+    * @return the node ID.
+    */
+  protected def labelFromNodeData(data: Any): String =
+    data match {
+      case generic: DetachedNodeGeneric => generic.label()
+      case node: NewNode                => node.label()
+      case node: Node                   => node.label()
+    }
+
   /** By determines what kind of node object is given, will extract its ID.
     * @param data either detached node data or node object.
     * @return the node ID.
     */
-  protected def idFromNodeData(data: Any): Long = {
+  protected def idFromNodeData(data: Any): Long =
     data match {
       case generic: DetachedNodeGeneric => idFromRefOrId(generic.getRefOrId)
       case node: NewNode                => idFromRefOrId(node.getRefOrId)
       case node: Node                   => node.id()
     }
-  }
 
   /** Extracts properties from detached node data.
     * @param data node data from which to determine properties from.

@@ -190,7 +190,7 @@ final case class OverflowDbDriver(
   }
 
   override def bulkTx(dg: AppliedDiff): Unit = {
-    dg.getDiffGraph.iterator().forEachRemaining {
+    dg.getDiffGraph.iterator.forEachRemaining {
       case node: DetachedNodeData =>
         val id      = idFromNodeData(node)
         val newNode = cpg.graph.addNode(id, node.label)
