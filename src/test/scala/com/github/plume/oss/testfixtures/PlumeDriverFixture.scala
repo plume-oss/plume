@@ -245,10 +245,9 @@ class PlumeDriverFixture(val driver: IDriver)
       val diffGraph1 = new DiffGraphBuilder
       val diffGraph2 = new DiffGraphBuilder
       // Create some nodes
-      diffGraph1.addNode(m1).addNode(b1)
+      diffGraph1.addNode(nodeToNodeCreate(m1)).addNode(b1)
       val adg1 = BatchedUpdate.applyDiff(cpg.graph, diffGraph1.build(), keyPool, null)
       driver.bulkTx(adg1)
-
       val List(m: Map[String, Any]) = driver.propertyFromNodes(METHOD, NAME, ORDER)
       m.get(NAME) shouldBe Some("foo")
       m.get(ORDER) shouldBe Some(1)
@@ -258,8 +257,8 @@ class PlumeDriverFixture(val driver: IDriver)
       // Add an edge
       val srcNode = adg1.diffGraph.iterator.asScala
         .collectFirst {
-          case c: NewMethod
-            if c.getRefOrId().asInstanceOf[Node].id() == m.getOrElse("id", -1L).toString.toLong =>
+          case c: DetachedNodeGeneric
+              if c.getRefOrId.asInstanceOf[Node].id() == m.getOrElse("id", -1L).toString.toLong =>
             c
         } match {
         case Some(src) => src
@@ -268,13 +267,13 @@ class PlumeDriverFixture(val driver: IDriver)
       val dstNode = adg1.diffGraph.iterator.asScala
         .collectFirst {
           case c: NewBlock
-            if c.getRefOrId().asInstanceOf[Node].id() == b.getOrElse("id", -1L).toString.toLong =>
+              if c.getRefOrId().asInstanceOf[Node].id() == b.getOrElse("id", -1L).toString.toLong =>
             c
         } match {
         case Some(dst) => dst
         case None      => fail("Unable to extract block node")
       }
-      diffGraph2.addEdge(nodeToNodeCreate(srcNode), dstNode, EdgeTypes.AST)
+      diffGraph2.addEdge(srcNode, dstNode, EdgeTypes.AST)
       val adg2 = BatchedUpdate.applyDiff(cpg.graph, diffGraph2.build(), keyPool, null)
       driver.bulkTx(adg2)
 

@@ -19,6 +19,7 @@ import org.apache.tinkerpop.gremlin.structure.{Edge, Graph, T, Vertex}
 import org.apache.tinkerpop.gremlin.tinkergraph.structure.TinkerGraph
 import org.slf4j.{Logger, LoggerFactory}
 import overflowdb.BatchedUpdate.AppliedDiff
+import overflowdb.{BatchedUpdate, DetachedNodeData, Node}
 
 import java.util.concurrent.atomic.AtomicBoolean
 import scala.collection.mutable
@@ -91,7 +92,80 @@ abstract class GremlinDriver(txMax: Int = 50) extends IDriver {
       .foreach { ops: Seq[Change] => bulkEdgeTx(g(), ops, dg) }
   }
 
-  override def bulkTx(dg: AppliedDiff): Unit = {}
+  override def bulkTx(dg: AppliedDiff): Unit = {
+    dg.getDiffGraph.iterator.asScala
+      .collect {
+        case c: BatchedUpdate.RemoveNode      => c
+        case c: BatchedUpdate.SetNodeProperty => c
+        case c: DetachedNodeData              => c
+      }
+      .grouped(txMax)
+      .foreach { changes =>
+        var ptr: Option[GraphTraversal[Vertex, Vertex]] = None
+        changes.foreach {
+          case node: DetachedNodeData =>
+            val nodeId  = typedNodeId(idFromNodeData(node))
+            val propMap = propertiesFromNodeData(node)
+            ptr match {
+              case Some(p) =>
+                ptr = Some(p.addV(node.label).property(T.id, nodeId))
+                serializeLists(propMap).foreach { case (k, v) => p.property(k, v) }
+              case None =>
+                ptr = Some(g().addV(node.label).property(T.id, nodeId))
+                serializeLists(propMap).foreach { case (k, v) => ptr.get.property(k, v) }
+            }
+          case c: BatchedUpdate.RemoveNode =>
+            val nodeId = typedNodeId(c.node.id())
+            ptr match {
+              case Some(p) => ptr = Some(p.V(nodeId).drop())
+              case None    => ptr = Some(g().V(nodeId).drop())
+            }
+          case c: BatchedUpdate.SetNodeProperty =>
+            val v =
+              if (
+                c.label == PropertyNames.INHERITS_FROM_TYPE_FULL_NAME || c.label == PropertyNames.OVERLAYS
+              )
+                c.value.toString.split(",")
+              else c.value
+            val nodeId = typedNodeId(c.node.id())
+            ptr match {
+              case Some(p) => ptr = Some(p.V(nodeId).property(c.label, v))
+              case None    => ptr = Some(g().V(nodeId).property(c.label, v))
+            }
+        }
+        // Commit transaction
+        ptr match {
+          case Some(p) => p.iterate()
+          case None    =>
+        }
+      }
+    dg.getDiffGraph.iterator.asScala
+      .collect { case c: BatchedUpdate.CreateEdge => c }
+      .grouped(txMax)
+      .foreach { changes =>
+        var ptr: Option[GraphTraversal[Vertex, Edge]] = None
+        changes.foreach { c: BatchedUpdate.CreateEdge =>
+          val srcId = typedNodeId(idFromNodeData(c.src))
+          val dstId = typedNodeId(idFromNodeData(c.dst))
+          ptr match {
+            case Some(p) => ptr = Some(p.V(srcId).addE(c.label).to(__.V(dstId)))
+            case None    => ptr = Some(g().V(srcId).addE(c.label).to(__.V(dstId)))
+          }
+          Option(c.propertiesAndKeys) match {
+            case Some(edgeKeyValues) =>
+              propertiesFromObjectArray(edgeKeyValues).foreach { case (k, v) =>
+                ptr.get.property(k, v)
+              }
+            case None =>
+          }
+        }
+        // Commit transaction
+        ptr match {
+          case Some(p) => p.iterate()
+          case None    =>
+        }
+      }
+  }
 
   private def bulkNodeTx(
       g: GraphTraversalSource,
