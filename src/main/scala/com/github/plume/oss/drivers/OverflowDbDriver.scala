@@ -1,7 +1,12 @@
 package com.github.plume.oss.drivers
 
 import com.github.plume.oss.PlumeStatistics
-import com.github.plume.oss.domain.{SerialReachableByResult, compressToFile, decompressFile, deserializeResultTable}
+import com.github.plume.oss.domain.{
+  SerialReachableByResult,
+  compressToFile,
+  decompressFile,
+  deserializeResultTable
+}
 import com.github.plume.oss.drivers.OverflowDbDriver.newOverflowGraph
 import com.github.plume.oss.passes.PlumeDynamicCallLinker
 import io.joern.dataflowengineoss.language.toExtendedCfgNode
