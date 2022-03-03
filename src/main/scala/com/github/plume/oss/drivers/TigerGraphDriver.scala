@@ -11,6 +11,7 @@ import io.shiftleft.codepropertygraph.generated.{EdgeTypes, NodeTypes, PropertyN
 import io.shiftleft.passes.AppliedDiffGraph
 import io.shiftleft.passes.DiffGraph.Change
 import org.slf4j.LoggerFactory
+import overflowdb.{BatchedUpdate, DetachedNodeData}
 import overflowdb.BatchedUpdate.AppliedDiff
 import sttp.client3._
 import sttp.client3.circe._
@@ -20,7 +21,7 @@ import java.io.{ByteArrayOutputStream, IOException, PrintStream}
 import java.security.Permission
 import scala.collection.mutable
 import scala.concurrent.duration.{Duration, DurationInt}
-import scala.jdk.CollectionConverters.CollectionHasAsScala
+import scala.jdk.CollectionConverters.{CollectionHasAsScala, IteratorHasAsScala}
 import scala.util.{Failure, Success, Try}
 
 /** The driver used to communicate to a remote TigerGraph instance. One must build a schema on the first use of the database.
@@ -121,8 +122,8 @@ final class TigerGraphDriver(
     }
   }
 
-  private def nodePayload(id: Long, n: NewNode): JsonObject = {
-    val attributes = n.properties.flatMap { case (k, v) =>
+  private def nodePayload(id: Long, label: String, properties: Map[String, Any]): JsonObject = {
+    val attributes = properties.flatMap { case (k, v) =>
       val vStr = v match {
         case xs: Seq[_]     => xs.mkString(",")
         case x if x == null => IDriver.getPropertyDefault(k)
@@ -136,7 +137,7 @@ final class TigerGraphDriver(
 
     JsonObject.fromMap(
       Map(
-        s"${n.label}_" -> JsonObject
+        s"${label}_" -> JsonObject
           .fromMap(Map(id.toString -> JsonObject.fromMap(attributes).asJson))
           .asJson
       )
@@ -183,12 +184,32 @@ final class TigerGraphDriver(
       .foreach(bulkCreateEdge(_, dg))
   }
 
-  override def bulkTx(dg: AppliedDiff): Unit = {}
+  override def bulkTx(dg: AppliedDiff): Unit = {
+    // Node operations
+    dg.getDiffGraph.iterator.asScala
+      .collect { case x: BatchedUpdate.RemoveNode => x }
+      .grouped(txMax)
+      .foreach(bulkDeleteNode)
+    dg.diffGraph.iterator.asScala
+      .collect { case x: BatchedUpdate.CreateNode => x }
+      .grouped(txMax)
+      .foreach(bulkCreateNode)
+    dg.diffGraph.iterator.asScala
+      .collect { case x: BatchedUpdate.SetNodeProperty => x }
+      .grouped(txMax)
+      .foreach(bulkNodeSetProperty)
+    // Edge operations
+    dg.diffGraph.iterator.asScala
+      .collect { case x: BatchedUpdate.CreateEdge => x }
+      .grouped(txMax)
+      .foreach(bulkCreateEdge)
+  }
 
-  private def bulkDeleteNode(ops: Seq[Change.RemoveNode]): Unit = {
+  private def bulkDeleteNode(ops: Seq[Any]): Unit = {
     val ids = ops.flatMap {
-      case Change.RemoveNode(nodeId) => Some(nodeId)
-      case _                         => None
+      case c: Change.RemoveNode        => Some(c.nodeId)
+      case c: BatchedUpdate.RemoveNode => Some(c.node.id())
+      case _                           => None
     }
     get("query/cpg/v_delete", ids.map { i => "ids" -> i.toString })
   }
@@ -196,17 +217,33 @@ final class TigerGraphDriver(
   private def bulkCreateNode(ops: Seq[Change.CreateNode], dg: AppliedDiffGraph): Unit = {
     val payload = ops
       .flatMap {
-        case Change.CreateNode(node) => Some(nodePayload(id(node, dg).asInstanceOf[Long], node))
-        case _                       => None
+        case Change.CreateNode(node) =>
+          Some(nodePayload(id(node, dg).asInstanceOf[Long], node.label(), node.properties))
+        case _ => None
       }
       .reduce { (a: JsonObject, b: JsonObject) => a.deepMerge(b) }
     post("graph/cpg", PayloadBody(vertices = payload))
   }
 
-  private def bulkNodeSetProperty(ops: Seq[Change.SetNodeProperty]): Unit = {
+  private def bulkCreateNode(ops: Seq[DetachedNodeData]): Unit = {
     val payload = ops
       .flatMap {
-        case Change.SetNodeProperty(n: StoredNode, key, value) =>
+        case c: DetachedNodeData =>
+          Some(nodePayload(idFromNodeData(c), c.label(), propertiesFromNodeData(c)))
+        case _ => None
+      }
+      .reduce { (a: JsonObject, b: JsonObject) => a.deepMerge(b) }
+    post("graph/cpg", PayloadBody(vertices = payload))
+  }
+
+  private def bulkNodeSetProperty(ops: Seq[Any]): Unit = {
+    val payload = ops
+      .collect {
+        case c: BatchedUpdate.SetNodeProperty => (c.label, c.value, c.node)
+        case c: Change.SetNodeProperty        => (c.key, c.value, c.node)
+      }
+      .flatMap {
+        case (key, value, n: StoredNode) =>
           jsonValue(value) match {
             case Some(v) =>
               val kv =
@@ -244,6 +281,25 @@ final class TigerGraphDriver(
               id(dst, dg).asInstanceOf[Long],
               dst.label,
               edge
+            )
+          )
+        case _ => None
+      }
+      .reduce { (a: JsonObject, b: JsonObject) => a.deepMerge(b) }
+    post("graph/cpg", PayloadBody(edges = payload))
+  }
+
+  private def bulkCreateEdge(ops: Seq[BatchedUpdate.CreateEdge]): Unit = {
+    val payload = ops
+      .flatMap {
+        case c: BatchedUpdate.CreateEdge =>
+          Some(
+            edgePayload(
+              idFromNodeData(c.src),
+              labelFromNodeData(c.src),
+              idFromNodeData(c.dst),
+              labelFromNodeData(c.dst),
+              c.label
             )
           )
         case _ => None
