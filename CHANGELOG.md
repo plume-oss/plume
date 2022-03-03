@@ -11,6 +11,10 @@ and this project adheres to [Semantic Versioning](http://semver.org/).
 
 - Overloaded `bulkTx` to handle new `overflowdb.BatchedUpdate` objects.
 
+### Fixed
+
+- Instance where dynamic `InvokeExpr::getMethod` would fail by using `getMethodRef` instead.
+
 ### Changed
 
 - Updated passes to handle new `ForkJoinParallel` passes.
