@@ -1,12 +1,7 @@
 package com.github.plume.oss.drivers
 
 import com.github.plume.oss.PlumeStatistics
-import com.github.plume.oss.domain.{
-  SerialReachableByResult,
-  compressToFile,
-  decompressFile,
-  deserializeResultTable
-}
+import com.github.plume.oss.domain.{SerialReachableByResult, compressToFile, decompressFile, deserializeResultTable}
 import com.github.plume.oss.drivers.OverflowDbDriver.newOverflowGraph
 import com.github.plume.oss.passes.PlumeDynamicCallLinker
 import io.joern.dataflowengineoss.language.toExtendedCfgNode
@@ -16,13 +11,11 @@ import io.shiftleft.codepropertygraph.generated._
 import io.shiftleft.codepropertygraph.generated.nodes._
 import io.shiftleft.codepropertygraph.{Cpg => CPG}
 import io.shiftleft.passes.AppliedDiffGraph
-import io.shiftleft.passes.DiffGraph.Change.CreateEdge
 import io.shiftleft.passes.DiffGraph.{Change, PackedProperties}
 import org.slf4j.LoggerFactory
 import overflowdb.BatchedUpdate.AppliedDiff
 import overflowdb.traversal.{Traversal, jIteratortoTraversal}
-import overflowdb.util.PropertyHelper
-import overflowdb.{BatchedUpdate, Config, Node}
+import overflowdb.{BatchedUpdate, Config, DetachedNodeData, Node}
 
 import java.io.{File => JFile}
 import java.nio.file.{Files, Path, Paths}
@@ -193,19 +186,17 @@ final case class OverflowDbDriver(
 
   override def bulkTx(dg: AppliedDiff): Unit = {
     dg.getDiffGraph.iterator().forEachRemaining {
+      case node: DetachedNodeData =>
+        val id      = idFromNodeData(node)
+        val newNode = cpg.graph.addNode(id, node.label)
+        propertiesFromNodeData(node).foreach { case (k, v) => newNode.setProperty(k, v) }
       case c: BatchedUpdate.CreateEdge =>
-        val srcId = c.src.asInstanceOf[Node].id()
-        val dstId = c.dst.asInstanceOf[Node].id()
+        val srcId = idFromNodeData(c.src)
+        val dstId = idFromNodeData(c.dst)
         val e     = cpg.graph.node(srcId).addEdge(c.label, cpg.graph.node(dstId))
         Option(c.propertiesAndKeys) match {
           case Some(edgeKeyValues) =>
-            for {
-              i <- edgeKeyValues.indices by 2
-            } {
-              val key   = edgeKeyValues(i).asInstanceOf[String]
-              val value = edgeKeyValues(i + 1)
-              e.setProperty(key, value)
-            }
+            propertiesFromObjectArray(edgeKeyValues).foreach { case (k, v) => e.setProperty(k, v) }
           case None =>
         }
       case c: BatchedUpdate.RemoveNode => cpg.graph.node(c.node.id()).remove()

@@ -36,6 +36,7 @@ lazy val NeptuneIntTest    = config("nepTest") extend Test
 
 trapExit := false
 Test / fork := true
+Test / parallelExecution := false
 
 libraryDependencies ++= Seq(
   "io.shiftleft"                  %% "codepropertygraph"    % cpgVersion,

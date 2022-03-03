@@ -1,40 +1,11 @@
 package com.github.plume.oss.drivers
 
-import io.shiftleft.codepropertygraph.generated.nodes.{
-  AbstractNode,
-  Block,
-  Call,
-  ControlStructure,
-  FieldIdentifier,
-  File,
-  Identifier,
-  JumpTarget,
-  Literal,
-  Local,
-  Member,
-  MetaData,
-  Method,
-  MethodParameterIn,
-  MethodParameterOut,
-  MethodRef,
-  MethodReturn,
-  Modifier,
-  Namespace,
-  NamespaceBlock,
-  NewNode,
-  Return,
-  StoredNode,
-  Type,
-  TypeArgument,
-  TypeDecl,
-  TypeParameter,
-  TypeRef,
-  Unknown
-}
+import io.shiftleft.codepropertygraph.generated.nodes._
 import io.shiftleft.codepropertygraph.generated.{EdgeTypes, NodeTypes, PropertyNames}
 import io.shiftleft.passes.AppliedDiffGraph
 import org.slf4j.LoggerFactory
 import overflowdb.BatchedUpdate.AppliedDiff
+import overflowdb.{DetachedNodeData, DetachedNodeGeneric, Node}
 
 import scala.collection.mutable
 
@@ -105,6 +76,53 @@ trait IDriver extends AutoCloseable {
         case _ => k -> v
       }
     }
+  }
+
+  private def idFromRefOrId(refOrId: Object): Long = {
+    refOrId match {
+      case n: Node           => n.id()
+      case i: java.lang.Long => i.longValue()
+    }
+  }
+
+  /** By determines what kind of node object is given, will extract its ID.
+    * @param data either detached node data or node object.
+    * @return the node ID.
+    */
+  protected def idFromNodeData(data: Any): Long = {
+    data match {
+      case generic: DetachedNodeGeneric => idFromRefOrId(generic.getRefOrId)
+      case node: NewNode                => idFromRefOrId(node.getRefOrId)
+      case node: Node                   => node.id()
+    }
+  }
+
+  /** Extracts properties from detached node data.
+    * @param data node data from which to determine properties from.
+    * @return a map of key-value pairs.
+    */
+  protected def propertiesFromNodeData(data: DetachedNodeData): Map[String, Any] = {
+    data match {
+      case generic: DetachedNodeGeneric => propertiesFromObjectArray(generic.keyvalues)
+      case node: NewNode                => node.properties
+      case _                            => Map.empty[String, Any]
+    }
+  }
+
+  /** Extracts a property key-value pairs as a map from an object array.
+    * @param arr the object array where key-values are stored as pairs.
+    * @return a map of key-value pairs.
+    */
+  protected def propertiesFromObjectArray(arr: Array[Object]): Map[String, Any] = {
+    val props = mutable.HashMap.empty[String, Object]
+    for {
+      i <- arr.indices by 2
+    } {
+      val key   = arr(i).asInstanceOf[String]
+      val value = arr(i + 1)
+      props.put(key, value)
+    }
+    props.toMap
   }
 
   /** Returns all the taken IDs between the two boundaries (inclusive).
