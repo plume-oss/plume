@@ -191,7 +191,7 @@ final class TigerGraphDriver(
       .grouped(txMax)
       .foreach(bulkDeleteNode)
     dg.diffGraph.iterator.asScala
-      .collect { case x: BatchedUpdate.CreateNode => x }
+      .collect { case x: DetachedNodeData => x }
       .grouped(txMax)
       .foreach(bulkCreateNode)
     dg.diffGraph.iterator.asScala
