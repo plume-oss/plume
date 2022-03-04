@@ -46,9 +46,8 @@ class PlumeMethodStubCreator(
       (NameAndSignature(name, signature, fullName), parameterCount) <- methodToParameterCount
       if !methodFullNameToNode.contains(fullName)
     ) {
-      if (!filter(NameAndSignature(name, signature, fullName))) {
+      if (filter(NameAndSignature(name, signature, fullName)))
         createMethodStub(name, fullName, signature, parameterCount, dstGraph)
-      }
     }
   }
 

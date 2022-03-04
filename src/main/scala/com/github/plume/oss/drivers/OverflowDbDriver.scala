@@ -308,7 +308,7 @@ final case class OverflowDbDriver(
       .foreach { c: Call =>
         methodFullNameToNode.get(c.methodFullName) match {
           case Some(dstId) if cpg.graph.nodes(dstId.asInstanceOf[Long]).hasNext =>
-            c.addEdge(EdgeTypes.CALL, cpg.graph.nodes(dstId.asInstanceOf[Long]).next())
+            c.addEdge(EdgeTypes.CALL, cpg.graph.node(dstId.asInstanceOf[Long]))
           case _ =>
         }
       }
