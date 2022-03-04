@@ -225,13 +225,13 @@ class PlumeDriverFixture(val driver: IDriver)
       b.get(ORDER) shouldBe Some(1)
       adg1.diffGraph.iterator.asScala
         .collectFirst {
-          case c: NewMethod
-              if c.getRefOrId().asInstanceOf[Node].id() == m.getOrElse("id", -1L).toString.toLong =>
+          case c: DetachedNodeGeneric
+              if c.getRefOrId.asInstanceOf[Node].id() == m.getOrElse("id", -1L).toString.toLong =>
             c
         } match {
         case Some(mToCheck) =>
           // Remove one node
-          diffGraph2.removeNode(mToCheck.getRefOrId().asInstanceOf[Node])
+          diffGraph2.removeNode(mToCheck.getRefOrId.asInstanceOf[Node])
           val adg2 = BatchedUpdate.applyDiff(cpg.graph, diffGraph2.build(), keyPool, null)
           driver.bulkTx(adg2)
         case None => fail("Unable to extract removed method node")
