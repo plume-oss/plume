@@ -7,6 +7,8 @@ and this project adheres to [Semantic Versioning](http://semver.org/).
 
 ## [Unreleased]
 
+## [1.0.17] - 2022-03-04
+
 ### Added
 
 - Overloaded `bulkTx` to handle new `overflowdb.BatchedUpdate` objects.
