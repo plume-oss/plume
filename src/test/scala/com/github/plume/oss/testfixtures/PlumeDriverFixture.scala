@@ -214,7 +214,7 @@ class PlumeDriverFixture(val driver: IDriver)
       val diffGraph1 = new DiffGraphBuilder
       val diffGraph2 = new DiffGraphBuilder
       // Create some nodes
-      diffGraph1.addNode(m1).addNode(b1)
+      diffGraph1.addNode(nodeToNodeCreate(m1)).addNode(b1)
       val adg1 = BatchedUpdate.applyDiff(cpg.graph, diffGraph1.build(), keyPool, null)
       driver.bulkTx(adg1)
 
