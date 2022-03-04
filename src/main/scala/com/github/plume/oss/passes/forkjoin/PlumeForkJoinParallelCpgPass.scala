@@ -62,14 +62,15 @@ object PlumeForkJoinParallelCpgPass {
       }
       nanosBuilt = System.nanoTime()
       nDiff = diffGraph.size()
-      val appliedDiffGraph = overflowdb.BatchedUpdate
-        .applyDiff(
-          cpg.graph,
+      val diffToCommit =
+        if (blacklist.nonEmpty)
           PlumeCpgPass
-            .filterBatchedDiffGraph(diffGraph, blacklistProperty, blacklist, blacklistRejectOnFail),
-          keyPool.orNull,
-          null
-        )
+            .filterBatchedDiffGraph(diffGraph, blacklistProperty, blacklist, blacklistRejectOnFail)
+        else
+          diffGraph
+
+      val appliedDiffGraph = overflowdb.BatchedUpdate
+        .applyDiff(cpg.graph, diffToCommit, keyPool.orNull, null)
       driver.bulkTx(appliedDiffGraph)
       nDiffT = appliedDiffGraph.transitiveModifications()
 
