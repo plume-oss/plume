@@ -1,6 +1,7 @@
 package com.github.plume.oss.passes.forkjoin
 
 import com.github.plume.oss.drivers.IDriver
+import com.github.plume.oss.passes.PlumeCpgPass
 import com.github.plume.oss.passes.forkjoin.PlumeForkJoinParallelCpgPass.forkJoinSerializeAndStore
 import io.shiftleft.codepropertygraph.Cpg
 import io.shiftleft.passes.{ForkJoinParallelCpgPass, KeyPool}
@@ -19,7 +20,10 @@ object PlumeForkJoinParallelCpgPass {
       baseLogger: Logger,
       parts: Array[_ <: AnyRef],
       runOnPart: (DiffGraphBuilder, T) => Unit,
-      keyPool: Option[KeyPool]
+      keyPool: Option[KeyPool],
+      blacklist: Set[String] = Set.empty,
+      blacklistProperty: String = "",
+      blacklistRejectOnFail: Boolean = false
   ): Unit = {
     baseLogger.info(s"Start of pass: $name")
     val nanosStart = System.nanoTime()
@@ -58,9 +62,14 @@ object PlumeForkJoinParallelCpgPass {
       }
       nanosBuilt = System.nanoTime()
       nDiff = diffGraph.size()
-
       val appliedDiffGraph = overflowdb.BatchedUpdate
-        .applyDiff(cpg.graph, diffGraph, keyPool.orNull, null)
+        .applyDiff(
+          cpg.graph,
+          PlumeCpgPass
+            .filterBatchedDiffGraph(diffGraph, blacklistProperty, blacklist, blacklistRejectOnFail),
+          keyPool.orNull,
+          null
+        )
       driver.bulkTx(appliedDiffGraph)
       nDiffT = appliedDiffGraph.transitiveModifications()
 

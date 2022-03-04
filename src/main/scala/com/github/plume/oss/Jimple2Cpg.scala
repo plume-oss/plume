@@ -7,7 +7,7 @@ import com.github.plume.oss.passes.concurrent.{
   PlumeContainsEdgePass,
   PlumeHashPass
 }
-import com.github.plume.oss.passes.forkjoin.PlumeCfgDominatorPass
+import com.github.plume.oss.passes.forkjoin.{PlumeCdgPass, PlumeCfgDominatorPass}
 import com.github.plume.oss.passes.parallel._
 import com.github.plume.oss.util.ProgramHandlingUtil
 import com.github.plume.oss.util.ProgramHandlingUtil.{extractSourceFilesFromArchive, moveClassFiles}

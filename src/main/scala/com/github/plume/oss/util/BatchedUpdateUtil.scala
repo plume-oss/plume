@@ -5,8 +5,7 @@ import overflowdb.{DetachedNodeData, DetachedNodeGeneric, Node}
 
 import scala.collection.mutable
 
-/**
-  * Tools to extract information from new BatchedUpdate API.
+/** Tools to extract information from new BatchedUpdate API.
   */
 object BatchedUpdateUtil {
 
@@ -66,6 +65,5 @@ object BatchedUpdateUtil {
     }
     props.toMap
   }
-
 
 }

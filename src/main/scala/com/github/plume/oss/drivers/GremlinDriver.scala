@@ -11,7 +11,11 @@ import org.apache.commons.configuration.BaseConfiguration
 import org.apache.tinkerpop.gremlin.process.traversal.P
 import org.apache.tinkerpop.gremlin.process.traversal.P.{neq, within}
 import org.apache.tinkerpop.gremlin.process.traversal.dsl.graph.__.{coalesce, constant, has, values}
-import org.apache.tinkerpop.gremlin.process.traversal.dsl.graph.{GraphTraversal, GraphTraversalSource, __}
+import org.apache.tinkerpop.gremlin.process.traversal.dsl.graph.{
+  GraphTraversal,
+  GraphTraversalSource,
+  __
+}
 import org.apache.tinkerpop.gremlin.structure.{Edge, Graph, T, Vertex}
 import org.apache.tinkerpop.gremlin.tinkergraph.structure.TinkerGraph
 import org.slf4j.{Logger, LoggerFactory}
