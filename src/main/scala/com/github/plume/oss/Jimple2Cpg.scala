@@ -5,17 +5,17 @@ import com.github.plume.oss.passes._
 import com.github.plume.oss.passes.concurrent.{
   PlumeCfgCreationPass,
   PlumeContainsEdgePass,
-  PlumeDiffPass,
   PlumeHashPass
 }
+import com.github.plume.oss.passes.forkjoin.{PlumeCdgPass, PlumeCfgDominatorPass}
 import com.github.plume.oss.passes.parallel._
 import com.github.plume.oss.util.ProgramHandlingUtil
 import com.github.plume.oss.util.ProgramHandlingUtil.{extractSourceFilesFromArchive, moveClassFiles}
+import io.joern.x2cpg.SourceFiles
+import io.joern.x2cpg.X2Cpg.newEmptyCpg
 import io.shiftleft.codepropertygraph.Cpg
 import io.shiftleft.codepropertygraph.generated.{NodeTypes, PropertyNames}
 import io.shiftleft.passes.CpgPassBase
-import io.shiftleft.x2cpg.SourceFiles
-import io.shiftleft.x2cpg.X2Cpg.newEmptyCpg
 import org.slf4j.LoggerFactory
 import soot.options.Options
 import soot.{G, PhaseOptions, Scene, SootClass}

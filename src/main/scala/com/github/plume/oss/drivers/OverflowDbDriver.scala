@@ -9,6 +9,7 @@ import com.github.plume.oss.domain.{
 }
 import com.github.plume.oss.drivers.OverflowDbDriver.newOverflowGraph
 import com.github.plume.oss.passes.PlumeDynamicCallLinker
+import com.github.plume.oss.util.BatchedUpdateUtil._
 import io.joern.dataflowengineoss.language.toExtendedCfgNode
 import io.joern.dataflowengineoss.queryengine._
 import io.joern.dataflowengineoss.semanticsloader.{Parser, Semantics}
@@ -18,8 +19,9 @@ import io.shiftleft.codepropertygraph.{Cpg => CPG}
 import io.shiftleft.passes.AppliedDiffGraph
 import io.shiftleft.passes.DiffGraph.{Change, PackedProperties}
 import org.slf4j.LoggerFactory
+import overflowdb.BatchedUpdate.AppliedDiff
 import overflowdb.traversal.{Traversal, jIteratortoTraversal}
-import overflowdb.{Config, Node}
+import overflowdb.{BatchedUpdate, Config, DetachedNodeData, Node}
 
 import java.io.{File => JFile}
 import java.nio.file.{Files, Path, Paths}
@@ -160,12 +162,12 @@ final case class OverflowDbDriver(
       case Change.RemoveNode(nodeId) =>
         cpg.graph.node(nodeId).remove()
       case Change.RemoveNodeProperty(nodeId, propertyKey) =>
-        cpg.graph.nodes(nodeId).next().removeProperty(propertyKey)
+        cpg.graph.node(nodeId).removeProperty(propertyKey)
       case Change.CreateNode(node) =>
         val newNode = cpg.graph.addNode(dg.nodeToGraphId(node), node.label)
         node.properties.foreach { case (k, v) => newNode.setProperty(k, v) }
       case Change.SetNodeProperty(node, key, value) =>
-        cpg.graph.nodes(node.id()).next().setProperty(key, value)
+        cpg.graph.node(node.id()).setProperty(key, value)
       case _ => // do nothing
     }
     // Now that all nodes are in, connect/remove edges
@@ -180,11 +182,32 @@ final case class OverflowDbDriver(
         val srcId: Long = id(src, dg).asInstanceOf[Long]
         val dstId: Long = id(dst, dg).asInstanceOf[Long]
         val e: overflowdb.Edge =
-          cpg.graph.nodes(srcId).next().addEdge(label, cpg.graph.nodes(dstId).next())
+          cpg.graph.node(srcId).addEdge(label, cpg.graph.node(dstId))
         PackedProperties.unpack(packedProperties).foreach { case (k: String, v: Any) =>
           e.setProperty(k, v)
         }
       case _ => // do nothing
+    }
+  }
+
+  override def bulkTx(dg: AppliedDiff): Unit = {
+    dg.getDiffGraph.iterator.forEachRemaining {
+      case node: DetachedNodeData =>
+        val id      = idFromNodeData(node)
+        val newNode = cpg.graph.addNode(id, node.label)
+        propertiesFromNodeData(node).foreach { case (k, v) => newNode.setProperty(k, v) }
+      case c: BatchedUpdate.CreateEdge =>
+        val srcId = idFromNodeData(c.src)
+        val dstId = idFromNodeData(c.dst)
+        val e     = cpg.graph.node(srcId).addEdge(c.label, cpg.graph.node(dstId))
+        Option(c.propertiesAndKeys) match {
+          case Some(edgeKeyValues) =>
+            propertiesFromObjectArray(edgeKeyValues).foreach { case (k, v) => e.setProperty(k, v) }
+          case None =>
+        }
+      case c: BatchedUpdate.RemoveNode => cpg.graph.node(c.node.id()).remove()
+      case c: BatchedUpdate.SetNodeProperty =>
+        cpg.graph.node(c.node.id()).setProperty(c.label, c.value)
     }
   }
 
@@ -285,7 +308,7 @@ final case class OverflowDbDriver(
       .foreach { c: Call =>
         methodFullNameToNode.get(c.methodFullName) match {
           case Some(dstId) if cpg.graph.nodes(dstId.asInstanceOf[Long]).hasNext =>
-            c.addEdge(EdgeTypes.CALL, cpg.graph.nodes(dstId.asInstanceOf[Long]).next())
+            c.addEdge(EdgeTypes.CALL, cpg.graph.node(dstId.asInstanceOf[Long]))
           case _ =>
         }
       }

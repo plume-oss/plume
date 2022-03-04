@@ -7,13 +7,14 @@ import io.shiftleft.codepropertygraph.generated.nodes.File
 import io.shiftleft.passes.DiffGraph
 import io.shiftleft.semanticcpg.language._
 import org.slf4j.{Logger, LoggerFactory}
+import overflowdb.BatchedUpdate.DiffGraphBuilder
 
 import java.io.{File => JFile}
 import scala.util.{Failure, Success, Try}
 
 /** Performs hash calculations on the files represented by the FILE nodes.
   */
-class PlumeHashPass(cpg: Cpg) extends PlumeConcurrentCpgPass[File](cpg) {
+class PlumeHashPass(cpg: Cpg) extends PlumeConcurrentCpgPass[File](cpg, None) {
 
   import PlumeHashPass._
 
@@ -25,15 +26,15 @@ class PlumeHashPass(cpg: Cpg) extends PlumeConcurrentCpgPass[File](cpg) {
 
   /** Use the information in the given file node to find the local file and store its hash locally.
     */
-  override def runOnPart(diffGraph: DiffGraph.Builder, part: File): Unit = {
-    val localDiff = DiffGraph.newBuilder
+  override def runOnPart(diffGraph: DiffGraphBuilder, part: File): Unit = {
+    val localDiff = new DiffGraphBuilder
     Try(HashUtil.getFileHash(new JFile(part.name))) match {
       case Failure(exception) =>
         logger.warn(s"Unable to generate hash for file at ${part.name}", exception)
       case Success(fileHash) =>
-        localDiff.addNodeProperty(part, PropertyNames.HASH, fileHash)
+        localDiff.setNodeProperty(part, PropertyNames.HASH, fileHash)
     }
-    diffGraph.moveFrom(localDiff)
+    diffGraph.absorb(localDiff)
   }
 
 }

@@ -1,4 +1,4 @@
-package com.github.plume.oss.passes.concurrent
+package com.github.plume.oss.passes
 
 import com.github.plume.oss.drivers.IDriver
 import com.github.plume.oss.util.HashUtil

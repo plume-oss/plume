@@ -1,11 +1,16 @@
 package com.github.plume.oss.passes
 
 import com.github.plume.oss.drivers.IDriver
+import com.github.plume.oss.passes.forkjoin.PlumeForkJoinParallelCpgPass.{
+  DiffGraphBuilder,
+  forkJoinSerializeAndStore
+}
+import com.github.plume.oss.util.BatchedUpdateUtil
 import io.shiftleft.codepropertygraph.Cpg
 import io.shiftleft.codepropertygraph.generated.PropertyNames
-import io.shiftleft.codepropertygraph.generated.nodes.{AbstractNode, NewNode, StoredNode}
+import io.shiftleft.codepropertygraph.generated.nodes.{AbstractNode, Method, NewNode, StoredNode}
 import io.shiftleft.passes.DiffGraph.Change
-import io.shiftleft.passes.{DiffGraph, KeyPool}
+import io.shiftleft.passes.{DiffGraph, ForkJoinParallelCpgPass, KeyPool}
 import io.shiftleft.semanticcpg.passes.base.{
   FileCreationPass,
   MethodDecoratorPass,
@@ -13,6 +18,22 @@ import io.shiftleft.semanticcpg.passes.base.{
   TypeDeclStubCreator
 }
 import io.shiftleft.semanticcpg.passes.frontend.{MetaDataPass, TypeNodePass}
+import overflowdb.traversal.jIteratortoTraversal
+import overflowdb.{BatchedUpdate, DetachedNodeData, DetachedNodeGeneric, Node, NodeOrDetachedNode}
+
+abstract class PlumeSimpleCpgPass(cpg: Cpg, outName: String = "", keyPool: Option[KeyPool] = None)
+    extends ForkJoinParallelCpgPass[AnyRef](cpg, outName, keyPool) {
+
+  def run(builder: overflowdb.BatchedUpdate.DiffGraphBuilder): Unit
+
+  final override def generateParts(): Array[_ <: AnyRef] = Array[AnyRef](null)
+
+  final override def runOnPart(
+      builder: overflowdb.BatchedUpdate.DiffGraphBuilder,
+      part: AnyRef
+  ): Unit =
+    run(builder)
+}
 
 class PlumeMetaDataPass(
     cpg: Cpg,
@@ -22,13 +43,25 @@ class PlumeMetaDataPass(
 ) extends MetaDataPass(cpg, language, keyPool)
     with PlumeCpgPassBase {
 
-  override def createAndApply(driver: IDriver): Unit = {
-    if (blacklist.isEmpty) {
-      withStartEndTimesLogged {
-        run()
-          .map(diffGraph => DiffGraph.Applier.applyDiff(diffGraph, cpg, undoable = false, keyPool))
-          .foreach(driver.bulkTx)
-      }
+  def createAndApply(driver: IDriver): Unit = {
+    if (blacklist.isEmpty)                 // If not empty then do not generate duplicate meta data nodes
+      createApplySerializeAndStore(driver) // Apply to driver
+  }
+
+  def createApplySerializeAndStore(driver: IDriver): Unit = {
+    try {
+      init()
+      forkJoinSerializeAndStore(
+        driver,
+        name,
+        cpg,
+        baseLogger,
+        generateParts(),
+        (builder: DiffGraphBuilder, part: Method) => runOnPart(builder, part),
+        keyPool
+      )
+    } finally {
+      finish()
     }
   }
 
@@ -38,12 +71,26 @@ class PlumeNamespaceCreator(cpg: Cpg, keyPool: Option[KeyPool], blacklist: Set[S
     extends NamespaceCreator(cpg)
     with PlumeCpgPassBase {
 
-  override def createAndApply(driver: IDriver): Unit = {
-    withStartEndTimesLogged {
-      run()
-        .map(dg => PlumeCpgPass.filterDiffGraph(dg, PropertyNames.NAME, blacklist))
-        .map(diffGraph => DiffGraph.Applier.applyDiff(diffGraph, cpg, undoable = false, keyPool))
-        .foreach(driver.bulkTx)
+  def createAndApply(driver: IDriver): Unit = {
+    createApplySerializeAndStore(driver) // Apply to driver
+  }
+
+  def createApplySerializeAndStore(driver: IDriver): Unit = {
+    try {
+      init()
+      forkJoinSerializeAndStore(
+        driver,
+        name,
+        cpg,
+        baseLogger,
+        generateParts(),
+        (builder: DiffGraphBuilder, part: Method) => runOnPart(builder, part),
+        keyPool,
+        blacklist,
+        PropertyNames.NAME
+      )
+    } finally {
+      finish()
     }
   }
 
@@ -53,11 +100,24 @@ class PlumeFileCreationPass(cpg: Cpg, keyPool: Option[KeyPool])
     extends FileCreationPass(cpg)
     with PlumeCpgPassBase {
 
-  override def createAndApply(driver: IDriver): Unit = {
-    withStartEndTimesLogged {
-      run()
-        .map(diffGraph => DiffGraph.Applier.applyDiff(diffGraph, cpg, undoable = false, keyPool))
-        .foreach(driver.bulkTx)
+  def createAndApply(driver: IDriver): Unit = {
+    createApplySerializeAndStore(driver) // Apply to driver
+  }
+
+  def createApplySerializeAndStore(driver: IDriver): Unit = {
+    try {
+      init()
+      forkJoinSerializeAndStore(
+        driver,
+        name,
+        cpg,
+        baseLogger,
+        generateParts(),
+        (builder: DiffGraphBuilder, part: Method) => runOnPart(builder, part),
+        keyPool
+      )
+    } finally {
+      finish()
     }
   }
 
@@ -71,48 +131,121 @@ class PlumeTypeNodePass(
 ) extends TypeNodePass(usedTypes, cpg, keyPool)
     with PlumeCpgPassBase {
 
-  override def createAndApply(driver: IDriver): Unit = {
-    withStartEndTimesLogged {
-      run()
-        .map(dg => PlumeCpgPass.filterDiffGraph(dg, PropertyNames.FULL_NAME, blacklist))
-        .map(diffGraph => DiffGraph.Applier.applyDiff(diffGraph, cpg, undoable = false, keyPool))
-        .foreach(driver.bulkTx)
+  def createAndApply(driver: IDriver): Unit = {
+    createApplySerializeAndStore(driver) // Apply to driver
+  }
+
+  def createApplySerializeAndStore(driver: IDriver): Unit = {
+    try {
+      init()
+      forkJoinSerializeAndStore(
+        driver,
+        name,
+        cpg,
+        baseLogger,
+        generateParts(),
+        (builder: DiffGraphBuilder, part: Method) => runOnPart(builder, part),
+        keyPool,
+        blacklist,
+        PropertyNames.FULL_NAME
+      )
+    } finally {
+      finish()
     }
   }
+
 }
 
 class PlumeTypeDeclStubCreator(cpg: Cpg, keyPool: Option[KeyPool], blacklist: Set[String] = Set())
     extends TypeDeclStubCreator(cpg)
     with PlumeCpgPassBase {
 
-  override def createAndApply(driver: IDriver): Unit = {
-    withStartEndTimesLogged {
-      run()
-        .map(dg => PlumeCpgPass.filterDiffGraph(dg, PropertyNames.FULL_NAME, blacklist))
-        .map(diffGraph => DiffGraph.Applier.applyDiff(diffGraph, cpg, undoable = false, keyPool))
-        .foreach(driver.bulkTx)
+  def createAndApply(driver: IDriver): Unit = {
+    createApplySerializeAndStore(driver) // Apply to driver
+  }
+
+  def createApplySerializeAndStore(driver: IDriver): Unit = {
+    try {
+      init()
+      forkJoinSerializeAndStore(
+        driver,
+        name,
+        cpg,
+        baseLogger,
+        generateParts(),
+        (builder: DiffGraphBuilder, part: Method) => runOnPart(builder, part),
+        keyPool,
+        blacklist,
+        PropertyNames.FULL_NAME
+      )
+    } finally {
+      finish()
     }
   }
+
 }
 
 class PlumeMethodDecoratorPass(cpg: Cpg, keyPool: Option[KeyPool], blacklist: Set[String] = Set())
     extends MethodDecoratorPass(cpg)
     with PlumeCpgPassBase {
 
-  override def createAndApply(driver: IDriver): Unit = {
-    withStartEndTimesLogged {
-      run()
-        .map(dg =>
-          PlumeCpgPass
-            .filterDiffGraph(dg, PropertyNames.TYPE_FULL_NAME, blacklist, rejectAllOnFail = true)
-        )
-        .map(diffGraph => DiffGraph.Applier.applyDiff(diffGraph, cpg, undoable = false, keyPool))
-        .foreach(driver.bulkTx)
+  def createAndApply(driver: IDriver): Unit = {
+    createApplySerializeAndStore(driver) // Apply to driver
+  }
+
+  def createApplySerializeAndStore(driver: IDriver): Unit = {
+    try {
+      init()
+      forkJoinSerializeAndStore(
+        driver,
+        name,
+        cpg,
+        baseLogger,
+        generateParts(),
+        (builder: DiffGraphBuilder, part: Method) => runOnPart(builder, part),
+        keyPool,
+        blacklist,
+        PropertyNames.TYPE_FULL_NAME,
+        blacklistRejectOnFail = true
+      )
+    } finally {
+      finish()
     }
   }
+
 }
 
 object PlumeCpgPass {
+
+  def filterBatchedDiffGraph(
+      dg: BatchedUpdate.DiffGraph,
+      key: String,
+      blacklist: Set[String],
+      rejectAllOnFail: Boolean = false
+  ): BatchedUpdate.DiffGraph = {
+    val newDg = new DiffGraphBuilder
+    dg.iterator.foreach {
+      case c: DetachedNodeData =>
+        val properties = c match {
+          case generic: DetachedNodeGeneric =>
+            BatchedUpdateUtil.propertiesFromObjectArray(generic.keyvalues)
+          case node: NewNode => node.properties
+          case _             => Map.empty[String, Object]
+        }
+        if (!blacklist.contains(properties.getOrElse(key, "").toString))
+          newDg.addNode(c)
+      case c: BatchedUpdate.CreateEdge =>
+        val srcProperty = getPropertyFromAbstractNode[String](c.src, key)
+        val dstProperty = getPropertyFromAbstractNode[String](c.dst, key)
+        if (!blacklist.contains(srcProperty) && !blacklist.contains(dstProperty)) {
+          newDg.addEdge(c.src, c.dst, c.label)
+        } else if (rejectAllOnFail) {
+          return (new DiffGraphBuilder).build()
+        }
+      case _ =>
+    }
+    newDg.build()
+  }
 
   def filterDiffGraph(
       dg: DiffGraph,
@@ -143,6 +276,15 @@ object PlumeCpgPass {
       case x: NewNode    => x.properties.getOrElse(key, "").asInstanceOf[T]
       case x: StoredNode => x.propertiesMap().getOrDefault(key, "").asInstanceOf[T]
       case _             => "".asInstanceOf[T]
+    }
+  }
+
+  private def getPropertyFromAbstractNode[T](node: NodeOrDetachedNode, key: String): T = {
+    node match {
+      case generic: DetachedNodeGeneric =>
+        BatchedUpdateUtil.propertiesFromObjectArray(generic.keyvalues)(key).asInstanceOf[T]
+      case node: NewNode => node.properties(key).asInstanceOf[T]
+      case node: Node    => node.property(key).asInstanceOf[T]
     }
   }
 

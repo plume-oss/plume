@@ -7,6 +7,19 @@ and this project adheres to [Semantic Versioning](http://semver.org/).
 
 ## [Unreleased]
 
+### Added
+
+- Overloaded `bulkTx` to handle new `overflowdb.BatchedUpdate` objects.
+
+### Fixed
+
+- Instance where dynamic `InvokeExpr::getMethod` would fail by using `getMethodRef` instead.
+
+### Changed
+
+- Updated passes to handle new `ForkJoinParallel` passes.
+- Upgraded CPG and Joern versions to latest.
+
 ## [1.0.16] - 2022-03-01
 
 ### Added

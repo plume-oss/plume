@@ -1,63 +1,149 @@
 package com.github.plume.oss.passes.parallel
 
 import com.github.plume.oss.drivers.IDriver
-import com.github.plume.oss.passes.parallel.PlumeParallelCpgPass.{
-  parallelEnqueue,
-  parallelItWithKeyPools,
-  parallelWithWriter
-}
-import com.github.plume.oss.passes.{IncrementalKeyPool, PlumeCpgPassBase}
+import com.github.plume.oss.passes.forkjoin.PlumeForkJoinParallelCpgPass.forkJoinSerializeAndStore
+import com.github.plume.oss.passes.{IncrementalKeyPool, PlumeCpgPassBase, PlumeSimpleCpgPass}
 import io.shiftleft.codepropertygraph.Cpg
-import io.shiftleft.passes.{DiffGraph, KeyPool, ParallelIteratorExecutor}
-import io.shiftleft.semanticcpg.passes.base.{MethodStubCreator, NameAndSignature}
+import io.shiftleft.codepropertygraph.generated.nodes._
+import io.shiftleft.codepropertygraph.generated.{EdgeTypes, EvaluationStrategies, NodeTypes}
+import io.shiftleft.semanticcpg.language._
+import io.shiftleft.semanticcpg.passes.base.NameAndSignature
+import overflowdb.BatchedUpdate
+
+import scala.collection.mutable
+import scala.util.Try
 
 class PlumeMethodStubCreator(
     cpg: Cpg,
     keyPool: Option[IncrementalKeyPool],
     blacklist: Set[String] = Set()
-) extends MethodStubCreator(cpg)
+) extends PlumeSimpleCpgPass(cpg, keyPool = keyPool)
     with PlumeCpgPassBase {
 
-  var keyPools: Option[Iterator[KeyPool]] = None
+  // Since the method fullNames for fuzzyc are not unique, we do not have
+  // a 1to1 relation and may overwrite some values. This is ok for now.
+  private val methodFullNameToNode   = mutable.LinkedHashMap[String, MethodBase]()
+  private val methodToParameterCount = mutable.LinkedHashMap[NameAndSignature, Int]()
 
-  override def init(): Unit = {
-    super.init()
-    keyPool match {
-      case Some(value) => keyPools = Option(value.split(partIterator.size))
-      case None        =>
-    }
+  private def filter(name: NameAndSignature): Boolean = {
+    val methodTypeName = name.fullName.replace(s".${name.name}:${name.signature}", "")
+    !(blacklist.contains(methodTypeName) || (blacklist.nonEmpty && methodTypeName == "<empty>"))
   }
 
-  // Do not create stubs for methods that exist
-  override def runOnPart(part: (NameAndSignature, Int)): Iterator[DiffGraph] = {
-    val methodTypeName = part._1.fullName.replace(s".${part._1.name}:${part._1.signature}", "")
-    if (blacklist.contains(methodTypeName) || (blacklist.nonEmpty && methodTypeName == "<empty>")) {
-      Iterator()
-    } else {
-      super.runOnPart(part)
+  override def run(dstGraph: BatchedUpdate.DiffGraphBuilder): Unit = {
+    for (method <- cpg.method) {
+      methodFullNameToNode.put(method.fullName, method)
     }
-  }
 
-  override def createAndApply(driver: IDriver): Unit = {
-    withWriter(driver) { writer =>
-      enqueueInParallel(writer)
-    }
-  }
-
-  private def withWriter[X](driver: IDriver)(f: PlumeParallelWriter => Unit): Unit =
-    parallelWithWriter[X](driver, f, cpg, baseLogger)
-
-  private def enqueueInParallel(writer: PlumeParallelWriter): Unit =
-    withStartEndTimesLogged {
-      init()
-      parallelEnqueue(
-        baseLogger,
-        name,
-        writer,
-        (x: (NameAndSignature, Int)) => runOnPart(x),
-        keyPools,
-        partIterator
+    for (call <- cpg.call) {
+      methodToParameterCount.put(
+        NameAndSignature(call.name, call.signature, call.methodFullName),
+        call.argument.size
       )
     }
 
+    for (
+      (NameAndSignature(name, signature, fullName), parameterCount) <- methodToParameterCount
+      if !methodFullNameToNode.contains(fullName)
+    ) {
+      if (filter(NameAndSignature(name, signature, fullName)))
+        createMethodStub(name, fullName, signature, parameterCount, dstGraph)
+    }
+  }
+
+  override def finish(): Unit = {
+    methodFullNameToNode.clear()
+    methodToParameterCount.clear()
+    super.finish()
+  }
+
+  private def addLineNumberInfo(methodNode: NewMethod, fullName: String): NewMethod = {
+    val s = fullName.split(":")
+    if (s.size == 5 && Try { s(1).toInt }.isSuccess && Try { s(2).toInt }.isSuccess) {
+      val filename      = s(0)
+      val lineNumber    = s(1).toInt
+      val lineNumberEnd = s(2).toInt
+      methodNode
+        .filename(filename)
+        .lineNumber(lineNumber)
+        .lineNumberEnd(lineNumberEnd)
+    } else {
+      methodNode
+    }
+  }
+
+  private def createMethodStub(
+      name: String,
+      fullName: String,
+      signature: String,
+      parameterCount: Int,
+      dstGraph: DiffGraphBuilder
+  ): MethodBase = {
+
+    val methodNode = addLineNumberInfo(
+      NewMethod()
+        .name(name)
+        .fullName(fullName)
+        .isExternal(true)
+        .signature(signature)
+        .astParentType(NodeTypes.NAMESPACE_BLOCK)
+        .astParentFullName("<global>")
+        .order(0),
+      fullName
+    )
+
+    dstGraph.addNode(methodNode)
+
+    (1 to parameterCount).foreach { parameterOrder =>
+      val nameAndCode = s"p$parameterOrder"
+      val param = NewMethodParameterIn()
+        .code(nameAndCode)
+        .order(parameterOrder)
+        .name(nameAndCode)
+        .evaluationStrategy(EvaluationStrategies.BY_VALUE)
+        .typeFullName("ANY")
+
+      dstGraph.addNode(param)
+      dstGraph.addEdge(methodNode, param, EdgeTypes.AST)
+    }
+
+    val methodReturn = NewMethodReturn()
+      .code("RET")
+      .evaluationStrategy(EvaluationStrategies.BY_VALUE)
+      .typeFullName("ANY")
+
+    dstGraph.addNode(methodReturn)
+    dstGraph.addEdge(methodNode, methodReturn, EdgeTypes.AST)
+
+    val blockNode = NewBlock()
+      .order(1)
+      .argumentIndex(1)
+      .typeFullName("ANY")
+
+    dstGraph.addNode(blockNode)
+    dstGraph.addEdge(methodNode, blockNode, EdgeTypes.AST)
+
+    methodNode
+  }
+
+  def createAndApply(driver: IDriver): Unit = {
+    createApplySerializeAndStore(driver) // Apply to driver
+  }
+
+  def createApplySerializeAndStore(driver: IDriver): Unit = {
+    try {
+      init()
+      forkJoinSerializeAndStore(
+        driver,
+        name,
+        cpg,
+        baseLogger,
+        generateParts(),
+        (builder: DiffGraphBuilder, part: Method) => runOnPart(builder, part),
+        keyPool
+      )
+    } finally {
+      finish()
+    }
+  }
 }

@@ -1,6 +1,7 @@
 package com.github.plume.oss.testfixtures
 
 import com.github.plume.oss.drivers.IDriver
+import com.github.plume.oss.passes.forkjoin.PlumeForkJoinParallelCpgPass.DiffGraphBuilder
 import io.shiftleft.codepropertygraph.generated.NodeTypes._
 import io.shiftleft.codepropertygraph.generated.nodes._
 import io.shiftleft.codepropertygraph.generated.{Cpg, DispatchTypes, EdgeTypes}
@@ -9,7 +10,9 @@ import io.shiftleft.codepropertygraph.generated.PropertyNames._
 import org.scalatest.matchers.should.Matchers
 import org.scalatest.wordspec.AnyWordSpec
 import org.scalatest.{BeforeAndAfter, BeforeAndAfterAll}
+import overflowdb.{BatchedUpdate, DetachedNodeData, DetachedNodeGeneric, Node}
 
+import scala.jdk.CollectionConverters.IteratorHasAsScala
 import scala.language.postfixOps
 
 class PlumeDriverFixture(val driver: IDriver)
@@ -28,123 +31,263 @@ class PlumeDriverFixture(val driver: IDriver)
     driver.clear()
   }
 
-  "should reflect node additions in bulk transactions" in {
-    val cpg       = Cpg.empty
-    val keyPool   = new IntervalKeyPool(1, 1000)
-    val diffGraph = DiffGraph.newBuilder
-    // Create some nodes
-    diffGraph.addNode(m1).addNode(b1)
-    val adg =
-      DiffGraph.Applier.applyDiff(diffGraph.build(), cpg.graph, undoable = false, Option(keyPool))
-    driver.bulkTx(adg)
-    val List(m: Map[String, Any]) =
-      driver.propertyFromNodes(METHOD, NAME, ORDER, DYNAMIC_TYPE_HINT_FULL_NAME)
-    m.get(NAME) shouldBe Some("foo")
-    m.get(ORDER) shouldBe Some(1)
-    val List(b: Map[String, Any]) = driver.propertyFromNodes(BLOCK, ORDER)
-    b.get(ORDER) shouldBe Some(1)
+  "io.shiftleft.passes.DiffGraph based changes" should {
+
+    "should reflect node additions in bulk transactions" in {
+      val cpg       = Cpg.empty
+      val keyPool   = new IntervalKeyPool(1, 1000)
+      val diffGraph = DiffGraph.newBuilder
+      // Create some nodes
+      diffGraph.addNode(m1).addNode(b1)
+      val adg =
+        DiffGraph.Applier.applyDiff(diffGraph.build(), cpg.graph, undoable = false, Option(keyPool))
+      driver.bulkTx(adg)
+      val List(m: Map[String, Any]) =
+        driver.propertyFromNodes(METHOD, NAME, ORDER, DYNAMIC_TYPE_HINT_FULL_NAME)
+      m.get(NAME) shouldBe Some("foo")
+      m.get(ORDER) shouldBe Some(1)
+      val List(b: Map[String, Any]) = driver.propertyFromNodes(BLOCK, ORDER)
+      b.get(ORDER) shouldBe Some(1)
+    }
+
+    "should reflect node subtractions in bulk transactions" in {
+      val cpg        = Cpg.empty
+      val keyPool    = new IntervalKeyPool(1, 1000)
+      val diffGraph1 = DiffGraph.newBuilder
+      val diffGraph2 = DiffGraph.newBuilder
+      // Create some nodes
+      diffGraph1.addNode(m1).addNode(b1)
+      val adg1 =
+        DiffGraph.Applier.applyDiff(
+          diffGraph1.build(),
+          cpg.graph,
+          undoable = false,
+          Option(keyPool)
+        )
+      driver.bulkTx(adg1)
+
+      val List(m: Map[String, Any]) = driver.propertyFromNodes(METHOD, NAME, ORDER)
+      m.get(NAME) shouldBe Some("foo")
+      m.get(ORDER) shouldBe Some(1)
+      val List(b: Map[String, Any]) = driver.propertyFromNodes(BLOCK, ORDER)
+      b.get(ORDER) shouldBe Some(1)
+
+      // Remove one node
+      diffGraph2.removeNode(m.getOrElse("id", -1L).toString.toLong)
+      val adg2 =
+        DiffGraph.Applier.applyDiff(
+          diffGraph2.build(),
+          cpg.graph,
+          undoable = false,
+          Option(keyPool)
+        )
+      driver.bulkTx(adg2)
+
+      driver.propertyFromNodes(METHOD) shouldBe List()
+    }
+
+    "should reflect edge additions in bulk transactions" in {
+      val cpg        = Cpg.empty
+      val keyPool    = new IntervalKeyPool(1, 1000)
+      val diffGraph1 = DiffGraph.newBuilder
+      val diffGraph2 = DiffGraph.newBuilder
+      // Create some nodes
+      diffGraph1.addNode(m1).addNode(b1)
+      val adg1 =
+        DiffGraph.Applier.applyDiff(
+          diffGraph1.build(),
+          cpg.graph,
+          undoable = false,
+          Option(keyPool)
+        )
+      driver.bulkTx(adg1)
+
+      val List(m: Map[String, Any]) = driver.propertyFromNodes(METHOD, NAME, ORDER)
+      m.get(NAME) shouldBe Some("foo")
+      m.get(ORDER) shouldBe Some(1)
+      val List(b: Map[String, Any]) = driver.propertyFromNodes(BLOCK, ORDER)
+      b.get(ORDER) shouldBe Some(1)
+
+      // Add an edge
+      diffGraph2.addEdge(
+        cpg.graph.nodes(m.getOrElse("id", -1L).toString.toLong).next().asInstanceOf[AbstractNode],
+        cpg.graph.nodes(b.getOrElse("id", -1L).toString.toLong).next().asInstanceOf[AbstractNode],
+        EdgeTypes.AST
+      )
+      val adg2 =
+        DiffGraph.Applier.applyDiff(
+          diffGraph2.build(),
+          cpg.graph,
+          undoable = false,
+          Option(keyPool)
+        )
+      driver.bulkTx(adg2)
+
+      driver.exists(
+        m.getOrElse("id", -1L).toString.toLong,
+        b.getOrElse("id", -1L).toString.toLong,
+        EdgeTypes.AST
+      ) shouldBe true
+      driver.exists(
+        b.getOrElse("id", -1L).toString.toLong,
+        m.getOrElse("id", -1L).toString.toLong,
+        EdgeTypes.AST
+      ) shouldBe false
+    }
+
+    "should reflect edge removal in bulk transactions" in {
+      val cpg        = Cpg.empty
+      val keyPool    = new IntervalKeyPool(1, 1000)
+      val diffGraph1 = DiffGraph.newBuilder
+      val diffGraph2 = DiffGraph.newBuilder
+      // Create some nodes and an edge
+      diffGraph1.addNode(m1).addNode(b1).addEdge(m1, b1, EdgeTypes.AST)
+      val adg1 =
+        DiffGraph.Applier.applyDiff(
+          diffGraph1.build(),
+          cpg.graph,
+          undoable = false,
+          Option(keyPool)
+        )
+      driver.bulkTx(adg1)
+
+      val List(m: Map[String, Any]) = driver.propertyFromNodes(METHOD, NAME, ORDER)
+      m.get(NAME) shouldBe Some("foo")
+      m.get(ORDER) shouldBe Some(1)
+      val List(b: Map[String, Any]) = driver.propertyFromNodes(BLOCK, ORDER)
+      b.get(ORDER) shouldBe Some(1)
+
+      driver.exists(
+        m.getOrElse("id", -1L).toString.toLong,
+        b.getOrElse("id", -1L).toString.toLong,
+        EdgeTypes.AST
+      ) shouldBe true
+
+      diffGraph2.removeEdge(
+        cpg.graph.node(m.getOrElse("id", -1L).toString.toLong).outE(EdgeTypes.AST).next()
+      )
+      val adg2 =
+        DiffGraph.Applier.applyDiff(
+          diffGraph2.build(),
+          cpg.graph,
+          undoable = false,
+          Option(keyPool)
+        )
+      driver.bulkTx(adg2)
+
+      driver.exists(
+        m.getOrElse("id", -1L).toString.toLong,
+        b.getOrElse("id", -1L).toString.toLong,
+        EdgeTypes.AST
+      ) shouldBe false
+    }
   }
 
-  "should reflect node subtractions in bulk transactions" in {
-    val cpg        = Cpg.empty
-    val keyPool    = new IntervalKeyPool(1, 1000)
-    val diffGraph1 = DiffGraph.newBuilder
-    val diffGraph2 = DiffGraph.newBuilder
-    // Create some nodes
-    diffGraph1.addNode(m1).addNode(b1)
-    val adg1 =
-      DiffGraph.Applier.applyDiff(diffGraph1.build(), cpg.graph, undoable = false, Option(keyPool))
-    driver.bulkTx(adg1)
-
-    val List(m: Map[String, Any]) = driver.propertyFromNodes(METHOD, NAME, ORDER)
-    m.get(NAME) shouldBe Some("foo")
-    m.get(ORDER) shouldBe Some(1)
-    val List(b: Map[String, Any]) = driver.propertyFromNodes(BLOCK, ORDER)
-    b.get(ORDER) shouldBe Some(1)
-
-    // Remove one node
-    diffGraph2.removeNode(m.getOrElse("id", -1L).toString.toLong)
-    val adg2 =
-      DiffGraph.Applier.applyDiff(diffGraph2.build(), cpg.graph, undoable = false, Option(keyPool))
-    driver.bulkTx(adg2)
-
-    driver.propertyFromNodes(METHOD) shouldBe List()
+  def nodeToNodeCreate(n: NewNode): DetachedNodeGeneric = {
+    val props: Array[Object] = n.properties.flatMap { case (k, v) =>
+      Iterable(k.asInstanceOf[Object], v.asInstanceOf[Object])
+    }.toArray
+    new DetachedNodeGeneric(n.label(), props: _*)
   }
 
-  "should reflect edge additions in bulk transactions" in {
-    val cpg        = Cpg.empty
-    val keyPool    = new IntervalKeyPool(1, 1000)
-    val diffGraph1 = DiffGraph.newBuilder
-    val diffGraph2 = DiffGraph.newBuilder
-    // Create some nodes
-    diffGraph1.addNode(m1).addNode(b1)
-    val adg1 =
-      DiffGraph.Applier.applyDiff(diffGraph1.build(), cpg.graph, undoable = false, Option(keyPool))
-    driver.bulkTx(adg1)
+  "overflowdb.BatchedUpdate.DiffGraph based changes" should {
 
-    val List(m: Map[String, Any]) = driver.propertyFromNodes(METHOD, NAME, ORDER)
-    m.get(NAME) shouldBe Some("foo")
-    m.get(ORDER) shouldBe Some(1)
-    val List(b: Map[String, Any]) = driver.propertyFromNodes(BLOCK, ORDER)
-    b.get(ORDER) shouldBe Some(1)
+    "should reflect node additions in bulk transactions" in {
+      val cpg       = Cpg.empty
+      val keyPool   = new IntervalKeyPool(1, 1000)
+      val diffGraph = new DiffGraphBuilder
+      // Create some nodes
+      diffGraph.addNode(nodeToNodeCreate(m1)).addNode(nodeToNodeCreate(b1))
+      val adg = BatchedUpdate.applyDiff(cpg.graph, diffGraph.build(), keyPool, null)
+      driver.bulkTx(adg)
+      val List(m: Map[String, Any]) =
+        driver.propertyFromNodes(METHOD, NAME, ORDER, DYNAMIC_TYPE_HINT_FULL_NAME)
+      m.get(NAME) shouldBe Some("foo")
+      m.get(ORDER) shouldBe Some(1)
+      val List(b: Map[String, Any]) = driver.propertyFromNodes(BLOCK, ORDER)
+      b.get(ORDER) shouldBe Some(1)
+    }
 
-    // Add an edge
-    diffGraph2.addEdge(
-      cpg.graph.nodes(m.getOrElse("id", -1L).toString.toLong).next().asInstanceOf[AbstractNode],
-      cpg.graph.nodes(b.getOrElse("id", -1L).toString.toLong).next().asInstanceOf[AbstractNode],
-      EdgeTypes.AST
-    )
-    val adg2 =
-      DiffGraph.Applier.applyDiff(diffGraph2.build(), cpg.graph, undoable = false, Option(keyPool))
-    driver.bulkTx(adg2)
+    "should reflect node subtractions in bulk transactions" in {
+      val cpg        = Cpg.empty
+      val keyPool    = new IntervalKeyPool(1, 1000)
+      val diffGraph1 = new DiffGraphBuilder
+      val diffGraph2 = new DiffGraphBuilder
+      // Create some nodes
+      diffGraph1.addNode(nodeToNodeCreate(m1)).addNode(b1)
+      val adg1 = BatchedUpdate.applyDiff(cpg.graph, diffGraph1.build(), keyPool, null)
+      driver.bulkTx(adg1)
 
-    driver.exists(
-      m.getOrElse("id", -1L).toString.toLong,
-      b.getOrElse("id", -1L).toString.toLong,
-      EdgeTypes.AST
-    ) shouldBe true
-    driver.exists(
-      b.getOrElse("id", -1L).toString.toLong,
-      m.getOrElse("id", -1L).toString.toLong,
-      EdgeTypes.AST
-    ) shouldBe false
-  }
+      val List(m: Map[String, Any]) = driver.propertyFromNodes(METHOD, NAME, ORDER)
+      m.get(NAME) shouldBe Some("foo")
+      m.get(ORDER) shouldBe Some(1)
+      val List(b: Map[String, Any]) = driver.propertyFromNodes(BLOCK, ORDER)
+      b.get(ORDER) shouldBe Some(1)
+      adg1.diffGraph.iterator.asScala
+        .collectFirst {
+          case c: DetachedNodeGeneric
+              if c.getRefOrId.asInstanceOf[Node].id() == m.getOrElse("id", -1L).toString.toLong =>
+            c
+        } match {
+        case Some(mToCheck) =>
+          // Remove one node
+          diffGraph2.removeNode(mToCheck.getRefOrId.asInstanceOf[Node])
+          val adg2 = BatchedUpdate.applyDiff(cpg.graph, diffGraph2.build(), keyPool, null)
+          driver.bulkTx(adg2)
+        case None => fail("Unable to extract removed method node")
+      }
+      driver.propertyFromNodes(METHOD) shouldBe List()
+    }
 
-  "should reflect edge removal in bulk transactions" in {
-    val cpg        = Cpg.empty
-    val keyPool    = new IntervalKeyPool(1, 1000)
-    val diffGraph1 = DiffGraph.newBuilder
-    val diffGraph2 = DiffGraph.newBuilder
-    // Create some nodes and an edge
-    diffGraph1.addNode(m1).addNode(b1).addEdge(m1, b1, EdgeTypes.AST)
-    val adg1 =
-      DiffGraph.Applier.applyDiff(diffGraph1.build(), cpg.graph, undoable = false, Option(keyPool))
-    driver.bulkTx(adg1)
+    "should reflect edge additions in bulk transactions" in {
+      val cpg        = Cpg.empty
+      val keyPool    = new IntervalKeyPool(1, 1000)
+      val diffGraph1 = new DiffGraphBuilder
+      val diffGraph2 = new DiffGraphBuilder
+      // Create some nodes
+      diffGraph1.addNode(nodeToNodeCreate(m1)).addNode(b1)
+      val adg1 = BatchedUpdate.applyDiff(cpg.graph, diffGraph1.build(), keyPool, null)
+      driver.bulkTx(adg1)
+      val List(m: Map[String, Any]) = driver.propertyFromNodes(METHOD, NAME, ORDER)
+      m.get(NAME) shouldBe Some("foo")
+      m.get(ORDER) shouldBe Some(1)
+      val List(b: Map[String, Any]) = driver.propertyFromNodes(BLOCK, ORDER)
+      b.get(ORDER) shouldBe Some(1)
 
-    val List(m: Map[String, Any]) = driver.propertyFromNodes(METHOD, NAME, ORDER)
-    m.get(NAME) shouldBe Some("foo")
-    m.get(ORDER) shouldBe Some(1)
-    val List(b: Map[String, Any]) = driver.propertyFromNodes(BLOCK, ORDER)
-    b.get(ORDER) shouldBe Some(1)
+      // Add an edge
+      val srcNode = adg1.diffGraph.iterator.asScala
+        .collectFirst {
+          case c: DetachedNodeGeneric
+              if c.getRefOrId.asInstanceOf[Node].id() == m.getOrElse("id", -1L).toString.toLong =>
+            c
+        } match {
+        case Some(src) => src
+        case None      => fail("Unable to extract method node")
+      }
+      val dstNode = adg1.diffGraph.iterator.asScala
+        .collectFirst {
+          case c: NewBlock
+              if c.getRefOrId().asInstanceOf[Node].id() == b.getOrElse("id", -1L).toString.toLong =>
+            c
+        } match {
+        case Some(dst) => dst
+        case None      => fail("Unable to extract block node")
+      }
+      diffGraph2.addEdge(srcNode, dstNode, EdgeTypes.AST)
+      val adg2 = BatchedUpdate.applyDiff(cpg.graph, diffGraph2.build(), keyPool, null)
+      driver.bulkTx(adg2)
 
-    driver.exists(
-      m.getOrElse("id", -1L).toString.toLong,
-      b.getOrElse("id", -1L).toString.toLong,
-      EdgeTypes.AST
-    ) shouldBe true
-
-    diffGraph2.removeEdge(
-      cpg.graph.node(m.getOrElse("id", -1L).toString.toLong).outE(EdgeTypes.AST).next()
-    )
-    val adg2 =
-      DiffGraph.Applier.applyDiff(diffGraph2.build(), cpg.graph, undoable = false, Option(keyPool))
-    driver.bulkTx(adg2)
-
-    driver.exists(
-      m.getOrElse("id", -1L).toString.toLong,
-      b.getOrElse("id", -1L).toString.toLong,
-      EdgeTypes.AST
-    ) shouldBe false
+      driver.exists(
+        m.getOrElse("id", -1L).toString.toLong,
+        b.getOrElse("id", -1L).toString.toLong,
+        EdgeTypes.AST
+      ) shouldBe true
+      driver.exists(
+        b.getOrElse("id", -1L).toString.toLong,
+        m.getOrElse("id", -1L).toString.toLong,
+        EdgeTypes.AST
+      ) shouldBe false
+    }
   }
 
   "should accurately report which IDs have been taken" in {
@@ -258,6 +401,48 @@ class PlumeDriverFixture(val driver: IDriver)
 
   override def afterAll(): Unit = {
     if (driver.isConnected) driver.close()
+  }
+
+  private def createSimpleGraph(dg: DiffGraphBuilder): Unit = {
+    dg.addNode(meta)
+      .addNode(f1)
+      .addNode(f2)
+      .addNode(td1)
+      .addNode(td2)
+      .addNode(t1)
+      .addNode(t2)
+      .addNode(n1)
+      .addNode(n2)
+      .addNode(m1)
+      .addNode(m2)
+      .addNode(m3)
+      .addNode(b1)
+      .addNode(c1)
+      .addNode(c2)
+      .addNode(li1)
+      .addNode(l1)
+      .addNode(i1)
+      .addEdge(m1, f1, EdgeTypes.SOURCE_FILE)
+      .addEdge(m2, f2, EdgeTypes.SOURCE_FILE)
+      .addEdge(m3, f1, EdgeTypes.SOURCE_FILE)
+      .addEdge(td1, f1, EdgeTypes.SOURCE_FILE)
+      .addEdge(td2, f2, EdgeTypes.SOURCE_FILE)
+      .addEdge(n1, f1, EdgeTypes.SOURCE_FILE)
+      .addEdge(n2, f2, EdgeTypes.SOURCE_FILE)
+      .addEdge(t1, td1, EdgeTypes.REF)
+      .addEdge(t2, td2, EdgeTypes.REF)
+      .addEdge(n1, td1, EdgeTypes.AST)
+      .addEdge(n2, td2, EdgeTypes.AST)
+      .addEdge(td1, m1, EdgeTypes.AST)
+      .addEdge(td1, m3, EdgeTypes.AST)
+      .addEdge(td2, m2, EdgeTypes.AST)
+      .addEdge(m1, b1, EdgeTypes.AST)
+      .addEdge(b1, c1, EdgeTypes.AST)
+      .addEdge(b1, c2, EdgeTypes.AST)
+      .addEdge(b1, l1, EdgeTypes.AST)
+      .addEdge(c1, li1, EdgeTypes.AST)
+      .addEdge(c1, i1, EdgeTypes.AST)
+      .addEdge(m1, c1, EdgeTypes.CFG)
   }
 
   private def createSimpleGraph(dg: DiffGraph.Builder): Unit = {

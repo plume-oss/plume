@@ -1,39 +1,11 @@
 package com.github.plume.oss.drivers
 
-import io.shiftleft.codepropertygraph.generated.nodes.{
-  AbstractNode,
-  Block,
-  Call,
-  ControlStructure,
-  FieldIdentifier,
-  File,
-  Identifier,
-  JumpTarget,
-  Literal,
-  Local,
-  Member,
-  MetaData,
-  Method,
-  MethodParameterIn,
-  MethodParameterOut,
-  MethodRef,
-  MethodReturn,
-  Modifier,
-  Namespace,
-  NamespaceBlock,
-  NewNode,
-  Return,
-  StoredNode,
-  Type,
-  TypeArgument,
-  TypeDecl,
-  TypeParameter,
-  TypeRef,
-  Unknown
-}
+import io.shiftleft.codepropertygraph.generated.nodes._
 import io.shiftleft.codepropertygraph.generated.{EdgeTypes, NodeTypes, PropertyNames}
 import io.shiftleft.passes.AppliedDiffGraph
 import org.slf4j.LoggerFactory
+import overflowdb.BatchedUpdate.AppliedDiff
+import overflowdb.{DetachedNodeData, DetachedNodeGeneric, Node}
 
 import scala.collection.mutable
 
@@ -63,6 +35,11 @@ trait IDriver extends AutoCloseable {
     * transaction(s).
     */
   def bulkTx(dg: AppliedDiffGraph): Unit
+
+  /** Executes all changes contained within the given overflowdb.BatchedUpdate.AppliedDiff as a (or set of)
+    * bulk transaction(s).
+    */
+  def bulkTx(dg: AppliedDiff): Unit
 
   /** Given filenames, will remove related TYPE, TYPE_DECL, METHOD (with AST children), and NAMESPACE_BLOCK.
     */
