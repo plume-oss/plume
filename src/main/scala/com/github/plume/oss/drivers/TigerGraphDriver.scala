@@ -2,6 +2,7 @@ package com.github.plume.oss.drivers
 
 import com.github.plume.oss.domain.TigerGraphResponse
 import com.github.plume.oss.drivers.TigerGraphDriver._
+import com.github.plume.oss.util.BatchedUpdateUtil._
 import io.circe
 import io.circe.generic.auto._
 import io.circe.syntax._
@@ -11,8 +12,8 @@ import io.shiftleft.codepropertygraph.generated.{EdgeTypes, NodeTypes, PropertyN
 import io.shiftleft.passes.AppliedDiffGraph
 import io.shiftleft.passes.DiffGraph.Change
 import org.slf4j.LoggerFactory
-import overflowdb.{BatchedUpdate, DetachedNodeData}
 import overflowdb.BatchedUpdate.AppliedDiff
+import overflowdb.{BatchedUpdate, DetachedNodeData}
 import sttp.client3._
 import sttp.client3.circe._
 import sttp.model.{MediaType, Uri}

@@ -1,6 +1,7 @@
 package com.github.plume.oss.drivers
 
 import com.github.plume.oss.PlumeStatistics
+import com.github.plume.oss.util.BatchedUpdateUtil._
 import io.shiftleft.codepropertygraph.generated.nodes.{AbstractNode, NewNode, StoredNode}
 import io.shiftleft.codepropertygraph.generated.{EdgeTypes, NodeTypes, PropertyNames}
 import io.shiftleft.passes.AppliedDiffGraph
@@ -10,16 +11,12 @@ import org.apache.commons.configuration.BaseConfiguration
 import org.apache.tinkerpop.gremlin.process.traversal.P
 import org.apache.tinkerpop.gremlin.process.traversal.P.{neq, within}
 import org.apache.tinkerpop.gremlin.process.traversal.dsl.graph.__.{coalesce, constant, has, values}
-import org.apache.tinkerpop.gremlin.process.traversal.dsl.graph.{
-  GraphTraversal,
-  GraphTraversalSource,
-  __
-}
+import org.apache.tinkerpop.gremlin.process.traversal.dsl.graph.{GraphTraversal, GraphTraversalSource, __}
 import org.apache.tinkerpop.gremlin.structure.{Edge, Graph, T, Vertex}
 import org.apache.tinkerpop.gremlin.tinkergraph.structure.TinkerGraph
 import org.slf4j.{Logger, LoggerFactory}
 import overflowdb.BatchedUpdate.AppliedDiff
-import overflowdb.{BatchedUpdate, DetachedNodeData, Node}
+import overflowdb.{BatchedUpdate, DetachedNodeData}
 
 import java.util.concurrent.atomic.AtomicBoolean
 import scala.collection.mutable

@@ -2,15 +2,15 @@ package com.github.plume.oss.drivers
 
 import com.github.plume.oss.PlumeStatistics
 import com.github.plume.oss.drivers.Neo4jDriver._
+import com.github.plume.oss.util.BatchedUpdateUtil._
 import io.shiftleft.codepropertygraph.generated.nodes.{NewNode, StoredNode}
 import io.shiftleft.codepropertygraph.generated.{EdgeTypes, NodeTypes, PropertyNames}
 import io.shiftleft.passes.AppliedDiffGraph
 import io.shiftleft.passes.DiffGraph.Change
-import io.shiftleft.passes.DiffGraph.Change.SetNodeProperty
 import org.neo4j.driver.{AuthTokens, GraphDatabase, Transaction, Value}
 import org.slf4j.LoggerFactory
-import overflowdb.{BatchedUpdate, DetachedNodeData}
 import overflowdb.BatchedUpdate.AppliedDiff
+import overflowdb.{BatchedUpdate, DetachedNodeData}
 
 import java.util
 import java.util.concurrent.atomic.AtomicBoolean
