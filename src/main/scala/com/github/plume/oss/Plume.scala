@@ -85,7 +85,8 @@ object Plume extends App {
           username = conf.params.getOrElse("username", "tigergraph"),
           password = conf.params.getOrElse("password", "tigergraph"),
           timeout = conf.params.getOrElse("timeout", "3000").toInt,
-          txMax = conf.params.getOrElse("txMax", "25").toInt
+          txMax = conf.params.getOrElse("txMax", "25").toInt,
+          scheme = conf.params.getOrElse("scheme", "http")
         )
       case _ if conf.database == "Neptune" =>
         new NeptuneDriver(

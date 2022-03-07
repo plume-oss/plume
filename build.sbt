@@ -5,7 +5,7 @@ inThisBuild(
     organization := "com.github.plume-oss",
     version := "1.0.17",
     scalaVersion := "2.13.7",
-    crossScalaVersions := Seq("2.13.7", "3.1.0"),
+    crossScalaVersions := Seq("2.13.7", "3.1.1"),
     resolvers ++= Seq(
       Resolver.mavenLocal,
       Resolver.mavenCentral,
@@ -56,6 +56,7 @@ libraryDependencies ++= Seq(
   "org.scalaj"                     % "scalaj-http_2.13"     % scalajHttpVersion,
   "org.lz4"                        % "lz4-java"             % lz4Version,
   "org.slf4j"                      % "slf4j-api"            % slf4jVersion,
+  "org.slf4j"                      % "slf4j-simple"         % slf4jVersion % Runtime,
   "org.scala-lang"                 % "scala-reflect"        % scalaVersion.value,
   "ch.qos.logback"                 % "logback-classic"      % logbackVersion   % Test,
   "org.scalatest"                 %% "scalatest"            % scalatestVersion % Test

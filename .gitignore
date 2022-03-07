@@ -3,6 +3,7 @@
 /bin/
 *.bin
 *.gzip
+*.xml
 
 # Ignore Gradle GUI config
 gradle-app.setting
