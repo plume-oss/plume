@@ -1,23 +1,16 @@
-package com.github.plume.oss.passes
+package com.github.plume.oss.passes.base
 
 import com.github.plume.oss.drivers.IDriver
-import com.github.plume.oss.passes.forkjoin.PlumeForkJoinParallelCpgPass.{
-  DiffGraphBuilder,
-  forkJoinSerializeAndStore
-}
+import com.github.plume.oss.passes.PlumeForkJoinParallelCpgPass.forkJoinSerializeAndStore
 import com.github.plume.oss.util.BatchedUpdateUtil
+import io.joern.x2cpg.passes.base._
+import io.joern.x2cpg.passes.frontend._
 import io.shiftleft.codepropertygraph.Cpg
 import io.shiftleft.codepropertygraph.generated.PropertyNames
 import io.shiftleft.codepropertygraph.generated.nodes.{AbstractNode, Method, NewNode, StoredNode}
 import io.shiftleft.passes.DiffGraph.Change
 import io.shiftleft.passes.{DiffGraph, ForkJoinParallelCpgPass, KeyPool}
-import io.shiftleft.semanticcpg.passes.base.{
-  FileCreationPass,
-  MethodDecoratorPass,
-  NamespaceCreator,
-  TypeDeclStubCreator
-}
-import io.shiftleft.semanticcpg.passes.frontend.{MetaDataPass, TypeNodePass}
+import overflowdb.BatchedUpdate.DiffGraphBuilder
 import overflowdb.traversal.jIteratortoTraversal
 import overflowdb.{BatchedUpdate, DetachedNodeData, DetachedNodeGeneric, Node, NodeOrDetachedNode}
 

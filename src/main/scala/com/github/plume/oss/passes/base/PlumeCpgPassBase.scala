@@ -1,4 +1,4 @@
-package com.github.plume.oss.passes
+package com.github.plume.oss.passes.base
 
 import com.github.plume.oss.drivers.IDriver
 

@@ -1,34 +1,33 @@
-package com.github.plume.oss.passes.concurrent
+package com.github.plume.oss.passes.base
 
 import com.github.plume.oss.drivers.IDriver
-import com.github.plume.oss.passes.PlumeCpgPassBase
-import com.github.plume.oss.passes.concurrent.PlumeConcurrentCpgPass.concurrentCreateApply
+import com.github.plume.oss.passes.PlumeConcurrentCpgPass.concurrentCreateApply
+import io.joern.x2cpg.passes.base.ContainsEdgePass
 import io.shiftleft.codepropertygraph.Cpg
-import io.shiftleft.codepropertygraph.generated.nodes.Method
-import io.shiftleft.semanticcpg.passes.controlflow.CfgCreationPass
+import io.shiftleft.codepropertygraph.generated.nodes.AstNode
 
-object PlumeCfgCreationPass {
+object PlumeContainsEdgePass {
   private val producerQueueCapacity = 2 + 4 * Runtime.getRuntime.availableProcessors()
 }
 
-class PlumeCfgCreationPass(cpg: Cpg) extends CfgCreationPass(cpg) with PlumeCpgPassBase {
+class PlumeContainsEdgePass(cpg: Cpg) extends ContainsEdgePass(cpg) with PlumeCpgPassBase {
 
   override def createAndApply(driver: IDriver): Unit = {
     createApplySerializeAndStore(driver) // Apply to driver
   }
 
   def createApplySerializeAndStore(driver: IDriver): Unit = {
-    import PlumeCfgCreationPass.producerQueueCapacity
+    import PlumeContainsEdgePass.producerQueueCapacity
     try {
       init()
-      concurrentCreateApply[Method](
+      concurrentCreateApply[AstNode](
         producerQueueCapacity,
         driver,
         name,
         baseLogger,
         generateParts(),
         cpg,
-        (x: DiffGraphBuilder, y: Method) => runOnPart(x, y),
+        (x: DiffGraphBuilder, y: AstNode) => runOnPart(x, y),
         None,
         (newDiff: Int) => {
           nDiffT = newDiff
@@ -39,5 +38,4 @@ class PlumeCfgCreationPass(cpg: Cpg) extends CfgCreationPass(cpg) with PlumeCpgP
       finish()
     }
   }
-
 }

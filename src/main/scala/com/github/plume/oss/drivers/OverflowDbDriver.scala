@@ -1,14 +1,9 @@
 package com.github.plume.oss.drivers
 
 import com.github.plume.oss.PlumeStatistics
-import com.github.plume.oss.domain.{
-  SerialReachableByResult,
-  compressToFile,
-  decompressFile,
-  deserializeResultTable
-}
+import com.github.plume.oss.domain.{SerialReachableByResult, compressToFile, decompressFile, deserializeResultTable}
 import com.github.plume.oss.drivers.OverflowDbDriver.newOverflowGraph
-import com.github.plume.oss.passes.PlumeDynamicCallLinker
+import com.github.plume.oss.passes.callgraph.PlumeDynamicCallLinker
 import com.github.plume.oss.util.BatchedUpdateUtil._
 import io.joern.dataflowengineoss.language.toExtendedCfgNode
 import io.joern.dataflowengineoss.queryengine._
@@ -191,11 +186,12 @@ final case class OverflowDbDriver(
   }
 
   override def bulkTx(dg: AppliedDiff): Unit = {
-    dg.getDiffGraph.iterator.forEachRemaining {
-      case node: DetachedNodeData =>
-        val id      = idFromNodeData(node)
-        val newNode = cpg.graph.addNode(id, node.label)
-        propertiesFromNodeData(node).foreach { case (k, v) => newNode.setProperty(k, v) }
+    dg.getDiffGraph.iterator.collect { case x: DetachedNodeData => x}.foreach { node =>
+      val id      = idFromNodeData(node)
+      val newNode = cpg.graph.addNode(id, node.label)
+      propertiesFromNodeData(node).foreach { case (k, v) => newNode.setProperty(k, v) }
+    }
+    dg.getDiffGraph.iterator.filterNot(_.isInstanceOf[DetachedNodeData]).foreach {
       case c: BatchedUpdate.CreateEdge =>
         val srcId = idFromNodeData(c.src)
         val dstId = idFromNodeData(c.dst)

@@ -1,17 +1,12 @@
-package com.github.plume.oss.passes.forkjoin
+package com.github.plume.oss.passes.controlflow.cfgdominator
 
 import com.github.plume.oss.drivers.IDriver
-import com.github.plume.oss.passes.PlumeCpgPassBase
-import com.github.plume.oss.passes.forkjoin.PlumeForkJoinParallelCpgPass.forkJoinSerializeAndStore
-import com.github.plume.oss.passes.parallel.PlumeParallelCpgPass.{
-  parallelEnqueue,
-  parallelWithWriter
-}
-import com.github.plume.oss.passes.parallel.PlumeParallelWriter
+import com.github.plume.oss.passes.PlumeForkJoinParallelCpgPass.forkJoinSerializeAndStore
+import com.github.plume.oss.passes.base.PlumeCpgPassBase
+import io.joern.x2cpg.passes.controlflow.cfgdominator.CfgDominatorPass
 import io.shiftleft.codepropertygraph.Cpg
 import io.shiftleft.codepropertygraph.generated.nodes.Method
 import io.shiftleft.passes.KeyPool
-import io.shiftleft.semanticcpg.passes.controlflow.cfgdominator.CfgDominatorPass
 
 class PlumeCfgDominatorPass(cpg: Cpg, keyPool: Option[KeyPool] = None)
     extends CfgDominatorPass(cpg)

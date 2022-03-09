@@ -1,8 +1,8 @@
-package com.github.plume.oss.passes.parallel
+package com.github.plume.oss.passes.reachingdef
 
 import com.github.plume.oss.drivers.IDriver
-import com.github.plume.oss.passes.PlumeCpgPassBase
-import com.github.plume.oss.passes.forkjoin.PlumeForkJoinParallelCpgPass.forkJoinSerializeAndStore
+import com.github.plume.oss.passes.PlumeForkJoinParallelCpgPass.forkJoinSerializeAndStore
+import com.github.plume.oss.passes.base.PlumeCpgPassBase
 import io.joern.dataflowengineoss.passes.reachingdef.ReachingDefPass
 import io.shiftleft.codepropertygraph.Cpg
 import io.shiftleft.codepropertygraph.generated.nodes.Method

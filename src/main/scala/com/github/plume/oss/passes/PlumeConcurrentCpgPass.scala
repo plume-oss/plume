@@ -1,22 +1,22 @@
-package com.github.plume.oss.passes.concurrent
+package com.github.plume.oss.passes
 
 import com.github.plume.oss.drivers.IDriver
-import com.github.plume.oss.passes.concurrent.PlumeConcurrentCpgPass.concurrentCreateApply
+import com.github.plume.oss.passes.PlumeConcurrentCpgPass.concurrentCreateApply
 import io.shiftleft.codepropertygraph.Cpg
-import io.shiftleft.codepropertygraph.generated.nodes.AstNode
-import io.shiftleft.passes.{ConcurrentWriterCpgPass, KeyPool}
+import io.shiftleft.passes.{ConcurrentWriterCpgPass, CpgPass, KeyPool}
 import io.shiftleft.utils.ExecutionContextProvider
-import org.slf4j.{Logger, MDC}
+import org.slf4j.{Logger, LoggerFactory, MDC}
 import overflowdb.BatchedUpdate.{DiffGraph, DiffGraphBuilder}
 
+import java.util.concurrent.LinkedBlockingQueue
 import scala.collection.mutable
 import scala.concurrent.duration.Duration
 import scala.concurrent.{Await, ExecutionContext, Future}
 
-abstract class PlumeConcurrentCpgPass[T <: AstNode](cpg: Cpg, keyPool: Option[KeyPool])
+abstract class PlumeConcurrentCpgPass[T <: AnyRef](cpg: Cpg, keyPool: Option[KeyPool])
     extends ConcurrentWriterCpgPass[T](cpg) {
 
-  override def generateParts(): Array[_ <: AstNode] = Array[AstNode](null)
+  override def generateParts(): Array[_ <: AnyRef] = Array(null)
 
   def createAndApply(driver: IDriver): Unit = {
     createApplySerializeAndStore(driver) // Apply to driver
@@ -51,12 +51,14 @@ abstract class PlumeConcurrentCpgPass[T <: AstNode](cpg: Cpg, keyPool: Option[Ke
 object PlumeConcurrentCpgPass {
   private val producerQueueCapacity = 2 + 4 * Runtime.getRuntime.availableProcessors()
 
+  MDC.setContextMap(new java.util.HashMap())
+
   def concurrentCreateApply[T](
       producerQueueCapacity: Long,
       driver: IDriver,
       name: String,
       baseLogger: Logger,
-      parts: Array[_ <: AstNode],
+      parts: Array[_ <: AnyRef],
       cpg: Cpg,
       runOnPart: (DiffGraphBuilder, T) => Unit,
       keyPool: Option[KeyPool],
@@ -110,6 +112,55 @@ object PlumeConcurrentCpgPass {
       baseLogger.info(
         f"Enhancement $name completed in ${(nanosStop - nanosStart) * 1e-6}%.0f ms. ${nDiff}%d changes commited from ${nParts}%d parts."
       )
+    }
+  }
+}
+
+
+object PlumeConcurrentWriter {
+  private val writerQueueCapacity = 4
+}
+class PlumeConcurrentWriter(
+                             driver: IDriver,
+                             cpg: Cpg,
+                             baseLogger: Logger = LoggerFactory.getLogger(classOf[CpgPass]),
+                             keyPool: Option[KeyPool] = None,
+                             mdc: java.util.Map[String, String],
+                             setDiffT: Int => Int
+                           ) extends Runnable {
+
+  val queue: LinkedBlockingQueue[Option[DiffGraph]] =
+    new LinkedBlockingQueue[Option[DiffGraph]](PlumeConcurrentWriter.writerQueueCapacity)
+
+  @volatile var raisedException: Exception = null
+
+  override def run(): Unit = {
+    try {
+      var nDiffT = setDiffT(0)
+      MDC.setContextMap(mdc)
+      var terminate = false
+      while (!terminate) {
+        queue.take() match {
+          case None =>
+            baseLogger.debug("Shutting down WriterThread")
+            terminate = true
+          case Some(diffGraph) =>
+            val appliedDiffGraph = overflowdb.BatchedUpdate
+              .applyDiff(cpg.graph, diffGraph, keyPool.orNull, null)
+
+            nDiffT = setDiffT(
+              nDiffT + appliedDiffGraph
+                .transitiveModifications()
+            )
+            driver.bulkTx(appliedDiffGraph)
+        }
+      }
+    } catch {
+      case exception: InterruptedException => baseLogger.warn("Interrupted WriterThread", exception)
+      case exc: Exception =>
+        raisedException = exc
+        queue.clear()
+        throw exc
     }
   }
 }

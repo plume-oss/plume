@@ -1,4 +1,4 @@
-package com.github.plume.oss.passes
+package com.github.plume.oss.passes.callgraph
 
 import io.shiftleft.codepropertygraph.Cpg
 import io.shiftleft.codepropertygraph.generated.nodes.{Call, Method, TypeDecl}

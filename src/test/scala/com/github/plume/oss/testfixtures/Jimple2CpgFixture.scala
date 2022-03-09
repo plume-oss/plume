@@ -3,8 +3,8 @@ package com.github.plume.oss.testfixtures
 import com.github.plume.oss.{Jimple2Cpg, PlumeStatistics}
 import com.github.plume.oss.drivers.OverflowDbDriver
 import com.github.plume.oss.JavaCompiler.compileJava
+import io.joern.x2cpg.testfixtures.{CodeToCpgFixture, LanguageFrontend}
 import io.shiftleft.codepropertygraph.Cpg
-import io.shiftleft.semanticcpg.testfixtures.{CodeToCpgFixture, LanguageFrontend}
 import org.slf4j.LoggerFactory
 
 import java.io.{File, PrintWriter}
@@ -13,8 +13,8 @@ import scala.util.Using
 
 class PlumeFrontend extends LanguageFrontend {
 
-  private val logger = LoggerFactory.getLogger(classOf[PlumeFrontend])
-  val driver: OverflowDbDriver = new OverflowDbDriver(dataFlowCacheFile = None)
+  private val logger              = LoggerFactory.getLogger(classOf[PlumeFrontend])
+  val driver: OverflowDbDriver    = new OverflowDbDriver(dataFlowCacheFile = None)
   override val fileSuffix: String = ".java"
 
   override def execute(sourceCodeFile: File): Cpg = {

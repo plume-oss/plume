@@ -1,13 +1,13 @@
-package com.github.plume.oss.passes.parallel
+package com.github.plume.oss.passes.base
 
 import com.github.plume.oss.drivers.IDriver
-import com.github.plume.oss.passes.forkjoin.PlumeForkJoinParallelCpgPass.forkJoinSerializeAndStore
-import com.github.plume.oss.passes.{IncrementalKeyPool, PlumeCpgPassBase, PlumeSimpleCpgPass}
+import com.github.plume.oss.passes.IncrementalKeyPool
+import com.github.plume.oss.passes.PlumeForkJoinParallelCpgPass.forkJoinSerializeAndStore
+import io.joern.x2cpg.passes.base.NameAndSignature
 import io.shiftleft.codepropertygraph.Cpg
 import io.shiftleft.codepropertygraph.generated.nodes._
 import io.shiftleft.codepropertygraph.generated.{EdgeTypes, EvaluationStrategies, NodeTypes}
 import io.shiftleft.semanticcpg.language._
-import io.shiftleft.semanticcpg.passes.base.NameAndSignature
 import overflowdb.BatchedUpdate
 
 import scala.collection.mutable
