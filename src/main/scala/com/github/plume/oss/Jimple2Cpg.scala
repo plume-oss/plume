@@ -2,7 +2,18 @@ package com.github.plume.oss
 
 import com.github.plume.oss.drivers.{IDriver, OverflowDbDriver}
 import com.github.plume.oss.passes._
-import com.github.plume.oss.passes.base.{AstCreationPass, PlumeContainsEdgePass, PlumeCpgPassBase, PlumeFileCreationPass, PlumeMetaDataPass, PlumeMethodDecoratorPass, PlumeMethodStubCreator, PlumeNamespaceCreator, PlumeTypeDeclStubCreator, PlumeTypeNodePass}
+import com.github.plume.oss.passes.base.{
+  AstCreationPass,
+  PlumeContainsEdgePass,
+  PlumeCpgPassBase,
+  PlumeFileCreationPass,
+  PlumeMetaDataPass,
+  PlumeMethodDecoratorPass,
+  PlumeMethodStubCreator,
+  PlumeNamespaceCreator,
+  PlumeTypeDeclStubCreator,
+  PlumeTypeNodePass
+}
 import com.github.plume.oss.passes.incremental.{PlumeDiffPass, PlumeHashPass}
 import com.github.plume.oss.passes.controlflow.PlumeCfgCreationPass
 import com.github.plume.oss.passes.controlflow.cfgdominator.PlumeCfgDominatorPass

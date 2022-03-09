@@ -116,18 +116,17 @@ object PlumeConcurrentCpgPass {
   }
 }
 
-
 object PlumeConcurrentWriter {
   private val writerQueueCapacity = 4
 }
 class PlumeConcurrentWriter(
-                             driver: IDriver,
-                             cpg: Cpg,
-                             baseLogger: Logger = LoggerFactory.getLogger(classOf[CpgPass]),
-                             keyPool: Option[KeyPool] = None,
-                             mdc: java.util.Map[String, String],
-                             setDiffT: Int => Int
-                           ) extends Runnable {
+    driver: IDriver,
+    cpg: Cpg,
+    baseLogger: Logger = LoggerFactory.getLogger(classOf[CpgPass]),
+    keyPool: Option[KeyPool] = None,
+    mdc: java.util.Map[String, String],
+    setDiffT: Int => Int
+) extends Runnable {
 
   val queue: LinkedBlockingQueue[Option[DiffGraph]] =
     new LinkedBlockingQueue[Option[DiffGraph]](PlumeConcurrentWriter.writerQueueCapacity)
