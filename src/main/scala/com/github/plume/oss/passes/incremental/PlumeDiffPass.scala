@@ -1,4 +1,4 @@
-package com.github.plume.oss.passes
+package com.github.plume.oss.passes.incremental
 
 import com.github.plume.oss.drivers.IDriver
 import com.github.plume.oss.util.HashUtil

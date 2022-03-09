@@ -1,5 +1,6 @@
-package com.github.plume.oss.passes.concurrent
+package com.github.plume.oss.passes.incremental
 
+import com.github.plume.oss.passes.PlumeConcurrentCpgPass
 import com.github.plume.oss.util.HashUtil
 import io.shiftleft.codepropertygraph.Cpg
 import io.shiftleft.codepropertygraph.generated.PropertyNames

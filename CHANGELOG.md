@@ -7,6 +7,24 @@ and this project adheres to [Semantic Versioning](http://semver.org/).
 
 ## [Unreleased]
 
+### Added
+
+- Object data flow tests that explores fields and inter-procedural calls (both static + virtual).
+- Data flow tests followed from `JavaSrc2Cpg`, specifically `OperatorTests`
+
+### Changed
+
+- Importing `jimple2cpg` instead of duplicating work here.
+- Removed parsing Jimple `IdentityStmt` since they end up duplicating parameters as locals.
+- Swapped out the deprecated `ParallelCpgPass` for `ConcurrentWriterCpgPass`
+
+### Fixed
+
+- Virtual calls now get passed the correct `this` object as the object the method is actually invoked with.
+- Virtual call `code` properties now include the object invoking the method.
+- Instance where `Local` nodes were duplicated for each time they were referenced
+- Issue where `NewCall(Operators.assignment)` did not have `methodFullName = Operators.assignment` and thus messing up data flow paths
+
 ## [1.0.17] - 2022-03-04
 
 ### Added

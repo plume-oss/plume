@@ -15,18 +15,18 @@ inThisBuild(
 )
 
 val cpgVersion         = "1.3.509"
-val joernVersion       = "1.1.590"
+val joernVersion       = "1.1.606"
 val sootVersion        = "4.2.1"
 val tinkerGraphVersion = "3.4.8"
 val neo4jVersion       = "4.4.3"
 val tigerGraphVersion  = "3.1.0"
-val sttpVersion        = "3.4.1"
-val jacksonVersion     = "2.13.1"
+val sttpVersion        = "3.4.2"
+val jacksonVersion     = "2.13.2"
 val scalajHttpVersion  = "2.4.2"
 val lz4Version         = "1.8.0"
 val slf4jVersion       = "1.7.36"
 val logbackVersion     = "1.2.10"
-val scalatestVersion   = "3.2.9"
+val scalatestVersion   = "3.2.11"
 val circeVersion       = "0.14.1"
 
 lazy val scalatest         = "org.scalatest" %% "scalatest" % scalatestVersion
@@ -43,7 +43,8 @@ libraryDependencies ++= Seq(
   "io.shiftleft"                  %% "semanticcpg"          % cpgVersion,
   "io.joern"                      %% "dataflowengineoss"    % joernVersion,
   "io.joern"                      %% "x2cpg"                % joernVersion,
-  "io.shiftleft"                  %% "semanticcpg"          % cpgVersion       % Test classifier "tests",
+  "io.joern"                      %% "jimple2cpg"           % joernVersion,
+  "io.joern"                      %% "x2cpg"                % joernVersion     % Test classifier "tests",
   "org.soot-oss"                   % "soot"                 % sootVersion,
   "org.apache.tinkerpop"           % "tinkergraph-gremlin"  % tinkerGraphVersion,
   "org.apache.tinkerpop"           % "gremlin-driver"       % tinkerGraphVersion,
@@ -56,7 +57,7 @@ libraryDependencies ++= Seq(
   "org.scalaj"                     % "scalaj-http_2.13"     % scalajHttpVersion,
   "org.lz4"                        % "lz4-java"             % lz4Version,
   "org.slf4j"                      % "slf4j-api"            % slf4jVersion,
-  "org.slf4j"                      % "slf4j-simple"         % slf4jVersion % Runtime,
+  "org.slf4j"                      % "slf4j-simple"         % slf4jVersion     % Runtime,
   "org.scala-lang"                 % "scala-reflect"        % scalaVersion.value,
   "ch.qos.logback"                 % "logback-classic"      % logbackVersion   % Test,
   "org.scalatest"                 %% "scalatest"            % scalatestVersion % Test

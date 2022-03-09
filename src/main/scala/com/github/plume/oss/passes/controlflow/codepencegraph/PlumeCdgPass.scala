@@ -1,17 +1,12 @@
-package com.github.plume.oss.passes.forkjoin
+package com.github.plume.oss.passes.controlflow.codepencegraph
 
 import com.github.plume.oss.drivers.IDriver
-import com.github.plume.oss.passes.PlumeCpgPassBase
-import com.github.plume.oss.passes.forkjoin.PlumeForkJoinParallelCpgPass.forkJoinSerializeAndStore
-import com.github.plume.oss.passes.parallel.PlumeParallelCpgPass.{
-  parallelEnqueue,
-  parallelWithWriter
-}
-import com.github.plume.oss.passes.parallel.PlumeParallelWriter
+import com.github.plume.oss.passes.PlumeForkJoinParallelCpgPass.forkJoinSerializeAndStore
+import com.github.plume.oss.passes.base.PlumeCpgPassBase
+import io.joern.x2cpg.passes.controlflow.codepencegraph.CdgPass
 import io.shiftleft.codepropertygraph.Cpg
 import io.shiftleft.codepropertygraph.generated.nodes.Method
 import io.shiftleft.passes.KeyPool
-import io.shiftleft.semanticcpg.passes.controlflow.codepencegraph.CdgPass
 
 class PlumeCdgPass(cpg: Cpg, keyPool: Option[KeyPool] = None)
     extends CdgPass(cpg)

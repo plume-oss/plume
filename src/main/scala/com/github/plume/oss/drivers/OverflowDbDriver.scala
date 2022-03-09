@@ -8,7 +8,7 @@ import com.github.plume.oss.domain.{
   deserializeResultTable
 }
 import com.github.plume.oss.drivers.OverflowDbDriver.newOverflowGraph
-import com.github.plume.oss.passes.PlumeDynamicCallLinker
+import com.github.plume.oss.passes.callgraph.PlumeDynamicCallLinker
 import com.github.plume.oss.util.BatchedUpdateUtil._
 import io.joern.dataflowengineoss.language.toExtendedCfgNode
 import io.joern.dataflowengineoss.queryengine._
@@ -191,11 +191,12 @@ final case class OverflowDbDriver(
   }
 
   override def bulkTx(dg: AppliedDiff): Unit = {
-    dg.getDiffGraph.iterator.forEachRemaining {
-      case node: DetachedNodeData =>
-        val id      = idFromNodeData(node)
-        val newNode = cpg.graph.addNode(id, node.label)
-        propertiesFromNodeData(node).foreach { case (k, v) => newNode.setProperty(k, v) }
+    dg.getDiffGraph.iterator.collect { case x: DetachedNodeData => x }.foreach { node =>
+      val id      = idFromNodeData(node)
+      val newNode = cpg.graph.addNode(id, node.label)
+      propertiesFromNodeData(node).foreach { case (k, v) => newNode.setProperty(k, v) }
+    }
+    dg.getDiffGraph.iterator.filterNot(_.isInstanceOf[DetachedNodeData]).foreach {
       case c: BatchedUpdate.CreateEdge =>
         val srcId = idFromNodeData(c.src)
         val dstId = idFromNodeData(c.dst)
@@ -211,16 +212,16 @@ final case class OverflowDbDriver(
     }
   }
 
-  private def dfsDelete(
+  private def accumNodesToDelete(
       n: Node,
       visitedNodes: mutable.Set[Node],
       edgeToFollow: String*
   ): Unit = {
     if (!visitedNodes.contains(n)) {
       visitedNodes.add(n)
-      n.out(edgeToFollow: _*).forEachRemaining(dfsDelete(_, visitedNodes, edgeToFollow: _*))
+      n.out(edgeToFollow: _*)
+        .forEachRemaining(accumNodesToDelete(_, visitedNodes, edgeToFollow: _*))
     }
-    n.remove()
   }
 
   override def removeSourceFiles(filenames: String*): Unit = {
@@ -237,8 +238,11 @@ final case class OverflowDbDriver(
         // Remove TYPE nodes
         typeDecls.flatMap(_.in(EdgeTypes.REF)).foreach(_.remove())
         // Remove NAMESPACE_BLOCKs and their AST children (TYPE_DECL, METHOD, etc.)
-        val visitedNodes = mutable.Set.empty[Node]
-        namespaceBlocks.foreach(dfsDelete(_, visitedNodes, EdgeTypes.AST, EdgeTypes.CONDITION))
+        val nodesToDelete = mutable.Set.empty[Node]
+        namespaceBlocks.foreach(
+          accumNodesToDelete(_, nodesToDelete, EdgeTypes.AST, EdgeTypes.CONDITION)
+        )
+        nodesToDelete.foreach(_.remove)
         // Finally remove FILE node
         f.remove()
       }

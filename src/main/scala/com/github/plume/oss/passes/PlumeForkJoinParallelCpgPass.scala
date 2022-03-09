@@ -1,8 +1,8 @@
-package com.github.plume.oss.passes.forkjoin
+package com.github.plume.oss.passes
 
 import com.github.plume.oss.drivers.IDriver
-import com.github.plume.oss.passes.PlumeCpgPass
-import com.github.plume.oss.passes.forkjoin.PlumeForkJoinParallelCpgPass.forkJoinSerializeAndStore
+import com.github.plume.oss.passes.PlumeForkJoinParallelCpgPass.forkJoinSerializeAndStore
+import com.github.plume.oss.passes.base.PlumeCpgPass
 import io.shiftleft.codepropertygraph.Cpg
 import io.shiftleft.passes.{ForkJoinParallelCpgPass, KeyPool}
 import org.slf4j.Logger

@@ -2,13 +2,23 @@ package com.github.plume.oss
 
 import com.github.plume.oss.drivers.{IDriver, OverflowDbDriver}
 import com.github.plume.oss.passes._
-import com.github.plume.oss.passes.concurrent.{
-  PlumeCfgCreationPass,
+import com.github.plume.oss.passes.base.{
+  AstCreationPass,
   PlumeContainsEdgePass,
-  PlumeHashPass
+  PlumeCpgPassBase,
+  PlumeFileCreationPass,
+  PlumeMetaDataPass,
+  PlumeMethodDecoratorPass,
+  PlumeMethodStubCreator,
+  PlumeNamespaceCreator,
+  PlumeTypeDeclStubCreator,
+  PlumeTypeNodePass
 }
-import com.github.plume.oss.passes.forkjoin.{PlumeCdgPass, PlumeCfgDominatorPass}
-import com.github.plume.oss.passes.parallel._
+import com.github.plume.oss.passes.incremental.{PlumeDiffPass, PlumeHashPass}
+import com.github.plume.oss.passes.controlflow.PlumeCfgCreationPass
+import com.github.plume.oss.passes.controlflow.cfgdominator.PlumeCfgDominatorPass
+import com.github.plume.oss.passes.controlflow.codepencegraph.PlumeCdgPass
+import com.github.plume.oss.passes.reachingdef._
 import com.github.plume.oss.util.ProgramHandlingUtil
 import com.github.plume.oss.util.ProgramHandlingUtil.{extractSourceFilesFromArchive, moveClassFiles}
 import io.joern.x2cpg.SourceFiles
@@ -120,7 +130,6 @@ class Jimple2Cpg {
           return cpg
         } else {
           logger.info(s"Processing ${codeToProcess.size} new or changed program files")
-          logger.debug(s"Files to process are: $sourceFileNames")
         }
 
         // After the diff pass any changed types are removed. Remaining types should be black listed to avoid duplicates
