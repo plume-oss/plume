@@ -5,12 +5,7 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](http://keepachangelog.com/)
 and this project adheres to [Semantic Versioning](http://semver.org/).
 
-## [Unreleased]
-
-### Added
-
-- Object data flow tests that explores fields and inter-procedural calls (both static + virtual).
-- Data flow tests followed from `JavaSrc2Cpg`, specifically `OperatorTests`
+## [1.0.18] - 2022-03-09
 
 ### Changed
 
