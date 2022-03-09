@@ -1,16 +1,16 @@
 package com.github.plume.oss.testfixtures
 
 import com.github.plume.oss.drivers.IDriver
-import com.github.plume.oss.passes.forkjoin.PlumeForkJoinParallelCpgPass.DiffGraphBuilder
 import io.shiftleft.codepropertygraph.generated.NodeTypes._
+import io.shiftleft.codepropertygraph.generated.PropertyNames._
 import io.shiftleft.codepropertygraph.generated.nodes._
 import io.shiftleft.codepropertygraph.generated.{Cpg, DispatchTypes, EdgeTypes}
 import io.shiftleft.passes.{DiffGraph, IntervalKeyPool}
-import io.shiftleft.codepropertygraph.generated.PropertyNames._
 import org.scalatest.matchers.should.Matchers
 import org.scalatest.wordspec.AnyWordSpec
 import org.scalatest.{BeforeAndAfter, BeforeAndAfterAll}
-import overflowdb.{BatchedUpdate, DetachedNodeData, DetachedNodeGeneric, Node}
+import overflowdb.BatchedUpdate.DiffGraphBuilder
+import overflowdb.{BatchedUpdate, DetachedNodeGeneric, Node}
 
 import scala.jdk.CollectionConverters.IteratorHasAsScala
 import scala.language.postfixOps
