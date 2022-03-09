@@ -130,7 +130,6 @@ class Jimple2Cpg {
           return cpg
         } else {
           logger.info(s"Processing ${codeToProcess.size} new or changed program files")
-          logger.debug(s"Files to process are: $sourceFileNames")
         }
 
         // After the diff pass any changed types are removed. Remaining types should be black listed to avoid duplicates

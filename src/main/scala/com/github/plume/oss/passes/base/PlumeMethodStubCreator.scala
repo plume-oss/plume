@@ -27,7 +27,8 @@ class PlumeMethodStubCreator(
 
   private def filter(name: NameAndSignature): Boolean = {
     val methodTypeName = name.fullName.replace(s".${name.name}:${name.signature}", "")
-    !(blacklist.contains(methodTypeName) || (blacklist.nonEmpty && methodTypeName == "<empty>"))
+    !(blacklist
+      .contains(methodTypeName) || (blacklist.nonEmpty && methodTypeName.contains("<operator>")))
   }
 
   override def run(dstGraph: BatchedUpdate.DiffGraphBuilder): Unit = {

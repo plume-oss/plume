@@ -212,16 +212,16 @@ final case class OverflowDbDriver(
     }
   }
 
-  private def dfsDelete(
+  private def accumNodesToDelete(
       n: Node,
       visitedNodes: mutable.Set[Node],
       edgeToFollow: String*
   ): Unit = {
     if (!visitedNodes.contains(n)) {
       visitedNodes.add(n)
-      n.out(edgeToFollow: _*).forEachRemaining(dfsDelete(_, visitedNodes, edgeToFollow: _*))
+      n.out(edgeToFollow: _*)
+        .forEachRemaining(accumNodesToDelete(_, visitedNodes, edgeToFollow: _*))
     }
-    n.remove()
   }
 
   override def removeSourceFiles(filenames: String*): Unit = {
@@ -238,8 +238,11 @@ final case class OverflowDbDriver(
         // Remove TYPE nodes
         typeDecls.flatMap(_.in(EdgeTypes.REF)).foreach(_.remove())
         // Remove NAMESPACE_BLOCKs and their AST children (TYPE_DECL, METHOD, etc.)
-        val visitedNodes = mutable.Set.empty[Node]
-        namespaceBlocks.foreach(dfsDelete(_, visitedNodes, EdgeTypes.AST, EdgeTypes.CONDITION))
+        val nodesToDelete = mutable.Set.empty[Node]
+        namespaceBlocks.foreach(
+          accumNodesToDelete(_, nodesToDelete, EdgeTypes.AST, EdgeTypes.CONDITION)
+        )
+        nodesToDelete.foreach(_.remove)
         // Finally remove FILE node
         f.remove()
       }
