@@ -91,7 +91,7 @@ final case class OverflowDbDriver(
     case None           => // Do nothing
   }
 
-  /** Sets the context for the data-flow engine when performing [[nodesReachableBy()]] queries.
+  /** Sets the context for the data-flow engine when performing [[nodesReachableBy]] queries.
     *
     * @param maxCallDepth the new method call depth.
     * @param methodSemantics the file containing method semantics for external methods.
@@ -141,10 +141,7 @@ final case class OverflowDbDriver(
   )
 
   override def clear(): Unit = {
-    Try(cpg.graph.nodes.asScala.foreach(_.remove())) match {
-      case Failure(e) => logger.error("Encountered an exception while clearing database.", e)
-      case Success(_) =>
-    }
+    cpg.graph.nodes.asScala.foreach(safeRemove)
     dataFlowCacheFile match {
       case Some(filePath) => filePath.toFile.delete()
       case None           => // Do nothing
@@ -236,24 +233,32 @@ final case class OverflowDbDriver(
         val typeDecls       = fileChildren.collect { case x: TypeDecl => x }
         val namespaceBlocks = fileChildren.collect { case x: NamespaceBlock => x }
         // Remove TYPE nodes
-        typeDecls.flatMap(_.in(EdgeTypes.REF)).foreach(n => safeRemove(n))
+        typeDecls.flatMap(_.in(EdgeTypes.REF)).foreach(safeRemove)
         // Remove NAMESPACE_BLOCKs and their AST children (TYPE_DECL, METHOD, etc.)
         val nodesToDelete = mutable.Set.empty[Node]
         namespaceBlocks.foreach(
           accumNodesToDelete(_, nodesToDelete, EdgeTypes.AST, EdgeTypes.CONDITION)
         )
-        nodesToDelete.foreach(n => safeRemove(n))
+        nodesToDelete.foreach(safeRemove)
         // Finally remove FILE node
         safeRemove(f)
       }
   }
 
-  private def safeRemove(n: Node): Unit = Try(if (n != null) n.remove()) match {
+  private def safeRemove(n: Node): Unit = Try(if (n != null) {
+    n.inE().forEachRemaining(_.remove())
+    n.outE().forEachRemaining(_.remove())
+    n.remove()
+  }) match {
     case Failure(e) if cpg.graph.node(n.id()) != null =>
       logger.warn(
-        s"Exception '${e.getMessage}' occurred while deleting node: [${n.id()}] ${n.label()}"
+        s"Unable to delete node due to error '${e.getMessage}': [${n.id()}] ${n.label()}"
       )
-    case Success(_) =>
+    case Failure(e) =>
+      logger.warn(
+        s"Exception '${e.getMessage}' occurred while attempting to delete node: [${n.id()}] ${n.label()}"
+      )
+    case _ =>
   }
 
   override def propertyFromNodes(nodeType: String, keys: String*): List[Map[String, Any]] =

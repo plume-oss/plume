@@ -42,7 +42,7 @@ package object domain {
   }
 
   /** Given an object and a path, will serialize and compress the object to the given path
-    * using [[compress()]].
+    * using [[compress]].
     * @param o object to serialize.
     * @param p path to write serialized data to.
     */
@@ -63,7 +63,7 @@ package object domain {
   }
 
   /** Given a path, will deserialize and decompress the file at the given path
-    * using [[decompress()]].
+    * using [[decompress]].
     * @param p path to read deserialized data from.
     * @tparam T the type of the class to deserialize.
     * @return the deserialized object.

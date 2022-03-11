@@ -63,9 +63,9 @@ trait IDriver extends AutoCloseable {
     }
   }
 
-  /** Where former list properties were serialized as strings, they will be deserialized as [[Seq]].
+  /** Where former list properties were serialized as strings, they will be deserialized as Seq.
     * @param properties the serialized property map.
-    * @return a property map where comma-separated strings are made [[Seq]] objects.
+    * @return a property map where comma-separated strings are made Seq objects.
     */
   protected def deserializeLists(properties: Map[String, Any]): Map[String, Any] = {
     properties.map { case (k, v) =>
