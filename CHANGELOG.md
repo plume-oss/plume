@@ -5,6 +5,16 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](http://keepachangelog.com/)
 and this project adheres to [Semantic Versioning](http://semver.org/).
 
+## [Unreleased]
+
+### Added
+
+- `OverflowDb::safeRemove` to handle exceptions when deleting nodes.
+
+### Changed
+
+- Updated Joern, CPG, and Logback versions.
+
 ## [1.0.18] - 2022-03-09
 
 ### Changed
