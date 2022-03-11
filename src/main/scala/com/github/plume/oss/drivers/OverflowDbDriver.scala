@@ -249,11 +249,10 @@ final case class OverflowDbDriver(
   }
 
   private def safeRemove(n: Node): Unit = Try(if (n != null) n.remove()) match {
-    case Failure(e) =>
-      if (cpg.graph.node(n.id()) != null)
-        logger.warn(
-          s"Exception '${e.getMessage}' occurred while deleting node: [${n.id()}] ${n.label()}"
-        )
+    case Failure(e) if cpg.graph.node(n.id()) != null =>
+      logger.warn(
+        s"Exception '${e.getMessage}' occurred while deleting node: [${n.id()}] ${n.label()}"
+      )
     case Success(_) =>
   }
 
