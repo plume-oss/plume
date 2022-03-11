@@ -160,7 +160,7 @@ final case class OverflowDbDriver(
     // Do node operations first
     dg.diffGraph.iterator.foreach {
       case Change.RemoveNode(nodeId) =>
-        cpg.graph.node(nodeId).remove()
+        safeRemove(cpg.graph.node(nodeId))
       case Change.RemoveNodeProperty(nodeId, propertyKey) =>
         cpg.graph.node(nodeId).removeProperty(propertyKey)
       case Change.CreateNode(node) =>
@@ -206,7 +206,7 @@ final case class OverflowDbDriver(
             propertiesFromObjectArray(edgeKeyValues).foreach { case (k, v) => e.setProperty(k, v) }
           case None =>
         }
-      case c: BatchedUpdate.RemoveNode => cpg.graph.node(c.node.id()).remove()
+      case c: BatchedUpdate.RemoveNode => safeRemove(cpg.graph.node(c.node.id()))
       case c: BatchedUpdate.SetNodeProperty =>
         cpg.graph.node(c.node.id()).setProperty(c.label, c.value)
     }
@@ -236,16 +236,24 @@ final case class OverflowDbDriver(
         val typeDecls       = fileChildren.collect { case x: TypeDecl => x }
         val namespaceBlocks = fileChildren.collect { case x: NamespaceBlock => x }
         // Remove TYPE nodes
-        typeDecls.flatMap(_.in(EdgeTypes.REF)).foreach(_.remove())
+        typeDecls.flatMap(_.in(EdgeTypes.REF)).foreach(n => safeRemove(n))
         // Remove NAMESPACE_BLOCKs and their AST children (TYPE_DECL, METHOD, etc.)
         val nodesToDelete = mutable.Set.empty[Node]
         namespaceBlocks.foreach(
           accumNodesToDelete(_, nodesToDelete, EdgeTypes.AST, EdgeTypes.CONDITION)
         )
-        nodesToDelete.foreach(_.remove)
+        nodesToDelete.foreach(n => safeRemove(n))
         // Finally remove FILE node
-        f.remove()
+        safeRemove(f)
       }
+  }
+
+  private def safeRemove(n: Node): Unit = Try(if (n != null) n.remove()) match {
+    case Failure(e) if cpg.graph.node(n.id()) != null =>
+      logger.warn(
+        s"Exception '${e.getMessage}' occurred while deleting node: [${n.id()}] ${n.label()}"
+      )
+    case Success(_) =>
   }
 
   override def propertyFromNodes(nodeType: String, keys: String*): List[Map[String, Any]] =
