@@ -200,9 +200,7 @@ class Jimple2Cpg {
         Scene.v().addBasicClass(cp, SootClass.BODIES)
         Scene.v().loadClassAndSupport(cp).setApplicationClass()
       }
-    Scene.v().loadDynamicClasses()
     Scene.v().loadNecessaryClasses()
-    Scene.v().addBasicClass("soot.dummy.InvokeDynamic", SootClass.SIGNATURES)
   }
 
   private def basePasses(
@@ -238,9 +236,10 @@ class Jimple2Cpg {
   ).collect { case pass: CpgPassBase with PlumeCpgPassBase => pass }
 
   private def configureSoot(): Unit = {
+    logger.info("Configuring Soot")
     // set application mode
-    Options.v().set_app(true)
-    Options.v().set_whole_program(true)
+    Options.v().set_app(false)
+    Options.v().set_whole_program(false)
     // make sure classpath is configured correctly
     Options.v().set_soot_classpath(ProgramHandlingUtil.TEMP_DIR.toString)
     Options.v().set_prepend_classpath(true)
