@@ -197,8 +197,8 @@ class Jimple2Cpg {
     sourceFileNames
       .map(getQualifiedClassPath)
       .foreach { cp =>
-        Scene.v().addBasicClass(cp, SootClass.BODIES)
-        Scene.v().loadClassAndSupport(cp).setApplicationClass()
+        Scene.v().addBasicClass(cp)
+        Scene.v().loadClassAndSupport(cp)
       }
     Scene.v().loadNecessaryClasses()
   }
