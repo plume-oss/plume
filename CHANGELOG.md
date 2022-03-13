@@ -5,6 +5,13 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](http://keepachangelog.com/)
 and this project adheres to [Semantic Versioning](http://semver.org/).
 
+## [Unreleased]
+
+### Fixed
+
+- No longer set `deleteOnExit` for files in temp dir since they get cleaned via try-final call already.
+- Set Soot to non-application mode and non-whole program mode for efficiency.
+
 ## [1.0.20] - 2022-03-11
 
 ### Fixed

@@ -93,7 +93,6 @@ object ProgramHandlingUtil {
             Using.resource(zip.getInputStream(entry)) { input =>
               Files.copy(input, destFile.toPath)
             }
-            destFile.deleteOnExit()
             Option(destFile.getAbsolutePath)
           } catch {
             case e: Exception =>
