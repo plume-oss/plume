@@ -15,16 +15,17 @@ inThisBuild(
 )
 
 val cpgVersion         = "1.3.514"
-val joernVersion       = "1.1.611"
+val joernVersion       = "1.1.615"
 val sootVersion        = "4.2.1"
 val tinkerGraphVersion = "3.4.8"
 val neo4jVersion       = "4.4.3"
 val tigerGraphVersion  = "3.1.0"
-val sttpVersion        = "3.4.2"
+val sttpVersion        = "3.5.1"
 val jacksonVersion     = "2.13.2"
 val scalajHttpVersion  = "2.4.2"
 val lz4Version         = "1.8.0"
 val slf4jVersion       = "1.7.36"
+val log4jVersion       = "2.17.1"
 val logbackVersion     = "1.2.11"
 val scalatestVersion   = "3.2.11"
 val circeVersion       = "0.14.1"
@@ -39,17 +40,17 @@ Test / fork := true
 Test / parallelExecution := false
 
 libraryDependencies ++= Seq(
-  "io.shiftleft"                  %% "codepropertygraph"    % cpgVersion,
-  "io.shiftleft"                  %% "semanticcpg"          % cpgVersion,
-  "io.joern"                      %% "dataflowengineoss"    % joernVersion,
-  "io.joern"                      %% "x2cpg"                % joernVersion,
-  "io.joern"                      %% "jimple2cpg"           % joernVersion,
-  "io.joern"                      %% "x2cpg"                % joernVersion     % Test classifier "tests",
+  "io.shiftleft"                  %% "codepropertygraph"    % cpgVersion exclude ("org.apache.logging.log4j", "log4j-core"),
+  "io.shiftleft"                  %% "semanticcpg"          % cpgVersion exclude ("org.apache.logging.log4j", "log4j-core"),
+  "io.joern"                      %% "dataflowengineoss"    % joernVersion exclude ("org.apache.logging.log4j", "log4j-core"),
+  "io.joern"                      %% "x2cpg"                % joernVersion exclude ("org.apache.logging.log4j", "log4j-core"),
+  "io.joern"                      %% "jimple2cpg"           % joernVersion exclude ("org.apache.logging.log4j", "log4j-core"),
+  "io.joern"                      %% "x2cpg"                % joernVersion % Test classifier "tests" exclude ("org.apache.logging.log4j", "log4j-core"),
   "org.soot-oss"                   % "soot"                 % sootVersion,
   "org.apache.tinkerpop"           % "tinkergraph-gremlin"  % tinkerGraphVersion,
   "org.apache.tinkerpop"           % "gremlin-driver"       % tinkerGraphVersion,
   "org.neo4j.driver"               % "neo4j-java-driver"    % neo4jVersion,
-  "com.tigergraph.client"          % "gsql_client"          % tigerGraphVersion,
+  "com.tigergraph.client"          % "gsql_client"          % tigerGraphVersion exclude ("org.apache.logging.log4j", "log4j-core"),
   "com.softwaremill.sttp.client3" %% "core"                 % sttpVersion,
   "com.softwaremill.sttp.client3" %% "circe"                % sttpVersion,
   "com.fasterxml.jackson.core"     % "jackson-databind"     % jacksonVersion,
@@ -57,16 +58,19 @@ libraryDependencies ++= Seq(
   "org.scalaj"                     % "scalaj-http_2.13"     % scalajHttpVersion,
   "org.lz4"                        % "lz4-java"             % lz4Version,
   "org.slf4j"                      % "slf4j-api"            % slf4jVersion,
-  "org.slf4j"                      % "slf4j-simple"         % slf4jVersion     % Runtime,
   "org.scala-lang"                 % "scala-reflect"        % scalaVersion.value,
-  "ch.qos.logback"                 % "logback-classic"      % logbackVersion   % Test,
-  "org.scalatest"                 %% "scalatest"            % scalatestVersion % Test
+  "org.apache.logging.log4j" % "log4j-core"       % log4jVersion     % Test,
+  "org.apache.logging.log4j" % "log4j-slf4j-impl" % log4jVersion     % Test,
+  "org.scalatest"           %% "scalatest"        % scalatestVersion % Test
 ) ++ Seq(
   "io.circe" %% "circe-core",
   "io.circe" %% "circe-generic",
   "io.circe" %% "circe-parser",
   "io.circe" %% "circe-yaml"
 ).map(_ % circeVersion)
+
+excludeDependencies += ExclusionRule("org.slf4j", "slf4j-simple")
+//excludeDependencies += ExclusionRule("org.apache.logging.log4j", "log4j-core")
 
 enablePlugins(
   JavaAppPackaging,
