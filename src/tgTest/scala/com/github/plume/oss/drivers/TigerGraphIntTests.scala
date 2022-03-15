@@ -8,11 +8,9 @@ class TigerGraphIntTests extends PlumeDriverFixture(new TigerGraphDriver()) {
   override def beforeAll(): Unit = {
     DockerManager.startDockerFile("TigerGraph", List("plume-tigergraph"))
     driver.asInstanceOf[IDriver with ISchemaSafeDriver].buildSchema()
-    super.beforeAll()
   }
 
   override def afterAll(): Unit = {
-    super.afterAll()
     DockerManager.closeAnyDockerContainers("TigerGraph")
   }
 

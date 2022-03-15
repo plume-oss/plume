@@ -43,6 +43,17 @@ params:
 For more documentation and basic guides, check out the [project homepage](https://plume-oss.github.io/plume-docs/) or
 the [ScalaDoc](https://plume-oss.github.io/plume/latest/api/io/github/plume/oss/index.html).
 
+*Important*: If you are using the TigerGraph driver you need to install the `gsql_client.jar`and add it to an 
+environment variable called GSQL_CLIENT. Instructions are 
+[here](https://docs.tigergraph.com/tigergraph-server/current/gsql-shell/using-a-remote-gsql-client) e.g.,
+
+```bash
+curl https://docs.tigergraph.com/tigergraph-server/current/gsql-shell/_attachments/gsql_client.jar --output gsql_client.jar
+export GSQL_HOME=`pwd`/gsql_client.jar
+```
+
+Remember to set the `tgVersion` correctly in the `TigerGraphDriver`.
+
 ## Community
 
 * If you have any questions or want to be involved then check out
@@ -59,7 +70,7 @@ Replace `X.X.X` with the desired version on [JitPack](https://jitpack.io/#plume-
 
 ```sbt
 libraryDependencies ++= Seq(
-  com.github.plume-oss % plume % X.X.X
+  com.github.plume-oss %% plume % X.X.X
 )
 ```
 

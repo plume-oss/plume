@@ -18,8 +18,7 @@ import sttp.client3._
 import sttp.client3.circe._
 import sttp.model.{MediaType, Uri}
 
-import java.io.{ByteArrayOutputStream, IOException, PrintStream}
-import java.security.Permission
+import java.io.IOException
 import scala.collection.mutable
 import scala.concurrent.duration.{Duration, DurationInt}
 import scala.jdk.CollectionConverters.{CollectionHasAsScala, IteratorHasAsScala}
@@ -36,6 +35,7 @@ final class TigerGraphDriver(
     timeout: Int = DEFAULT_TIMEOUT,
     scheme: String = "http",
     txMax: Int = DEFAULT_TX_MAX,
+    tgVersion: String = "3.5.0",
     authKey: String = ""
 ) extends IDriver
     with ISchemaSafeDriver {
@@ -488,39 +488,56 @@ final class TigerGraphDriver(
   }
 
   private def postGSQL(payload: String): Unit = {
-    val args = Array(
-      "-ip",
-      s"$hostname:$gsqlPort",
-      "-u",
-      username,
-      "-p",
-      password,
-      payload
-    )
-    val codeControl = new CodeControl()
-    try {
-      logger.debug(s"Posting payload:\n$payload")
-      codeControl.disableSystemExit()
-      val output = executeGsqlClient(args)
-      logger.info(output)
-    } catch {
-      case e: Exception => logger.error(s"Unable to post GSQL payload! Payload $payload", e)
+    Try(sys.env("GSQL_HOME")) match {
+      case Failure(_) =>
+        throw new RuntimeException("""
+        |Environment variable 'GSQL_HOME' not found on the OS. Please install the gsql_client.jar
+        |from https://docs.tigergraph.com/tigergraph-server/current/gsql-shell/using-a-remote-gsql-client and set the
+        |path to the JAR file as GSQL_HOME.
+        |""".stripMargin)
+      case Success(gsqlPath) =>
+        val args = Seq(
+          "-ip",
+          s"$hostname:$gsqlPort",
+          "-u",
+          username,
+          "-p",
+          password,
+          payload
+        )
+        logger.debug(s"Posting payload:\n$payload")
+        executeGsqlClient(gsqlPath, args)
     }
-    codeControl.enableSystemExit()
   }
 
-  private def executeGsqlClient(args: Array[String]): String = {
-    val originalOut = System.out
-    val originalErr = System.err
-    val out         = new ByteArrayOutputStream()
-    val err         = new ByteArrayOutputStream()
-    System.setOut(new PrintStream(out))
-    System.setErr(new PrintStream(err))
-    com.tigergraph.v3_0_5.client.Driver.main(args)
-    System.setOut(originalOut)
-    System.setErr(originalErr)
-    if (!err.toString().isBlank) throw new RuntimeException(err.toString())
-    out.toString()
+  private def executeGsqlClient(gsqlPath: String, args: Seq[String]): Unit = {
+    import sys.process._
+    val processLogger =
+      ProcessLogger.apply((s: String) => logger.info(s), (s: String) => logger.error(s))
+    Try(sys.env("JAVA_HOME")) match {
+      case Failure(_) =>
+        throw new RuntimeException("Environment variable 'JAVA_HOME' not found on the OS.")
+      case Success(javaLocation) =>
+        logger.info(s"Using the Java runtime found at $javaLocation to run the GSQL client.")
+    }
+    val command: Seq[String] = Seq(
+      "java",
+      s"-DGSQL_CLIENT_VERSION=v${tgVersion.replace('.', '_')}",
+      "-jar",
+      gsqlPath
+    ) ++ args
+    // Exclude password and payload from the header
+    val commandHeader = (command.dropRight(2) ++ Seq("<omitted>")).mkString(" ")
+    logger.info(s"Executing GSQL client command with header: $commandHeader")
+    val status = Process(command) !< processLogger
+
+    if (status != 0) {
+      throw new RuntimeException(
+        s"Failure in posting GSQL payload. Error code $status. See logs for more details."
+      )
+    } else {
+      logger.info("Successfully posted GSQL request")
+    }
   }
 }
 
@@ -530,44 +547,6 @@ final case class PayloadBody(
     vertices: JsonObject = JsonObject.empty,
     edges: JsonObject = JsonObject.empty
 )
-
-/** Used to stop the JVM from passing System.exit commands.
-  */
-class CodeControl {
-  def disableSystemExit(): Unit = {
-    val securityManager: SecurityManager = new StopExitSecurityManager()
-    System.setSecurityManager(securityManager)
-  }
-
-  def enableSystemExit(): Unit = {
-    val mgr = System.getSecurityManager
-    mgr match {
-      case mgr: StopExitSecurityManager if mgr != null =>
-        System.setSecurityManager(mgr.getPreviousMgr)
-      case _ => System.setSecurityManager(null)
-    }
-  }
-
-  class StopExitSecurityManager extends SecurityManager() {
-    val _prevMgr: SecurityManager = System.getSecurityManager
-
-    override def checkPermission(perm: Permission): Unit = {
-      if (perm.isInstanceOf[RuntimePermission]) {
-        if (perm.getName.startsWith("exitVM")) {
-          throw new StopExitException(
-            "Exit VM command by external library has been rejected - this is intended."
-          )
-        }
-      }
-      if (_prevMgr != null)
-        _prevMgr.checkPermission(perm)
-    }
-
-    def getPreviousMgr: SecurityManager = _prevMgr
-  }
-
-  class StopExitException(msg: String) extends RuntimeException(msg)
-}
 
 object TigerGraphDriver {
 
