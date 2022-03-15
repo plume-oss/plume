@@ -30,7 +30,10 @@ jobs:
       - name: Run Neo4j integration tests
         run: sbt coverage "neoTest:test"
       - name: Run TigerGraph integration tests
-        run: sbt coverage "tgTest:test"
+        run: |
+          curl https://docs.tigergraph.com/tigergraph-server/current/gsql-shell/_attachments/gsql_client.jar --output gsql_client.jar
+          export GSQL_HOME=`pwd`/gsql_client.jar
+          sbt coverage "tgTest:test"
 
       - name: Compile coverage report
         run: sbt coverageReport

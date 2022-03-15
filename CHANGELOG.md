@@ -5,6 +5,17 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](http://keepachangelog.com/)
 and this project adheres to [Semantic Versioning](http://semver.org/).
 
+## [Unreleased]
+
+### Fixed
+
+- Logger classpath issues by removing TigerGraph GSQL client from dependencies and only using SLF4J-API.
+
+### Changed
+
+- Now calling `gsql_client` directly from command line as a process.
+- Upgraded TigerGraph version to 3.5.0.
+
 ## [1.0.21] - 2022-03-13
 
 ### Fixed
