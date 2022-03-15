@@ -15,7 +15,7 @@ inThisBuild(
 )
 
 val cpgVersion           = "1.3.515"
-val joernVersion         = "1.1.615"
+val joernVersion         = "1.1.619"
 val sootVersion          = "4.2.1"
 val tinkerGraphVersion   = "3.4.8"
 val neo4jVersion         = "4.4.3"
