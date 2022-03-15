@@ -5,7 +5,6 @@ import io.shiftleft.codepropertygraph.generated.{EdgeTypes, NodeTypes, PropertyN
 import io.shiftleft.passes.AppliedDiffGraph
 import org.slf4j.LoggerFactory
 import overflowdb.BatchedUpdate.AppliedDiff
-import overflowdb.{DetachedNodeData, DetachedNodeGeneric, Node}
 
 import scala.collection.mutable
 

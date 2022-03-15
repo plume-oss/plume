@@ -8,11 +8,9 @@ class Neo4jIntTests extends PlumeDriverFixture(new Neo4jDriver()) {
   override def beforeAll(): Unit = {
     DockerManager.startDockerFile("Neo4j", List("plume-neo4j"))
     driver.asInstanceOf[IDriver with ISchemaSafeDriver].buildSchema()
-    super.beforeAll()
   }
 
   override def afterAll(): Unit = {
-    super.afterAll()
     DockerManager.closeAnyDockerContainers("Neo4j")
   }
 

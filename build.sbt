@@ -14,20 +14,21 @@ inThisBuild(
   )
 )
 
-val cpgVersion         = "1.3.514"
-val joernVersion       = "1.1.611"
-val sootVersion        = "4.2.1"
-val tinkerGraphVersion = "3.4.8"
-val neo4jVersion       = "4.4.3"
-val tigerGraphVersion  = "3.1.0"
-val sttpVersion        = "3.4.2"
-val jacksonVersion     = "2.13.2"
-val scalajHttpVersion  = "2.4.2"
-val lz4Version         = "1.8.0"
-val slf4jVersion       = "1.7.36"
-val logbackVersion     = "1.2.11"
-val scalatestVersion   = "3.2.11"
-val circeVersion       = "0.14.1"
+val cpgVersion           = "1.3.515"
+val joernVersion         = "1.1.619"
+val sootVersion          = "4.2.1"
+val tinkerGraphVersion   = "3.4.8"
+val neo4jVersion         = "4.4.3"
+val apacheCommonsVersion = "1.15"
+val sttpVersion          = "3.5.1"
+val jacksonVersion       = "2.13.2"
+val scalajHttpVersion    = "2.4.2"
+val lz4Version           = "1.8.0"
+val slf4jVersion         = "1.7.36"
+val log4jVersion         = "2.17.2"
+val logbackVersion       = "1.2.11"
+val scalatestVersion     = "3.2.11"
+val circeVersion         = "0.14.1"
 
 lazy val scalatest         = "org.scalatest" %% "scalatest" % scalatestVersion
 lazy val NeoIntTest        = config("neoTest") extend Test
@@ -44,12 +45,12 @@ libraryDependencies ++= Seq(
   "io.joern"                      %% "dataflowengineoss"    % joernVersion,
   "io.joern"                      %% "x2cpg"                % joernVersion,
   "io.joern"                      %% "jimple2cpg"           % joernVersion,
-  "io.joern"                      %% "x2cpg"                % joernVersion     % Test classifier "tests",
+  "io.joern"                      %% "x2cpg"                % joernVersion % Test classifier "tests",
   "org.soot-oss"                   % "soot"                 % sootVersion,
   "org.apache.tinkerpop"           % "tinkergraph-gremlin"  % tinkerGraphVersion,
   "org.apache.tinkerpop"           % "gremlin-driver"       % tinkerGraphVersion,
   "org.neo4j.driver"               % "neo4j-java-driver"    % neo4jVersion,
-  "com.tigergraph.client"          % "gsql_client"          % tigerGraphVersion,
+  "commons-codec"                  % "commons-codec"        % apacheCommonsVersion,
   "com.softwaremill.sttp.client3" %% "core"                 % sttpVersion,
   "com.softwaremill.sttp.client3" %% "circe"                % sttpVersion,
   "com.fasterxml.jackson.core"     % "jackson-databind"     % jacksonVersion,
@@ -57,9 +58,9 @@ libraryDependencies ++= Seq(
   "org.scalaj"                     % "scalaj-http_2.13"     % scalajHttpVersion,
   "org.lz4"                        % "lz4-java"             % lz4Version,
   "org.slf4j"                      % "slf4j-api"            % slf4jVersion,
-  "org.slf4j"                      % "slf4j-simple"         % slf4jVersion     % Runtime,
   "org.scala-lang"                 % "scala-reflect"        % scalaVersion.value,
-  "ch.qos.logback"                 % "logback-classic"      % logbackVersion   % Test,
+  "org.apache.logging.log4j"       % "log4j-core"           % log4jVersion     % Test,
+  "org.apache.logging.log4j"       % "log4j-slf4j-impl"     % log4jVersion     % Test,
   "org.scalatest"                 %% "scalatest"            % scalatestVersion % Test
 ) ++ Seq(
   "io.circe" %% "circe-core",
