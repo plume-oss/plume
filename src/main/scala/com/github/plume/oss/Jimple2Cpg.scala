@@ -32,7 +32,7 @@ import soot.{G, PhaseOptions, Scene, SootClass}
 
 import java.io.{File => JFile}
 import java.nio.file.Paths
-import scala.jdk.CollectionConverters.CollectionHasAsScala
+import scala.jdk.CollectionConverters.{CollectionHasAsScala, IteratorHasAsScala}
 
 object Jimple2Cpg {
   val language: String = "PLUME"
@@ -122,14 +122,18 @@ class Jimple2Cpg {
         logger.debug(s"Source files are: $sourceFileNames")
 
         // Load classes into Soot
-        loadClassesIntoSoot(sourceFileNames)
+        val allSootClasses = loadClassesIntoSoot(sourceFileNames)
         if (sootOnlyBuild) return cpg
         val codeToProcess = new PlumeDiffPass(sourceFileNames, driver).createAndApply()
 
+        // Record statistics for experimental purposes
+        PlumeStatistics.setMetric(PlumeStatistics.PROGRAM_CLASSES, allSootClasses.size)
+        PlumeStatistics.setMetric(
+          PlumeStatistics.PROGRAM_METHODS,
+          allSootClasses.map(_.getMethodCount).sum
+        )
         if (codeToProcess.isEmpty) {
           logger.info("No files have changed since last update. Exiting...")
-          PlumeStatistics.setMetric(PlumeStatistics.CHANGED_CLASSES, 0L)
-          PlumeStatistics.setMetric(PlumeStatistics.CHANGED_METHODS, 0L)
           return cpg
         } else {
           val numChangedMethods = codeToProcess
@@ -142,10 +146,7 @@ class Jimple2Cpg {
               s"($numChangedMethods new or changed methods)"
           )
           PlumeStatistics.setMetric(PlumeStatistics.CHANGED_CLASSES, codeToProcess.size)
-          PlumeStatistics.setMetric(
-            PlumeStatistics.CHANGED_METHODS,
-            numChangedMethods
-          )
+          PlumeStatistics.setMetric(PlumeStatistics.CHANGED_METHODS, numChangedMethods)
         }
 
         // After the diff pass any changed types are removed. Remaining types should be black listed to avoid duplicates
@@ -207,14 +208,15 @@ class Jimple2Cpg {
     ).distinct
   }
 
-  private def loadClassesIntoSoot(sourceFileNames: List[String]): Unit = {
-    sourceFileNames
+  private def loadClassesIntoSoot(sourceFileNames: List[String]): Seq[SootClass] = {
+    val sootClasses = sourceFileNames
       .map(getQualifiedClassPath)
-      .foreach { cp =>
+      .map { cp =>
         Scene.v().addBasicClass(cp)
         Scene.v().loadClassAndSupport(cp)
       }
     Scene.v().loadNecessaryClasses()
+    sootClasses
   }
 
   private def basePasses(
