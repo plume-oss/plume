@@ -72,6 +72,7 @@ class Jimple2Cpg {
     * @param driver             The driver used to interact with the backend database.
     * @param sootOnlyBuild      (Experimental) Used to determine how many resources are used when only loading files
     *                           into Soot.
+    * @throws Exception if any fatal error occurred during the CPG creation.
     * @return The constructed CPG.
     */
   def createCpg(
@@ -127,9 +128,24 @@ class Jimple2Cpg {
 
         if (codeToProcess.isEmpty) {
           logger.info("No files have changed since last update. Exiting...")
+          PlumeStatistics.setMetric(PlumeStatistics.CHANGED_CLASSES, 0L)
+          PlumeStatistics.setMetric(PlumeStatistics.CHANGED_METHODS, 0L)
           return cpg
         } else {
-          logger.info(s"Processing ${codeToProcess.size} new or changed program files")
+          val numChangedMethods = codeToProcess
+            .map(getQualifiedClassPath)
+            .map(Scene.v().getSootClass)
+            .map(_.getMethodCount)
+            .sum
+          logger.info(
+            s"Processing ${codeToProcess.size} new or changed program files " +
+              s"($numChangedMethods new or changed methods)"
+          )
+          PlumeStatistics.setMetric(PlumeStatistics.CHANGED_CLASSES, codeToProcess.size)
+          PlumeStatistics.setMetric(
+            PlumeStatistics.CHANGED_METHODS,
+            numChangedMethods
+          )
         }
 
         // After the diff pass any changed types are removed. Remaining types should be black listed to avoid duplicates
@@ -172,8 +188,6 @@ class Jimple2Cpg {
 
         driver.buildInterproceduralEdges()
         cpg
-      } catch {
-        case e: Exception => e.printStackTrace(); throw e;
       } finally {
         clean()
       }
