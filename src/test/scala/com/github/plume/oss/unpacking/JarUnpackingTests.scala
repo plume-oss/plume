@@ -30,7 +30,7 @@ class JarUnpackingTests extends AnyWordSpec with Matchers with BeforeAndAfterAll
     Try(getClass.getResource("/unpacking")) match {
       case Success(x) =>
         val fs = File(x.getPath).toDirectory.walk.toSeq
-        val cs = File(ProgramHandlingUtil.TEMP_DIR.toString).toDirectory.walk.toSeq
+        val cs = File(ProgramHandlingUtil.getUnpackingDir.toString).toDirectory.walk.toSeq
         fs.filter(_.name.contains(".jar")).map(_.name).toList shouldBe List("HelloWorld.jar")
         cs.count(_.name.contains(".class")) shouldBe 0
       case Failure(x: Throwable) =>
