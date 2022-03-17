@@ -1,6 +1,7 @@
 package com.github.plume.oss.util
 
 import io.joern.x2cpg.SourceFiles
+import org.apache.commons.io.FileUtils
 import org.objectweb.asm.ClassReader.SKIP_CODE
 import org.objectweb.asm.{ClassReader, ClassVisitor, Opcodes}
 import org.slf4j.LoggerFactory
@@ -19,7 +20,7 @@ object ProgramHandlingUtil {
 
   /** The temporary directory used to unpack class files to.
     */
-  val TEMP_DIR: Path = Files.createTempDirectory("plume")
+  private var TEMP_DIR: Option[Path] = Some(Files.createTempDirectory("plume"))
 
   logger.debug(s"Using temporary folder at $TEMP_DIR")
 
@@ -29,6 +30,7 @@ object ProgramHandlingUtil {
     * @return the list of class files at their new locations.
     */
   def moveClassFiles(files: List[String]): List[String] = {
+    val dir                      = getUnpackingDir
     var destPath: Option[String] = None
 
     sealed class ClassPathVisitor extends ClassVisitor(Opcodes.ASM8) {
@@ -40,7 +42,7 @@ object ProgramHandlingUtil {
           superName: String,
           interfaces: Array[String]
       ): Unit = {
-        destPath = Some(TEMP_DIR.toAbsolutePath.toString + File.separator + name + ".class")
+        destPath = Some(dir.toAbsolutePath.toString + File.separator + name + ".class")
       }
     }
 
@@ -61,12 +63,26 @@ object ProgramHandlingUtil {
     }
   }
 
+  /** Returns the temporary directory used to unpack and analyze projects in.
+    * @return the path pointing to the directory.
+    */
+  def getUnpackingDir: Path = {
+    TEMP_DIR match {
+      case None =>
+        val p = Files.createTempDirectory("plume")
+        TEMP_DIR = Some(p)
+        p
+      case Some(dir) => dir
+    }
+  }
+
   /** Unzips a ZIP file into a sequence of files. All files unpacked are deleted at the end of CPG construction.
     *
     * @param zf             The ZIP file to extract.
     * @param sourceCodePath The project root path to unpack to.
     */
   def unzipArchive(zf: ZipFile, sourceCodePath: String): Try[Seq[String]] = scala.util.Try {
+    val dir = getUnpackingDir
     Using.resource(zf) { zip: ZipFile =>
       // Copy zipped files across
       zip
@@ -77,11 +93,9 @@ object ProgramHandlingUtil {
           val sourceCodePathFile = new File(sourceCodePath)
           // Handle the case if the input source code path is an archive itself
           val destFile = if (sourceCodePathFile.isDirectory) {
-            new File(TEMP_DIR.toAbsolutePath.toString + File.separator + entry.getName)
+            new File(dir.toAbsolutePath.toString + File.separator + entry.getName)
           } else {
-            new File(
-              TEMP_DIR.toAbsolutePath.toString + File.separator + entry.getName
-            )
+            new File(dir.toAbsolutePath.toString + File.separator + entry.getName)
           }
           // dirName accounts for nested directories as a result of JAR package structure
           val dirName = destFile.getAbsolutePath
@@ -129,8 +143,6 @@ object ProgramHandlingUtil {
 
   /** Removes all files in the temporary unpacking directory.
     */
-  def clean(): Unit = {
-    Files.walk(TEMP_DIR).filter(Files.isRegularFile(_)).forEach(p => p.toFile.delete())
-  }
+  def clean(): Unit = FileUtils.deleteDirectory(getUnpackingDir.toFile)
 
 }

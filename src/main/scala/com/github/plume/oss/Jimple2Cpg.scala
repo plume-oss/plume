@@ -44,7 +44,7 @@ object Jimple2Cpg {
     * @return the correctly formatted class path.
     */
   def getQualifiedClassPath(filename: String): String = {
-    val codePath = ProgramHandlingUtil.TEMP_DIR
+    val codePath = ProgramHandlingUtil.getUnpackingDir
     val codeDir: String = if (codePath.toFile.isDirectory) {
       codePath.toAbsolutePath.normalize.toString
     } else {
@@ -68,7 +68,7 @@ class Jimple2Cpg {
   /** Creates a CPG from Jimple.
     *
     * @param rawSourceCodePath  The path to the Jimple code or code that can be transformed into Jimple.
-    * @param outputPath         The path to store the CPG. If `outputPath` is `None`, the CPG is created in-memory.
+    * @param referenceGraphOutputPath         The path to store the CPG. If `outputPath` is `None`, the CPG is created in-memory.
     * @param driver             The driver used to interact with the backend database.
     * @param sootOnlyBuild      (Experimental) Used to determine how many resources are used when only loading files
     *                           into Soot.
@@ -77,7 +77,7 @@ class Jimple2Cpg {
     */
   def createCpg(
       rawSourceCodePath: String,
-      outputPath: Option[String] = Option(JFile.createTempFile("plume-", ".odb").getAbsolutePath),
+      referenceGraphOutputPath: Option[String] = None,
       driver: IDriver = new OverflowDbDriver(),
       sootOnlyBuild: Boolean = false
   ): Cpg = PlumeStatistics.time(
@@ -96,7 +96,7 @@ class Jimple2Cpg {
         }
 
         configureSoot()
-        val cpg = newEmptyCpg(outputPath)
+        val cpg = newEmptyCpg(referenceGraphOutputPath)
 
         val metaDataKeyPool = new IncrementalKeyPool(1, 100, driver.idInterval(1, 100))
         val typesKeyPool    = new IncrementalKeyPool(101, 2_000_100, driver.idInterval(101, 2_000_100))
@@ -257,7 +257,7 @@ class Jimple2Cpg {
     Options.v().set_app(false)
     Options.v().set_whole_program(false)
     // make sure classpath is configured correctly
-    Options.v().set_soot_classpath(ProgramHandlingUtil.TEMP_DIR.toString)
+    Options.v().set_soot_classpath(ProgramHandlingUtil.getUnpackingDir.toAbsolutePath.toString)
     Options.v().set_prepend_classpath(true)
     // keep debugging info
     Options.v().set_keep_line_number(true)

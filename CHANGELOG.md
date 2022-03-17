@@ -5,6 +5,13 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](http://keepachangelog.com/)
 and this project adheres to [Semantic Versioning](http://semver.org/).
 
+## [Unreleased]
+
+### Changed
+
+- Delete the unpacking dir after clean and generating a new one as needed if a successive analysis occurs.
+- Making the reference DB `None` by default to avoid accidentally generating large amounts of stored graphs.
+
 ## [1.1.2] - 2022-03-16
 
 ### Added
