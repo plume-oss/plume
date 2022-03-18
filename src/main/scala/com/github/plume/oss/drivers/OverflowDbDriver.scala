@@ -452,20 +452,21 @@ final case class OverflowDbDriver(
       osw.write("<graph id=\"G\" edgedefault=\"directed\">")
       // Write vertices
       g.nodes().foreach { (n: Node) =>
-        osw.write("<node id=\"" + n.id + "\"")
+        osw.write("<node id=\"" + n.id + "\">")
         osw.write("<data key=\"labelV\">" + n.label() + "</data>")
         serializeLists(n.propertiesMap().asScala.toMap).foreach { case (k, v) =>
           osw.write(
-            "<data key=\"" + k + "\">\"" + StringEscapeUtils.escapeXml(v.toString) + "\"</data>"
+            "<data key=\"" + k + "\">" + StringEscapeUtils.escapeXml(v.toString) + "</data>"
           )
         }
+        osw.write("</node>")
       }
       // Write edges
       g.edges().zipWithIndex.foreach { case (e: Edge, i: Int) =>
         osw.write("<edge id=\"" + i + "\" ")
         osw.write("source=\"" + e.outNode().id() + "\" ")
         osw.write("target=\"" + e.inNode().id() + "\">")
-        osw.write("<data key=\"labelE\">" + e.label() + "/data>")
+        osw.write("<data key=\"labelE\">" + e.label() + "</data>")
         osw.write("</edge>")
       }
       // Close graph tags
