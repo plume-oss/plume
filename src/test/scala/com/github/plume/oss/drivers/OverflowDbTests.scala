@@ -1,6 +1,10 @@
 package com.github.plume.oss.drivers
 
 import com.github.plume.oss.testfixtures.PlumeDriverFixture
+import com.github.plume.oss.testfixtures.PlumeDriverFixture.{b1, m1}
+import io.shiftleft.codepropertygraph.generated.{Cpg, EdgeTypes}
+import io.shiftleft.passes.IntervalKeyPool
+import overflowdb.BatchedUpdate
 
 import java.io.{File => JFile}
 import java.lang.reflect.Field
@@ -38,6 +42,24 @@ class OverflowDbTests extends PlumeDriverFixture(new OverflowDbDriver()) {
           Some(Source.fromInputStream(Files.newInputStream(methodSemanticsPath)))
         )
     }
+  }
+
+  // This is flimsy but it at least validates that things won't go wrong
+  "should be able to serialize and deserialize XML graphs without throwing an exception" in {
+    createSimpleGraph(driver)
+    val td      = driver.asInstanceOf[OverflowDbDriver]
+    val outFile = Paths.get("./odbGraph.xml").toFile
+    td.exportAsGraphML(outFile)
+    outFile.delete()
+  }
+
+  private def createSimpleGraph(driver: IDriver): Unit = {
+    val cpg       = Cpg.empty
+    val keyPool   = new IntervalKeyPool(1, 1000)
+    val diffGraph = new BatchedUpdate.DiffGraphBuilder()
+    diffGraph.addNode(m1).addNode(b1).addEdge(m1, b1, EdgeTypes.AST)
+    val adg = BatchedUpdate.applyDiff(cpg.graph, diffGraph, keyPool, null)
+    driver.bulkTx(adg)
   }
 
 }

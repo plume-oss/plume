@@ -18,18 +18,19 @@ import io.shiftleft.codepropertygraph.generated.nodes._
 import io.shiftleft.codepropertygraph.{Cpg => CPG}
 import io.shiftleft.passes.AppliedDiffGraph
 import io.shiftleft.passes.DiffGraph.{Change, PackedProperties}
+import org.apache.commons.lang.StringEscapeUtils
 import org.slf4j.LoggerFactory
 import overflowdb.BatchedUpdate.AppliedDiff
 import overflowdb.traversal.{Traversal, jIteratortoTraversal}
-import overflowdb.{BatchedUpdate, Config, DetachedNodeData, Node}
+import overflowdb.{BatchedUpdate, Config, DetachedNodeData, Edge, Node}
 
-import java.io.{File => JFile}
+import java.io.{FileOutputStream, OutputStreamWriter, File => JFile}
 import java.nio.file.{Files, Path, Paths}
 import java.util.concurrent.ConcurrentHashMap
 import scala.collection.mutable
 import scala.io.{BufferedSource, Source}
-import scala.jdk.CollectionConverters.{ConcurrentMapHasAsScala, IteratorHasAsScala}
-import scala.util.{Failure, Success, Try}
+import scala.jdk.CollectionConverters.{ConcurrentMapHasAsScala, IteratorHasAsScala, MapHasAsScala}
+import scala.util.{Failure, Success, Try, Using}
 
 /** Driver to create an OverflowDB database file.
   * @param storageLocation where the database will serialize to and deserialize from.
@@ -406,6 +407,70 @@ final case class OverflowDbDriver(
         unchangedTypes.contains(typeFullName)
       case _ =>
         false
+    }
+  }
+
+  /** Serializes the graph in the OverflowDB instance to the
+    * [[http://graphml.graphdrawing.org/specification/dtd.html GraphML]]
+    * format to the given OutputStreamWriter. This format is supported by
+    * [[https://tinkerpop.apache.org/docs/current/reference/#graphml TinkerGraph]] and
+    * [[http://manual.cytoscape.org/en/stable/Supported_Network_File_Formats.html#graphml Cytoscape]].
+    * @param exportPath the path to write the GraphML representation of the graph to.
+    */
+  def exportAsGraphML(exportPath: java.io.File): Unit = {
+    val g = cpg.graph
+    Using.resource(new OutputStreamWriter(new FileOutputStream(exportPath))) { osw =>
+      // Write header
+      osw.write("<?xml version=\"1.0\" ?>")
+      osw.write("<graphml ")
+      osw.write("xmlns=\"http://graphml.graphdrawing.org/xmlns\" ")
+      osw.write("xmlns:xsi=\"http://www.w3.org/2001/XMLSchema-instance\" ")
+      osw.write(
+        "xsi:schemaLocation=\"http://graphml.graphdrawing.org/xmlns http://graphml.graphdrawing.org/xmlns/1.1/graphml.xsd\">"
+      )
+      // Write keys
+      osw.write("<key id=\"labelV\" for=\"node\" attr.name=\"labelV\" attr.type=\"string\"></key>")
+      osw.write("<key id=\"labelE\" for=\"edge\" attr.name=\"labelE\" attr.type=\"string\"></key>")
+      g.nodes()
+        .flatMap(_.propertiesMap().asScala)
+        .map { case (k: String, v: Object) =>
+          k -> (v match {
+            case _: java.lang.Integer => "int"
+            case _: java.lang.Boolean => "boolean"
+            case _                    => "string"
+          })
+        }
+        .foreach { case (k: String, t: String) =>
+          osw.write("<key ")
+          osw.write("id=\"" + k + "\" ")
+          osw.write("for=\"node\" ")
+          osw.write("attr.name=\"" + k + "\" ")
+          osw.write("attr.type=\"" + t + "\">")
+          osw.write("</key>")
+        }
+      // Write graph
+      osw.write("<graph id=\"G\" edgedefault=\"directed\">")
+      // Write vertices
+      g.nodes().foreach { (n: Node) =>
+        osw.write("<node id=\"" + n.id + "\"")
+        osw.write("<data key=\"labelV\">" + n.label() + "</data>")
+        serializeLists(n.propertiesMap().asScala.toMap).foreach { case (k, v) =>
+          osw.write(
+            "<data key=\"" + k + "\">\"" + StringEscapeUtils.escapeXml(v.toString) + "\"</data>"
+          )
+        }
+      }
+      // Write edges
+      g.edges().zipWithIndex.foreach { case (e: Edge, i: Int) =>
+        osw.write("<edge id=\"" + i + "\" ")
+        osw.write("source=\"" + e.outNode().id() + "\" ")
+        osw.write("target=\"" + e.inNode().id() + "\">")
+        osw.write("<data key=\"labelE\">" + e.label() + "/data>")
+        osw.write("</edge>")
+      }
+      // Close graph tags
+      osw.write("</graph>")
+      osw.write("</graphml>")
     }
   }
 
