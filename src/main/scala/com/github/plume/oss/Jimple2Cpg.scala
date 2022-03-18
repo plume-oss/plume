@@ -111,31 +111,22 @@ class Jimple2Cpg {
         logger.debug(s"Source files are: $sourceFileNames")
 
         // Load classes into Soot
-        val allSootClasses = loadClassesIntoSoot(sourceFileNames)
         if (sootOnlyBuild) return cpg
-        val codeToProcess = new PlumeDiffPass(sourceFileNames, driver).createAndApply()
+        val codeToProcess  = new PlumeDiffPass(sourceFileNames, driver).createAndApply()
+        val allSootClasses = loadClassesIntoSoot(codeToProcess)
 
         // Record statistics for experimental purposes
-        PlumeStatistics.setMetric(PlumeStatistics.PROGRAM_CLASSES, allSootClasses.size)
-        PlumeStatistics.setMetric(
-          PlumeStatistics.PROGRAM_METHODS,
-          allSootClasses.map(_.getMethodCount).sum
-        )
         if (codeToProcess.isEmpty) {
           logger.info("No files have changed since last update. Exiting...")
           return cpg
         } else {
-          val numChangedMethods = codeToProcess
-            .map(getQualifiedClassPath)
-            .map(Scene.v().getSootClass)
-            .map(_.getMethodCount)
-            .sum
+          val numChangedMethods = allSootClasses.map(_.getMethodCount).sum
           logger.info(
             s"Processing ${codeToProcess.size} new or changed program files " +
               s"($numChangedMethods new or changed methods)"
           )
-          PlumeStatistics.setMetric(PlumeStatistics.CHANGED_CLASSES, codeToProcess.size)
-          PlumeStatistics.setMetric(PlumeStatistics.CHANGED_METHODS, numChangedMethods)
+          PlumeStatistics.setMetric(PlumeStatistics.PROGRAM_CLASSES, allSootClasses.size)
+          PlumeStatistics.setMetric(PlumeStatistics.PROGRAM_METHODS, numChangedMethods)
         }
 
         // After the diff pass any changed types are removed. Remaining types should be black listed to avoid duplicates
@@ -197,7 +188,7 @@ class Jimple2Cpg {
     ).distinct
   }
 
-  private def loadClassesIntoSoot(sourceFileNames: List[String]): Seq[SootClass] = {
+  private def loadClassesIntoSoot(sourceFileNames: Seq[String]): Seq[SootClass] = {
     val sootClasses = sourceFileNames
       .map(getQualifiedClassPath)
       .map { cp =>

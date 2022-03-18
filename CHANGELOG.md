@@ -5,6 +5,14 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](http://keepachangelog.com/)
 and this project adheres to [Semantic Versioning](http://semver.org/).
 
+## [1.1.5] - 2022-03-18
+
+### Changed
+
+- Only adding changed files to Soot to improve performance.
+- Simplified `PlumeStatistics` file related changes to only those class/methods changed.
+- `PlumeDynamicCallLinker` now extends `SimpleCpgPass`.
+
 ## [1.1.4] - 2022-03-18
 
 ### Added

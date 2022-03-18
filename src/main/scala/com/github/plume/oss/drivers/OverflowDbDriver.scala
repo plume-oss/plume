@@ -361,7 +361,7 @@ final case class OverflowDbDriver(
         results
           .map { x => x.table }
           .foreach { t: ResultTable =>
-            t.keys.foreach { n: StoredNode =>
+            t.keys().foreach { n: StoredNode =>
               t.get(n) match {
                 case Some(v) =>
                   tab.put(n.id(), v.map(SerialReachableByResult.apply))

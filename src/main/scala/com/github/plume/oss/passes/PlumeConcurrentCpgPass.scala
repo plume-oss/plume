@@ -122,7 +122,7 @@ object PlumeConcurrentWriter {
 class PlumeConcurrentWriter(
     driver: IDriver,
     cpg: Cpg,
-    baseLogger: Logger = LoggerFactory.getLogger(classOf[CpgPass]),
+    baseLogger: Logger = LoggerFactory.getLogger(classOf[PlumeConcurrentWriter]),
     keyPool: Option[KeyPool] = None,
     mdc: java.util.Map[String, String],
     setDiffT: Int => Int

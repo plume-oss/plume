@@ -356,7 +356,7 @@ abstract class GremlinDriver(txMax: Int = 50) extends IDriver {
         }).collect { case x: String => x }.foreach { dstFullName =>
           dstNodeMap.get(dstFullName) match {
             case Some(dstId: Any) if !exists(srcId, dstId.toString.toLong, edgeType) =>
-              g.V(typedNodeId(srcId)).addE(edgeType).to(__.V(dstId)).iterate()
+              g().V(typedNodeId(srcId)).addE(edgeType).to(__.V(dstId)).iterate()
             case _ =>
           }
         }
@@ -378,7 +378,7 @@ abstract class GremlinDriver(txMax: Int = 50) extends IDriver {
         if (dstFullName != null) {
           methodFullNameToNode.get(dstFullName) match {
             case Some(dstId) if !exists(srcId, dstId.toString.toLong, EdgeTypes.CALL) =>
-              g.V(typedNodeId(srcId)).addE(EdgeTypes.CALL).to(__.V(dstId)).iterate()
+              g().V(typedNodeId(srcId)).addE(EdgeTypes.CALL).to(__.V(dstId)).iterate()
             case _ =>
           }
         }
