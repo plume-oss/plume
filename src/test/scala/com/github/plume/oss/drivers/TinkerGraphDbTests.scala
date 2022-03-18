@@ -1,19 +1,20 @@
 package com.github.plume.oss.drivers
 
 import com.github.plume.oss.testfixtures.PlumeDriverFixture
-import PlumeDriverFixture.{b1, m1}
+import com.github.plume.oss.testfixtures.PlumeDriverFixture.{b1, m1}
 import io.shiftleft.codepropertygraph.generated.NodeTypes.{BLOCK, METHOD}
 import io.shiftleft.codepropertygraph.generated.{Cpg, EdgeTypes}
-import io.shiftleft.passes.{DiffGraph, IntervalKeyPool}
+import io.shiftleft.passes.IntervalKeyPool
 import io.shiftleft.proto.cpg.Cpg.NodePropertyName.{NAME, ORDER}
+import overflowdb.BatchedUpdate
 
 import java.io.{File => JFile}
 
 class TinkerGraphDbTests extends PlumeDriverFixture(new TinkerGraphDriver()) {
 
-  private val graphML = JFile.createTempFile("plume", ".xml")
-  private val graphSON = JFile.createTempFile("plume", ".json")
-  private val gryo = JFile.createTempFile("plume", ".kryo")
+  private val graphML     = JFile.createTempFile("plume", ".xml")
+  private val graphSON    = JFile.createTempFile("plume", ".json")
+  private val gryo        = JFile.createTempFile("plume", ".kryo")
   private val invalidFile = JFile.createTempFile("plume", ".txt")
 
   "should be able to serialize and deserialize XML graphs" in {
@@ -37,6 +38,8 @@ class TinkerGraphDbTests extends PlumeDriverFixture(new TinkerGraphDriver()) {
   }
 
   "should be able to serialize and deserialize KRYO graphs" in {
+    val javaVersionMajorVersion = System.getProperty("java.version").split('.')(0).toInt
+    assume(javaVersionMajorVersion < 17, "Kryo serialization requires Java version < 17")
     createSimpleGraph(driver)
     validateSimpleGraph(driver)
     val td = driver.asInstanceOf[TinkerGraphDriver]
@@ -61,12 +64,11 @@ class TinkerGraphDbTests extends PlumeDriverFixture(new TinkerGraphDriver()) {
   }
 
   private def createSimpleGraph(driver: IDriver): Unit = {
-    val cpg        = Cpg.empty
-    val keyPool    = new IntervalKeyPool(1, 1000)
-    val diffGraph = DiffGraph.newBuilder
+    val cpg       = Cpg.empty
+    val keyPool   = new IntervalKeyPool(1, 1000)
+    val diffGraph = new BatchedUpdate.DiffGraphBuilder()
     diffGraph.addNode(m1).addNode(b1).addEdge(m1, b1, EdgeTypes.AST)
-    val adg =
-      DiffGraph.Applier.applyDiff(diffGraph.build(), cpg.graph, undoable = false, Option(keyPool))
+    val adg = BatchedUpdate.applyDiff(cpg.graph, diffGraph, keyPool, null)
     driver.bulkTx(adg)
   }
 

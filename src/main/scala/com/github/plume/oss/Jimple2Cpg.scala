@@ -2,22 +2,11 @@ package com.github.plume.oss
 
 import com.github.plume.oss.drivers.{IDriver, OverflowDbDriver}
 import com.github.plume.oss.passes._
-import com.github.plume.oss.passes.base.{
-  AstCreationPass,
-  PlumeContainsEdgePass,
-  PlumeCpgPassBase,
-  PlumeFileCreationPass,
-  PlumeMetaDataPass,
-  PlumeMethodDecoratorPass,
-  PlumeMethodStubCreator,
-  PlumeNamespaceCreator,
-  PlumeTypeDeclStubCreator,
-  PlumeTypeNodePass
-}
-import com.github.plume.oss.passes.incremental.{PlumeDiffPass, PlumeHashPass}
+import com.github.plume.oss.passes.base._
 import com.github.plume.oss.passes.controlflow.PlumeCfgCreationPass
 import com.github.plume.oss.passes.controlflow.cfgdominator.PlumeCfgDominatorPass
 import com.github.plume.oss.passes.controlflow.codepencegraph.PlumeCdgPass
+import com.github.plume.oss.passes.incremental.{PlumeDiffPass, PlumeHashPass}
 import com.github.plume.oss.passes.reachingdef._
 import com.github.plume.oss.util.ProgramHandlingUtil
 import com.github.plume.oss.util.ProgramHandlingUtil.{extractSourceFilesFromArchive, moveClassFiles}
@@ -32,7 +21,7 @@ import soot.{G, PhaseOptions, Scene, SootClass}
 
 import java.io.{File => JFile}
 import java.nio.file.Paths
-import scala.jdk.CollectionConverters.{CollectionHasAsScala, IteratorHasAsScala}
+import scala.jdk.CollectionConverters.EnumerationHasAsScala
 
 object Jimple2Cpg {
   val language: String = "PLUME"
@@ -170,7 +159,7 @@ class Jimple2Cpg {
         // Clear classes from Soot
         G.reset()
         new PlumeTypeNodePass(
-          astCreator.global.usedTypes.asScala.toList,
+          astCreator.global.usedTypes.keys().asScala.toList,
           cpg,
           Some(typesKeyPool),
           unchangedTypes
@@ -266,6 +255,7 @@ class Jimple2Cpg {
     Options.v().set_no_bodies_for_excluded(true)
     Options.v().set_allow_phantom_refs(true)
     // keep variable names
+    Options.v.setPhaseOption("jb.sils", "enabled:false")
     PhaseOptions.v().setPhaseOption("jb", "use-original-names:true")
   }
 

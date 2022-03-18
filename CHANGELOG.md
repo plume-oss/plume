@@ -5,6 +5,17 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](http://keepachangelog.com/)
 and this project adheres to [Semantic Versioning](http://semver.org/).
 
+## [1.1.4] - 2022-03-18
+
+### Added
+
+- Mention that Kryo should only run in Java < 17 in README.
+
+### Changed
+
+- Upgraded Soot to 4.3.0, TinkerGraph/Gremlin to 3.4.11, Joern to 1.1.622.
+- Making the reference DB `None` by default to avoid accidentally generating large amounts of stored graphs.
+
 ## [1.1.3] - 2022-03-17
 
 ### Changed
@@ -71,7 +82,8 @@ and this project adheres to [Semantic Versioning](http://semver.org/).
 - Virtual calls now get passed the correct `this` object as the object the method is actually invoked with.
 - Virtual call `code` properties now include the object invoking the method.
 - Instance where `Local` nodes were duplicated for each time they were referenced
-- Issue where `NewCall(Operators.assignment)` did not have `methodFullName = Operators.assignment` and thus messing up data flow paths
+- Issue where `NewCall(Operators.assignment)` did not have `methodFullName = Operators.assignment` and thus messing up
+  data flow paths
 
 ## [1.0.17] - 2022-03-04
 

@@ -2,7 +2,7 @@ package com.github.plume.oss.passes.base
 
 import com.github.plume.oss.Jimple2Cpg
 import com.github.plume.oss.passes.{IncrementalKeyPool, PlumeConcurrentCpgPass}
-import io.joern.jimple2cpg.passes.Global
+import io.joern.x2cpg.datastructures.Global
 import io.shiftleft.codepropertygraph.Cpg
 import org.slf4j.LoggerFactory
 import soot.Scene
@@ -15,7 +15,7 @@ class AstCreationPass(
     keyPool: IncrementalKeyPool
 ) extends PlumeConcurrentCpgPass[String](cpg, keyPool = Some(keyPool)) {
 
-  val global: Global = Global()
+  val global: Global = new Global()
   private val logger = LoggerFactory.getLogger(classOf[AstCreationPass])
 
   override def generateParts(): Array[_ <: AnyRef] = filenames.toArray

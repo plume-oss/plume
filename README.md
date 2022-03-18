@@ -64,6 +64,11 @@ Remember to set the `tgVersion` correctly in the `TigerGraphDriver`.
     * DM on [Twitter](https://twitter.com/SDBakerEffendi)
     * Email at dbe@sun.ac.za
 
+## Known Bugs
+
+- Due to module encapsulation in Java 17, Kryo serialization for `TinkerGraphDriver` will not work due to serialization
+  errors.
+
 ## Adding Plume as a Dependency
 
 Replace `X.X.X` with the desired version on [JitPack](https://jitpack.io/#plume-oss/plume).

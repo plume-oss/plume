@@ -3,7 +3,7 @@ name := "Plume"
 inThisBuild(
   List(
     organization := "com.github.plume-oss",
-    version := "1.1.3",
+    version := "1.1.4",
     scalaVersion := "2.13.7",
     crossScalaVersions := Seq("2.13.7", "3.1.1"),
     resolvers ++= Seq(
@@ -15,9 +15,9 @@ inThisBuild(
 )
 
 val cpgVersion           = "1.3.515"
-val joernVersion         = "1.1.619"
-val sootVersion          = "4.2.1"
-val tinkerGraphVersion   = "3.4.8"
+val joernVersion         = "1.1.622"
+val sootVersion          = "4.3.0"
+val tinkerGraphVersion   = "3.4.11"
 val neo4jVersion         = "4.4.3"
 val apacheCommonsVersion = "1.15"
 val sttpVersion          = "3.5.1"
