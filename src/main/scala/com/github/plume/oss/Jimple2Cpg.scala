@@ -111,9 +111,9 @@ class Jimple2Cpg {
         logger.debug(s"Source files are: $sourceFileNames")
 
         // Load classes into Soot
-        if (sootOnlyBuild) return cpg
         val codeToProcess  = new PlumeDiffPass(sourceFileNames, driver).createAndApply()
         val allSootClasses = loadClassesIntoSoot(codeToProcess)
+        if (sootOnlyBuild) return cpg
 
         // Record statistics for experimental purposes
         if (codeToProcess.isEmpty) {
