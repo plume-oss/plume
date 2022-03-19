@@ -5,6 +5,16 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](http://keepachangelog.com/)
 and this project adheres to [Semantic Versioning](http://semver.org/).
 
+## [1.1.7] - 2022-03-18
+
+### Changed
+
+- Upgraded Joern to 1.1.628 and CPG to 1.3.517.
+
+### Fixed
+
+- Misplaced where `createCpg` would abort on the `sootOnly` config. This has been fixed.
+
 ## [1.1.6] - 2022-03-18
 
 ### Added
