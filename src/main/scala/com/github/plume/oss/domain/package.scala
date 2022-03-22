@@ -111,7 +111,7 @@ package object domain {
           Some(resultTable)
         } catch {
           case e: RuntimeException =>
-            logger.warn(e.getMessage)
+            logger.error(e.getMessage, e)
             None
           case e: Exception =>
             logger.error("Unable to deserialize results table.", e)
@@ -123,7 +123,6 @@ package object domain {
 
   /** A serializable version of ReachableByResult.
     * @param path a path of nodes represented by [[SerialReachableByResult]]s.
-    * @param table a pointer to the global serializable result table.
     * @param callSite the call site that was expanded to kick off the task. We require this to match call sites to
     *                 exclude non-realizable paths through other callers
     * @param callDepth the call depth of this result.

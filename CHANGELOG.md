@@ -5,6 +5,12 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](http://keepachangelog.com/)
 and this project adheres to [Semantic Versioning](http://semver.org/).
 
+## [1.1.9] - 2022-03-22
+
+### Fixed
+
+- `domain::isNodeUnderTypes` not handling potential NPE.
+
 ## [1.1.8] - 2022-03-22
 
 ### Changed

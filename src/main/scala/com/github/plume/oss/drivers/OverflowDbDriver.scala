@@ -400,13 +400,15 @@ final case class OverflowDbDriver(
     *         given node ID is not in the database false will be returned.
     */
   private def isNodeUnderTypes(nodeId: Long, unchangedTypes: Set[String]): Boolean = {
-    cpg.graph.nodes(nodeId).next() match {
-      case n: Node =>
-        val m            = n.in(EdgeTypes.CONTAINS, EdgeTypes.AST).collect { case x: Method => x }.next()
-        val typeFullName = m.fullName.substring(0, m.fullName.lastIndexOf('.'))
-        unchangedTypes.contains(typeFullName)
-      case _ =>
-        false
+    cpg.graph.nodes(nodeId).nextOption() match {
+      case Some(n) if n != null =>
+        n.in(EdgeTypes.CONTAINS, EdgeTypes.AST).collect { case x: Method => x }.nextOption() match {
+          case Some(m) if m != null =>
+            val typeFullName = m.fullName.substring(0, m.fullName.lastIndexOf('.'))
+            unchangedTypes.contains(typeFullName)
+          case _ => false
+        }
+      case _ => false
     }
   }
 
