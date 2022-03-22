@@ -1,7 +1,6 @@
 package com.github.plume.oss.util
 
 import io.joern.x2cpg.SourceFiles
-import org.apache.commons.io.FileUtils
 import org.objectweb.asm.ClassReader.SKIP_CODE
 import org.objectweb.asm.{ClassReader, ClassVisitor, Opcodes}
 import org.slf4j.LoggerFactory
@@ -10,6 +9,7 @@ import java.io.{File, FileInputStream}
 import java.nio.file.{Files, Path, Paths, StandardCopyOption}
 import java.util.zip.ZipFile
 import scala.jdk.CollectionConverters.EnumerationHasAsScala
+import scala.reflect.io.Directory
 import scala.util.{Failure, Success, Try, Using}
 
 /** Responsible for handling JAR unpacking and handling the temporary build directory.
@@ -143,6 +143,6 @@ object ProgramHandlingUtil {
 
   /** Removes all files in the temporary unpacking directory.
     */
-  def clean(): Unit = FileUtils.deleteDirectory(getUnpackingDir.toFile)
+  def clean(): Unit = new Directory(getUnpackingDir.toFile).deleteRecursively()
 
 }

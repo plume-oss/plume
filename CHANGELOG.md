@@ -5,6 +5,16 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](http://keepachangelog.com/)
 and this project adheres to [Semantic Versioning](http://semver.org/).
 
+## [1.1.8] - 2022-03-22
+
+### Changed
+
+- Upgraded Joern to 1.1.637 and CPG to 1.3.519.
+
+### Fixed
+
+- `ProgramHandlingUtil::clean` no longer refers to a transitive dependency.
+
 ## [1.1.7] - 2022-03-18
 
 ### Changed
