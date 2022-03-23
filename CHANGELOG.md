@@ -5,6 +5,12 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](http://keepachangelog.com/)
 and this project adheres to [Semantic Versioning](http://semver.org/).
 
+## [Unreleased]
+
+### Added
+
+- `OverflowDbDriver::nodesReachableBy` now has `sanitizers` parameter for method calls to filter paths out with.
+
 ## [1.1.9] - 2022-03-22
 
 ### Fixed

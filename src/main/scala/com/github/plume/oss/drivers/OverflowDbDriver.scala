@@ -339,16 +339,30 @@ final case class OverflowDbDriver(
     *
     * @param source the source query to match.
     * @param sink the sink query to match.
+    * @param sanitizers a set of full method names to filter paths out with.
     * @return the source nodes whose data flows to the given sinks uninterrupted.
     */
-  def nodesReachableBy(source: Traversal[CfgNode], sink: Traversal[CfgNode]): List[CfgNode] =
+  def nodesReachableBy(
+      source: Traversal[CfgNode],
+      sink: Traversal[CfgNode],
+      sanitizers: Set[String] = Set.empty[String]
+  ): List[ReachableByResult] =
     PlumeStatistics.time(
       PlumeStatistics.TIME_REACHABLE_BY_QUERYING, {
         val results: List[ReachableByResult] = sink.reachableByDetailed(source)
         // TODO: Right now the results are saved in a serializable format ready for a binary blob. We should look into
         // storing these reliably on the graph.
         captureResultsBlob(results)
-        results.map(_.path.head.node).distinct
+        results
+          // Filter out paths that run through sanitizers
+          .filterNot { r =>
+            r.path
+              .flatMap(n => Vector(n.node) ++ n.node._astIn)
+              .collect { case x: Call => x }
+              .exists { x =>
+                sanitizers.contains(x.methodFullName)
+              }
+          }
       }
     )
 
