@@ -8,8 +8,8 @@ import com.github.plume.oss.passes.controlflow.cfgdominator.PlumeCfgDominatorPas
 import com.github.plume.oss.passes.controlflow.codepencegraph.PlumeCdgPass
 import com.github.plume.oss.passes.incremental.{PlumeDiffPass, PlumeHashPass}
 import com.github.plume.oss.passes.reachingdef._
-import com.github.plume.oss.util.ProgramHandlingUtil
-import com.github.plume.oss.util.ProgramHandlingUtil.{extractSourceFilesFromArchive, moveClassFiles}
+import io.joern.jimple2cpg.util.ProgramHandlingUtil
+import io.joern.jimple2cpg.util.ProgramHandlingUtil.{extractSourceFilesFromArchive, moveClassFiles}
 import io.joern.x2cpg.SourceFiles
 import io.joern.x2cpg.X2Cpg.newEmptyCpg
 import io.shiftleft.codepropertygraph.Cpg

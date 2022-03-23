@@ -11,6 +11,14 @@ and this project adheres to [Semantic Versioning](http://semver.org/).
 
 - `OverflowDbDriver::nodesReachableBy` now has `sanitizers` parameter for method calls to filter paths out with.
 
+### Changed
+
+- Upgraded Joern and moved to using the `ProgramHandlingUtil` on that `jimple2cpg`.
+
+### Fixed
+
+- Reworked data flow deserialization to address Jackson unable to deserialize `Option[Long]`.
+
 ## [1.1.9] - 2022-03-22
 
 ### Fixed
