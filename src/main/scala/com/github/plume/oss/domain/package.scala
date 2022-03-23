@@ -1,7 +1,9 @@
 package com.github.plume.oss
 
-import com.fasterxml.jackson.databind.ObjectMapper
-import com.fasterxml.jackson.module.scala.{DefaultScalaModule, ScalaObjectMapper}
+import com.fasterxml.jackson.core.`type`.TypeReference
+import com.fasterxml.jackson.databind.annotation.JsonDeserialize
+import com.fasterxml.jackson.databind.json.JsonMapper
+import com.fasterxml.jackson.module.scala.{ClassTagExtensions, DefaultScalaModule}
 import io.joern.dataflowengineoss.queryengine.{PathElement, ReachableByResult, ResultTable}
 import io.shiftleft.codepropertygraph.generated.Cpg
 import io.shiftleft.codepropertygraph.generated.nodes.{Call, CfgNode, StoredNode}
@@ -9,6 +11,7 @@ import org.apache.commons.codec.binary.Base64
 import org.apache.commons.io.IOUtils
 import org.apache.commons.io.output.ByteArrayOutputStream
 import org.slf4j.LoggerFactory
+import overflowdb.traversal.jIteratortoTraversal
 
 import java.io.ByteArrayInputStream
 import java.nio.charset.StandardCharsets
@@ -17,21 +20,24 @@ import java.util.concurrent.ConcurrentHashMap
 import java.util.zip.{GZIPInputStream, GZIPOutputStream}
 import scala.io.Source
 import scala.jdk.CollectionConverters
+import scala.jdk.CollectionConverters.ConcurrentMapHasAsScala
 import scala.util.Using
 
 /** Contains case classes that can be used independently.
   */
 package object domain {
 
-  private val logger       = LoggerFactory.getLogger("com.github.plume.oss.domain")
-  private val objectMapper = new ObjectMapper() with ScalaObjectMapper
-  objectMapper.registerModule(DefaultScalaModule)
+  private val logger = LoggerFactory.getLogger("com.github.plume.oss.domain")
+  private val objectMapper = JsonMapper
+    .builder()
+    .addModule(DefaultScalaModule)
+    .build() :: ClassTagExtensions
 
   /** Serializes a given object as JSON and then returns the GZIP compressed base 64 encoded string.
     * @param o object to serialize.
     * @return the GZIP compressed base 64 encoded string.
     */
-  def compress(o: Any): String = {
+  private def compress(o: SerializableTable): String = {
     val str = objectMapper.writeValueAsString(o)
     if (str == null || str.isEmpty) return str
     val out = new ByteArrayOutputStream()
@@ -46,8 +52,9 @@ package object domain {
     * @param o object to serialize.
     * @param p path to write serialized data to.
     */
-  def compressToFile(o: Any, p: Path): Unit = {
-    val deflatedStr = compress(o)
+  def compressToFile(o: ConcurrentHashMap[Long, Vector[SerialReachableByResult]], p: Path): Unit = {
+    logger.info(s"Serializing ${o.asScala.flatMap(_._2).size} data flow paths")
+    val deflatedStr = compress(SerializableTable(o))
     Files.write(p, deflatedStr.getBytes(StandardCharsets.UTF_8))
   }
 
@@ -55,7 +62,7 @@ package object domain {
     * @param deflatedTxt object to deserialize.
     * @return the GZIP compressed base 64 encoded string.
     */
-  def decompress(deflatedTxt: String): String = {
+  private def decompress(deflatedTxt: String): String = {
     val bytes = Base64.decodeBase64(deflatedTxt)
     Using.resource(new GZIPInputStream(new ByteArrayInputStream(bytes))) { zis =>
       IOUtils.toString(zis, "UTF-8")
@@ -65,14 +72,18 @@ package object domain {
   /** Given a path, will deserialize and decompress the file at the given path
     * using [[decompress]].
     * @param p path to read deserialized data from.
-    * @tparam T the type of the class to deserialize.
     * @return the deserialized object.
     */
-  def decompressFile[T: Manifest](p: Path): T = {
+  def decompressFile(p: Path): ConcurrentHashMap[Long, Vector[SerialReachableByResult]] = {
     Using.resource(Source.fromFile(p.toFile)) { deflatedStr =>
-      objectMapper.readValue[T](
-        decompress(deflatedStr.mkString)
-      )
+      val o = objectMapper
+        .readValue(
+          decompress(deflatedStr.mkString),
+          new TypeReference[SerializableTable] {}
+        )
+        .table
+      logger.info(s"Deserialized ${o.asScala.flatMap(_._2).size} data flow paths")
+      o
     }
   }
 
@@ -94,25 +105,25 @@ package object domain {
           CollectionConverters
             .MapHasAsScala(tab)
             .asScala
-            .map { case (id, vec) =>
-              if (!cpg.graph.nodes(id).hasNext)
-                throw new RuntimeException(
-                  """Current database does not contain references to previous ReachableByResults cache. Unable to re-use
-                    |old cache.""".stripMargin
-                )
-              (
-                cpg.graph.nodes(id).next(),
-                vec.map { f: SerialReachableByResult =>
-                  SerialReachableByResult.unapply(f, cpg, resultTable)
-                }
-              )
+            .flatMap { case (id, vec) =>
+              cpg.graph.nodes(id).nextOption match {
+                case Some(node) if node != null =>
+                  Some(
+                    (
+                      node,
+                      vec.map { f: SerialReachableByResult =>
+                        SerialReachableByResult.unapply(f, cpg, resultTable)
+                      }
+                    )
+                  )
+                case _ =>
+                  logger.warn(s"Lost node $id holding ${vec.size}. This indicates corrupted storage.")
+                  None
+              }
             }
             .foreach { case (k, v) => resultTable.table.put(k.asInstanceOf[StoredNode], v) }
           Some(resultTable)
         } catch {
-          case e: RuntimeException =>
-            logger.error(e.getMessage, e)
-            None
           case e: Exception =>
             logger.error("Unable to deserialize results table.", e)
             None
@@ -120,6 +131,12 @@ package object domain {
       case None => None
     }
   }
+
+  final case class SerializableTable(
+      @JsonDeserialize(keyAs = classOf[Long]) table: ConcurrentHashMap[Long, Vector[
+        SerialReachableByResult
+      ]]
+  )
 
   /** A serializable version of ReachableByResult.
     * @param path a path of nodes represented by [[SerialReachableByResult]]s.
@@ -131,7 +148,7 @@ package object domain {
     */
   final case class SerialReachableByResult(
       path: Vector[SerialPathElement],
-      callSite: Option[Long],
+      @JsonDeserialize(contentAs = classOf[Long]) callSite: Option[Long],
       callDepth: Int = 0,
       partial: Boolean = false
   )
@@ -144,7 +161,6 @@ package object domain {
 
     /** Creates a serializable version of ReachableByResult.
       * @param rbr the ReachableByResult class.
-      * @param table a pointer to the global serializable result table.
       * @return a serializable ReachableByResult.
       */
     def apply(

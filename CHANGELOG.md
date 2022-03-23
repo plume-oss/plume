@@ -18,6 +18,7 @@ and this project adheres to [Semantic Versioning](http://semver.org/).
 ### Fixed
 
 - Reworked data flow deserialization to address Jackson unable to deserialize `Option[Long]`.
+- Fixed major bug where expired node keys were being kept in data flow storage.
 
 ## [1.1.9] - 2022-03-22
 

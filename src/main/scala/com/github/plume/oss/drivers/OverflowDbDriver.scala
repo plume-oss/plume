@@ -1,12 +1,7 @@
 package com.github.plume.oss.drivers
 
 import com.github.plume.oss.PlumeStatistics
-import com.github.plume.oss.domain.{
-  SerialReachableByResult,
-  compressToFile,
-  decompressFile,
-  deserializeResultTable
-}
+import com.github.plume.oss.domain.{SerialReachableByResult, compressToFile, decompressFile, deserializeResultTable}
 import com.github.plume.oss.drivers.OverflowDbDriver.newOverflowGraph
 import com.github.plume.oss.passes.callgraph.PlumeDynamicCallLinker
 import com.github.plume.oss.util.BatchedUpdateUtil._
@@ -75,7 +70,7 @@ final case class OverflowDbDriver(
     dataFlowCacheFile match {
       case Some(filePath) =>
         if (Files.isRegularFile(filePath))
-          Some(decompressFile[ConcurrentHashMap[Long, Vector[SerialReachableByResult]]](filePath))
+          Some(decompressFile(filePath))
         else
           Some(new ConcurrentHashMap[Long, Vector[SerialReachableByResult]]())
       case None => None
@@ -88,8 +83,8 @@ final case class OverflowDbDriver(
     )
 
   private def saveDataflowCache(): Unit = dataFlowCacheFile match {
-    case Some(filePath) => compressToFile(table, filePath)
-    case None           => // Do nothing
+    case Some(filePath) if table.isDefined => compressToFile(table.get, filePath)
+    case _                                 => // Do nothing
   }
 
   /** Sets the context for the data-flow engine when performing [[nodesReachableBy]] queries.
@@ -102,31 +97,42 @@ final case class OverflowDbDriver(
       maxCallDepth: Int,
       methodSemantics: Option[BufferedSource] = None,
       initialCache: Option[ResultTable] = None
-  ): Unit = {
+  ): EngineContext = {
     val cache = if (initialCache.isDefined) initialCache else deserializeResultTable(table, cpg)
 
-    context = if (methodSemantics.isDefined) {
-      EngineContext(
+    if (methodSemantics.isDefined) {
+      setDataflowContext(
+        maxCallDepth,
         Semantics.fromList(semanticsParser.parse(methodSemantics.get.getLines().mkString("\n"))),
-        EngineConfig(maxCallDepth, cache)
+        cache
       )
     } else if (defaultSemantics.isSuccess) {
       logger.info(
         "No specified method semantics file given. Using default semantics."
       )
-      EngineContext(
+      setDataflowContext(
+        maxCallDepth,
         Semantics.fromList(semanticsParser.parse(defaultSemantics.get.getLines().mkString("\n"))),
-        EngineConfig(maxCallDepth, cache)
+        cache
       )
     } else {
       logger.warn(
         "No \"default.semantics\" file found under resources - data flow tracking may not perform correctly."
       )
-      EngineContext(
-        Semantics.fromList(List()),
-        EngineConfig(maxCallDepth, cache)
-      )
+      setDataflowContext(maxCallDepth, Semantics.fromList(List()), cache)
     }
+  }
+
+  private def setDataflowContext(
+      maxCallDepth: Int,
+      methodSemantics: Semantics,
+      cache: Option[ResultTable]
+  ): EngineContext = {
+    context = EngineContext(
+      methodSemantics,
+      EngineConfig(maxCallDepth, cache)
+    )
+    context
   }
 
   override def isConnected: Boolean = !cpg.graph.isClosed
@@ -374,15 +380,9 @@ final case class OverflowDbDriver(
     table match {
       case Some(tab) =>
         results
-          .map { x => x.table }
-          .foreach { t: ResultTable =>
-            t.keys().foreach { n: StoredNode =>
-              t.get(n) match {
-                case Some(v) =>
-                  tab.put(n.id(), v.map(SerialReachableByResult.apply))
-                case None =>
-              }
-            }
+          .flatMap { x => x.table.table }
+          .foreach { case (n: StoredNode, v: Vector[ReachableByResult]) =>
+            tab.put(n.id(), v.map(SerialReachableByResult.apply))
           }
       case None => // Do nothing
     }
@@ -392,17 +392,42 @@ final case class OverflowDbDriver(
     * @param unchangedTypes the list of types which have not changed since the last graph database update.
     */
   def removeExpiredPathsFromCache(unchangedTypes: Set[String]): Unit = {
+    def isResultExpired(srbr: SerialReachableByResult): Boolean = {
+      val isCallSiteUnderTypes = srbr.callSite match {
+        case Some(callId) => isNodeUnderTypes(callId, unchangedTypes)
+        case _            => true
+      }
+      // Filter out paths where there exists a path element that is not under unchanged types
+      srbr.path.exists { spe => !isNodeUnderTypes(spe.nodeId, unchangedTypes) } ||
+      !isCallSiteUnderTypes // or where call site is not under unchanged types
+    }
+
     table match {
-      case Some(tab) =>
-        tab.asScala
+      case Some(oldTab) =>
+        val startPSize = oldTab.asScala.flatMap(_._2).size
+
+        val newTab = oldTab.asScala
           .filter { case (k: Long, _) => isNodeUnderTypes(k, unchangedTypes) }
-          .foreach { case (k: Long, v: Vector[SerialReachableByResult]) =>
-            val filteredPaths = v.filterNot { srbr =>
-              // Filter out paths where there exists a path element that is not under unchanged types
-              srbr.path.exists { spe => !isNodeUnderTypes(spe.nodeId, unchangedTypes) }
-            }
-            tab.put(k, filteredPaths)
+          .map { case (k: Long, v: Vector[SerialReachableByResult]) =>
+            val filteredPaths = v.filterNot(isResultExpired)
+            (k, filteredPaths)
           }
+          .toMap
+        // Refresh old table and add new entries
+        oldTab.clear()
+        newTab.foreach { case (k, v) => oldTab.put(k, v) }
+
+        val leftOverPSize = newTab.flatMap(_._2).size
+        if (startPSize > 0)
+          logger.info(
+            s"Able to re-use ${(leftOverPSize.toDouble / startPSize) * 100.0}% of the saved paths. " +
+              s"Removed ${startPSize - leftOverPSize} expired paths from $startPSize saved paths."
+          )
+        setDataflowContext(
+          context.config.maxCallDepth,
+          context.semantics,
+          deserializeResultTable(Some(oldTab), cpg)
+        )
       case None => // Do nothing
     }
   }
@@ -416,12 +441,10 @@ final case class OverflowDbDriver(
   private def isNodeUnderTypes(nodeId: Long, unchangedTypes: Set[String]): Boolean = {
     cpg.graph.nodes(nodeId).nextOption() match {
       case Some(n) if n != null =>
-        n.in(EdgeTypes.CONTAINS, EdgeTypes.AST).collect { case x: Method => x }.nextOption() match {
-          case Some(m) if m != null =>
-            val typeFullName = m.fullName.substring(0, m.fullName.lastIndexOf('.'))
-            unchangedTypes.contains(typeFullName)
-          case _ => false
-        }
+        Traversal(n)
+          .repeat(_.in(EdgeTypes.AST))(_.emit)
+          .collect { case t: TypeDecl if unchangedTypes.contains(t.fullName) => t }
+          .nonEmpty
       case _ => false
     }
   }
