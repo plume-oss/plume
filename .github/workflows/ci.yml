@@ -8,7 +8,7 @@ on:
 
 jobs:
   test:
-    name: Test on JDK 11 and ${{ matrix.os }}
+    name: Test on JDK 11
     runs-on: ubuntu-20.04
 
     steps:
@@ -40,6 +40,7 @@ jobs:
           token: ${{ secrets.CODECOV_TOKEN }}
           directory: ./target/scala-2.13/scoverage-report/
   formatting:
+    name: Code Formatting Check
     runs-on: ubuntu-18.04
     steps:
       - uses: actions/checkout@v2
