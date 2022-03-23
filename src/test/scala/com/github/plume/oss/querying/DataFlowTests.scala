@@ -83,18 +83,11 @@ class DataFlowTests extends Jimple2CpgFixture {
 
     def source = cpg.parameter("a")
     def sink   = cpg.call("baz")
-    val r1     = driver.nodesReachableBy(source, sink)
 
+    val r1     = driver.nodesReachableBy(source, sink)
     r1.size shouldBe 1
 
-    val List(v1) = r1.map(r =>
-      r.path.map(x =>
-        (x.node.method.name, x.node.astParent.code, x.node.astParent.property("METHOD_FULL_NAME"))
-      )
-    )
-
     val r2 = driver.nodesReachableBy(source, sink, Set("Foo.falseClean:int(int)"))
-
     r2.size shouldBe 0
   }
 
