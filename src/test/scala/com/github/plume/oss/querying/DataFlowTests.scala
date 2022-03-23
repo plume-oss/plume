@@ -78,10 +78,10 @@ class DataFlowTests extends Jimple2CpgFixture {
     v2.last shouldBe ("bar", "$stack1.println(x)")
   }
 
-  "should find that System.out.println in baz is not reached if clean is set as a sanitizer" in {
+  "should find that parameters tainted by calls to 'taint' is not reached if falseClean is set as a sanitizer" in {
     val cpg = CPG(driver.cpg.graph)
 
-    def source = cpg.parameter("a")
+    def source = cpg.call("taint").argument
     def sink   = cpg.call("baz")
 
     val r1     = driver.nodesReachableBy(source, sink)
