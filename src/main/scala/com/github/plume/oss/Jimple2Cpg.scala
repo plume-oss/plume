@@ -8,8 +8,8 @@ import com.github.plume.oss.passes.controlflow.cfgdominator.PlumeCfgDominatorPas
 import com.github.plume.oss.passes.controlflow.codepencegraph.PlumeCdgPass
 import com.github.plume.oss.passes.incremental.{PlumeDiffPass, PlumeHashPass}
 import com.github.plume.oss.passes.reachingdef._
-import com.github.plume.oss.util.ProgramHandlingUtil
-import com.github.plume.oss.util.ProgramHandlingUtil.{extractSourceFilesFromArchive, moveClassFiles}
+import io.joern.jimple2cpg.util.ProgramHandlingUtil
+import io.joern.jimple2cpg.util.ProgramHandlingUtil.{extractSourceFilesFromArchive, moveClassFiles}
 import io.joern.x2cpg.SourceFiles
 import io.joern.x2cpg.X2Cpg.newEmptyCpg
 import io.shiftleft.codepropertygraph.Cpg
@@ -141,6 +141,11 @@ class Jimple2Cpg {
           .map(_.toString)
           .toSet[String]
 
+        driver match {
+          case x: OverflowDbDriver => x.removeExpiredPathsFromCache(unchangedTypes)
+          case _                   =>
+        }
+
         new PlumeMetaDataPass(cpg, language, Some(metaDataKeyPool), unchangedTypes)
           .createAndApply(driver)
 
@@ -162,10 +167,6 @@ class Jimple2Cpg {
         controlFlowPasses(cpg).foreach(_.createAndApply(driver))
         new PlumeReachingDefPass(cpg, unchangedTypes = unchangedTypes).createAndApply(driver)
         new PlumeHashPass(cpg).createAndApply(driver)
-        driver match {
-          case x: OverflowDbDriver => x.removeExpiredPathsFromCache(unchangedTypes)
-          case _                   =>
-        }
 
         driver.buildInterproceduralEdges()
         cpg

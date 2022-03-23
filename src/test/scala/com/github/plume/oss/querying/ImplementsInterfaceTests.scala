@@ -27,7 +27,7 @@ class ImplementsInterfaceTests extends Jimple2CpgFixture {
     x.code shouldBe "Foo"
     x.fullName shouldBe "Foo"
     x.isExternal shouldBe false
-    x.inheritsFromTypeFullName shouldBe List("java.lang.Object", "java.io.Serializable")
+    x.inheritsFromTypeFullName shouldBe List("java.io.Serializable")
     x.aliasTypeFullName shouldBe None
     x.order shouldBe 1
     x.filename.startsWith(JFile.separator) shouldBe true

@@ -1,12 +1,11 @@
 package com.github.plume.oss.querying
 
+import com.github.plume.oss.drivers.OverflowDbDriver
 import com.github.plume.oss.testfixtures.Jimple2CpgFixture
-import io.shiftleft.codepropertygraph.generated.Operators
-import io.shiftleft.codepropertygraph.generated.nodes.MethodParameterIn
 import io.shiftleft.codepropertygraph.{Cpg => CPG}
 import io.shiftleft.semanticcpg.language._
 
-class DataFlowTests extends Jimple2CpgFixture {
+class DataFlowTests extends Jimple2CpgFixture(Some(new OverflowDbDriver())) {
 
   override val code: String =
     """
@@ -38,6 +37,11 @@ class DataFlowTests extends Jimple2CpgFixture {
       | }
       |}
     """.stripMargin
+
+  override def afterAll(): Unit = {
+    println("After all")
+    driver.clear()
+  }
 
   "should find that parameter 'a' in Foo(a) reaches call to a condition operator" in {
     val cpg = CPG(driver.cpg.graph)
@@ -83,7 +87,7 @@ class DataFlowTests extends Jimple2CpgFixture {
     def source = cpg.call("taint").argument
     def sink   = cpg.call("baz")
 
-    val r1     = driver.nodesReachableBy(source, sink)
+    val r1 = driver.nodesReachableBy(source, sink)
     r1.size shouldBe 1
 
     val r2 = driver.nodesReachableBy(source, sink, Set("Foo.falseClean:int(int)"))

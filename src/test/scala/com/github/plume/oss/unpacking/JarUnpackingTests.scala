@@ -1,7 +1,7 @@
 package com.github.plume.oss.unpacking
 
 import com.github.plume.oss.Jimple2Cpg
-import com.github.plume.oss.util.ProgramHandlingUtil
+import io.joern.jimple2cpg.util.ProgramHandlingUtil
 import io.shiftleft.codepropertygraph.Cpg
 import io.shiftleft.semanticcpg.language.{toMethodTraversalExtGen, toNodeTypeStarters, toTypeDeclTraversalExtGen}
 import org.scalatest.BeforeAndAfterAll

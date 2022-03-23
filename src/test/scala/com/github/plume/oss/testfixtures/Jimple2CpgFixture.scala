@@ -11,10 +11,13 @@ import java.io.{File, PrintWriter}
 import java.nio.file.Files
 import scala.util.Using
 
-class PlumeFrontend extends LanguageFrontend {
+class PlumeFrontend(val _driver: Option[OverflowDbDriver]) extends LanguageFrontend {
 
-  private val logger              = LoggerFactory.getLogger(classOf[PlumeFrontend])
-  val driver: OverflowDbDriver    = new OverflowDbDriver(dataFlowCacheFile = None)
+  private val logger = LoggerFactory.getLogger(classOf[PlumeFrontend])
+  val driver: OverflowDbDriver = _driver match {
+    case Some(d) => d
+    case None    => new OverflowDbDriver(dataFlowCacheFile = None)
+  }
   override val fileSuffix: String = ".java"
 
   override def execute(sourceCodeFile: File): Cpg = {
@@ -25,7 +28,8 @@ class PlumeFrontend extends LanguageFrontend {
   }
 }
 
-class Jimple2CpgFixture extends CodeToCpgFixture(new PlumeFrontend) {
+class Jimple2CpgFixture(_driver: Option[OverflowDbDriver] = None)
+    extends CodeToCpgFixture(new PlumeFrontend(_driver)) {
 
   val driver: OverflowDbDriver = frontend.asInstanceOf[PlumeFrontend].driver
 
