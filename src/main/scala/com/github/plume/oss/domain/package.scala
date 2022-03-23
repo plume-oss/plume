@@ -117,7 +117,9 @@ package object domain {
                     )
                   )
                 case _ =>
-                  logger.warn(s"Lost node $id holding ${vec.size}. This indicates corrupted storage.")
+                  logger.warn(
+                    s"Lost node $id holding ${vec.size}. This indicates corrupted storage."
+                  )
                   None
               }
             }

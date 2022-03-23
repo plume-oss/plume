@@ -15,15 +15,12 @@ jobs:
       - uses: actions/checkout@v2
         with:
           lfs: true
-          fetch-depth: 0
+          fetch-depth: 1
 
       - name: Set up JDK 11
         uses: actions/setup-java@v1
         with:
           java-version: 11
-
-      - name: Check styling
-        run: sbt scalafmtCheck
 
       - name: Run unit and inmem database tests
         run: sbt coverage test
@@ -42,3 +39,17 @@ jobs:
         with:
           token: ${{ secrets.CODECOV_TOKEN }}
           directory: ./target/scala-2.13/scoverage-report/
+  formatting:
+    runs-on: ubuntu-18.04
+    steps:
+      - uses: actions/checkout@v2
+        with:
+          fetch-depth: 1
+      - name: Set up JDK 1.11
+        uses: actions/setup-java@v1
+        with:
+          java-version: 1.11
+      - name: Check formatting
+        run: sbt scalafmtCheck
+      - run: echo "Previous step failed because code is not formatted. Run 'sbt scalafmt'"
+        if: ${{ failure() }}
