@@ -11,8 +11,7 @@ class DataFlowTests extends Jimple2CpgFixture {
   override val code: String =
     """
       |class Foo {
-      | public static int foo() {
-      |  int a = 1;
+      | public static int foo(int a) {
       |  taint(a);
       |  if (a < 10) {
       |    bar(a);
