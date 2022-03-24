@@ -33,7 +33,7 @@ class Jimple2CpgFixture(_driver: Option[OverflowDbDriver] = None)
 
   val driver: OverflowDbDriver = frontend.asInstanceOf[PlumeFrontend].driver
 
-  override def createEnhancements(cpg: Cpg): Unit = {}
+  override def passes(cpg: Cpg): Unit = {}
 
   override def writeCodeToFile(sourceCode: String): File = {
     val tmpDir = Files.createTempDirectory("semanticcpgtest").toFile

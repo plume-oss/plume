@@ -2,10 +2,9 @@ package diff;
 
 class Foo {
 
-    public static void foo() {
-        var x = 3;
-        var y = 5;
-        Bar.bar(x, y);
+    public static void foo(int a) {
+        var b = 3;
+        Bar.bar(a, b);
     }
 
 }

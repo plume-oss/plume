@@ -1,12 +1,14 @@
 package com.github.plume.oss
 
 import com.github.plume.oss.drivers.OverflowDbDriver
-import io.shiftleft.codepropertygraph.generated.{Cpg, NodeTypes, PropertyNames}
+import io.joern.dataflowengineoss.queryengine.QueryEngineStatistics
+import io.shiftleft.codepropertygraph.generated.{Cpg, NodeTypes, Operators, PropertyNames}
 import io.shiftleft.codepropertygraph.{Cpg => CPG}
 import io.shiftleft.semanticcpg.language._
 import org.scalatest.BeforeAndAfterAll
 import org.scalatest.matchers.should.Matchers
 import org.scalatest.wordspec.AnyWordSpec
+import org.slf4j.LoggerFactory
 
 import java.io.{File, FileInputStream, FileOutputStream}
 import java.nio.file.{Files, Paths}
@@ -15,6 +17,8 @@ import scala.util.Using
 /** Used to make sure that incremental change detection works correctly.
   */
 class DiffTests extends AnyWordSpec with Matchers with BeforeAndAfterAll {
+
+  private val logger = LoggerFactory.getLogger(classOf[DiffTests])
 
   private def getTestResource(dir: String): File = {
     val resourceURL = getClass.getResource(dir)
@@ -43,7 +47,7 @@ class DiffTests extends AnyWordSpec with Matchers with BeforeAndAfterAll {
   private val bar              = new File(s"${sandboxDir.getAbsolutePath}${File.separator}Bar.java")
   private var driver           = new OverflowDbDriver()
   private var cpg: Option[Cpg] = None
-  private val storage = Some("./cpg_test.odb")
+  private val storage          = Some("./cpg_test.odb")
 
   override def beforeAll(): Unit = {
     rewriteFileContents(foo, foo1)
@@ -58,6 +62,7 @@ class DiffTests extends AnyWordSpec with Matchers with BeforeAndAfterAll {
 
   override def afterAll(): Unit = {
     driver.clear()
+    driver.close()
     Paths.get(storage.get).toFile.delete()
   }
 
@@ -66,8 +71,10 @@ class DiffTests extends AnyWordSpec with Matchers with BeforeAndAfterAll {
     driver.propertyFromNodes(NodeTypes.METHOD).size shouldBe 7
     driver.propertyFromNodes(NodeTypes.TYPE, PropertyNames.FULL_NAME).size shouldBe 7
     driver.propertyFromNodes(NodeTypes.NAMESPACE_BLOCK, PropertyNames.FULL_NAME).size shouldBe 3
-    driver.propertyFromNodes(NodeTypes.METHOD_PARAMETER_IN, PropertyNames.FULL_NAME).size shouldBe 9
-    driver.propertyFromNodes(NodeTypes.LOCAL, PropertyNames.FULL_NAME).size shouldBe 5
+    driver
+      .propertyFromNodes(NodeTypes.METHOD_PARAMETER_IN, PropertyNames.FULL_NAME)
+      .size shouldBe 10
+    driver.propertyFromNodes(NodeTypes.LOCAL, PropertyNames.FULL_NAME).size shouldBe 4
 
     val List(barM, fooM) = driver
       .propertyFromNodes(NodeTypes.TYPE_DECL, PropertyNames.FULL_NAME, PropertyNames.IS_EXTERNAL)
@@ -77,13 +84,51 @@ class DiffTests extends AnyWordSpec with Matchers with BeforeAndAfterAll {
       }
     fooM.get(PropertyNames.FULL_NAME) shouldBe Some("diff.Foo")
     barM.get(PropertyNames.FULL_NAME) shouldBe Some("diff.Bar")
-    val List(lx, ly) = driver
+    val List(lb) = driver
       .propertyFromNodes(NodeTypes.LITERAL, PropertyNames.CODE)
-      .sortWith { case (x, y) =>
-        x(PropertyNames.CODE).toString < y(PropertyNames.CODE).toString
-      }
-    lx.get(PropertyNames.CODE) shouldBe Some("1")
-    ly.get(PropertyNames.CODE) shouldBe Some("2")
+    lb.get(PropertyNames.CODE) shouldBe Some("1")
+    val paramA = driver
+      .propertyFromNodes(NodeTypes.METHOD_PARAMETER_IN, PropertyNames.CODE)
+      .filter(_(PropertyNames.CODE) == "int a")
+    paramA.size shouldBe 1
+  }
+
+  "should have more cache misses than hits on the first data-flow query than the second" in {
+    val sourceNodesId1 = driver.cpg.parameter("a").id.l
+    val sinkNodesId1   = driver.cpg.call(Operators.addition).id.l
+
+    val r1 = driver
+      .nodesReachableBy(driver.cpg.parameter("a"), driver.cpg.call(Operators.addition))
+      .map(_.path.map(_.node.id()))
+    val cH1       = QueryEngineStatistics.results()(QueryEngineStatistics.PATH_CACHE_HITS)
+    val cM1       = QueryEngineStatistics.results()(QueryEngineStatistics.PATH_CACHE_MISSES)
+    val hitRatio1 = cH1.toDouble / (cH1 + cM1) * 100
+    logger.info(s"Cache hit ratio $hitRatio1%")
+    cH1 should be <= cM1
+    QueryEngineStatistics.reset()
+
+    logger.info("Closing driver")
+    driver.close()
+    driver = new OverflowDbDriver(storage)
+
+    val sourceNodesId2 = driver.cpg.parameter("a").id.l
+    val sinkNodesId2   = driver.cpg.call(Operators.addition).id.l
+
+    val r2 = driver
+      .nodesReachableBy(driver.cpg.parameter("a"), driver.cpg.call(Operators.addition))
+      .map(_.path.map(_.node.id()))
+    val cH2 = QueryEngineStatistics.results()(QueryEngineStatistics.PATH_CACHE_HITS)
+    val cM2 = QueryEngineStatistics.results()(QueryEngineStatistics.PATH_CACHE_MISSES)
+
+    // Assert ODB deserialized the graph correctly
+    sourceNodesId1 shouldBe sourceNodesId2
+    sinkNodesId1 shouldBe sinkNodesId2
+    // The same path should be picked up
+    r1 shouldBe r2
+    // The cache should have a higher number of hits now from re-using the first query
+    val hitRatio2 = cH2.toDouble / (cH2 + cM2) * 100
+    logger.info(s"Cache hit ratio $hitRatio2%")
+    hitRatio2 should be >= hitRatio1
   }
 
   "should update Foo on file changes" in {
@@ -97,8 +142,10 @@ class DiffTests extends AnyWordSpec with Matchers with BeforeAndAfterAll {
     driver.propertyFromNodes(NodeTypes.METHOD).size shouldBe 7
     driver.propertyFromNodes(NodeTypes.TYPE, PropertyNames.FULL_NAME).size shouldBe 7
     driver.propertyFromNodes(NodeTypes.NAMESPACE_BLOCK, PropertyNames.FULL_NAME).size shouldBe 3
-    driver.propertyFromNodes(NodeTypes.METHOD_PARAMETER_IN, PropertyNames.FULL_NAME).size shouldBe 9
-    driver.propertyFromNodes(NodeTypes.LOCAL, PropertyNames.FULL_NAME).size shouldBe 5
+    driver
+      .propertyFromNodes(NodeTypes.METHOD_PARAMETER_IN, PropertyNames.FULL_NAME)
+      .size shouldBe 10
+    driver.propertyFromNodes(NodeTypes.LOCAL, PropertyNames.FULL_NAME).size shouldBe 4
 
     val List(barM, fooM) = driver
       .propertyFromNodes(NodeTypes.TYPE_DECL, PropertyNames.FULL_NAME, PropertyNames.IS_EXTERNAL)
@@ -108,59 +155,13 @@ class DiffTests extends AnyWordSpec with Matchers with BeforeAndAfterAll {
       }
     fooM.get(PropertyNames.FULL_NAME) shouldBe Some("diff.Foo")
     barM.get(PropertyNames.FULL_NAME) shouldBe Some("diff.Bar")
-    val List(lx, ly) = driver
+    val List(lb) = driver
       .propertyFromNodes(NodeTypes.LITERAL, PropertyNames.CODE)
-      .sortWith { case (x, y) =>
-        x(PropertyNames.CODE).toString < y(PropertyNames.CODE).toString
-      }
-    lx.get(PropertyNames.CODE) shouldBe Some("3")
-    ly.get(PropertyNames.CODE) shouldBe Some("5")
-  }
-
-  "should succeed to re-use some data-flow results and take shorter time than the first" in {
-    var cpg = CPG(driver.cpg.graph)
-
-    val t1 = System.nanoTime
-    driver.nodesReachableBy(cpg.identifier("x"), cpg.call("bar"))
-    val d1 = System.nanoTime - t1
-
-    rewriteFileContents(bar, bar1)
-    rewriteFileContents(foo, foo2)
-    JavaCompiler.compileJava(foo, bar)
-
-    driver.close()
-    driver = new OverflowDbDriver(storage)
-    cpg = CPG(new Jimple2Cpg().createCpg(sandboxDir.getAbsolutePath, driver = driver).graph)
-
-    val t2 = System.nanoTime
-    driver.nodesReachableBy(cpg.identifier("x"), cpg.call("bar"))
-    val d2 = System.nanoTime - t2
-    val speedup = 100.0 - d2 / (d1 + 0.0)
-
-    d1 should be >= d2
-    speedup should be < 99.999
-    speedup should be >= 99.700
-  }
-
-  "should succeed to re-use all data-flow results and take shorter time than the first" in {
-    var cpg = CPG(driver.cpg.graph)
-
-    val t1 = System.nanoTime
-    driver.nodesReachableBy(cpg.identifier("x"), cpg.call("bar"))
-    val d1 = System.nanoTime - t1
-
-    driver.close()
-    driver = new OverflowDbDriver(storage)
-    cpg = CPG(new Jimple2Cpg().createCpg(sandboxDir.getAbsolutePath, driver = driver).graph)
-
-    val t2 = System.nanoTime
-    driver.nodesReachableBy(cpg.identifier("x"), cpg.call("bar"))
-    val d2 = System.nanoTime - t2
-    val speedup = 100.0 - d2 / (d1 + 0.0)
-
-    d1 should be >= d2
-    speedup should be < 99.999
-    speedup should be >= 99.800
+    lb.get(PropertyNames.CODE) shouldBe Some("3")
+    val paramA = driver
+      .propertyFromNodes(NodeTypes.METHOD_PARAMETER_IN, PropertyNames.CODE)
+      .filter(_(PropertyNames.CODE) == "int a")
+    paramA.size shouldBe 1
   }
 
 }

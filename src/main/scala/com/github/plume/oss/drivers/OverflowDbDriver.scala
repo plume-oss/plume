@@ -88,8 +88,9 @@ final case class OverflowDbDriver(
     )
 
   private def saveDataflowCache(): Unit = dataFlowCacheFile match {
-    case Some(filePath) if table.isDefined => compressToFile(table.get, filePath)
-    case _                                 => // Do nothing
+    case Some(filePath) if table.isDefined && !table.get.isEmpty =>
+      compressToFile(table.get, filePath)
+    case _ => // Do nothing
   }
 
   /** Sets the context for the data-flow engine when performing [[nodesReachableBy]] queries.
@@ -360,7 +361,7 @@ final case class OverflowDbDriver(
   ): List[ReachableByResult] =
     PlumeStatistics.time(
       PlumeStatistics.TIME_REACHABLE_BY_QUERYING, {
-        val results: List[ReachableByResult] = sink.reachableByDetailed(source)
+        val results: List[ReachableByResult] = sink.reachableByDetailed(source)(context)
         // TODO: Right now the results are saved in a serializable format ready for a binary blob. We should look into
         // storing these reliably on the graph.
         captureResultsBlob(results)
@@ -390,6 +391,10 @@ final case class OverflowDbDriver(
             tab.put(n.id(), v.map(SerialReachableByResult.apply))
           }
       case None => // Do nothing
+    }
+    // Reload latest results to the query engine context
+    results.map(_.table).collectFirst { resultTable =>
+      setDataflowContext(context.config.maxCallDepth, context.semantics, Some(resultTable))
     }
   }
 
