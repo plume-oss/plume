@@ -5,6 +5,12 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](http://keepachangelog.com/)
 and this project adheres to [Semantic Versioning](http://semver.org/).
 
+## [1.1.11] - 2022-03-24
+
+### Fixed
+
+- Change detection bug where temporary directory where classes were moved to were being accounted for.
+
 ## [1.1.10] - 2022-03-23
 
 ### Added

@@ -21,12 +21,19 @@ class PlumeDiffPass(filenames: List[String], driver: IDriver) {
         val name = m.getOrElse(PropertyNames.NAME, "")
         val hash = m.getOrElse(PropertyNames.HASH, "")
         if (hash != null) {
-          Some(name.toString -> hash.toString)
+          Some(stripTempDirPrefix(name.toString) -> hash.toString)
         } else {
           None
         }
       }
       .toMap
+
+  /** Removes the temporary directory prefix which differs between extractions.
+    * @param filePath the path at which the file is located.
+    * @return the name of the file from a project root level.
+    */
+  private def stripTempDirPrefix(filePath: String): String =
+    filePath.replaceAll(s"^.*joern-(\\d*)", "")
 
   /** Returns all given filenames as java.io.File objects.
     */
@@ -37,7 +44,7 @@ class PlumeDiffPass(filenames: List[String], driver: IDriver) {
   def createAndApply(): Seq[String] = {
     val changedFiles = partIterator
       .filter { f =>
-        classHashes.get(f.getAbsolutePath) match {
+        classHashes.get(stripTempDirPrefix(f.getAbsolutePath)) match {
           case Some(hash) => HashUtil.getFileHash(f) != hash
           case None       => false // New files
         }
@@ -50,7 +57,7 @@ class PlumeDiffPass(filenames: List[String], driver: IDriver) {
     }
     val newFiles = partIterator
       .map(_.getAbsolutePath)
-      .filterNot(classHashes.contains)
+      .filterNot { fName => classHashes.contains(stripTempDirPrefix(fName)) }
       .toSeq
     changedFiles ++ newFiles
   }
