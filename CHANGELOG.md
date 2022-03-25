@@ -5,6 +5,12 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](http://keepachangelog.com/)
 and this project adheres to [Semantic Versioning](http://semver.org/).
 
+## [1.1.13] - 2022-03-25
+
+### Changed
+
+- Upgraded Joern version and adjusted to `x2cpg` changes.
+
 ## [1.1.12] - 2022-03-24
 
 ### Fixed

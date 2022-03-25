@@ -25,7 +25,8 @@ class AstCreationPass(
     try {
       val sootClass = Scene.v().loadClassAndSupport(qualifiedClassName)
       sootClass.setApplicationClass()
-      new io.joern.jimple2cpg.passes.AstCreator(part, builder, global).createAst(sootClass)
+      val localDiff = new io.joern.jimple2cpg.passes.AstCreator(part, sootClass, global).createAst()
+      builder.absorb(localDiff)
     } catch {
       case e: Exception =>
         logger.warn(s"Cannot parse: $part ($qualifiedClassName)", e)

@@ -47,8 +47,7 @@ package object domain {
     Base64.encodeBase64String(out.toByteArray)
   }
 
-  /** Given an object and a path, will serialize and compress the object to the given path
-    * using [[compress]].
+  /** Given an object and a path, will serialize and compress the object to the given path.
     * @param o object to serialize.
     * @param p path to write serialized data to.
     */
@@ -69,8 +68,7 @@ package object domain {
     }
   }
 
-  /** Given a path, will deserialize and decompress the file at the given path
-    * using [[decompress]].
+  /** Given a path, will deserialize and decompress the file at the given path.
     * @param p path to read deserialized data from.
     * @return the deserialized object.
     */
