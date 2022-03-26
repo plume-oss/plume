@@ -3,8 +3,8 @@ package com.github.plume.oss.drivers
 import com.github.plume.oss.PlumeStatistics
 import com.github.plume.oss.domain.{
   SerialReachableByResult,
-  compressToFile,
-  decompressFile,
+  serializeCache,
+  deserializeCache,
   deserializeResultTable
 }
 import com.github.plume.oss.drivers.OverflowDbDriver.newOverflowGraph
@@ -45,7 +45,7 @@ final case class OverflowDbDriver(
     ),
     heapPercentageThreshold: Int = 80,
     serializationStatsEnabled: Boolean = false,
-    dataFlowCacheFile: Option[Path] = Some(Paths.get("dataFlowCache.json.gzip"))
+    dataFlowCacheFile: Option[Path] = Some(Paths.get("dataFlowCache.json"))
 ) extends IDriver {
 
   private val logger = LoggerFactory.getLogger(classOf[OverflowDbDriver])
@@ -75,7 +75,7 @@ final case class OverflowDbDriver(
     dataFlowCacheFile match {
       case Some(filePath) =>
         if (Files.isRegularFile(filePath))
-          Some(decompressFile(filePath))
+          Some(deserializeCache(filePath))
         else
           Some(new ConcurrentHashMap[Long, Vector[SerialReachableByResult]]())
       case None => None
@@ -89,7 +89,7 @@ final case class OverflowDbDriver(
 
   private def saveDataflowCache(): Unit = dataFlowCacheFile match {
     case Some(filePath) if table.isDefined && !table.get.isEmpty =>
-      compressToFile(table.get, filePath)
+      serializeCache(table.get, filePath)
     case _ => // Do nothing
   }
 

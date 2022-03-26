@@ -1,24 +1,19 @@
 package com.github.plume.oss
 
-import com.fasterxml.jackson.core.`type`.TypeReference
+import com.fasterxml.jackson.core.util.DefaultPrettyPrinter
 import com.fasterxml.jackson.databind.annotation.JsonDeserialize
 import com.fasterxml.jackson.databind.json.JsonMapper
 import com.fasterxml.jackson.module.scala.{ClassTagExtensions, DefaultScalaModule}
 import io.joern.dataflowengineoss.queryengine.{PathElement, ReachableByResult, ResultTable}
 import io.shiftleft.codepropertygraph.generated.Cpg
 import io.shiftleft.codepropertygraph.generated.nodes.{Call, CfgNode, StoredNode}
-import org.apache.commons.codec.binary.Base64
-import org.apache.commons.io.IOUtils
-import org.apache.commons.io.output.ByteArrayOutputStream
+import net.jpountz.lz4.{LZ4BlockInputStream, LZ4BlockOutputStream}
 import org.slf4j.LoggerFactory
 import overflowdb.traversal.jIteratortoTraversal
 
-import java.io.ByteArrayInputStream
-import java.nio.charset.StandardCharsets
-import java.nio.file.{Files, Path}
+import java.io.{File, FileInputStream, FileOutputStream}
+import java.nio.file.Path
 import java.util.concurrent.ConcurrentHashMap
-import java.util.zip.{GZIPInputStream, GZIPOutputStream}
-import scala.io.Source
 import scala.jdk.CollectionConverters
 import scala.jdk.CollectionConverters.ConcurrentMapHasAsScala
 import scala.util.Using
@@ -28,60 +23,55 @@ import scala.util.Using
 package object domain {
 
   private val logger = LoggerFactory.getLogger("com.github.plume.oss.domain")
-  private val objectMapper = JsonMapper
+  private val mapper = JsonMapper
     .builder()
     .addModule(DefaultScalaModule)
     .build() :: ClassTagExtensions
 
-  /** Serializes a given object as JSON and then returns the GZIP compressed base 64 encoded string.
-    * @param o object to serialize.
-    * @return the GZIP compressed base 64 encoded string.
-    */
-  private def compress(o: SerializableTable): String = {
-    val str = objectMapper.writeValueAsString(o)
-    if (str == null || str.isEmpty) return str
-    val out = new ByteArrayOutputStream()
-    Using.resource(new GZIPOutputStream(out)) { gzip =>
-      gzip.write(str.getBytes)
-    }
-    Base64.encodeBase64String(out.toByteArray)
-  }
-
-  /** Given an object and a path, will serialize and compress the object to the given path.
+  /** Given an object and a path, will serialize the object to the given path.
     * @param o object to serialize.
     * @param p path to write serialized data to.
     */
-  def compressToFile(o: ConcurrentHashMap[Long, Vector[SerialReachableByResult]], p: Path): Unit = {
+  def serializeCache(o: ConcurrentHashMap[Long, Vector[SerialReachableByResult]], p: Path): Unit = {
     logger.info(s"Serializing ${o.asScala.flatMap(_._2).size} data flow paths")
-    val deflatedStr = compress(SerializableTable(o))
-    Files.write(p, deflatedStr.getBytes(StandardCharsets.UTF_8))
-  }
-
-  /** Deserializes a given object from GZIP compressed base 64 encoded to JSON string.
-    * @param deflatedTxt object to deserialize.
-    * @return the GZIP compressed base 64 encoded string.
-    */
-  private def decompress(deflatedTxt: String): String = {
-    val bytes = Base64.decodeBase64(deflatedTxt)
-    Using.resource(new GZIPInputStream(new ByteArrayInputStream(bytes))) { zis =>
-      IOUtils.toString(zis, "UTF-8")
+    if (!o.isEmpty) {
+      mapper.writer(new DefaultPrettyPrinter()).writeValue(p.toFile, SerializableTable(o))
+      compressCache(p)
     }
   }
 
-  /** Given a path, will deserialize and decompress the file at the given path.
+  private def compressCache(p: Path): Unit = {
+    val outputFile = new File(p.toFile.getAbsolutePath + ".lz4")
+    Using.resources(
+      new FileInputStream(p.toFile),
+      new LZ4BlockOutputStream(new FileOutputStream(outputFile))
+    ) { case (fis, lz4Out) =>
+      val buffer = new Array[Byte](1024)
+      Iterator.continually(fis.read(buffer)).takeWhile(_ != -1).foreach(_ => lz4Out.write(buffer))
+      p.toFile.delete()
+    }
+  }
+
+  /** Given a path, will deserialize the file at the given path.
     * @param p path to read deserialized data from.
     * @return the deserialized object.
     */
-  def decompressFile(p: Path): ConcurrentHashMap[Long, Vector[SerialReachableByResult]] = {
-    Using.resource(Source.fromFile(p.toFile)) { deflatedStr =>
-      val o = objectMapper
-        .readValue(
-          decompress(deflatedStr.mkString),
-          new TypeReference[SerializableTable] {}
-        )
-        .table
-      logger.info(s"Deserialized ${o.asScala.flatMap(_._2).size} data flow paths")
-      o
+  def deserializeCache(p: Path): ConcurrentHashMap[Long, Vector[SerialReachableByResult]] = {
+    decompressCache(p)
+    val o = mapper.reader().readValue(p.toFile, classOf[SerializableTable]).table
+    logger.info(s"Deserialized ${o.asScala.flatMap(_._2).size} data flow paths")
+    o
+  }
+
+  private def decompressCache(p: Path): Unit = {
+    val inputFile = new File(p.toFile.getAbsolutePath + ".lz4")
+    Using.resources(
+      new LZ4BlockInputStream(new FileInputStream(inputFile)),
+      new FileOutputStream(p.toFile)
+    ) { case (lz4In, fos) =>
+      val buffer = new Array[Byte](1024)
+      Iterator.continually(lz4In.read(buffer)).takeWhile(_ != -1).foreach(_ => fos.write(buffer))
+      inputFile.delete()
     }
   }
 

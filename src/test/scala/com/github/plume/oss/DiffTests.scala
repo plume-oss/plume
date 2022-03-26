@@ -64,6 +64,10 @@ class DiffTests extends AnyWordSpec with Matchers with BeforeAndAfterAll {
     driver.clear()
     driver.close()
     Paths.get(storage.get).toFile.delete()
+    driver.dataFlowCacheFile match {
+      case Some(jsonFile) => new File(jsonFile.toFile.getAbsolutePath + ".lz4").delete()
+      case None           =>
+    }
   }
 
   "should have all necessary nodes on first pass" in {
