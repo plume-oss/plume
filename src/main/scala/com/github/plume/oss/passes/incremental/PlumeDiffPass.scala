@@ -1,5 +1,6 @@
 package com.github.plume.oss.passes.incremental
 
+import com.github.plume.oss.PlumeStatistics
 import com.github.plume.oss.drivers.IDriver
 import com.github.plume.oss.util.HashUtil
 import io.shiftleft.codepropertygraph.generated.{NodeTypes, PropertyNames}
@@ -53,7 +54,11 @@ class PlumeDiffPass(filenames: List[String], driver: IDriver) {
       .toSeq
     if (changedFiles.nonEmpty) {
       logger.debug(s"Detected changes in the following files: ${changedFiles.mkString(", ")}")
-      driver.removeSourceFiles(changedFiles: _*)
+      PlumeStatistics.time(
+        PlumeStatistics.TIME_REMOVING_OUTDATED_GRAPH, {
+          driver.removeSourceFiles(changedFiles: _*)
+        }
+      )
     }
     val newFiles = partIterator
       .map(_.getAbsolutePath)

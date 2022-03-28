@@ -5,6 +5,12 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](http://keepachangelog.com/)
 and this project adheres to [Semantic Versioning](http://semver.org/).
 
+## [1.1.15] - 2022-03-28
+
+### Added
+
+- Added statistic to measure the cost of removing outdated graph information.
+
 ## [1.1.14] - 2022-03-26
 
 ### Changed
