@@ -31,12 +31,17 @@ package object domain {
   /** Given an object and a path, will serialize the object to the given path.
     * @param o object to serialize.
     * @param p path to write serialized data to.
+    * @param compress true to compress the cache.
     */
-  def serializeCache(o: ConcurrentHashMap[Long, Vector[SerialReachableByResult]], p: Path): Unit = {
+  def serializeCache(
+      o: ConcurrentHashMap[Long, Vector[SerialReachableByResult]],
+      p: Path,
+      compress: Boolean
+  ): Unit = {
     logger.info(s"Serializing ${o.asScala.flatMap(_._2).size} data flow paths")
     if (!o.isEmpty) {
       mapper.writer(new DefaultPrettyPrinter()).writeValue(p.toFile, SerializableTable(o))
-      compressCache(p)
+      if (compress) compressCache(p)
     }
   }
 
@@ -54,10 +59,14 @@ package object domain {
 
   /** Given a path, will deserialize the file at the given path.
     * @param p path to read deserialized data from.
+    * @param decompress true if the cache needs to be decompressed.
     * @return the deserialized object.
     */
-  def deserializeCache(p: Path): ConcurrentHashMap[Long, Vector[SerialReachableByResult]] = {
-    decompressCache(p)
+  def deserializeCache(
+      p: Path,
+      decompress: Boolean
+  ): ConcurrentHashMap[Long, Vector[SerialReachableByResult]] = {
+    if (decompress) decompressCache(p)
     val o = mapper.reader().readValue(p.toFile, classOf[SerializableTable]).table
     logger.info(s"Deserialized ${o.asScala.flatMap(_._2).size} data flow paths")
     o

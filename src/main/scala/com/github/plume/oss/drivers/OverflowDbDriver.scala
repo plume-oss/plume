@@ -38,6 +38,7 @@ import scala.util.{Failure, Success, Try, Using}
   * @param serializationStatsEnabled enables saving of serialization statistics.
   * @param dataFlowCacheFile the path to the cache file where data-flow paths are saved to. If None then data flow
   *                          results will not be saved.
+  * @param compressDataFlowCache whether to compress the serialized data-flow cache specified at dataFlowCacheFile.
   */
 final case class OverflowDbDriver(
     storageLocation: Option[String] = Option(
@@ -45,7 +46,8 @@ final case class OverflowDbDriver(
     ),
     heapPercentageThreshold: Int = 80,
     serializationStatsEnabled: Boolean = false,
-    dataFlowCacheFile: Option[Path] = Some(Paths.get("dataFlowCache.json"))
+    dataFlowCacheFile: Option[Path] = Some(Paths.get("dataFlowCache.json")),
+    compressDataFlowCache: Boolean = true
 ) extends IDriver {
 
   private val logger = LoggerFactory.getLogger(classOf[OverflowDbDriver])
@@ -75,7 +77,7 @@ final case class OverflowDbDriver(
     dataFlowCacheFile match {
       case Some(filePath) =>
         if (Files.isRegularFile(filePath))
-          Some(deserializeCache(filePath))
+          Some(deserializeCache(filePath, compressDataFlowCache))
         else
           Some(new ConcurrentHashMap[Long, Vector[SerialReachableByResult]]())
       case None => None
@@ -89,7 +91,7 @@ final case class OverflowDbDriver(
 
   private def saveDataflowCache(): Unit = dataFlowCacheFile match {
     case Some(filePath) if table.isDefined && !table.get.isEmpty =>
-      serializeCache(table.get, filePath)
+      serializeCache(table.get, filePath, compressDataFlowCache)
     case _ => // Do nothing
   }
 
@@ -361,7 +363,14 @@ final case class OverflowDbDriver(
   ): List[ReachableByResult] =
     PlumeStatistics.time(
       PlumeStatistics.TIME_REACHABLE_BY_QUERYING, {
-        val results: List[ReachableByResult] = sink.reachableByDetailed(source)(context)
+        import io.shiftleft.semanticcpg.language._
+
+        val results: List[ReachableByResult] = sink
+          .reachableByDetailed(source)(context)
+          // Remove a source/sink arguments referring to itself
+          .filter(x => x.path.head.node.astParent != x.path.last.node.astParent)
+          // Remove paths not longer than a single node
+          .filter(_.path.size > 1)
         // TODO: Right now the results are saved in a serializable format ready for a binary blob. We should look into
         // storing these reliably on the graph.
         captureResultsBlob(results)

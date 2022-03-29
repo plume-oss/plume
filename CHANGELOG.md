@@ -5,6 +5,17 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](http://keepachangelog.com/)
 and this project adheres to [Semantic Versioning](http://semver.org/).
 
+## [1.1.16] - 2022-03-29
+
+### Added
+
+- Made data flow cache compression optional.
+
+### Changed
+
+- `OverflowDbDriver::nodesReachableBy` now filters paths where first and last node refer to the same immediate parent
+node and paths no longer than 1 path element.
+
 ## [1.1.15] - 2022-03-28
 
 ### Added
