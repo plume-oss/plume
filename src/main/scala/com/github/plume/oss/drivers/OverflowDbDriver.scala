@@ -399,11 +399,11 @@ final case class OverflowDbDriver(
           .foreach { case (n: StoredNode, v: Vector[ReachableByResult]) =>
             tab.put(n.id(), v.map(SerialReachableByResult.apply))
           }
-      case None => // Do nothing
-    }
-    // Reload latest results to the query engine context
-    results.map(_.table).collectFirst { resultTable =>
-      setDataflowContext(context.config.maxCallDepth, context.semantics, Some(resultTable))
+        // Reload latest results to the query engine context
+        results.map(_.table).collectFirst { resultTable =>
+          setDataflowContext(context.config.maxCallDepth, context.semantics, Some(resultTable))
+        }
+      case None => // Do nothing since no table means we aren't saving data and instead keeping memory low
     }
   }
 

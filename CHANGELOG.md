@@ -5,6 +5,13 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](http://keepachangelog.com/)
 and this project adheres to [Semantic Versioning](http://semver.org/).
 
+## [1.1.17] - 2022-03-29
+
+### Changed
+
+- `OverflowDbDriver::nodesReachableBy` does not initialize the data-flow engine with the last query's cache if results
+are not being re-used.
+
 ## [1.1.16] - 2022-03-29
 
 ### Added
