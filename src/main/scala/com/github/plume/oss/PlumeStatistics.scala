@@ -11,7 +11,8 @@ object PlumeStatistics extends Enumeration {
   type PlumeStatistic = Value
 
   val TIME_OPEN_DRIVER, TIME_CLOSE_DRIVER, TIME_EXTRACTION, TIME_REACHABLE_BY_QUERYING,
-      TIME_REMOVING_OUTDATED_GRAPH, PROGRAM_CLASSES, PROGRAM_METHODS = Value
+      TIME_REMOVING_OUTDATED_GRAPH, TIME_REMOVING_OUTDATED_CACHE, TIME_RETRIEVING_CACHE,
+      TIME_STORING_CACHE, PROGRAM_CLASSES, PROGRAM_METHODS = Value
 
   private val statistics: mutable.Map[PlumeStatistic, Long] =
     PlumeStatistics.values.map((_, 0L)).to(collection.mutable.Map)

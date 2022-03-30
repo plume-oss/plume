@@ -46,7 +46,7 @@ final case class OverflowDbDriver(
     ),
     heapPercentageThreshold: Int = 80,
     serializationStatsEnabled: Boolean = false,
-    dataFlowCacheFile: Option[Path] = Some(Paths.get("dataFlowCache.json")),
+    dataFlowCacheFile: Option[Path] = Some(Paths.get("dataFlowCache.cbor")),
     compressDataFlowCache: Boolean = true
 ) extends IDriver {
 
@@ -77,7 +77,12 @@ final case class OverflowDbDriver(
     dataFlowCacheFile match {
       case Some(filePath) =>
         if (Files.isRegularFile(filePath))
-          Some(deserializeCache(filePath, compressDataFlowCache))
+          Some(
+            PlumeStatistics.time(
+              PlumeStatistics.TIME_RETRIEVING_CACHE,
+              { deserializeCache(filePath, compressDataFlowCache) }
+            )
+          )
         else
           Some(new ConcurrentHashMap[Long, Vector[SerialReachableByResult]]())
       case None => None
@@ -86,12 +91,21 @@ final case class OverflowDbDriver(
   private implicit var context: EngineContext =
     EngineContext(
       Semantics.fromList(List()),
-      EngineConfig(initialTable = deserializeResultTable(table, cpg))
+      EngineConfig(initialTable =
+        PlumeStatistics.time(
+          PlumeStatistics.TIME_RETRIEVING_CACHE,
+          { deserializeResultTable(table, cpg) }
+        )
+      )
     )
 
   private def saveDataflowCache(): Unit = dataFlowCacheFile match {
     case Some(filePath) if table.isDefined && !table.get.isEmpty =>
-      serializeCache(table.get, filePath, compressDataFlowCache)
+      PlumeStatistics.time(
+        PlumeStatistics.TIME_STORING_CACHE, {
+          serializeCache(table.get, filePath, compressDataFlowCache)
+        }
+      )
     case _ => // Do nothing
   }
 
@@ -423,29 +437,33 @@ final case class OverflowDbDriver(
 
     table match {
       case Some(oldTab) =>
-        val startPSize = oldTab.asScala.flatMap(_._2).size
+        PlumeStatistics.time(
+          PlumeStatistics.TIME_REMOVING_OUTDATED_CACHE, {
+            val startPSize = oldTab.asScala.flatMap(_._2).size
 
-        val newTab = oldTab.asScala
-          .filter { case (k: Long, _) => isNodeUnderTypes(k, unchangedTypes) }
-          .map { case (k: Long, v: Vector[SerialReachableByResult]) =>
-            val filteredPaths = v.filterNot(isResultExpired)
-            (k, filteredPaths)
+            val newTab = oldTab.asScala
+              .filter { case (k: Long, _) => isNodeUnderTypes(k, unchangedTypes) }
+              .map { case (k: Long, v: Vector[SerialReachableByResult]) =>
+                val filteredPaths = v.filterNot(isResultExpired)
+                (k, filteredPaths)
+              }
+              .toMap
+            // Refresh old table and add new entries
+            oldTab.clear()
+            newTab.foreach { case (k, v) => oldTab.put(k, v) }
+
+            val leftOverPSize = newTab.flatMap(_._2).size
+            if (startPSize > 0)
+              logger.info(
+                s"Able to re-use ${(leftOverPSize.toDouble / startPSize) * 100.0}% of the saved paths. " +
+                  s"Removed ${startPSize - leftOverPSize} expired paths from $startPSize saved paths."
+              )
+            setDataflowContext(
+              context.config.maxCallDepth,
+              context.semantics,
+              deserializeResultTable(Some(oldTab), cpg)
+            )
           }
-          .toMap
-        // Refresh old table and add new entries
-        oldTab.clear()
-        newTab.foreach { case (k, v) => oldTab.put(k, v) }
-
-        val leftOverPSize = newTab.flatMap(_._2).size
-        if (startPSize > 0)
-          logger.info(
-            s"Able to re-use ${(leftOverPSize.toDouble / startPSize) * 100.0}% of the saved paths. " +
-              s"Removed ${startPSize - leftOverPSize} expired paths from $startPSize saved paths."
-          )
-        setDataflowContext(
-          context.config.maxCallDepth,
-          context.semantics,
-          deserializeResultTable(Some(oldTab), cpg)
         )
       case None => // Do nothing
     }

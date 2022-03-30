@@ -2,8 +2,8 @@ package com.github.plume.oss
 
 import com.fasterxml.jackson.core.util.DefaultPrettyPrinter
 import com.fasterxml.jackson.databind.annotation.JsonDeserialize
-import com.fasterxml.jackson.databind.json.JsonMapper
-import com.fasterxml.jackson.module.scala.{ClassTagExtensions, DefaultScalaModule}
+import com.fasterxml.jackson.dataformat.cbor.databind.CBORMapper
+import com.fasterxml.jackson.module.scala.DefaultScalaModule
 import io.joern.dataflowengineoss.queryengine.{PathElement, ReachableByResult, ResultTable}
 import io.shiftleft.codepropertygraph.generated.Cpg
 import io.shiftleft.codepropertygraph.generated.nodes.{Call, CfgNode, StoredNode}
@@ -23,10 +23,10 @@ import scala.util.Using
 package object domain {
 
   private val logger = LoggerFactory.getLogger("com.github.plume.oss.domain")
-  private val mapper = JsonMapper
+  private val mapper = CBORMapper
     .builder()
     .addModule(DefaultScalaModule)
-    .build() :: ClassTagExtensions
+    .build()
 
   /** Given an object and a path, will serialize the object to the given path.
     * @param o object to serialize.

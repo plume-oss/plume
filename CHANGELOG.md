@@ -5,6 +5,16 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](http://keepachangelog.com/)
 and this project adheres to [Semantic Versioning](http://semver.org/).
 
+## [1.1.18] - 2022-03-30
+
+### Added
+
+- New `PlumeStastistics` entries related to measuring result re-use and fetching speeds.
+
+### Changed
+
+- Data flow cache now writes to `.cbor` instead of `.json` for improved I/O performance.
+
 ## [1.1.17] - 2022-03-29
 
 ### Changed
