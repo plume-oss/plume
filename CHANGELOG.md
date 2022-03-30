@@ -5,6 +5,13 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](http://keepachangelog.com/)
 and this project adheres to [Semantic Versioning](http://semver.org/).
 
+## [1.1.19] - 2022-03-30
+
+### Changed
+
+- Improved data-flow caching performance by holding the same pointer as the initial cache 
+and only converting to a serializable form later. 
+
 ## [1.1.18] - 2022-03-30
 
 ### Added

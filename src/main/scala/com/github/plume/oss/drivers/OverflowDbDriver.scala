@@ -3,9 +3,9 @@ package com.github.plume.oss.drivers
 import com.github.plume.oss.PlumeStatistics
 import com.github.plume.oss.domain.{
   SerialReachableByResult,
-  serializeCache,
   deserializeCache,
-  deserializeResultTable
+  deserializeResultTable,
+  serializeCache
 }
 import com.github.plume.oss.drivers.OverflowDbDriver.newOverflowGraph
 import com.github.plume.oss.passes.callgraph.PlumeDynamicCallLinker
@@ -29,7 +29,7 @@ import java.nio.file.{Files, Path, Paths}
 import java.util.concurrent.ConcurrentHashMap
 import scala.collection.mutable
 import scala.io.{BufferedSource, Source}
-import scala.jdk.CollectionConverters.{ConcurrentMapHasAsScala, IteratorHasAsScala, MapHasAsScala}
+import scala.jdk.CollectionConverters.{IteratorHasAsScala, MapHasAsScala}
 import scala.util.{Failure, Success, Try, Using}
 
 /** Driver to create an OverflowDB database file.
@@ -71,9 +71,9 @@ final case class OverflowDbDriver(
     Source.fromInputStream(getClass.getClassLoader.getResourceAsStream("default.semantics"))
   )
 
-  /** This stores results from the table property in ReachableByResult.
+  /** Reads the saved cache on the disk and retrieves it as a serializable object
     */
-  private val table: Option[ConcurrentHashMap[Long, Vector[SerialReachableByResult]]] =
+  private def fetchCacheFromDisk: Option[ConcurrentHashMap[Long, Vector[SerialReachableByResult]]] =
     dataFlowCacheFile match {
       case Some(filePath) =>
         if (Files.isRegularFile(filePath))
@@ -88,22 +88,29 @@ final case class OverflowDbDriver(
       case None => None
     }
 
+  private var resultTable: Option[ResultTable] = PlumeStatistics.time(
+    PlumeStatistics.TIME_RETRIEVING_CACHE,
+    { deserializeResultTable(fetchCacheFromDisk, cpg) }
+  )
+
   private implicit var context: EngineContext =
     EngineContext(
       Semantics.fromList(List()),
-      EngineConfig(initialTable =
-        PlumeStatistics.time(
-          PlumeStatistics.TIME_RETRIEVING_CACHE,
-          { deserializeResultTable(table, cpg) }
-        )
-      )
+      EngineConfig(initialTable = resultTable)
     )
 
   private def saveDataflowCache(): Unit = dataFlowCacheFile match {
-    case Some(filePath) if table.isDefined && !table.get.isEmpty =>
+    case Some(filePath) if resultTable.isDefined && resultTable.get.table.nonEmpty =>
       PlumeStatistics.time(
         PlumeStatistics.TIME_STORING_CACHE, {
-          serializeCache(table.get, filePath, compressDataFlowCache)
+          // Move result table to serializable version
+          val t = new ConcurrentHashMap[Long, Vector[SerialReachableByResult]]()
+          resultTable.get.table
+            .foreach { case (n: StoredNode, v: Vector[ReachableByResult]) =>
+              t.put(n.id(), v.map(SerialReachableByResult.apply))
+            }
+          // Write to disk
+          serializeCache(t, filePath, compressDataFlowCache)
         }
       )
     case _ => // Do nothing
@@ -120,7 +127,8 @@ final case class OverflowDbDriver(
       methodSemantics: Option[BufferedSource] = None,
       initialCache: Option[ResultTable] = None
   ): EngineContext = {
-    val cache = if (initialCache.isDefined) initialCache else deserializeResultTable(table, cpg)
+    val cache =
+      if (initialCache.isDefined) initialCache else resultTable
 
     if (methodSemantics.isDefined) {
       setDataflowContext(
@@ -381,14 +389,12 @@ final case class OverflowDbDriver(
 
         val results: List[ReachableByResult] = sink
           .reachableByDetailed(source)(context)
+        captureDataflowCache(results)
+        results
           // Remove a source/sink arguments referring to itself
           .filter(x => x.path.head.node.astParent != x.path.last.node.astParent)
           // Remove paths not longer than a single node
           .filter(_.path.size > 1)
-        // TODO: Right now the results are saved in a serializable format ready for a binary blob. We should look into
-        // storing these reliably on the graph.
-        captureResultsBlob(results)
-        results
           // Filter out paths that run through sanitizers
           .filterNot { r =>
             r.path
@@ -401,22 +407,17 @@ final case class OverflowDbDriver(
       }
     )
 
-  /** Primitive storage solution for saving path results. This will capture results in memory until shutdown after
-    * which everything will be saved to a blob.
-    * @param results a list of ReachableByResult paths calculated when calling reachableBy.
-    */
-  private def captureResultsBlob(results: List[ReachableByResult]): Unit = {
-    table match {
-      case Some(tab) =>
-        results
-          .flatMap { x => x.table.table }
-          .foreach { case (n: StoredNode, v: Vector[ReachableByResult]) =>
-            tab.put(n.id(), v.map(SerialReachableByResult.apply))
-          }
+  private def captureDataflowCache(results: List[ReachableByResult]): Unit = {
+    dataFlowCacheFile match {
+      case Some(_) =>
         // Reload latest results to the query engine context
-        results.map(_.table).collectFirst { resultTable =>
-          setDataflowContext(context.config.maxCallDepth, context.semantics, Some(resultTable))
-        }
+        resultTable = (results
+          .map(_.table) ++ List(resultTable).flatten).distinct
+          .reduceOption((a: ResultTable, b: ResultTable) => {
+            b.table.foreach { case (k, v) => a.add(k, v) }
+            a
+          })
+        setDataflowContext(context.config.maxCallDepth, context.semantics, resultTable)
       case None => // Do nothing since no table means we aren't saving data and instead keeping memory low
     }
   }
@@ -425,32 +426,32 @@ final case class OverflowDbDriver(
     * @param unchangedTypes the list of types which have not changed since the last graph database update.
     */
   def removeExpiredPathsFromCache(unchangedTypes: Set[String]): Unit = {
-    def isResultExpired(srbr: SerialReachableByResult): Boolean = {
-      val isCallSiteUnderTypes = srbr.callSite match {
-        case Some(callId) => isNodeUnderTypes(callId, unchangedTypes)
-        case _            => true
+    def isResultExpired(result: ReachableByResult): Boolean = {
+      val isCallSiteUnderTypes = result.callSite match {
+        case Some(callNode) => isNodeUnderTypes(callNode, unchangedTypes)
+        case _              => true
       }
       // Filter out paths where there exists a path element that is not under unchanged types
-      srbr.path.exists { spe => !isNodeUnderTypes(spe.nodeId, unchangedTypes) } ||
+      result.path.exists { pathE => !isNodeUnderTypes(pathE.node, unchangedTypes) } ||
       !isCallSiteUnderTypes // or where call site is not under unchanged types
     }
 
-    table match {
+    resultTable match {
       case Some(oldTab) =>
         PlumeStatistics.time(
           PlumeStatistics.TIME_REMOVING_OUTDATED_CACHE, {
-            val startPSize = oldTab.asScala.flatMap(_._2).size
+            val startPSize = oldTab.table.flatMap(_._2).size
 
-            val newTab = oldTab.asScala
-              .filter { case (k: Long, _) => isNodeUnderTypes(k, unchangedTypes) }
-              .map { case (k: Long, v: Vector[SerialReachableByResult]) =>
+            val newTab = oldTab.table
+              .filter { case (k: StoredNode, _) => isNodeUnderTypes(k, unchangedTypes) }
+              .map { case (k: StoredNode, v: Vector[ReachableByResult]) =>
                 val filteredPaths = v.filterNot(isResultExpired)
                 (k, filteredPaths)
               }
               .toMap
             // Refresh old table and add new entries
-            oldTab.clear()
-            newTab.foreach { case (k, v) => oldTab.put(k, v) }
+            oldTab.table.clear()
+            newTab.foreach { case (k, v) => oldTab.table.put(k, v) }
 
             val leftOverPSize = newTab.flatMap(_._2).size
             if (startPSize > 0)
@@ -461,7 +462,7 @@ final case class OverflowDbDriver(
             setDataflowContext(
               context.config.maxCallDepth,
               context.semantics,
-              deserializeResultTable(Some(oldTab), cpg)
+              Some(oldTab)
             )
           }
         )
@@ -469,19 +470,19 @@ final case class OverflowDbDriver(
     }
   }
 
-  /** Will determine if the node ID is under the set of unchanged type full names based on method full name signature.
-    * @param nodeId the node ID to check.
+  /** Will determine if the node is under the set of unchanged type full names based on method full name signature.
+    * @param node the node to check.
     * @param unchangedTypes a list of unchanged types.
-    * @return True if the ID is under a method contained by the list of unchanged types and false if otherwise. If the
-    *         given node ID is not in the database false will be returned.
+    * @return True if the node is under a method contained by the list of unchanged types and false if otherwise. If the
+    *         given node is not in the database false will be returned.
     */
-  private def isNodeUnderTypes(nodeId: Long, unchangedTypes: Set[String]): Boolean = {
-    cpg.graph.nodes(nodeId).nextOption() match {
+  private def isNodeUnderTypes(node: StoredNode, unchangedTypes: Set[String]): Boolean = {
+    cpg.graph.nodes(node.id()).nextOption() match {
       case Some(n) if n != null =>
         Traversal(n)
           .repeat(_.in(EdgeTypes.AST))(_.emit)
-          .collect { case t: TypeDecl if unchangedTypes.contains(t.fullName) => t }
-          .nonEmpty
+          .collectFirst { case t: TypeDecl if unchangedTypes.contains(t.fullName) => t }
+          .isDefined
       case _ => false
     }
   }
