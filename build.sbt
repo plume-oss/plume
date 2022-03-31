@@ -3,22 +3,23 @@ name := "Plume"
 inThisBuild(
   List(
     organization := "com.github.plume-oss",
-    version := "1.1.19",
+    version := "1.2.0",
     scalaVersion := "2.13.8",
     crossScalaVersions := Seq("2.13.8", "3.1.1"),
     resolvers ++= Seq(
       Resolver.mavenLocal,
       Resolver.mavenCentral,
-      Resolver.JCenterRepository
+      Resolver.JCenterRepository,
+      "Gradle Tooling" at "https://repo.gradle.org/gradle/libs-releases-local/"
     )
   )
 )
 
-val cpgVersion         = "1.3.521"
-val joernVersion       = "1.1.661"
+val cpgVersion         = "1.3.523"
+val joernVersion       = "1.1.678"
 val sootVersion        = "4.3.0"
 val tinkerGraphVersion = "3.4.11"
-val neo4jVersion       = "4.4.3"
+val neo4jVersion       = "4.4.5"
 val apacheCodecVersion = "1.15"
 val apacheIoVersion    = "2.11.0"
 val apacheLangVersion  = "3.12.0"
@@ -43,7 +44,7 @@ Test / parallelExecution := false
 
 libraryDependencies ++= Seq(
   "io.shiftleft"                    %% "codepropertygraph"       % cpgVersion,
-  "io.shiftleft"                    %% "semanticcpg"             % cpgVersion,
+  "io.joern"                        %% "semanticcpg"             % joernVersion,
   "io.joern"                        %% "dataflowengineoss"       % joernVersion,
   "io.joern"                        %% "x2cpg"                   % joernVersion,
   "io.joern"                        %% "jimple2cpg"              % joernVersion,

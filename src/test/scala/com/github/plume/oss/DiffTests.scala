@@ -64,7 +64,7 @@ class DiffTests extends AnyWordSpec with Matchers with BeforeAndAfterAll {
     driver.clear()
     driver.close()
     Paths.get(storage.get).toFile.delete()
-    driver.dataFlowCacheFile match {
+    driver.cacheConfig.dataFlowCacheFile match {
       case Some(jsonFile) => new File(jsonFile.toFile.getAbsolutePath + ".lz4").delete()
       case None           =>
     }
@@ -102,12 +102,12 @@ class DiffTests extends AnyWordSpec with Matchers with BeforeAndAfterAll {
     val sinkNodesId1   = driver.cpg.call(Operators.addition).id.l
 
     val r1 = driver
-      .nodesReachableBy(driver.cpg.parameter("a"), driver.cpg.call(Operators.addition))
+      .flowsBetween( () => driver.cpg.parameter("a"), () => driver.cpg.call(Operators.addition))
       .map(_.path.map(_.node.id()))
     val cH1       = QueryEngineStatistics.results()(QueryEngineStatistics.PATH_CACHE_HITS)
     val cM1       = QueryEngineStatistics.results()(QueryEngineStatistics.PATH_CACHE_MISSES)
     val hitRatio1 = cH1.toDouble / (cH1 + cM1) * 100
-    logger.info(s"Cache hit ratio $hitRatio1%")
+    logger.info(s"Cache hit ratio $hitRatio1% ($cH1 vs $cM1)")
     cH1 should be <= cM1
     QueryEngineStatistics.reset()
 
@@ -119,7 +119,7 @@ class DiffTests extends AnyWordSpec with Matchers with BeforeAndAfterAll {
     val sinkNodesId2   = driver.cpg.call(Operators.addition).id.l
 
     val r2 = driver
-      .nodesReachableBy(driver.cpg.parameter("a"), driver.cpg.call(Operators.addition))
+      .flowsBetween(() => driver.cpg.parameter("a"), () => driver.cpg.call(Operators.addition))
       .map(_.path.map(_.node.id()))
     val cH2 = QueryEngineStatistics.results()(QueryEngineStatistics.PATH_CACHE_HITS)
     val cM2 = QueryEngineStatistics.results()(QueryEngineStatistics.PATH_CACHE_MISSES)
@@ -131,7 +131,7 @@ class DiffTests extends AnyWordSpec with Matchers with BeforeAndAfterAll {
     r1 shouldBe r2
     // The cache should have a higher number of hits now from re-using the first query
     val hitRatio2 = cH2.toDouble / (cH2 + cM2) * 100
-    logger.info(s"Cache hit ratio $hitRatio2%")
+    logger.info(s"Cache hit ratio $hitRatio2% ($cH2 vs $cM2)")
     hitRatio2 should be >= hitRatio1
   }
 

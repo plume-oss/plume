@@ -1,12 +1,7 @@
 package com.github.plume.oss.drivers
 
 import com.github.plume.oss.PlumeStatistics
-import com.github.plume.oss.domain.{
-  SerialReachableByResult,
-  deserializeCache,
-  deserializeResultTable,
-  serializeCache
-}
+import com.github.plume.oss.domain._
 import com.github.plume.oss.drivers.OverflowDbDriver.newOverflowGraph
 import com.github.plume.oss.passes.callgraph.PlumeDynamicCallLinker
 import com.github.plume.oss.util.BatchedUpdateUtil._
@@ -25,7 +20,7 @@ import overflowdb.traversal.{Traversal, jIteratortoTraversal}
 import overflowdb.{BatchedUpdate, Config, DetachedNodeData, Edge, Node}
 
 import java.io.{FileOutputStream, OutputStreamWriter, File => JFile}
-import java.nio.file.{Files, Path, Paths}
+import java.nio.file.Files
 import java.util.concurrent.ConcurrentHashMap
 import scala.collection.mutable
 import scala.io.{BufferedSource, Source}
@@ -36,9 +31,7 @@ import scala.util.{Failure, Success, Try, Using}
   * @param storageLocation where the database will serialize to and deserialize from.
   * @param heapPercentageThreshold the percentage of the JVM heap from when the database will begin swapping to disk.
   * @param serializationStatsEnabled enables saving of serialization statistics.
-  * @param dataFlowCacheFile the path to the cache file where data-flow paths are saved to. If None then data flow
-  *                          results will not be saved.
-  * @param compressDataFlowCache whether to compress the serialized data-flow cache specified at dataFlowCacheFile.
+  * @param cacheConfig contains various configurations for using the data flow tracking capabilities of OverflowDB.
   */
 final case class OverflowDbDriver(
     storageLocation: Option[String] = Option(
@@ -46,8 +39,7 @@ final case class OverflowDbDriver(
     ),
     heapPercentageThreshold: Int = 80,
     serializationStatsEnabled: Boolean = false,
-    dataFlowCacheFile: Option[Path] = Some(Paths.get("dataFlowCache.cbor")),
-    compressDataFlowCache: Boolean = true
+    cacheConfig: DataFlowCacheConfig = DataFlowCacheConfig()
 ) extends IDriver {
 
   private val logger = LoggerFactory.getLogger(classOf[OverflowDbDriver])
@@ -74,13 +66,13 @@ final case class OverflowDbDriver(
   /** Reads the saved cache on the disk and retrieves it as a serializable object
     */
   private def fetchCacheFromDisk: Option[ConcurrentHashMap[Long, Vector[SerialReachableByResult]]] =
-    dataFlowCacheFile match {
+    cacheConfig.dataFlowCacheFile match {
       case Some(filePath) =>
         if (Files.isRegularFile(filePath))
           Some(
             PlumeStatistics.time(
               PlumeStatistics.TIME_RETRIEVING_CACHE,
-              { deserializeCache(filePath, compressDataFlowCache) }
+              { deserializeCache(filePath, cacheConfig.compressDataFlowCache) }
             )
           )
         else
@@ -96,10 +88,13 @@ final case class OverflowDbDriver(
   private implicit var context: EngineContext =
     EngineContext(
       Semantics.fromList(List()),
-      EngineConfig(initialTable = resultTable)
+      EngineConfig(
+        maxCallDepth = cacheConfig.maxCallDepth,
+        initialTable = resultTable
+      )
     )
 
-  private def saveDataflowCache(): Unit = dataFlowCacheFile match {
+  private def saveDataflowCache(): Unit = cacheConfig.dataFlowCacheFile match {
     case Some(filePath) if resultTable.isDefined && resultTable.get.table.nonEmpty =>
       PlumeStatistics.time(
         PlumeStatistics.TIME_STORING_CACHE, {
@@ -110,13 +105,13 @@ final case class OverflowDbDriver(
               t.put(n.id(), v.map(SerialReachableByResult.apply))
             }
           // Write to disk
-          serializeCache(t, filePath, compressDataFlowCache)
+          serializeCache(t, filePath, cacheConfig.compressDataFlowCache)
         }
       )
     case _ => // Do nothing
   }
 
-  /** Sets the context for the data-flow engine when performing [[nodesReachableBy]] queries.
+  /** Sets the context for the data-flow engine when performing [[flowsBetween]] queries.
     *
     * @param maxCallDepth the new method call depth.
     * @param methodSemantics the file containing method semantics for external methods.
@@ -179,7 +174,11 @@ final case class OverflowDbDriver(
 
   override def clear(): Unit = {
     cpg.graph.nodes.asScala.foreach(safeRemove)
-    dataFlowCacheFile match {
+    resultTable match {
+      case Some(table) => table.table.clear()
+      case None        =>
+    }
+    cacheConfig.dataFlowCacheFile match {
       case Some(filePath) => filePath.toFile.delete()
       case None           => // Do nothing
     }
@@ -378,17 +377,42 @@ final case class OverflowDbDriver(
     * @param sanitizers a set of full method names to filter paths out with.
     * @return the source nodes whose data flows to the given sinks uninterrupted.
     */
-  def nodesReachableBy(
-      source: Traversal[CfgNode],
-      sink: Traversal[CfgNode],
+  def flowsBetween(
+      source: () => Traversal[CfgNode],
+      sink: () => Traversal[CfgNode],
       sanitizers: Set[String] = Set.empty[String]
   ): List[ReachableByResult] =
     PlumeStatistics.time(
       PlumeStatistics.TIME_REACHABLE_BY_QUERYING, {
         import io.shiftleft.semanticcpg.language._
+        // Strip the cache of only nodes that will be used the most in this query to get fast starts/finishes
+        cacheConfig.dataFlowCacheFile match {
+          case Some(_) =>
+            val newCache         = new ResultTable
+            val oldCache         = resultTable.getOrElse(new ResultTable)
+            var currPathsInCache = 0
+            scala.util.Random
+              .shuffle(source().l ++ sink().l)
+              .flatMap { x =>
+                oldCache.get(x) match {
+                  case Some(paths) => Some((x, paths))
+                  case None        => None
+                }
+              }
+              .foreach { case (startOrEndNode, paths) =>
+                if (currPathsInCache + paths.size <= cacheConfig.maxCachedPaths) {
+                  currPathsInCache += paths.size
+                  newCache.add(startOrEndNode, paths)
+                }
+              }
+            oldCache.table.clear()
+            resultTable = Some(newCache)
+            setDataflowContext(context.config.maxCallDepth, context.semantics, resultTable)
+          case _ =>
+        }
 
-        val results: List[ReachableByResult] = sink
-          .reachableByDetailed(source)(context)
+        val results: List[ReachableByResult] = sink()
+          .reachableByDetailed(source())(context)
         captureDataflowCache(results)
         results
           // Remove a source/sink arguments referring to itself
@@ -408,16 +432,15 @@ final case class OverflowDbDriver(
     )
 
   private def captureDataflowCache(results: List[ReachableByResult]): Unit = {
-    dataFlowCacheFile match {
+    cacheConfig.dataFlowCacheFile match {
       case Some(_) =>
-        // Reload latest results to the query engine context
+        // Capture latest results
         resultTable = (results
           .map(_.table) ++ List(resultTable).flatten).distinct
           .reduceOption((a: ResultTable, b: ResultTable) => {
             b.table.foreach { case (k, v) => a.add(k, v) }
             a
           })
-        setDataflowContext(context.config.maxCallDepth, context.semantics, resultTable)
       case None => // Do nothing since no table means we aren't saving data and instead keeping memory low
     }
   }

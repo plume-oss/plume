@@ -12,7 +12,7 @@ import org.slf4j.LoggerFactory
 import overflowdb.traversal.jIteratortoTraversal
 
 import java.io.{File, FileInputStream, FileOutputStream}
-import java.nio.file.Path
+import java.nio.file.{Path, Paths}
 import java.util.concurrent.ConcurrentHashMap
 import scala.jdk.CollectionConverters
 import scala.jdk.CollectionConverters.ConcurrentMapHasAsScala
@@ -27,6 +27,13 @@ package object domain {
     .builder()
     .addModule(DefaultScalaModule)
     .build()
+
+  case class DataFlowCacheConfig(
+      dataFlowCacheFile: Option[Path] = Some(Paths.get("dataFlowCache.cbor")),
+      compressDataFlowCache: Boolean = true,
+      maxCallDepth: Int = 2,
+      maxCachedPaths: Int = 1_000
+  )
 
   /** Given an object and a path, will serialize the object to the given path.
     * @param o object to serialize.

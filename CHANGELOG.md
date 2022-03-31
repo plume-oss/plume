@@ -5,6 +5,15 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](http://keepachangelog.com/)
 and this project adheres to [Semantic Versioning](http://semver.org/).
 
+## [1.2.0] - 2022-03-31
+
+### Changed
+
+- `OverflowDbDriver` now takes a `DataFlowCacheConfig` argument that specifies 
+data flow engine specific configurations.
+- `OverflowDbDriver::nodesReachableBy` renamed to `flowsBetween` and now takes functions
+as `sources` and `sinks` parameters.
+
 ## [1.1.19] - 2022-03-30
 
 ### Changed
