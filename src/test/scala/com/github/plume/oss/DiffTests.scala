@@ -102,7 +102,7 @@ class DiffTests extends AnyWordSpec with Matchers with BeforeAndAfterAll {
     val sinkNodesId1   = driver.cpg.call(Operators.addition).id.l
 
     val r1 = driver
-      .flowsBetween( () => driver.cpg.parameter("a"), () => driver.cpg.call(Operators.addition))
+      .flowsBetween(driver.cpg.parameter("a"), driver.cpg.call(Operators.addition))
       .map(_.path.map(_.node.id()))
     val cH1       = QueryEngineStatistics.results()(QueryEngineStatistics.PATH_CACHE_HITS)
     val cM1       = QueryEngineStatistics.results()(QueryEngineStatistics.PATH_CACHE_MISSES)
@@ -119,7 +119,7 @@ class DiffTests extends AnyWordSpec with Matchers with BeforeAndAfterAll {
     val sinkNodesId2   = driver.cpg.call(Operators.addition).id.l
 
     val r2 = driver
-      .flowsBetween(() => driver.cpg.parameter("a"), () => driver.cpg.call(Operators.addition))
+      .flowsBetween(driver.cpg.parameter("a"), driver.cpg.call(Operators.addition))
       .map(_.path.map(_.node.id()))
     val cH2 = QueryEngineStatistics.results()(QueryEngineStatistics.PATH_CACHE_HITS)
     val cM2 = QueryEngineStatistics.results()(QueryEngineStatistics.PATH_CACHE_MISSES)

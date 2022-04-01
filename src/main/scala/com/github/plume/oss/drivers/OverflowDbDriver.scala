@@ -25,7 +25,7 @@ import java.util.concurrent.ConcurrentHashMap
 import scala.collection.mutable
 import scala.io.{BufferedSource, Source}
 import scala.jdk.CollectionConverters.{IteratorHasAsScala, MapHasAsScala}
-import scala.util.{Failure, Success, Try, Using}
+import scala.util._
 
 /** Driver to create an OverflowDB database file.
   * @param storageLocation where the database will serialize to and deserialize from.
@@ -378,42 +378,18 @@ final case class OverflowDbDriver(
     * @return the source nodes whose data flows to the given sinks uninterrupted.
     */
   def flowsBetween(
-      source: () => Traversal[CfgNode],
-      sink: () => Traversal[CfgNode],
+      source: Traversal[CfgNode],
+      sink: Traversal[CfgNode],
       sanitizers: Set[String] = Set.empty[String]
   ): List[ReachableByResult] =
     PlumeStatistics.time(
       PlumeStatistics.TIME_REACHABLE_BY_QUERYING, {
         import io.shiftleft.semanticcpg.language._
-        // Strip the cache of only nodes that will be used the most in this query to get fast starts/finishes
-        cacheConfig.dataFlowCacheFile match {
-          case Some(_) =>
-            val newCache         = new ResultTable
-            val oldCache         = resultTable.getOrElse(new ResultTable)
-            var currPathsInCache = 0
-            scala.util.Random
-              .shuffle(source().l ++ sink().l)
-              .flatMap { x =>
-                oldCache.get(x) match {
-                  case Some(paths) => Some((x, paths))
-                  case None        => None
-                }
-              }
-              .foreach { case (startOrEndNode, paths) =>
-                if (currPathsInCache + paths.size <= cacheConfig.maxCachedPaths) {
-                  currPathsInCache += paths.size
-                  newCache.add(startOrEndNode, paths)
-                }
-              }
-            oldCache.table.clear()
-            resultTable = Some(newCache)
-            setDataflowContext(context.config.maxCallDepth, context.semantics, resultTable)
-          case _ =>
-        }
 
-        val results: List[ReachableByResult] = sink()
-          .reachableByDetailed(source())(context)
+        prepareInitialTable()
+        val results: List[ReachableByResult] = sink.reachableByDetailed(source)(context)
         captureDataflowCache(results)
+
         results
           // Remove a source/sink arguments referring to itself
           .filter(x => x.path.head.node.astParent != x.path.last.node.astParent)
@@ -431,12 +407,40 @@ final case class OverflowDbDriver(
       }
     )
 
+  private def prepareInitialTable(): Unit = {
+    cacheConfig.dataFlowCacheFile match {
+      case Some(_) =>
+        val oldCache = resultTable.getOrElse(new ResultTable)
+        if (oldCache.table.map(_._2.size).sum <= cacheConfig.maxCachedPaths) {
+          setDataflowContext(context.config.maxCallDepth, context.semantics, Some(oldCache))
+        } else {
+          val newCache         = new ResultTable
+          var currPathsInCache = 0
+          // let the gods decide which entries will go through the maxCachedPaths limit
+          Random
+            .shuffle(oldCache.table.iterator)
+            .takeWhile { case (_, paths) =>
+              currPathsInCache + paths.size <= cacheConfig.maxCachedPaths
+            }
+            .foreach { case (startOrEndNode, paths) =>
+              currPathsInCache += paths.size
+              newCache.add(startOrEndNode, paths)
+            }
+          oldCache.table.clear()
+          resultTable = Some(newCache)
+          setDataflowContext(context.config.maxCallDepth, context.semantics, resultTable)
+        }
+      case _ =>
+    }
+  }
+
   private def captureDataflowCache(results: List[ReachableByResult]): Unit = {
     cacheConfig.dataFlowCacheFile match {
       case Some(_) =>
         // Capture latest results
         resultTable = (results
-          .map(_.table) ++ List(resultTable).flatten).distinct
+          .map(_.table)
+          .distinct ++ List(resultTable).flatten)
           .reduceOption((a: ResultTable, b: ResultTable) => {
             b.table.foreach { case (k, v) => a.add(k, v) }
             a
@@ -467,9 +471,11 @@ final case class OverflowDbDriver(
 
             val newTab = oldTab.table
               .filter { case (k: StoredNode, _) => isNodeUnderTypes(k, unchangedTypes) }
-              .map { case (k: StoredNode, v: Vector[ReachableByResult]) =>
-                val filteredPaths = v.filterNot(isResultExpired)
-                (k, filteredPaths)
+              .flatMap { case (k: StoredNode, v: Vector[ReachableByResult]) =>
+                v.collectFirst { case v: ReachableByResult if isResultExpired(v) => v } match {
+                  case Some(_) => None // discard entry
+                  case None    => Some((k, v))
+                }
               }
               .toMap
             // Refresh old table and add new entries
@@ -482,11 +488,6 @@ final case class OverflowDbDriver(
                 s"Able to re-use ${(leftOverPSize.toDouble / startPSize) * 100.0}% of the saved paths. " +
                   s"Removed ${startPSize - leftOverPSize} expired paths from $startPSize saved paths."
               )
-            setDataflowContext(
-              context.config.maxCallDepth,
-              context.semantics,
-              Some(oldTab)
-            )
           }
         )
       case None => // Do nothing
