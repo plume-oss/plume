@@ -90,7 +90,8 @@ final case class OverflowDbDriver(
       Semantics.fromList(List()),
       EngineConfig(
         maxCallDepth = cacheConfig.maxCallDepth,
-        initialTable = resultTable
+        initialTable = resultTable,
+        shareCacheBetweenTasks = cacheConfig.shareCacheBetweenTasks
       )
     )
 
@@ -120,7 +121,8 @@ final case class OverflowDbDriver(
   def setDataflowContext(
       maxCallDepth: Int,
       methodSemantics: Option[BufferedSource] = None,
-      initialCache: Option[ResultTable] = None
+      initialCache: Option[ResultTable] = None,
+      shareCacheBetweenTasks: Boolean = false
   ): EngineContext = {
     val cache =
       if (initialCache.isDefined) initialCache else resultTable
@@ -129,7 +131,8 @@ final case class OverflowDbDriver(
       setDataflowContext(
         maxCallDepth,
         Semantics.fromList(semanticsParser.parse(methodSemantics.get.getLines().mkString("\n"))),
-        cache
+        cache,
+        shareCacheBetweenTasks
       )
     } else if (defaultSemantics.isSuccess) {
       logger.info(
@@ -138,24 +141,26 @@ final case class OverflowDbDriver(
       setDataflowContext(
         maxCallDepth,
         Semantics.fromList(semanticsParser.parse(defaultSemantics.get.getLines().mkString("\n"))),
-        cache
+        cache,
+        shareCacheBetweenTasks
       )
     } else {
       logger.warn(
         "No \"default.semantics\" file found under resources - data flow tracking may not perform correctly."
       )
-      setDataflowContext(maxCallDepth, Semantics.fromList(List()), cache)
+      setDataflowContext(maxCallDepth, Semantics.fromList(List()), cache, shareCacheBetweenTasks)
     }
   }
 
   private def setDataflowContext(
       maxCallDepth: Int,
       methodSemantics: Semantics,
-      cache: Option[ResultTable]
+      cache: Option[ResultTable],
+      shareCacheBetweenTasks: Boolean
   ): EngineContext = {
     context = EngineContext(
       methodSemantics,
-      EngineConfig(maxCallDepth, cache)
+      EngineConfig(maxCallDepth, cache, shareCacheBetweenTasks)
     )
     context
   }
@@ -412,7 +417,12 @@ final case class OverflowDbDriver(
       case Some(_) =>
         val oldCache = resultTable.getOrElse(new ResultTable)
         if (oldCache.table.map(_._2.size).sum <= cacheConfig.maxCachedPaths) {
-          setDataflowContext(context.config.maxCallDepth, context.semantics, Some(oldCache))
+          setDataflowContext(
+            context.config.maxCallDepth,
+            context.semantics,
+            Some(oldCache),
+            cacheConfig.shareCacheBetweenTasks
+          )
         } else {
           val newCache         = new ResultTable
           var currPathsInCache = 0
@@ -428,7 +438,12 @@ final case class OverflowDbDriver(
             }
           oldCache.table.clear()
           resultTable = Some(newCache)
-          setDataflowContext(context.config.maxCallDepth, context.semantics, resultTable)
+          setDataflowContext(
+            context.config.maxCallDepth,
+            context.semantics,
+            resultTable,
+            cacheConfig.shareCacheBetweenTasks
+          )
         }
       case _ =>
     }

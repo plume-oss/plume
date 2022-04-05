@@ -32,7 +32,8 @@ package object domain {
       dataFlowCacheFile: Option[Path] = Some(Paths.get("dataFlowCache.cbor")),
       compressDataFlowCache: Boolean = true,
       maxCallDepth: Int = 2,
-      maxCachedPaths: Int = 1_000
+      maxCachedPaths: Int = 1_000,
+      shareCacheBetweenTasks: Boolean = false
   )
 
   /** Given an object and a path, will serialize the object to the given path.
