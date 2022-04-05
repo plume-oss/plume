@@ -3,7 +3,7 @@ package com.github.plume.oss.testfixtures
 import com.github.plume.oss.{Jimple2Cpg, PlumeStatistics}
 import com.github.plume.oss.drivers.OverflowDbDriver
 import com.github.plume.oss.JavaCompiler.compileJava
-import com.github.plume.oss.domain.DataFlowCacheConfig
+import com.github.plume.oss.util.DataFlowCacheConfig
 import io.joern.x2cpg.testfixtures.{CodeToCpgFixture, LanguageFrontend}
 import io.shiftleft.codepropertygraph.Cpg
 import org.slf4j.LoggerFactory

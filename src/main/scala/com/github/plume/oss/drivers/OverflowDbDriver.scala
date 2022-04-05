@@ -5,6 +5,8 @@ import com.github.plume.oss.domain._
 import com.github.plume.oss.drivers.OverflowDbDriver.newOverflowGraph
 import com.github.plume.oss.passes.callgraph.PlumeDynamicCallLinker
 import com.github.plume.oss.util.BatchedUpdateUtil._
+import com.github.plume.oss.util.DataFlowCacheConfig
+import com.github.plume.oss.util.DataFlowEngineUtil.setDataflowContext
 import io.joern.dataflowengineoss.language.toExtendedCfgNode
 import io.joern.dataflowengineoss.queryengine._
 import io.joern.dataflowengineoss.semanticsloader.{Parser, Semantics}
@@ -58,10 +60,24 @@ final case class OverflowDbDriver(
   val cpg: Cpg =
     PlumeStatistics.time(PlumeStatistics.TIME_OPEN_DRIVER, { newOverflowGraph(odbConfig) })
 
-  private val semanticsParser = new Parser()
-  private val defaultSemantics: Try[BufferedSource] = Try(
-    Source.fromInputStream(getClass.getClassLoader.getResourceAsStream("default.semantics"))
-  )
+  private val defaultSemanticsFile = "default.semantics"
+  val methodSemantics: Semantics = cacheConfig.methodSemantics match {
+    case Some(semantics) => Semantics.fromList(semantics)
+    case None =>
+      logger.info("No specified method semantics file given. Using default semantics.")
+      Try(
+        Source.fromInputStream(getClass.getClassLoader.getResourceAsStream(defaultSemanticsFile))
+      ) match {
+        case Failure(e) =>
+          logger.warn(
+            "No 'default.semantics' file found under resources - data flow tracking will over-taint.",
+            e
+          )
+          Semantics.fromList(List())
+        case Success(input: BufferedSource) =>
+          Semantics.fromList(new Parser().parse(input.getLines().mkString("\n")))
+      }
+  }
 
   /** Reads the saved cache on the disk and retrieves it as a serializable object
     */
@@ -85,16 +101,6 @@ final case class OverflowDbDriver(
     { deserializeResultTable(fetchCacheFromDisk, cpg) }
   )
 
-  private implicit var context: EngineContext =
-    EngineContext(
-      Semantics.fromList(List()),
-      EngineConfig(
-        maxCallDepth = cacheConfig.maxCallDepth,
-        initialTable = resultTable,
-        shareCacheBetweenTasks = cacheConfig.shareCacheBetweenTasks
-      )
-    )
-
   private def saveDataflowCache(): Unit = cacheConfig.dataFlowCacheFile match {
     case Some(filePath) if resultTable.isDefined && resultTable.get.table.nonEmpty =>
       PlumeStatistics.time(
@@ -110,59 +116,6 @@ final case class OverflowDbDriver(
         }
       )
     case _ => // Do nothing
-  }
-
-  /** Sets the context for the data-flow engine when performing [[flowsBetween]] queries.
-    *
-    * @param maxCallDepth the new method call depth.
-    * @param methodSemantics the file containing method semantics for external methods.
-    * @param initialCache an initializer for the data-flow cache containing pre-calculated paths.
-    */
-  def setDataflowContext(
-      maxCallDepth: Int,
-      methodSemantics: Option[BufferedSource] = None,
-      initialCache: Option[ResultTable] = None,
-      shareCacheBetweenTasks: Boolean = false
-  ): EngineContext = {
-    val cache =
-      if (initialCache.isDefined) initialCache else resultTable
-
-    if (methodSemantics.isDefined) {
-      setDataflowContext(
-        maxCallDepth,
-        Semantics.fromList(semanticsParser.parse(methodSemantics.get.getLines().mkString("\n"))),
-        cache,
-        shareCacheBetweenTasks
-      )
-    } else if (defaultSemantics.isSuccess) {
-      logger.info(
-        "No specified method semantics file given. Using default semantics."
-      )
-      setDataflowContext(
-        maxCallDepth,
-        Semantics.fromList(semanticsParser.parse(defaultSemantics.get.getLines().mkString("\n"))),
-        cache,
-        shareCacheBetweenTasks
-      )
-    } else {
-      logger.warn(
-        "No \"default.semantics\" file found under resources - data flow tracking may not perform correctly."
-      )
-      setDataflowContext(maxCallDepth, Semantics.fromList(List()), cache, shareCacheBetweenTasks)
-    }
-  }
-
-  private def setDataflowContext(
-      maxCallDepth: Int,
-      methodSemantics: Semantics,
-      cache: Option[ResultTable],
-      shareCacheBetweenTasks: Boolean
-  ): EngineContext = {
-    context = EngineContext(
-      methodSemantics,
-      EngineConfig(maxCallDepth, cache, shareCacheBetweenTasks)
-    )
-    context
   }
 
   override def isConnected: Boolean = !cpg.graph.isClosed
@@ -380,19 +333,21 @@ final case class OverflowDbDriver(
     * @param source the source query to match.
     * @param sink the sink query to match.
     * @param sanitizers a set of full method names to filter paths out with.
+    * @param noCacheSharing specifies if this run should not share cache results between tasks.
     * @return the source nodes whose data flows to the given sinks uninterrupted.
     */
   def flowsBetween(
       source: Traversal[CfgNode],
       sink: Traversal[CfgNode],
-      sanitizers: Set[String] = Set.empty[String]
+      sanitizers: Set[String] = Set.empty[String],
+      noCacheSharing: Boolean = false
   ): List[ReachableByResult] =
     PlumeStatistics.time(
       PlumeStatistics.TIME_REACHABLE_BY_QUERYING, {
         import io.shiftleft.semanticcpg.language._
 
-        prepareInitialTable()
-        val results: List[ReachableByResult] = sink.reachableByDetailed(source)(context)
+        val engineContext                    = prepareInitialTable(noCacheSharing)
+        val results: List[ReachableByResult] = sink.reachableByDetailed(source)(engineContext)
         captureDataflowCache(results)
 
         results
@@ -412,16 +367,16 @@ final case class OverflowDbDriver(
       }
     )
 
-  private def prepareInitialTable(): Unit = {
+  private def prepareInitialTable(noCacheSharing: Boolean): EngineContext = {
     cacheConfig.dataFlowCacheFile match {
       case Some(_) =>
         val oldCache = resultTable.getOrElse(new ResultTable)
         if (oldCache.table.map(_._2.size).sum <= cacheConfig.maxCachedPaths) {
           setDataflowContext(
-            context.config.maxCallDepth,
-            context.semantics,
+            cacheConfig.maxCallDepth,
+            methodSemantics,
             Some(oldCache),
-            cacheConfig.shareCacheBetweenTasks
+            shareCacheBetweenTasks = !noCacheSharing
           )
         } else {
           val newCache         = new ResultTable
@@ -439,13 +394,19 @@ final case class OverflowDbDriver(
           oldCache.table.clear()
           resultTable = Some(newCache)
           setDataflowContext(
-            context.config.maxCallDepth,
-            context.semantics,
+            cacheConfig.maxCallDepth,
+            methodSemantics,
             resultTable,
-            cacheConfig.shareCacheBetweenTasks
+            shareCacheBetweenTasks = !noCacheSharing
           )
         }
       case _ =>
+        setDataflowContext(
+          cacheConfig.maxCallDepth,
+          methodSemantics,
+          None,
+          shareCacheBetweenTasks = !noCacheSharing
+        )
     }
   }
 

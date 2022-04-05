@@ -3,7 +3,7 @@ name := "Plume"
 inThisBuild(
   List(
     organization := "com.github.plume-oss",
-    version := "1.2.2",
+    version := "1.2.3",
     scalaVersion := "2.13.8",
     crossScalaVersions := Seq("2.13.8", "3.1.1"),
     resolvers ++= Seq(

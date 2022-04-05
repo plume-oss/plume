@@ -1,14 +1,8 @@
 package com.github.plume.oss
 
 import better.files.File
-import com.github.plume.oss.drivers.{
-  IDriver,
-  Neo4jDriver,
-  NeptuneDriver,
-  OverflowDbDriver,
-  TigerGraphDriver,
-  TinkerGraphDriver
-}
+import com.github.plume.oss.drivers._
+import com.github.plume.oss.util.DataFlowCacheConfig
 import io.circe.Json
 import io.joern.x2cpg.{X2Cpg, X2CpgConfig}
 import scopt.OParser
@@ -60,14 +54,14 @@ object Plume extends App {
   private def createDriver(conf: DriverConfig): IDriver = {
     conf match {
       case _ if conf.database == "OverflowDB" =>
-        val d = new OverflowDbDriver(
+        new OverflowDbDriver(
           storageLocation = Option(conf.params.getOrElse("storageLocation", "cpg.odb")),
           heapPercentageThreshold = conf.params.getOrElse("heapPercentageThreshold", "80").toInt,
           serializationStatsEnabled =
-            conf.params.getOrElse("serializationStatsEnabled", "false").toBoolean
+            conf.params.getOrElse("serializationStatsEnabled", "false").toBoolean,
+          cacheConfig =
+            DataFlowCacheConfig(maxCallDepth = conf.params.getOrElse("maxCallDepth", "2").toInt)
         )
-        d.setDataflowContext(conf.params.getOrElse("maxCallDepth", "2").toInt)
-        d
       case _ if conf.database == "TinkerGraph" => new TinkerGraphDriver()
       case _ if conf.database == "Neo4j" =>
         new Neo4jDriver(

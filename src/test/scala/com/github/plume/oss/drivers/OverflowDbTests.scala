@@ -2,6 +2,8 @@ package com.github.plume.oss.drivers
 
 import com.github.plume.oss.testfixtures.PlumeDriverFixture
 import com.github.plume.oss.testfixtures.PlumeDriverFixture.{b1, m1}
+import com.github.plume.oss.util.DataFlowCacheConfig
+import io.joern.dataflowengineoss.semanticsloader.Parser
 import io.shiftleft.codepropertygraph.generated.{Cpg, EdgeTypes}
 import io.shiftleft.passes.IntervalKeyPool
 import org.apache.tinkerpop.gremlin.tinkergraph.structure.TinkerGraph
@@ -22,27 +24,20 @@ class OverflowDbTests extends PlumeDriverFixture(new OverflowDbDriver()) {
   Files.write(methodSemanticsPath, "\"Foo.bar\" 1->-1\n".getBytes(StandardCharsets.UTF_8))
 
   "should allow for custom method semantics to be defined" in {
-    driver match {
-      case x: OverflowDbDriver =>
-        x.setDataflowContext(
-          2,
-          Some(Source.fromInputStream(Files.newInputStream(methodSemanticsPath)))
-        )
-    }
+    val parser = new Parser()
+    val rawSemantics = Source
+      .fromInputStream(Files.newInputStream(methodSemanticsPath))
+      .getLines()
+      .mkString("\n")
+    val config = DataFlowCacheConfig(methodSemantics = Some(parser.parse(rawSemantics)))
+    new OverflowDbDriver(cacheConfig = config).close()
   }
 
   "should handle the case where no default semantics can be retrieved" in {
-    val field: Field = driver.getClass.getDeclaredField("defaultSemantics")
+    val field: Field = driver.getClass.getDeclaredField("defaultSemanticsFile")
     field.setAccessible(true)
-    field.set(driver, Try.apply(throw new Exception("Foo")))
-
-    driver match {
-      case x: OverflowDbDriver =>
-        x.setDataflowContext(
-          2,
-          Some(Source.fromInputStream(Files.newInputStream(methodSemanticsPath)))
-        )
-    }
+    field.set(driver, null)
+    new OverflowDbDriver().close()
   }
 
   "should be able to serialize and deserialize XML graphs without throwing an exception" in {
