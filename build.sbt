@@ -3,7 +3,7 @@ name := "Plume"
 inThisBuild(
   List(
     organization := "com.github.plume-oss",
-    version := "1.2.3",
+    version := "1.2.4",
     scalaVersion := "2.13.8",
     crossScalaVersions := Seq("2.13.8", "3.1.1"),
     resolvers ++= Seq(
@@ -15,8 +15,7 @@ inThisBuild(
   )
 )
 
-val cpgVersion         = "1.3.527"
-val joernVersion       = "1.1.692"
+val joernVersion       = "1.1.726"
 val sootVersion        = "4.3.0"
 val tinkerGraphVersion = "3.4.11"
 val neo4jVersion       = "4.4.5"
@@ -43,7 +42,6 @@ Test / fork := true
 Test / parallelExecution := false
 
 libraryDependencies ++= Seq(
-  "io.shiftleft"                    %% "codepropertygraph"       % cpgVersion,
   "io.joern"                        %% "semanticcpg"             % joernVersion,
   "io.joern"                        %% "dataflowengineoss"       % joernVersion,
   "io.joern"                        %% "x2cpg"                   % joernVersion,

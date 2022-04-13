@@ -5,6 +5,12 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](http://keepachangelog.com/)
 and this project adheres to [Semantic Versioning](http://semver.org/).
 
+## [1.2.4] - 2022-04-13
+
+### Changed
+
+- Upgraded `Joern` with latest bug fixes in JVM bytecode frontend.
+
 ## [1.2.3] - 2022-04-05
 
 ### Changed

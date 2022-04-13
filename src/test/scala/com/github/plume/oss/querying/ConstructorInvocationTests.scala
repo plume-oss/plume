@@ -59,11 +59,10 @@ class ConstructorInvocationTests extends Jimple2CpgFixture {
         cons.signature shouldBe "void(int)"
         cons.code shouldBe "Foo(int x)"
         cons.parameter.size shouldBe 2
-        val objParam = cons.parameter.index(0).head
+        val List(objParam, otherParam) = cons.parameter.l
         objParam.name shouldBe "this"
         objParam.typeFullName shouldBe "Foo"
         objParam.dynamicTypeHintFullName shouldBe Seq("Foo")
-        val otherParam = cons.parameter.index(1).head
         otherParam.name shouldBe "x"
         otherParam.typeFullName shouldBe "int"
         otherParam.dynamicTypeHintFullName shouldBe Seq()
@@ -78,16 +77,18 @@ class ConstructorInvocationTests extends Jimple2CpgFixture {
         cons1.signature shouldBe "void(int)"
         cons1.code shouldBe "Bar(int x)"
         cons1.parameter.size shouldBe 2
-        cons1.parameter.index(0).head.name shouldBe "this"
-        cons1.parameter.index(1).head.name shouldBe "x"
+        val List(objParam1, otherParam) = cons1.parameter.l
+        objParam1.name shouldBe "this"
+        otherParam.name shouldBe "x"
 
         cons2.fullName shouldBe "Bar.<init>:void(int,int)"
         cons2.signature shouldBe "void(int,int)"
         cons2.code shouldBe "Bar(int x, int y)"
         cons2.parameter.size shouldBe 3
-        cons2.parameter.index(0).head.name shouldBe "this"
-        cons2.parameter.index(1).head.name shouldBe "x"
-        cons2.parameter.index(2).head.name shouldBe "y"
+        val List(objParam2, xParam, yParam) = cons2.parameter.l
+        objParam2.name shouldBe "this"
+        xParam.name shouldBe "x"
+        yParam.name shouldBe "y"
 
       case res =>
         fail(s"Expected 2 Bar constructors, but got $res")
