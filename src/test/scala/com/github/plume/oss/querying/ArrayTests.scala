@@ -38,7 +38,7 @@ class ArrayTests extends Jimple2CpgFixture {
     placeholderArg.typeFullName shouldBe "int[]"
 
     arrayInit.code shouldBe "new int[3]"
-    arrayInit.methodFullName shouldBe "<operator>.arrayCreator"
+    arrayInit.methodFullName shouldBe Operators.alloc
     arrayInit.astChildren.headOption match {
       case Some(alloc) =>
         alloc shouldBe a[Literal]

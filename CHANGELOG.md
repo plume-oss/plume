@@ -5,11 +5,17 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](http://keepachangelog.com/)
 and this project adheres to [Semantic Versioning](http://semver.org/).
 
+## [Unreleased]
+
+### Changed
+
+- Upgraded `Joern` with the latest support for annotations and standardized alloc sites.
+
 ## [1.2.4] - 2022-04-13
 
 ### Changed
 
-- Upgraded `Joern` with latest bug fixes in JVM bytecode frontend.
+- Upgraded `Joern` with the latest bug fixes in JVM bytecode frontend.
 
 ## [1.2.3] - 2022-04-05
 
