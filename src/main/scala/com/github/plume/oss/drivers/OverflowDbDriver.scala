@@ -430,10 +430,8 @@ final case class OverflowDbDriver(
     */
   def removeExpiredPathsFromCache(unchangedTypes: Set[String]): Unit = {
     def isResultExpired(result: ReachableByResult): Boolean = {
-      val isCallSiteUnderTypes = result.callSite match {
-        case Some(callNode) => isNodeUnderTypes(callNode, unchangedTypes)
-        case _              => true
-      }
+      val isCallSiteUnderTypes =
+        result.callSiteStack.exists(callNode => isNodeUnderTypes(callNode, unchangedTypes))
       // Filter out paths where there exists a path element that is not under unchanged types
       result.path.exists { pathE => !isNodeUnderTypes(pathE.node, unchangedTypes) } ||
       !isCallSiteUnderTypes // or where call site is not under unchanged types

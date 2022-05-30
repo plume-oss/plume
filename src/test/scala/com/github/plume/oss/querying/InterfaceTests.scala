@@ -20,7 +20,7 @@ class InterfaceTests extends Jimple2CpgFixture {
   "should contain a type decl for `Foo` with correct fields" in {
     val List(x) = cpg.typeDecl.name("Foo").l
     x.name shouldBe "Foo"
-    x.code shouldBe "Foo"
+    x.code shouldBe "interface Foo extends java.lang.Object"
     x.fullName shouldBe "Foo"
     x.isExternal shouldBe false
     x.inheritsFromTypeFullName shouldBe List("java.lang.Object")
