@@ -34,7 +34,7 @@ case class DataFlowCacheConfig(
     methodSemantics: Option[List[FlowSemantic]] = None,
     dataFlowCacheFile: Option[Path] = Some(Paths.get("dataFlowCache.cbor")),
     compressDataFlowCache: Boolean = true,
-    maxCallDepth: Int = 2,
+    maxCallDepth: Int = 6,
     maxCachedPaths: Int = 1_000,
     shareCacheBetweenTasks: Boolean = false
 )

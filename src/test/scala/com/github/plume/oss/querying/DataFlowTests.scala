@@ -39,7 +39,6 @@ class DataFlowTests extends Jimple2CpgFixture(Some(new OverflowDbDriver())) {
     """.stripMargin
 
   override def afterAll(): Unit = {
-    println("After all")
     driver.clear()
   }
 
@@ -58,7 +57,7 @@ class DataFlowTests extends Jimple2CpgFixture(Some(new OverflowDbDriver())) {
     val cpg = CPG(driver.cpg.graph)
 
     val r = driver
-      .flowsBetween(cpg.parameter("a"), cpg.call("bar"))
+      .flowsBetween(cpg.parameter("a"), cpg.call(".*bar.*"))
     val List(v1) = r.map(r => r.path.map(x => (x.node.method.name, x.node.code)))
 
     v1.head shouldBe ("foo", "int a")
@@ -69,10 +68,7 @@ class DataFlowTests extends Jimple2CpgFixture(Some(new OverflowDbDriver())) {
     val cpg = CPG(driver.cpg.graph)
 
     val r = driver
-      .flowsBetween(cpg.parameter("a"), cpg.call("println"))
-
-    r.map(r => r.path.map(x => (x.node.method.name, x.node.code))).foreach(println)
-
+      .flowsBetween(cpg.parameter("a"), cpg.call(".*println.*"))
     r.size shouldBe 2
 
     val List(v1, v2) = r.map(r => r.path.map(x => (x.node.method.name, x.node.code)))
@@ -90,8 +86,7 @@ class DataFlowTests extends Jimple2CpgFixture(Some(new OverflowDbDriver())) {
     def sink   = cpg.call("baz")
 
     val r1 = driver.flowsBetween(source, sink)
-    r1.map(r => r.path.map(x => (x.node.method.name, x.node.code))).foreach(println)
-    r1.size shouldBe 1
+    r1.size shouldBe 2
 
     val r2 = driver.flowsBetween(source, sink, Set("Foo.falseClean:int(int)"))
     r2.size shouldBe 0

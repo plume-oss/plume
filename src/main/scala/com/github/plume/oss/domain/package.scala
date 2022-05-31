@@ -14,6 +14,7 @@ import overflowdb.traversal.jIteratortoTraversal
 import java.io.{File, FileInputStream, FileOutputStream}
 import java.nio.file.{Path, Paths}
 import java.util.concurrent.ConcurrentHashMap
+import scala.collection.mutable
 import scala.jdk.CollectionConverters
 import scala.jdk.CollectionConverters.ConcurrentMapHasAsScala
 import scala.util.Using
@@ -139,7 +140,7 @@ package object domain {
 
   /** A serializable version of ReachableByResult.
     * @param path a path of nodes represented by [[SerialReachableByResult]]s.
-    * @param callSite the call site that was expanded to kick off the task. We require this to match call sites to
+    * @param callSiteStack the call site that was expanded to kick off the task. We require this to match call sites to
     *                 exclude non-realizable paths through other callers
     * @param callDepth the call depth of this result.
     * @param partial indicate whether this result stands on its own or requires further analysis, e.g., by expanding
@@ -147,7 +148,7 @@ package object domain {
     */
   final case class SerialReachableByResult(
       path: Vector[SerialPathElement],
-      @JsonDeserialize(contentAs = classOf[Long]) callSite: Option[Long],
+      @JsonDeserialize(contentAs = classOf[Long]) callSiteStack: mutable.Stack[Long],
       callDepth: Int = 0,
       partial: Boolean = false
   )
@@ -167,10 +168,7 @@ package object domain {
     ): SerialReachableByResult = {
       new SerialReachableByResult(
         rbr.path.map(SerialPathElement.apply),
-        rbr.callSite match {
-          case Some(call) => Some(call.id())
-          case None       => None
-        },
+        rbr.callSiteStack.map(_.id()),
         rbr.callDepth,
         rbr.partial
       )
@@ -185,16 +183,17 @@ package object domain {
     def unapply(srb: SerialReachableByResult, cpg: Cpg, table: ResultTable): ReachableByResult = {
       ReachableByResult(
         srb.path.map { sbr => SerialPathElement.unapply(sbr, cpg) },
-        table,
-        if (srb.callSite.isDefined) {
-          cpg.graph.nodes(srb.callSite.get).next() match {
-            case node: Call => Some(node)
-            case n =>
-              logger.warn(s"Unable to serialize call node ${n.getClass}.")
-              None
-          }
-        } else {
-          None
+        table, {
+          val cs = new mutable.Stack[Call]()
+          cs.addAll(srb.callSiteStack.flatMap { callId =>
+            cpg.graph.nodes(callId).next() match {
+              case node: Call => Some(node)
+              case n =>
+                logger.warn(s"Unable to serialize call node ${n.getClass}.")
+                None
+            }
+          }.toSeq)
+          cs
         },
         srb.callDepth,
         srb.partial
@@ -205,13 +204,13 @@ package object domain {
   /** A serializable version of the SerialPathElement.
     * @param nodeId the ID of the node this path element represents.
     * @param visible whether this path element should be shown in the flow.
-    * @param resolved whether we have resolved the method call this argument belongs to.
+    * @param isOutputArg whether the element is an output argument.
     * @param outEdgeLabel label of the outgoing DDG edge.
     */
   final case class SerialPathElement(
       nodeId: Long,
       visible: Boolean = true,
-      resolved: Boolean = true,
+      isOutputArg: Boolean = true,
       outEdgeLabel: String = ""
   )
 
@@ -227,7 +226,7 @@ package object domain {
       new SerialPathElement(
         pe.node.id(),
         pe.visible,
-        pe.resolved,
+        pe.isOutputArg,
         pe.outEdgeLabel
       )
     }
@@ -241,7 +240,7 @@ package object domain {
       PathElement(
         cpg.graph.nodes(spe.nodeId).next().asInstanceOf[CfgNode],
         spe.visible,
-        spe.resolved,
+        spe.isOutputArg,
         spe.outEdgeLabel
       )
     }

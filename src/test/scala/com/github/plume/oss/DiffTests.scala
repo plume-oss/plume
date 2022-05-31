@@ -3,7 +3,6 @@ package com.github.plume.oss
 import com.github.plume.oss.drivers.OverflowDbDriver
 import io.joern.dataflowengineoss.queryengine.QueryEngineStatistics
 import io.shiftleft.codepropertygraph.generated.{Cpg, NodeTypes, Operators, PropertyNames}
-import io.shiftleft.codepropertygraph.{Cpg => CPG}
 import io.shiftleft.semanticcpg.language._
 import org.scalatest.BeforeAndAfterAll
 import org.scalatest.matchers.should.Matchers
@@ -78,7 +77,7 @@ class DiffTests extends AnyWordSpec with Matchers with BeforeAndAfterAll {
     driver
       .propertyFromNodes(NodeTypes.METHOD_PARAMETER_IN, PropertyNames.FULL_NAME)
       .size shouldBe 10
-    driver.propertyFromNodes(NodeTypes.LOCAL, PropertyNames.FULL_NAME).size shouldBe 4
+    driver.propertyFromNodes(NodeTypes.LOCAL, PropertyNames.FULL_NAME).size shouldBe 2
 
     val List(barM, fooM) = driver
       .propertyFromNodes(NodeTypes.TYPE_DECL, PropertyNames.FULL_NAME, PropertyNames.IS_EXTERNAL)
@@ -149,7 +148,7 @@ class DiffTests extends AnyWordSpec with Matchers with BeforeAndAfterAll {
     driver
       .propertyFromNodes(NodeTypes.METHOD_PARAMETER_IN, PropertyNames.FULL_NAME)
       .size shouldBe 10
-    driver.propertyFromNodes(NodeTypes.LOCAL, PropertyNames.FULL_NAME).size shouldBe 4
+    driver.propertyFromNodes(NodeTypes.LOCAL, PropertyNames.FULL_NAME).size shouldBe 2
 
     val List(barM, fooM) = driver
       .propertyFromNodes(NodeTypes.TYPE_DECL, PropertyNames.FULL_NAME, PropertyNames.IS_EXTERNAL)

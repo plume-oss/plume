@@ -31,6 +31,6 @@ class LocalTests extends Jimple2CpgFixture {
     y.name shouldBe "y"
     y.code shouldBe "java.lang.Integer y"
     y.typeFullName shouldBe "java.lang.Integer"
-    y.order shouldBe 3
+    y.order shouldBe 2
   }
 }

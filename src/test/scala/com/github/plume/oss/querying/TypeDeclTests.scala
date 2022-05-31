@@ -21,7 +21,7 @@ class TypeDeclTests extends Jimple2CpgFixture {
   "should contain a type decl for `foo` with correct fields" in {
     val List(x) = cpg.typeDecl.name("Bar").l
     x.name shouldBe "Bar"
-    x.code shouldBe "Bar"
+    x.code shouldBe "class Bar extends Foo.Woo"
     x.fullName shouldBe "Foo.Bar"
     x.isExternal shouldBe false
     x.inheritsFromTypeFullName shouldBe List("Foo.Woo")
