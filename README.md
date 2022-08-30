@@ -24,6 +24,9 @@ dataflow analysis and comparing database backend performance.
 Versions < 0.6.3 of Plume were Kotlin based but versions from 1.0.0 onwards have been moved to a Scala implementation
 for better interfacing with the [CPG schema library](https://github.com/ShiftLeftSecurity/codepropertygraph).
 
+If your project depends on Plume I am happy to still provide maintenance and support but I recommend any new 
+research to begin on Joern where I also spend time providing help and support.
+
 ## Quickstart
 
 One can run Plume from the `plume` binary which will use `OverflowDB` as the graph database backend if no config is 
