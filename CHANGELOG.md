@@ -9,7 +9,8 @@ and this project adheres to [Semantic Versioning](http://semver.org/).
 
 ### Added
 
-- Support for Java source file via Soot's source parser;
+- Support for Java source file via Soot's source parser. This can be disabled via 
+`Jimple2Cpg.createCpg(parseJavaSource)`.
 
 ## [1.2.6] - 2022-05-31
 
