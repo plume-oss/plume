@@ -55,7 +55,7 @@ class DiffTests extends AnyWordSpec with Matchers with BeforeAndAfterAll {
     driver.clear()
     driver.close()
     driver = new OverflowDbDriver(storage)
-    cpg = Some(new Jimple2Cpg().createCpg(sandboxDir.getAbsolutePath, driver = driver))
+    cpg = Some(new Jimple2Cpg().createCpg(sandboxDir.getAbsolutePath, driver = driver, parseJavaSource = false))
     sandboxDir.listFiles().foreach(_.delete())
   }
 
@@ -138,7 +138,7 @@ class DiffTests extends AnyWordSpec with Matchers with BeforeAndAfterAll {
     rewriteFileContents(bar, bar1)
     rewriteFileContents(foo, foo2)
     JavaCompiler.compileJava(foo, bar)
-    cpg = Some(new Jimple2Cpg().createCpg(sandboxDir.getAbsolutePath, driver = driver))
+    cpg = Some(new Jimple2Cpg().createCpg(sandboxDir.getAbsolutePath, driver = driver, parseJavaSource = false))
 
     // Check the correct numbers of nodes are present
     driver.propertyFromNodes(NodeTypes.TYPE_DECL).size shouldBe 7

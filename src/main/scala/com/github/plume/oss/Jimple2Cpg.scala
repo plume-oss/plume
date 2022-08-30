@@ -20,7 +20,7 @@ import soot.options.Options
 import soot.{G, PhaseOptions, Scene, SootClass}
 
 import java.io.{File => JFile}
-import java.nio.file.Paths
+import java.nio.file.{Files, Paths, StandardCopyOption}
 import scala.jdk.CollectionConverters.EnumerationHasAsScala
 
 object Jimple2Cpg {
@@ -41,7 +41,6 @@ object Jimple2Cpg {
     }
     filename
       .replace(codeDir + JFile.separator, "")
-      .replace(".class", "")
       .replace(JFile.separator, ".")
   }
 }
@@ -68,6 +67,7 @@ class Jimple2Cpg {
       rawSourceCodePath: String,
       referenceGraphOutputPath: Option[String] = None,
       driver: IDriver = new OverflowDbDriver(),
+      parseJavaSource: Boolean = true,
       sootOnlyBuild: Boolean = false
   ): Cpg = PlumeStatistics.time(
     PlumeStatistics.TIME_EXTRACTION, {
@@ -96,15 +96,26 @@ class Jimple2Cpg {
             driver.idInterval(30_001_001, Long.MaxValue)
           )
 
-        val sourceFileExtensions  = Set(".class", ".jimple")
+        val classFileExtensions   = Set(".class", ".jimple")
+        val sourceFileExtensions  = if (parseJavaSource) Set(".java") else Set.empty[String]
         val archiveFileExtensions = Set(".jar", ".war")
         // Load source files and unpack archives if necessary
         val sourceFileNames = if (sourceTarget == sourceCodeDir) {
           // Load all source files in a directory
-          loadSourceFiles(sourceCodeDir, sourceFileExtensions, archiveFileExtensions)
+          loadSourceFiles(
+            sourceCodeDir,
+            classFileExtensions,
+            archiveFileExtensions,
+            sourceFileExtensions
+          )
         } else {
           // Load single file that was specified
-          loadSourceFiles(sourceTarget, sourceFileExtensions, archiveFileExtensions)
+          loadSourceFiles(
+            sourceTarget,
+            classFileExtensions,
+            archiveFileExtensions,
+            sourceFileExtensions
+          )
         }
 
         logger.info(s"Loading ${sourceFileNames.size} program files")
@@ -180,21 +191,39 @@ class Jimple2Cpg {
     */
   private def loadSourceFiles(
       sourceCodePath: String,
-      sourceFileExtensions: Set[String],
-      archiveFileExtensions: Set[String]
+      classFileExtensions: Set[String],
+      archiveFileExtensions: Set[String],
+      sourceFileExtensions: Set[String]
   ): List[String] = {
     (
       extractSourceFilesFromArchive(sourceCodePath, archiveFileExtensions) ++
-        moveClassFiles(SourceFiles.determine(Set(sourceCodePath), sourceFileExtensions))
+        moveClassFiles(SourceFiles.determine(Set(sourceCodePath), classFileExtensions)) ++
+        moveSourceFiles(sourceFileExtensions, sourceCodePath)
     ).distinct
+  }
+
+  private def moveSourceFiles(sourceFileExtensions: Set[String], basePath: String): List[String] = {
+    val tempPath = ProgramHandlingUtil.getUnpackingDir
+    SourceFiles
+      .determine(Set(basePath), sourceFileExtensions)
+      .map(f => {
+        val newPath = new JFile(tempPath.toFile, f.stripPrefix(basePath))
+        newPath.getParentFile.mkdirs()
+        Files.copy(Paths.get(f), newPath.toPath, StandardCopyOption.REPLACE_EXISTING)
+        newPath.getAbsolutePath
+      })
   }
 
   private def loadClassesIntoSoot(sourceFileNames: Seq[String]): Seq[SootClass] = {
     val sootClasses = sourceFileNames
       .map(getQualifiedClassPath)
       .map { cp =>
-        Scene.v().addBasicClass(cp)
-        Scene.v().loadClassAndSupport(cp)
+        val cpNoSuffix = cp.stripSuffix(".java").stripSuffix(".class")
+        Scene.v().addBasicClass(cpNoSuffix)
+        if (cp.endsWith(".class"))
+          Scene.v().loadClassAndSupport(cpNoSuffix)
+        else
+          Scene.v().getSootClass(cpNoSuffix)
       }
     Scene.v().loadNecessaryClasses()
     sootClasses

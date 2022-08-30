@@ -23,7 +23,10 @@ class AstCreationPass(
   override def runOnPart(builder: DiffGraphBuilder, part: String): Unit = {
     val qualifiedClassName = Jimple2Cpg.getQualifiedClassPath(part)
     try {
-      val sootClass = Scene.v().loadClassAndSupport(qualifiedClassName)
+      val cNameNoSuff = qualifiedClassName.stripSuffix(".class").stripSuffix(".java")
+      val sootClass =
+        if (qualifiedClassName.contains(".class")) Scene.v().loadClassAndSupport(cNameNoSuff)
+        else Scene.v().getSootClass(cNameNoSuff)
       sootClass.setApplicationClass()
       val localDiff = new io.joern.jimple2cpg.passes.AstCreator(part, sootClass, global).createAst()
       builder.absorb(localDiff)

@@ -28,7 +28,7 @@ jobs:
         run: sbt coverage "NeoTest / test"
       - name: Run TigerGraph integration tests
         run: |
-          curl https://docs.tigergraph.com/tigergraph-server/current/gsql-shell/_attachments/gsql_client.jar --output gsql_client.jar
+          curl https://docs.tigergraph.com/tigergraph-server/3.5/gsql-shell/_attachments/gsql_client_server353.jar --output gsql_client.jar
           export GSQL_HOME=`pwd`/gsql_client.jar
           sbt coverage "TgTest / test"
 
