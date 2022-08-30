@@ -20,7 +20,7 @@ import soot.options.Options
 import soot.{G, PhaseOptions, Scene, SootClass}
 
 import java.io.{File => JFile}
-import java.nio.file.Paths
+import java.nio.file.{Files, Paths, StandardCopyOption}
 import scala.jdk.CollectionConverters.EnumerationHasAsScala
 
 object Jimple2Cpg {
@@ -41,7 +41,6 @@ object Jimple2Cpg {
     }
     filename
       .replace(codeDir + JFile.separator, "")
-      .replace(".class", "")
       .replace(JFile.separator, ".")
   }
 }
@@ -185,16 +184,33 @@ class Jimple2Cpg {
   ): List[String] = {
     (
       extractSourceFilesFromArchive(sourceCodePath, archiveFileExtensions) ++
-        moveClassFiles(SourceFiles.determine(Set(sourceCodePath), sourceFileExtensions))
+        moveClassFiles(SourceFiles.determine(Set(sourceCodePath), sourceFileExtensions)) ++
+        moveSourceFiles(sourceCodePath)
     ).distinct
+  }
+
+  private def moveSourceFiles(basePath: String): List[String] = {
+    val tempPath = ProgramHandlingUtil.getUnpackingDir
+    SourceFiles
+      .determine(Set(basePath), Set(".java"))
+      .map(f => {
+        val newPath = new JFile(tempPath.toFile, f.stripPrefix(basePath))
+        newPath.getParentFile.mkdirs()
+        Files.copy(Paths.get(f), newPath.toPath, StandardCopyOption.REPLACE_EXISTING)
+        newPath.getAbsolutePath
+      })
   }
 
   private def loadClassesIntoSoot(sourceFileNames: Seq[String]): Seq[SootClass] = {
     val sootClasses = sourceFileNames
       .map(getQualifiedClassPath)
       .map { cp =>
-        Scene.v().addBasicClass(cp)
-        Scene.v().loadClassAndSupport(cp)
+        val cpNoSuffix = cp.stripSuffix(".java").stripSuffix(".class")
+        Scene.v().addBasicClass(cpNoSuffix)
+        if (cp.endsWith(".class"))
+          Scene.v().loadClassAndSupport(cpNoSuffix)
+        else
+          Scene.v().getSootClass(cpNoSuffix)
       }
     Scene.v().loadNecessaryClasses()
     sootClasses
