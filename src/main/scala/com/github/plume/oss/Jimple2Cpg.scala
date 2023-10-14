@@ -152,11 +152,6 @@ class Jimple2Cpg {
           .map(_.toString)
           .toSet[String]
 
-        driver match {
-          case x: OverflowDbDriver => x.removeExpiredPathsFromCache(unchangedTypes)
-          case _                   =>
-        }
-
         new PlumeMetaDataPass(cpg, language, Some(metaDataKeyPool), unchangedTypes)
           .createAndApply(driver)
 

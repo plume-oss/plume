@@ -1,0 +1,5 @@
+name := "tigergraph"
+
+libraryDependencies ++= Seq(
+
+)

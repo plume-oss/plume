@@ -12,8 +12,6 @@ import java.nio.file.{Files, Paths}
 
 class SourceSupportTests extends AnyWordSpec with Matchers with BeforeAndAfterAll {
 
-  private val logger = LoggerFactory.getLogger(classOf[SourceSupportTests])
-
   private def getTestResource(dir: String): File = {
     val resourceURL = getClass.getResource(dir)
     if (resourceURL == null) throw new NullPointerException("Unable to obtain test resource")
@@ -41,10 +39,6 @@ class SourceSupportTests extends AnyWordSpec with Matchers with BeforeAndAfterAl
     driver.clear()
     driver.close()
     Paths.get(storage.get).toFile.delete()
-    driver.cacheConfig.dataFlowCacheFile match {
-      case Some(jsonFile) => new File(jsonFile.toFile.getAbsolutePath + ".lz4").delete()
-      case None           =>
-    }
   }
 
   "should accept Java source files" in {

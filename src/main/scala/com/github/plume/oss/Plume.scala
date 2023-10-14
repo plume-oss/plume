@@ -2,7 +2,6 @@ package com.github.plume.oss
 
 import better.files.File
 import com.github.plume.oss.drivers._
-import com.github.plume.oss.util.DataFlowCacheConfig
 import io.circe.Json
 import io.joern.x2cpg.{X2Cpg, X2CpgConfig}
 import scopt.OParser
@@ -59,8 +58,6 @@ object Plume extends App {
           heapPercentageThreshold = conf.params.getOrElse("heapPercentageThreshold", "80").toInt,
           serializationStatsEnabled =
             conf.params.getOrElse("serializationStatsEnabled", "false").toBoolean,
-          cacheConfig =
-            DataFlowCacheConfig(maxCallDepth = conf.params.getOrElse("maxCallDepth", "2").toInt)
         )
       case _ if conf.database == "TinkerGraph" => new TinkerGraphDriver()
       case _ if conf.database == "Neo4j" =>

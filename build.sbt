@@ -15,63 +15,38 @@ inThisBuild(
   )
 )
 
-val joernVersion       = "1.1.851"
-val sootVersion        = "4.3.0"
-val tinkerGraphVersion = "3.4.11"
-val neo4jVersion       = "4.4.5"
-val apacheCodecVersion = "1.15"
-val apacheIoVersion    = "2.11.0"
-val apacheLangVersion  = "3.12.0"
-val sttpVersion        = "3.5.1"
-val jacksonVersion     = "2.13.2"
-val scalajHttpVersion  = "2.4.2"
-val lz4Version         = "1.8.0"
-val slf4jVersion       = "1.7.36"
-val log4jVersion       = "2.17.2"
-val logbackVersion     = "1.2.11"
-val scalatestVersion   = "3.2.11"
-val circeVersion       = "0.14.1"
+lazy val commons = Projects.commons
+// Drivers
+lazy val base        = Projects.base
+// Implementation
+lazy val gremlin     = Projects.gremlin.dependsOn(base, commons)
+lazy val tinkergraph = Projects.tinkergraph.dependsOn(base, commons, gremlin)
+lazy val neptune     = Projects.neptune.dependsOn(base, commons, gremlin)
+lazy val neo4j       = Projects.neo4j.dependsOn(base, commons)
+lazy val tigergraph  = Projects.tigergraph.dependsOn(base, commons)
+lazy val overflowDb  = Projects.overflowdb.dependsOn(base, commons)
 
-lazy val scalatest         = "org.scalatest" %% "scalatest" % scalatestVersion
-lazy val NeoIntTest        = config("neoTest") extend Test
-lazy val TigerGraphIntTest = config("tgTest") extend Test
-lazy val NeptuneIntTest    = config("nepTest") extend Test
+lazy val root = (project in file("."))
+  .aggregate(commons, base, gremlin, tinkergraph, neptune, neo4j, tigergraph, overflowDb)
+  .dependsOn(commons, base, gremlin, tinkergraph, neptune, neo4j, tigergraph, overflowDb)
 
 trapExit := false
 Test / fork := true
 Test / parallelExecution := false
 
 libraryDependencies ++= Seq(
-  "io.joern"                        %% "semanticcpg"             % joernVersion,
-  "io.joern"                        %% "dataflowengineoss"       % joernVersion,
-  "io.joern"                        %% "x2cpg"                   % joernVersion,
-  "io.joern"                        %% "jimple2cpg"              % joernVersion,
-  "io.joern"                        %% "x2cpg"                   % joernVersion     % Test classifier "tests",
-  "org.soot-oss"                     % "soot"                    % sootVersion,
-  "org.apache.tinkerpop"             % "tinkergraph-gremlin"     % tinkerGraphVersion,
-  "org.apache.tinkerpop"             % "gremlin-driver"          % tinkerGraphVersion,
-  "org.neo4j.driver"                 % "neo4j-java-driver"       % neo4jVersion,
-  "commons-codec"                    % "commons-codec"           % apacheCodecVersion,
-  "commons-io"                       % "commons-io"              % apacheIoVersion,
-  "org.apache.commons"               % "commons-lang3"           % apacheLangVersion,
-  "com.softwaremill.sttp.client3"   %% "core"                    % sttpVersion,
-  "com.softwaremill.sttp.client3"   %% "circe"                   % sttpVersion,
-  "com.fasterxml.jackson.core"       % "jackson-databind"        % jacksonVersion,
-  "com.fasterxml.jackson.module"    %% "jackson-module-scala"    % jacksonVersion,
-  "com.fasterxml.jackson.dataformat" % "jackson-dataformat-cbor" % jacksonVersion,
-  "org.scalaj"                       % "scalaj-http_2.13"        % scalajHttpVersion,
-  "org.lz4"                          % "lz4-java"                % lz4Version,
-  "org.slf4j"                        % "slf4j-api"               % slf4jVersion,
-  "org.scala-lang"                   % "scala-reflect"           % scalaVersion.value,
-  "org.apache.logging.log4j"         % "log4j-core"              % log4jVersion     % Test,
-  "org.apache.logging.log4j"         % "log4j-slf4j-impl"        % log4jVersion     % Test,
-  "org.scalatest"                   %% "scalatest"               % scalatestVersion % Test
-) ++ Seq(
-  "io.circe" %% "circe-core",
-  "io.circe" %% "circe-generic",
-  "io.circe" %% "circe-parser",
-  "io.circe" %% "circe-yaml"
-).map(_ % circeVersion)
+  "io.joern"                %% "semanticcpg"       % Versions.joern,
+  "io.joern"                %% "dataflowengineoss" % Versions.joern,
+  "io.joern"                %% "x2cpg"             % Versions.joern,
+  "io.joern"                %% "jimple2cpg"        % Versions.joern,
+  "io.joern"                %% "x2cpg"             % Versions.joern     % Test classifier "tests",
+  "org.soot-oss"             % "soot"              % Versions.soot,
+  "org.slf4j"                % "slf4j-api"         % Versions.slf4j,
+  "org.scala-lang"           % "scala-reflect"     % scalaVersion.value,
+  "org.apache.logging.log4j" % "log4j-core"        % Versions.log4j     % Test,
+  "org.apache.logging.log4j" % "log4j-slf4j-impl"  % Versions.log4j     % Test,
+  "org.scalatest"           %% "scalatest"         % Versions.scalatest % Test
+)
 
 enablePlugins(
   JavaAppPackaging,
@@ -106,26 +81,3 @@ developers := List(
 Global / onChangedBuildSource := ReloadOnSourceChanges
 
 publishMavenStyle := true
-
-lazy val root = (project in file("."))
-  .configs(NeoIntTest)
-  .settings(
-    inConfig(NeoIntTest)(Defaults.testSettings),
-    libraryDependencies += scalatest % NeoIntTest,
-    Test / testOptions := Seq(Tests.Filter(s => !s.endsWith("IntTests"))),
-    NeoIntTest / testOptions := Seq(Tests.Filter(s => s.contains("Neo4j")))
-  )
-  .configs(TigerGraphIntTest)
-  .settings(
-    inConfig(TigerGraphIntTest)(Defaults.testSettings),
-    libraryDependencies += scalatest % TigerGraphIntTest,
-    Test / testOptions := Seq(Tests.Filter(s => !s.endsWith("IntTests"))),
-    TigerGraphIntTest / testOptions := Seq(Tests.Filter(s => s.contains("TigerGraph")))
-  )
-  .configs(NeptuneIntTest)
-  .settings(
-    inConfig(NeptuneIntTest)(Defaults.testSettings),
-    libraryDependencies += scalatest % NeptuneIntTest,
-    Test / testOptions := Seq(Tests.Filter(s => !s.endsWith("IntTests"))),
-    NeptuneIntTest / testOptions := Seq(Tests.Filter(s => s.contains("Neptune")))
-  )
