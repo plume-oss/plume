@@ -14,7 +14,7 @@ object Versions {
   val apacheCodec = "1.15"
   val apacheIo    = "2.11.0"
   val apacheLang  = "3.12.0"
-  val sttp        = "3.5.1"
+  val sttp        = "3.9.0"
   val jackson     = "2.13.2"
   val scalajHttp  = "2.4.2"
   val lz4         = "1.8.0"

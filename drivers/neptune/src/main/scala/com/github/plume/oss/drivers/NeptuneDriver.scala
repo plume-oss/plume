@@ -3,17 +3,20 @@ package com.github.plume.oss.drivers
 import com.github.plume.oss.PlumeStatistics
 import com.github.plume.oss.domain._
 import com.github.plume.oss.drivers.NeptuneDriver.DEFAULT_PORT
+import io.circe.Decoder
 import io.circe.generic.semiauto.deriveDecoder
-import io.circe.{Decoder, jawn}
 import org.apache.tinkerpop.gremlin.driver.Cluster
 import org.apache.tinkerpop.gremlin.driver.remote.DriverRemoteConnection
 import org.apache.tinkerpop.gremlin.driver.ser.Serializers
 import org.apache.tinkerpop.gremlin.process.traversal.AnonymousTraversalSource
 import org.apache.tinkerpop.gremlin.process.traversal.dsl.graph.GraphTraversalSource
 import org.slf4j.{Logger, LoggerFactory}
-import scalaj.http.{Http, HttpOptions}
+import sttp.client3._
+import sttp.client3.circe.asJson
 import sttp.model.Uri
+import sttp.client3.HttpClientSyncBackend
 
+import scala.concurrent.duration.DurationInt
 import scala.jdk.CollectionConverters.CollectionHasAsScala
 import scala.util.{Failure, Success, Try}
 
@@ -25,6 +28,8 @@ final class NeptuneDriver(
 ) extends GremlinDriver(txMax) {
 
   override protected val logger: Logger = LoggerFactory.getLogger(classOf[NeptuneDriver])
+
+  private val backend = HttpClientSyncBackend()
 
   lazy implicit val initResetDecoder: Decoder[InitiateResetResponse] =
     deriveDecoder[InitiateResetResponse]
@@ -83,22 +88,28 @@ final class NeptuneDriver(
           Uri("https", hostname, port)
             .addPath(Seq("system"))
         logger.info("Initiating database reset...")
-        val initResetResponse = Http(systemUri.toString())
-          .postForm(Seq("action" -> "initiateDatabaseReset"))
-          .option(HttpOptions.readTimeout(80000))
-          .asString
-        val token: String = jawn.decode[InitiateResetResponse](initResetResponse.body) match {
+
+        val initResetRequest = basicRequest
+          .post(systemUri)
+          .body(Map("action" -> "initiateDatabaseReset"))
+          .readTimeout(80.second)
+          .response(asJson[InitiateResetResponse])
+
+        val token: String = initResetRequest.send(backend).body match {
           case Left(e) =>
             e.printStackTrace()
             throw new RuntimeException(s"Unable to initiate database reset! $e")
           case Right(resetResponse: InitiateResetResponse) => resetResponse.payload.token
         }
+
         logger.info("Reset token acquired, performing database reset...")
-        val performResetResponse = Http(systemUri.toString())
-          .postForm(Seq("action" -> "performDatabaseReset", "token" -> token))
-          .option(HttpOptions.readTimeout(80000))
-          .asString
-        jawn.decode[PerformResetResponse](performResetResponse.body) match {
+        val performResetRequest = basicRequest
+          .post(systemUri)
+          .body(Map("action" -> "performDatabaseReset", "token" -> token))
+          .readTimeout(80.second)
+          .response(asJson[PerformResetResponse])
+
+        performResetRequest.send(backend).body match {
           case Left(e) =>
             logger.error("Unable to perform database reset!", e)
             throw e
@@ -111,12 +122,12 @@ final class NeptuneDriver(
             Iterator
               .continually(
                 Try(
-                  jawn.decode[InstanceStatusResponse](
-                    Http(statusUri.toString())
-                      .option(HttpOptions.readTimeout(80000))
-                      .asString
-                      .body
-                  )
+                  basicRequest
+                    .get(statusUri)
+                    .readTimeout(80.second)
+                    .response(asJson[InstanceStatusResponse])
+                    .send(backend)
+                    .body
                 ) match {
                   case Failure(exception) => Left(exception)
                   case Success(value)     => value
@@ -155,6 +166,7 @@ final class NeptuneDriver(
         case e: Exception => logger.error("Exception thrown while attempting to close graph.", e)
       } finally {
         traversalSource = None
+        backend.close()
       }
     }
   )
