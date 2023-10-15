@@ -16,7 +16,7 @@ class PlumeFrontend(val _driver: Option[OverflowDbDriver]) extends LanguageFront
   private val logger = LoggerFactory.getLogger(classOf[PlumeFrontend])
   val driver: OverflowDbDriver = _driver match {
     case Some(d) => d
-    case None    => new OverflowDbDriver(cacheConfig = DataFlowCacheConfig(dataFlowCacheFile = None))
+    case None    => new OverflowDbDriver()
   }
   override val fileSuffix: String = ".java"
 

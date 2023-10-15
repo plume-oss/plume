@@ -1,4 +1,4 @@
-package com.github.plume.oss.drivers.textfixtures
+package com.github.plume.oss.testfixtures
 
 import com.github.plume.oss.drivers.IDriver
 import io.shiftleft.codepropertygraph.generated.NodeTypes._

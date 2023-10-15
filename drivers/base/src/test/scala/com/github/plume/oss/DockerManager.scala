@@ -9,7 +9,7 @@ import scala.sys.process.{Process, ProcessLogger, stringSeqToProcess}
 
 object DockerManager {
 
-  private val logger = LoggerFactory.getLogger(classOf[Jimple2Cpg])
+  private val logger = LoggerFactory.getLogger(getClass)
 
   def toDockerComposeFile(dbName: String): JavaFile =
     new JavaFile(getClass.getResource(s"/docker/$dbName.yml").toURI)

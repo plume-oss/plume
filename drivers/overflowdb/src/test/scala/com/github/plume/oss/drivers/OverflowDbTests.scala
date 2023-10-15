@@ -4,14 +4,13 @@ import com.github.plume.oss.testfixtures.PlumeDriverFixture
 import com.github.plume.oss.testfixtures.PlumeDriverFixture.{b1, m1}
 import io.shiftleft.codepropertygraph.generated.{Cpg, EdgeTypes}
 import io.shiftleft.passes.IntervalKeyPool
+import org.apache.tinkerpop.gremlin.tinkergraph.structure.TinkerGraph
 import overflowdb.BatchedUpdate
 
 import java.io.{File => JFile}
-import java.lang.reflect.Field
 import java.nio.charset.StandardCharsets
 import java.nio.file.{Files, Paths}
-import scala.io.Source
-import scala.util.{Failure, Success, Try}
+import scala.util.{Failure, Try}
 
 class OverflowDbTests extends PlumeDriverFixture(new OverflowDbDriver()) {
 

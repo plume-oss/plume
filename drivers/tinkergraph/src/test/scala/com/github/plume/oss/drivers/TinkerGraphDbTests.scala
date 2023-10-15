@@ -1,7 +1,7 @@
 package com.github.plume.oss.drivers
 
-import com.github.plume.oss.drivers.textfixtures.PlumeDriverFixture
-import com.github.plume.oss.drivers.textfixtures.PlumeDriverFixture.{b1, m1}
+import com.github.plume.oss.testfixtures.PlumeDriverFixture.{b1, m1}
+import com.github.plume.oss.testfixtures.PlumeDriverFixture
 import io.shiftleft.codepropertygraph.generated.NodeTypes.{BLOCK, METHOD}
 import io.shiftleft.codepropertygraph.generated.{Cpg, EdgeTypes}
 import io.shiftleft.passes.IntervalKeyPool

@@ -4,7 +4,7 @@
 *.bin
 *.gzip
 graph.xml
-gsql_client.jar
+gsql_client.*
 
 # Ignore Gradle GUI config
 gradle-app.setting

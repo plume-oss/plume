@@ -17,18 +17,18 @@ inThisBuild(
 
 lazy val commons = Projects.commons
 // Drivers
-lazy val base        = Projects.base
+lazy val base = Projects.base
 // Implementation
-lazy val gremlin     = Projects.gremlin.dependsOn(base, commons)
-lazy val tinkergraph = Projects.tinkergraph.dependsOn(base, commons, gremlin)
-lazy val neptune     = Projects.neptune.dependsOn(base, commons, gremlin)
-lazy val neo4j       = Projects.neo4j.dependsOn(base, commons)
-lazy val tigergraph  = Projects.tigergraph.dependsOn(base, commons)
-lazy val overflowDb  = Projects.overflowdb.dependsOn(base, commons)
+lazy val gremlin     = Projects.gremlin
+lazy val tinkergraph = Projects.tinkergraph
+lazy val neptune     = Projects.neptune
+lazy val neo4j       = Projects.neo4j
+lazy val tigergraph  = Projects.tigergraph
+lazy val overflowDb  = Projects.overflowdb
 
 lazy val root = (project in file("."))
-  .aggregate(commons, base, gremlin, tinkergraph, neptune, neo4j, tigergraph, overflowDb)
   .dependsOn(commons, base, gremlin, tinkergraph, neptune, neo4j, tigergraph, overflowDb)
+  .aggregate(commons, base, gremlin, tinkergraph, neptune, neo4j, tigergraph, overflowDb)
 
 trapExit := false
 Test / fork := true
@@ -40,7 +40,6 @@ libraryDependencies ++= Seq(
   "io.joern"                %% "x2cpg"             % Versions.joern,
   "io.joern"                %% "jimple2cpg"        % Versions.joern,
   "io.joern"                %% "x2cpg"             % Versions.joern     % Test classifier "tests",
-  "org.soot-oss"             % "soot"              % Versions.soot,
   "org.slf4j"                % "slf4j-api"         % Versions.slf4j,
   "org.scala-lang"           % "scala-reflect"     % scalaVersion.value,
   "org.apache.logging.log4j" % "log4j-core"        % Versions.log4j     % Test,
