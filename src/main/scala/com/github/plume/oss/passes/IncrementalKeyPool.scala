@@ -4,8 +4,7 @@ import io.shiftleft.passes.KeyPool
 
 import java.util.concurrent.atomic.AtomicLong
 
-class IncrementalKeyPool(val first: Long, val last: Long, private val usedIds: Set[Long])
-    extends KeyPool {
+class IncrementalKeyPool(val first: Long, val last: Long, private val usedIds: Set[Long]) extends KeyPool {
 
   override def next: Long = {
     if (!valid) {

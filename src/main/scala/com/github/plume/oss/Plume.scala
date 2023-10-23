@@ -3,22 +3,11 @@ package com.github.plume.oss
 import better.files.File
 import com.github.plume.oss.drivers._
 import io.circe.Json
-import io.joern.x2cpg.{X2Cpg, X2CpgConfig}
+import io.joern.jimple2cpg.Config
+import io.joern.x2cpg.X2Cpg
 import scopt.OParser
 
 import java.io.InputStreamReader
-
-/** Command line configuration parameters
-  */
-final case class Config(
-    inputPaths: Set[String] = Set.empty,
-    outputPath: String = X2CpgConfig.defaultOutputPath
-) extends X2CpgConfig[Config] {
-
-  override def withAdditionalInputPath(inputPath: String): Config =
-    copy(inputPaths = inputPaths + inputPath)
-  override def withOutputPath(x: String): Config = copy(outputPath = x)
-}
 
 /** Entry point for command line CPG creator
   */
@@ -56,8 +45,7 @@ object Plume extends App {
         new OverflowDbDriver(
           storageLocation = Option(conf.params.getOrElse("storageLocation", "cpg.odb")),
           heapPercentageThreshold = conf.params.getOrElse("heapPercentageThreshold", "80").toInt,
-          serializationStatsEnabled =
-            conf.params.getOrElse("serializationStatsEnabled", "false").toBoolean,
+          serializationStatsEnabled = conf.params.getOrElse("serializationStatsEnabled", "false").toBoolean
         )
       case _ if conf.database == "TinkerGraph" => new TinkerGraphDriver()
       case _ if conf.database == "Neo4j" =>
@@ -83,8 +71,7 @@ object Plume extends App {
         new NeptuneDriver(
           hostname = conf.params.getOrElse("hostname", "localhost"),
           port = conf.params.getOrElse("port", "8182").toInt,
-          keyCertChainFile =
-            conf.params.getOrElse("keyCertChainFile", "src/main/resources/conf/SFSRootCAC2.pem"),
+          keyCertChainFile = conf.params.getOrElse("keyCertChainFile", "src/main/resources/conf/SFSRootCAC2.pem"),
           txMax = conf.params.getOrElse("txMax", "50").toInt
         )
       case _ =>
@@ -95,37 +82,25 @@ object Plume extends App {
   }
 
   private val configOption = X2Cpg.parseCommandLine(args, frontendSpecificOptions, Config())
-  if (configOption.isEmpty) {
-    System.exit(1)
-  } else if (configOption.get.inputPaths.size != 1) {
-    println("This frontend requires exactly one input path")
-    System.exit(1)
-  } else {
-    val config = configOption.get
-    if (config.inputPaths.size == 1) {
-      val (conf, driver) = parseDriverConfig()
-      if (driver == null) {
-        println("Unable to create driver, bailing out...")
-        System.exit(1)
-      }
-      driver match {
-        case d: TinkerGraphDriver if conf != null =>
-          val importPath = conf.params.get("importPath")
-          if (importPath.isDefined) d.importGraph(importPath.get)
-        case _ =>
-      }
-      val cpg = new Jimple2Cpg().createCpg(
-        config.inputPaths.head,
-        Some(config.outputPath),
-        driver
-      )
-      driver match {
-        case d: TinkerGraphDriver if conf != null =>
-          val exportPath = conf.params.get("exportPath")
-          if (exportPath.isDefined) d.exportGraph(exportPath.get)
-        case _ =>
-      }
-      cpg.close()
+
+  configOption.foreach { config =>
+    val (conf, driver) = parseDriverConfig()
+    if (driver == null) {
+      println("Unable to create driver, bailing out...")
+      System.exit(1)
+    }
+    driver match {
+      case d: TinkerGraphDriver if conf != null =>
+        val importPath = conf.params.get("importPath")
+        if (importPath.isDefined) d.importGraph(importPath.get)
+      case _ =>
+    }
+    new JimpleAst2Database(driver).createCpg(config)
+    driver match {
+      case d: TinkerGraphDriver if conf != null =>
+        val exportPath = conf.params.get("exportPath")
+        if (exportPath.isDefined) d.exportGraph(exportPath.get)
+      case _ =>
     }
   }
 

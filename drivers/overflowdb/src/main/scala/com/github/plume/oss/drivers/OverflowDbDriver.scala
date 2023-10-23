@@ -1,42 +1,34 @@
 package com.github.plume.oss.drivers
 
 import com.github.plume.oss.PlumeStatistics
-import com.github.plume.oss.domain._
 import com.github.plume.oss.drivers.OverflowDbDriver.newOverflowGraph
-import com.github.plume.oss.util.BatchedUpdateUtil._
-import io.joern.dataflowengineoss.language.toExtendedCfgNode
-import io.joern.dataflowengineoss.queryengine._
-import io.joern.dataflowengineoss.semanticsloader.{Parser, Semantics}
-import io.shiftleft.codepropertygraph.generated._
-import io.shiftleft.codepropertygraph.generated.nodes._
-import io.shiftleft.codepropertygraph.{Cpg => CPG}
-import io.shiftleft.passes.AppliedDiffGraph
-import io.shiftleft.passes.DiffGraph.{Change, PackedProperties}
+import com.github.plume.oss.util.BatchedUpdateUtil
+import com.github.plume.oss.util.BatchedUpdateUtil.*
+import io.shiftleft.codepropertygraph.generated.*
+import io.shiftleft.codepropertygraph.generated.nodes.*
 import org.apache.commons.lang.StringEscapeUtils
 import org.slf4j.LoggerFactory
-import overflowdb.BatchedUpdate.AppliedDiff
-import overflowdb.traversal.{Traversal, jIteratortoTraversal}
+import overflowdb.BatchedUpdate.DiffOrBuilder
+import overflowdb.traversal.jIteratortoTraversal
 import overflowdb.{BatchedUpdate, Config, DetachedNodeData, Edge, Node}
 
-import java.io.{FileOutputStream, OutputStreamWriter, File => JFile}
-import java.nio.file.Files
-import java.util.concurrent.ConcurrentHashMap
+import java.io.{FileOutputStream, OutputStreamWriter, File as JFile}
 import scala.collection.mutable
-import scala.io.{BufferedSource, Source}
 import scala.jdk.CollectionConverters.{IteratorHasAsScala, MapHasAsScala}
-import scala.util._
+import scala.util.*
 
 /** Driver to create an OverflowDB database file.
-  * @param storageLocation where the database will serialize to and deserialize from.
-  * @param heapPercentageThreshold the percentage of the JVM heap from when the database will begin swapping to disk.
-  * @param serializationStatsEnabled enables saving of serialization statistics.
+  * @param storageLocation
+  *   where the database will serialize to and deserialize from.
+  * @param heapPercentageThreshold
+  *   the percentage of the JVM heap from when the database will begin swapping to disk.
+  * @param serializationStatsEnabled
+  *   enables saving of serialization statistics.
   */
 final case class OverflowDbDriver(
-    storageLocation: Option[String] = Option(
-      JFile.createTempFile("plume-", ".odb").getAbsolutePath
-    ),
-    heapPercentageThreshold: Int = 80,
-    serializationStatsEnabled: Boolean = false,
+  storageLocation: Option[String] = Option(JFile.createTempFile("plume-", ".odb").getAbsolutePath),
+  heapPercentageThreshold: Int = 80,
+  serializationStatsEnabled: Boolean = false
 ) extends IDriver {
 
   private val logger = LoggerFactory.getLogger(classOf[OverflowDbDriver])
@@ -76,67 +68,32 @@ final case class OverflowDbDriver(
   override def exists(srcId: Long, dstId: Long, edge: String): Boolean =
     cpg.graph.node(srcId).out(edge).asScala.exists { dst => dst.id() == dstId }
 
-  override def bulkTx(dg: AppliedDiffGraph): Unit = {
+  override def bulkTx(dg: DiffOrBuilder): Int = {
     // Do node operations first
-    dg.diffGraph.iterator.foreach {
-      case Change.RemoveNode(nodeId) =>
-        safeRemove(cpg.graph.node(nodeId))
-      case Change.RemoveNodeProperty(nodeId, propertyKey) =>
-        cpg.graph.node(nodeId).removeProperty(propertyKey)
-      case Change.CreateNode(node) =>
-        val newNode = cpg.graph.addNode(dg.nodeToGraphId(node), node.label)
-        node.properties.foreach { case (k, v) => newNode.setProperty(k, v) }
-      case Change.SetNodeProperty(node, key, value) =>
-        cpg.graph.node(node.id()).setProperty(key, value)
+    dg.iterator.asScala.foreach {
+      case node: DetachedNodeData =>
+        val nodeId = node.pID
+        node.setRefOrId(nodeId)
+        val newNode = cpg.graph.addNode(nodeId, node.label)
+        BatchedUpdateUtil.propertiesFromNodeData(node).foreach { case (k, v) => newNode.setProperty(k, v) }
+      case change: BatchedUpdate.SetNodeProperty =>
+        cpg.graph.node(change.node.id()).setProperty(change.label, change.value)
       case _ => // do nothing
     }
-    // Now that all nodes are in, connect/remove edges
-    dg.diffGraph.iterator.foreach {
-      case Change.RemoveEdge(edge) =>
-        cpg.graph
-          .nodes(edge.outNode().id())
-          .next()
-          .outE(edge.label())
-          .forEachRemaining(e => if (e.inNode().id() == edge.inNode().id()) e.remove())
-      case Change.CreateEdge(src, dst, label, packedProperties) =>
-        val srcId: Long = id(src, dg).asInstanceOf[Long]
-        val dstId: Long = id(dst, dg).asInstanceOf[Long]
+    // Now that all nodes are in, connect edges
+    dg.iterator.asScala.foreach {
+      case change: BatchedUpdate.CreateEdge =>
+        val srcId: Long = change.src.pID
+        val dstId: Long = change.dst.pID
         val e: overflowdb.Edge =
-          cpg.graph.node(srcId).addEdge(label, cpg.graph.node(dstId))
-        PackedProperties.unpack(packedProperties).foreach { case (k: String, v: Any) =>
-          e.setProperty(k, v)
-        }
+          cpg.graph.node(srcId).addEdge(change.label, cpg.graph.node(dstId))
+        unpack(change.propertiesAndKeys).foreach { case (k: String, v: Any) => e.setProperty(k, v) }
       case _ => // do nothing
     }
+    dg.size()
   }
 
-  override def bulkTx(dg: AppliedDiff): Unit = {
-    dg.getDiffGraph.iterator.collect { case x: DetachedNodeData => x }.foreach { node =>
-      val id      = idFromNodeData(node)
-      val newNode = cpg.graph.addNode(id, node.label)
-      propertiesFromNodeData(node).foreach { case (k, v) => newNode.setProperty(k, v) }
-    }
-    dg.getDiffGraph.iterator.filterNot(_.isInstanceOf[DetachedNodeData]).foreach {
-      case c: BatchedUpdate.CreateEdge =>
-        val srcId = idFromNodeData(c.src)
-        val dstId = idFromNodeData(c.dst)
-        val e     = cpg.graph.node(srcId).addEdge(c.label, cpg.graph.node(dstId))
-        Option(c.propertiesAndKeys) match {
-          case Some(edgeKeyValues) =>
-            propertiesFromObjectArray(edgeKeyValues).foreach { case (k, v) => e.setProperty(k, v) }
-          case None =>
-        }
-      case c: BatchedUpdate.RemoveNode => safeRemove(cpg.graph.node(c.node.id()))
-      case c: BatchedUpdate.SetNodeProperty =>
-        cpg.graph.node(c.node.id()).setProperty(c.label, c.value)
-    }
-  }
-
-  private def accumNodesToDelete(
-      n: Node,
-      visitedNodes: mutable.Set[Node],
-      edgeToFollow: String*
-  ): Unit = {
+  private def accumNodesToDelete(n: Node, visitedNodes: mutable.Set[Node], edgeToFollow: String*): Unit = {
     if (!visitedNodes.contains(n)) {
       visitedNodes.add(n)
       n.out(edgeToFollow: _*)
@@ -159,9 +116,7 @@ final case class OverflowDbDriver(
         typeDecls.flatMap(_.in(EdgeTypes.REF)).foreach(safeRemove)
         // Remove NAMESPACE_BLOCKs and their AST children (TYPE_DECL, METHOD, etc.)
         val nodesToDelete = mutable.Set.empty[Node]
-        namespaceBlocks.foreach(
-          accumNodesToDelete(_, nodesToDelete, EdgeTypes.AST, EdgeTypes.CONDITION)
-        )
+        namespaceBlocks.foreach(accumNodesToDelete(_, nodesToDelete, EdgeTypes.AST, EdgeTypes.CONDITION))
         nodesToDelete.foreach(safeRemove)
         // Finally remove FILE node
         safeRemove(f)
@@ -174,13 +129,9 @@ final case class OverflowDbDriver(
     n.remove()
   }) match {
     case Failure(e) if cpg.graph.node(n.id()) != null =>
-      logger.warn(
-        s"Unable to delete node due to error '${e.getMessage}': [${n.id()}] ${n.label()}"
-      )
+      logger.warn(s"Unable to delete node due to error '${e.getMessage}': [${n.id()}] ${n.label()}")
     case Failure(e) =>
-      logger.warn(
-        s"Exception '${e.getMessage}' occurred while attempting to delete node: [${n.id()}] ${n.label()}"
-      )
+      logger.warn(s"Exception '${e.getMessage}' occurred while attempting to delete node: [${n.id()}] ${n.label()}")
     case _ =>
   }
 
@@ -195,74 +146,12 @@ final case class OverflowDbDriver(
       }
       .toList
 
-  override def idInterval(lower: Long, upper: Long): Set[Long] = cpg.graph.nodes.asScala
-    .filter(n => n.id() >= lower - 1 && n.id() <= upper)
-    .map(_.id())
-    .toSet
-
-  override def linkAstNodes(
-      srcLabels: List[String],
-      edgeType: String,
-      dstNodeMap: mutable.Map[String, Any],
-      dstFullNameKey: String,
-      dstNodeType: String
-  ): Unit = {
-    Traversal(cpg.graph.nodes(srcLabels: _*)).foreach { srcNode =>
-      srcNode
-        .propertyOption(dstFullNameKey)
-        .filter {
-          case Seq(_*) => true
-          case dstFullName =>
-            srcNode.propertyDefaultValue(dstFullNameKey) != null &&
-              !srcNode.propertyDefaultValue(dstFullNameKey).equals(dstFullName)
-        }
-        .ifPresent { x =>
-          (x match {
-            case dstFullName: String  => Seq(dstFullName)
-            case dstFullNames: Seq[_] => dstFullNames
-            case _                    => Seq()
-          }).collect { case x: String => x }
-            .filter(dstNodeMap.contains)
-            .flatMap { dstFullName: String =>
-              dstNodeMap(dstFullName) match {
-                case x: Long => Some(x)
-                case _       => None
-              }
-            }
-            .foreach { dstNodeId: Long =>
-              srcNode match {
-                case src: StoredNode =>
-                  val dst = cpg.graph.nodes(dstNodeId).next()
-                  if (!src.out(edgeType).asScala.contains(dst))
-                    src.addEdge(edgeType, dst)
-              }
-            }
-        }
-    }
-  }
-
-  override def staticCallLinker(): Unit = {
-    cpg.graph
-      .nodes(NodeTypes.CALL)
-      .collect { case x: Call if x.dispatchType == DispatchTypes.STATIC_DISPATCH => x }
-      .foreach { c: Call =>
-        methodFullNameToNode.get(c.methodFullName) match {
-          case Some(dstId) if cpg.graph.nodes(dstId.asInstanceOf[Long]).hasNext =>
-            c.addEdge(EdgeTypes.CALL, cpg.graph.node(dstId.asInstanceOf[Long]))
-          case _ =>
-        }
-      }
-  }
-// TODO: What is this?
-  override def dynamicCallLinker(): Unit = {}
-//    new PlumeDynamicCallLinker(CPG(cpg.graph)).createAndApply()
-
   /** Serializes the graph in the OverflowDB instance to the
-    * [[http://graphml.graphdrawing.org/specification/dtd.html GraphML]]
-    * format to the given OutputStreamWriter. This format is supported by
-    * [[https://tinkerpop.apache.org/docs/current/reference/#graphml TinkerGraph]] and
+    * [[http://graphml.graphdrawing.org/specification/dtd.html GraphML]] format to the given OutputStreamWriter. This
+    * format is supported by [[https://tinkerpop.apache.org/docs/current/reference/#graphml TinkerGraph]] and
     * [[http://manual.cytoscape.org/en/stable/Supported_Network_File_Formats.html#graphml Cytoscape]].
-    * @param exportPath the path to write the GraphML representation of the graph to.
+    * @param exportPath
+    *   the path to write the GraphML representation of the graph to.
     */
   def exportAsGraphML(exportPath: java.io.File): Unit = {
     val g = cpg.graph
@@ -302,9 +191,7 @@ final case class OverflowDbDriver(
         osw.write("<node id=\"" + n.id + "\">")
         osw.write("<data key=\"labelV\">" + n.label() + "</data>")
         serializeLists(n.propertiesMap().asScala.toMap).foreach { case (k, v) =>
-          osw.write(
-            "<data key=\"" + k + "\">" + StringEscapeUtils.escapeXml(v.toString) + "</data>"
-          )
+          osw.write("<data key=\"" + k + "\">" + StringEscapeUtils.escapeXml(v.toString) + "</data>")
         }
         osw.write("</node>")
       }

@@ -8,12 +8,10 @@ dependsOn(
 )
 
 libraryDependencies ++= Seq(
-  "com.softwaremill.sttp.client3" %% "zio"   % Versions.sttp,
   "com.softwaremill.sttp.client3" %% "core"  % Versions.sttp,
   "com.softwaremill.sttp.client3" %% "circe" % Versions.sttp
 ) ++ Seq(
   "io.circe" %% "circe-core",
   "io.circe" %% "circe-generic",
-  "io.circe" %% "circe-parser",
-  "io.circe" %% "circe-yaml"
+  "io.circe" %% "circe-parser"
 ).map(_ % Versions.circe)

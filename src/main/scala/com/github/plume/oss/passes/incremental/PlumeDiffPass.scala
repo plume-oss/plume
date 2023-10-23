@@ -30,8 +30,10 @@ class PlumeDiffPass(filenames: List[String], driver: IDriver) {
       .toMap
 
   /** Removes the temporary directory prefix which differs between extractions.
-    * @param filePath the path at which the file is located.
-    * @return the name of the file from a project root level.
+    * @param filePath
+    *   the path at which the file is located.
+    * @return
+    *   the name of the file from a project root level.
     */
   private def stripTempDirPrefix(filePath: String): String =
     filePath.replaceAll(s"^.*joern-(\\d*)", "")

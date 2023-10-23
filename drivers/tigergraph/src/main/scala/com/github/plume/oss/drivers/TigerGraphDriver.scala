@@ -1,42 +1,39 @@
 package com.github.plume.oss.drivers
 
-import com.github.plume.oss.domain.TigerGraphResponse
-import com.github.plume.oss.drivers.TigerGraphDriver._
-import com.github.plume.oss.util.BatchedUpdateUtil._
+import com.github.plume.oss.drivers.TigerGraphDriver.*
+import com.github.plume.oss.util.BatchedUpdateUtil.*
 import io.circe
-import io.circe.generic.auto._
-import io.circe.syntax._
+import io.circe.generic.auto.*
+import io.circe.syntax.*
 import io.circe.{Encoder, Json, JsonObject}
-import io.shiftleft.codepropertygraph.generated.nodes._
+import io.shiftleft.codepropertygraph.generated.nodes.*
 import io.shiftleft.codepropertygraph.generated.{EdgeTypes, NodeTypes, PropertyNames}
-import io.shiftleft.passes.AppliedDiffGraph
-import io.shiftleft.passes.DiffGraph.Change
 import org.slf4j.LoggerFactory
-import overflowdb.BatchedUpdate.AppliedDiff
+import overflowdb.BatchedUpdate.DiffOrBuilder
 import overflowdb.{BatchedUpdate, DetachedNodeData}
-import sttp.client3._
-import sttp.client3.circe._
+import sttp.client3.*
+import sttp.client3.circe.*
 import sttp.model.{MediaType, Uri}
 
 import java.io.IOException
-import scala.collection.mutable
 import scala.concurrent.duration.{Duration, DurationInt}
 import scala.jdk.CollectionConverters.{CollectionHasAsScala, IteratorHasAsScala}
 import scala.util.{Failure, Success, Try}
 
-/** The driver used to communicate to a remote TigerGraph instance. One must build a schema on the first use of the database.
+/** The driver used to communicate to a remote TigerGraph instance. One must build a schema on the first use of the
+  * database.
   */
 final class TigerGraphDriver(
-    hostname: String = DEFAULT_HOSTNAME,
-    restPpPort: Int = DEFAULT_RESTPP_PORT,
-    gsqlPort: Int = DEFAULT_GSQL_PORT,
-    username: String = DEFAULT_USERNAME,
-    password: String = DEFAULT_PASSWORD,
-    timeout: Int = DEFAULT_TIMEOUT,
-    scheme: String = "http",
-    txMax: Int = DEFAULT_TX_MAX,
-    tgVersion: String = "3.5.0",
-    authKey: String = ""
+  hostname: String = DEFAULT_HOSTNAME,
+  restPpPort: Int = DEFAULT_RESTPP_PORT,
+  gsqlPort: Int = DEFAULT_GSQL_PORT,
+  username: String = DEFAULT_USERNAME,
+  password: String = DEFAULT_PASSWORD,
+  timeout: Int = DEFAULT_TIMEOUT,
+  scheme: String = "http",
+  txMax: Int = DEFAULT_TX_MAX,
+  tgVersion: String = "3.5.0",
+  authKey: String = ""
 ) extends IDriver
     with ISchemaSafeDriver {
 
@@ -84,14 +81,7 @@ final class TigerGraphDriver(
 
   override def exists(srcId: Long, dstId: Long, edge: String): Boolean = {
     try {
-      val response = get(
-        "query/cpg/e_exists",
-        Map(
-          "src_id"     -> srcId,
-          "dst_id"     -> dstId,
-          "edge_label" -> s"_$edge"
-        )
-      )
+      val response = get("query/cpg/e_exists", Map("src_id" -> srcId, "dst_id" -> dstId, "edge_label" -> s"_$edge"))
       response.head.asObject match {
         case Some(map) => map.toMap("exists").asBoolean.get
         case None      => false
@@ -145,13 +135,7 @@ final class TigerGraphDriver(
     )
   }
 
-  private def edgePayload(
-      srcId: Long,
-      srcLabel: String,
-      dstId: Long,
-      dstLabel: String,
-      edge: String
-  ): JsonObject = {
+  private def edgePayload(srcId: Long, srcLabel: String, dstId: Long, dstLabel: String, edge: String): JsonObject = {
     val toIdMap =
       JsonObject.fromMap(Map(dstId.toString -> JsonObject.fromMap(Map.empty).asJson)).asJson
     val toMap     = JsonObject.fromMap(Map(s"${dstLabel}_" -> toIdMap)).asJson
@@ -160,88 +144,42 @@ final class TigerGraphDriver(
     JsonObject.fromMap(Map(s"${srcLabel}_" -> fromIdMap))
   }
 
-  override def bulkTx(dg: AppliedDiffGraph): Unit = {
+  override def bulkTx(dg: DiffOrBuilder): Int = {
     // Node operations
-    dg.diffGraph.iterator
-      .collect { case x: Change.RemoveNode => x }
-      .grouped(txMax)
-      .foreach(bulkDeleteNode)
-    dg.diffGraph.iterator
-      .collect { case x: Change.CreateNode => x }
-      .grouped(txMax)
-      .foreach(bulkCreateNode(_, dg))
-    dg.diffGraph.iterator
-      .collect { case x: Change.SetNodeProperty => x }
-      .grouped(txMax)
-      .foreach(bulkNodeSetProperty)
-    // Edge operations
-    dg.diffGraph.iterator
-      .collect { case x: Change.RemoveEdge => x }
-      .grouped(txMax)
-      .foreach(bulkRemoveEdge)
-    dg.diffGraph.iterator
-      .collect { case x: Change.CreateEdge => x }
-      .grouped(txMax)
-      .foreach(bulkCreateEdge(_, dg))
-  }
-
-  override def bulkTx(dg: AppliedDiff): Unit = {
-    // Node operations
-    dg.getDiffGraph.iterator.asScala
-      .collect { case x: BatchedUpdate.RemoveNode => x }
-      .grouped(txMax)
-      .foreach(bulkDeleteNode)
-    dg.diffGraph.iterator.asScala
+    dg.iterator.asScala
       .collect { case x: DetachedNodeData => x }
       .grouped(txMax)
       .foreach(bulkCreateNode)
-    dg.diffGraph.iterator.asScala
+    dg.iterator.asScala
       .collect { case x: BatchedUpdate.SetNodeProperty => x }
       .grouped(txMax)
       .foreach(bulkNodeSetProperty)
     // Edge operations
-    dg.diffGraph.iterator.asScala
+    dg.iterator.asScala
       .collect { case x: BatchedUpdate.CreateEdge => x }
       .grouped(txMax)
       .foreach(bulkCreateEdge)
-  }
 
-  private def bulkDeleteNode(ops: Seq[Any]): Unit = {
-    val ids = ops.flatMap {
-      case c: Change.RemoveNode        => Some(c.nodeId)
-      case c: BatchedUpdate.RemoveNode => Some(c.node.id())
-      case _                           => None
-    }
-    get("query/cpg/v_delete", ids.map { i => "ids" -> i.toString })
-  }
-
-  private def bulkCreateNode(ops: Seq[Change.CreateNode], dg: AppliedDiffGraph): Unit = {
-    val payload = ops
-      .flatMap {
-        case Change.CreateNode(node) =>
-          Some(nodePayload(id(node, dg).asInstanceOf[Long], node.label(), node.properties))
-        case _ => None
-      }
-      .reduce { (a: JsonObject, b: JsonObject) => a.deepMerge(b) }
-    post("graph/cpg", PayloadBody(vertices = payload))
+    dg.size()
   }
 
   private def bulkCreateNode(ops: Seq[DetachedNodeData]): Unit = {
     val payload = ops
       .flatMap {
         case c: DetachedNodeData =>
-          Some(nodePayload(idFromNodeData(c), c.label(), propertiesFromNodeData(c)))
+          val nodeId = c.pID
+          c.setRefOrId(nodeId)
+          Some(nodePayload(idFromNodeData(c), c.label(), propertiesFromNodeData(c).toMap))
         case _ => None
       }
       .reduce { (a: JsonObject, b: JsonObject) => a.deepMerge(b) }
     post("graph/cpg", PayloadBody(vertices = payload))
   }
 
-  private def bulkNodeSetProperty(ops: Seq[Any]): Unit = {
+  private def bulkNodeSetProperty(ops: Seq[BatchedUpdate.SetNodeProperty]): Unit = {
     val payload = ops
-      .collect {
-        case c: BatchedUpdate.SetNodeProperty => (c.label, c.value, c.node)
-        case c: Change.SetNodeProperty        => (c.key, c.value, c.node)
+      .map { case c: BatchedUpdate.SetNodeProperty =>
+        (c.label, c.value, c.node)
       }
       .flatMap {
         case (key, value, n: StoredNode) =>
@@ -257,37 +195,6 @@ final class TigerGraphDriver(
       }
       .reduce { (a: JsonObject, b: JsonObject) => a.deepMerge(b) }
     post("graph/cpg", PayloadBody(vertices = payload))
-  }
-
-  private def bulkRemoveEdge(ops: Seq[Change.RemoveEdge]): Unit = {
-    ops.foreach {
-      case Change.RemoveEdge(edge) =>
-        val src = edge.outNode()
-        val dst = edge.inNode()
-        delete(
-          s"graph/cpg/edges/${src.label()}_/${src.id()}/_${edge.label()}/${dst.label()}_/${dst.id()}"
-        )
-      case _ =>
-    }
-  }
-
-  private def bulkCreateEdge(ops: Seq[Change.CreateEdge], dg: AppliedDiffGraph): Unit = {
-    val payload = ops
-      .flatMap {
-        case Change.CreateEdge(src, dst, edge, _) =>
-          Some(
-            edgePayload(
-              id(src, dg).asInstanceOf[Long],
-              src.label,
-              id(dst, dg).asInstanceOf[Long],
-              dst.label,
-              edge
-            )
-          )
-        case _ => None
-      }
-      .reduce { (a: JsonObject, b: JsonObject) => a.deepMerge(b) }
-    post("graph/cpg", PayloadBody(edges = payload))
   }
 
   private def bulkCreateEdge(ops: Seq[BatchedUpdate.CreateEdge]): Unit = {
@@ -338,39 +245,6 @@ final class TigerGraphDriver(
       .toList
   }
 
-  override def idInterval(lower: Long, upper: Long): Set[Long] = {
-    val response = get("query/cpg/id_interval", Map("lower" -> lower, "upper" -> upper))
-    response.head.asObject match {
-      case Some(map) =>
-        map.toMap("ids").asArray.get.toSet.map { x: Json => x.asNumber.get.toLong.get }
-      case None => Set()
-    }
-  }
-
-  override def linkAstNodes(
-      srcLabels: List[String],
-      edgeType: String,
-      dstNodeMap: mutable.Map[String, Any],
-      dstFullNameKey: String,
-      dstNodeType: String
-  ): Unit = {
-    def escape(raw: String): String =
-      raw.replace("[]", "\\[\\]").replace("_", "\\_")
-    val endpoint = s"query/cpg/link_ast_${edgeType.toLowerCase}_${dstFullNameKey.toLowerCase}"
-    dstNodeMap.foreach { case (key, id) =>
-      get(
-        endpoint,
-        srcLabels.map { x =>
-          ("src_labels", s"${x}_")
-        } :+ ("dst_value", s"%${escape(key)}%") :+ ("dst", id.toString) :+ ("dst.type", s"${dstNodeType}_")
-      )
-    }
-  }
-
-  override def staticCallLinker(): Unit = get("query/cpg/static_call_linker")
-
-  override def dynamicCallLinker(): Unit = {}
-
   override def buildSchema(): Unit = postGSQL(buildSchemaPayload())
 
   override def buildSchemaPayload(): String = {
@@ -402,9 +276,7 @@ final class TigerGraphDriver(
   }
 
   private def unboxResponse(
-      response: Identity[
-        Response[Either[ResponseException[String, circe.Error], TigerGraphResponse]]
-      ]
+    response: Identity[Response[Either[ResponseException[String, circe.Error], TigerGraphResponse]]]
   ) = {
     response.body match {
       case Left(e: ResponseException[_, _]) => throw unpackUnboxingException(e)
@@ -431,10 +303,7 @@ final class TigerGraphDriver(
     }
   }
 
-  private def get(
-      endpoint: String,
-      params: Seq[(String, String)]
-  ): Seq[Json] = {
+  private def get(endpoint: String, params: Seq[(String, String)]): Seq[Json] = {
     val uri = buildUri(endpoint).addParams(params: _*)
     Try(
       request()
@@ -448,10 +317,7 @@ final class TigerGraphDriver(
     }
   }
 
-  private def get(
-      endpoint: String,
-      params: Map[String, Any] = Map.empty[String, Any]
-  ): Seq[Json] = {
+  private def get(endpoint: String, params: Map[String, Any] = Map.empty[String, Any]): Seq[Json] = {
     val uri = buildUri(endpoint, params)
     Try(
       request()
@@ -475,10 +341,7 @@ final class TigerGraphDriver(
     unboxResponse(response)
   }
 
-  private def delete(
-      endpoint: String,
-      params: Map[String, Any] = Map.empty[String, Any]
-  ): Seq[Json] = {
+  private def delete(endpoint: String, params: Map[String, Any] = Map.empty[String, Any]): Seq[Json] = {
     val uri = buildUri(endpoint, params)
     val response = request()
       .delete(uri)
@@ -496,22 +359,14 @@ final class TigerGraphDriver(
         |path to the JAR file as GSQL_HOME.
         |""".stripMargin)
       case Success(gsqlPath) =>
-        val args = Seq(
-          "-ip",
-          s"$hostname:$gsqlPort",
-          "-u",
-          username,
-          "-p",
-          password,
-          payload
-        )
+        val args = Seq("-ip", s"$hostname:$gsqlPort", "-u", username, "-p", password, payload)
         logger.debug(s"Posting payload:\n$payload")
         executeGsqlClient(gsqlPath, args)
     }
   }
 
   private def executeGsqlClient(gsqlPath: String, args: Seq[String]): Unit = {
-    import sys.process._
+    import sys.process.*
     val processLogger =
       ProcessLogger.apply((s: String) => logger.info(s), (s: String) => logger.error(s))
     Try(sys.env("JAVA_HOME")) match {
@@ -520,21 +375,15 @@ final class TigerGraphDriver(
       case Success(javaLocation) =>
         logger.info(s"Using the Java runtime found at $javaLocation to run the GSQL client.")
     }
-    val command: Seq[String] = Seq(
-      "java",
-      s"-DGSQL_CLIENT_VERSION=v${tgVersion.replace('.', '_')}",
-      "-jar",
-      gsqlPath
-    ) ++ args
+    val command: Seq[String] =
+      Seq("java", s"-DGSQL_CLIENT_VERSION=v${tgVersion.replace('.', '_')}", "-jar", gsqlPath) ++ args
     // Exclude password and payload from the header
     val commandHeader = (command.dropRight(2) ++ Seq("<omitted>")).mkString(" ")
     logger.info(s"Executing GSQL client command with header: $commandHeader")
     val status = Process(command) !< processLogger
 
     if (status != 0) {
-      throw new RuntimeException(
-        s"Failure in posting GSQL payload. Error code $status. See logs for more details."
-      )
+      throw new RuntimeException(s"Failure in posting GSQL payload. Error code $status. See logs for more details.")
     } else {
       logger.info("Successfully posted GSQL request")
     }
@@ -543,10 +392,7 @@ final class TigerGraphDriver(
 
 /** The payload body for upserting graph data.
   */
-final case class PayloadBody(
-    vertices: JsonObject = JsonObject.empty,
-    edges: JsonObject = JsonObject.empty
-)
+final case class PayloadBody(vertices: JsonObject = JsonObject.empty, edges: JsonObject = JsonObject.empty)
 
 object TigerGraphDriver {
 
@@ -591,12 +437,8 @@ object TigerGraphDriver {
 
   /** Edges that should be specified as being between any kind of vertex.
     */
-  private val WILDCARD_EDGE_LABELS = Set(
-    EdgeTypes.EVAL_TYPE,
-    EdgeTypes.REF,
-    EdgeTypes.INHERITS_FROM,
-    EdgeTypes.ALIAS_OF
-  )
+  private val WILDCARD_EDGE_LABELS =
+    Set(EdgeTypes.EVAL_TYPE, EdgeTypes.REF, EdgeTypes.INHERITS_FROM, EdgeTypes.ALIAS_OF)
 
   /** Determines if an edge type between two node types is valid.
     */
@@ -671,12 +513,11 @@ object TigerGraphDriver {
     fromCheck && toCheck
   }
 
-  /** Edges as a schema string. Each edge is prepended with "_" to escape
-    * reserved words.
+  /** Edges as a schema string. Each edge is prepended with "_" to escape reserved words.
     */
   private def EDGES: String = {
     EdgeTypes.ALL.asScala
-      .flatMap { e: String =>
+      .flatMap { e =>
         NodeTypes.ALL.asScala.flatMap { src =>
           NodeTypes.ALL.asScala.flatMap { dst =>
             if (checkEdgeConstraint(src, dst, e)) Some((src, dst, e))
@@ -686,9 +527,9 @@ object TigerGraphDriver {
       }
       .groupBy { case (_, _, e) => e }
       .filterNot { x => WILDCARD_EDGE_LABELS.contains(x._1) }
-      .map { x: (String, Iterable[(String, String, String)]) =>
-        val prefix = s"CREATE DIRECTED EDGE _${x._1}("
-        val body   = x._2.map { case (src, dst, _) => s"FROM ${src}_, TO ${dst}_" }.mkString("|")
+      .map { case (label, xs) =>
+        val prefix = s"CREATE DIRECTED EDGE _$label("
+        val body   = xs.map { case (src, dst, _) => s"FROM ${src}_, TO ${dst}_" }.mkString("|")
         s"$prefix$body)"
       }
       .mkString("\n")
@@ -704,8 +545,7 @@ object TigerGraphDriver {
       .mkString("\n")
   }
 
-  /** Vertices as a schema string. Each vertex and property is appended or prepended with "_" to escape
-    * reserved words.
+  /** Vertices as a schema string. Each vertex and property is appended or prepended with "_" to escape reserved words.
     */
   private def VERTICES: String = {
     def propToTg(x: String) = {
@@ -877,3 +717,11 @@ object TigerGraphDriver {
         |""".stripMargin)).mkString
   }
 }
+
+/** The response specification for REST++ responses.
+  */
+final case class TigerGraphResponse(version: TigerGraphVersionInfo, error: Boolean, message: String, results: Seq[Json])
+
+/** The version information response object.
+  */
+final case class TigerGraphVersionInfo(edition: String, api: String, schema: Int)

@@ -1,15 +1,13 @@
 package com.github.plume.oss.drivers
 
 import com.github.plume.oss.PlumeStatistics
-import com.github.plume.oss.drivers.Neo4jDriver._
-import com.github.plume.oss.util.BatchedUpdateUtil._
+import com.github.plume.oss.drivers.Neo4jDriver.*
+import com.github.plume.oss.util.BatchedUpdateUtil.*
 import io.shiftleft.codepropertygraph.generated.nodes.{NewNode, StoredNode}
 import io.shiftleft.codepropertygraph.generated.{EdgeTypes, NodeTypes, PropertyNames}
-import io.shiftleft.passes.AppliedDiffGraph
-import io.shiftleft.passes.DiffGraph.Change
 import org.neo4j.driver.{AuthTokens, GraphDatabase, Transaction, Value}
 import org.slf4j.LoggerFactory
-import overflowdb.BatchedUpdate.AppliedDiff
+import overflowdb.BatchedUpdate.{AppliedDiff, CreateEdge, DiffOrBuilder, SetNodeProperty}
 import overflowdb.{BatchedUpdate, DetachedNodeData}
 
 import java.util
@@ -23,11 +21,11 @@ import scala.util.{Failure, Success, Try, Using}
   * improved performance on larger graphs.
   */
 final class Neo4jDriver(
-    hostname: String = DEFAULT_HOSTNAME,
-    port: Int = DEFAULT_PORT,
-    username: String = DEFAULT_USERNAME,
-    password: String = DEFAULT_PASSWORD,
-    txMax: Int = DEFAULT_TX_MAX
+  hostname: String = DEFAULT_HOSTNAME,
+  port: Int = DEFAULT_PORT,
+  username: String = DEFAULT_USERNAME,
+  password: String = DEFAULT_PASSWORD,
+  txMax: Int = DEFAULT_TX_MAX
 ) extends IDriver
     with ISchemaSafeDriver {
 
@@ -44,12 +42,10 @@ final class Neo4jDriver(
 
   override def clear(): Unit = Using.resource(driver.session()) { session =>
     session.writeTransaction { tx =>
-      tx.run(
-        """
+      tx.run("""
           |MATCH (n)
           |DETACH DELETE n
-          |""".stripMargin
-      )
+          |""".stripMargin)
     }
   }
 
@@ -102,18 +98,6 @@ final class Neo4jDriver(
       }
     }
 
-  private def nodePayload(id: Long, n: NewNode): (util.Map[String, Object], String) = {
-    val pMap = n.properties.map { case (k, v) =>
-      k -> (v match {
-        case x: String  => x
-        case xs: Seq[_] => CollectionConverters.IterableHasAsJava(xs.toList).asJava
-        case x          => x
-      })
-    } ++ Map("id" -> id)
-
-    nodePropertiesToCypherQuery(pMap)
-  }
-
   private def nodePayload(n: DetachedNodeData): (util.Map[String, Object], String) = {
     val pMap = propertiesFromNodeData(n).map { case (k, v) =>
       k -> (v match {
@@ -121,7 +105,7 @@ final class Neo4jDriver(
         case xs: Seq[_] => CollectionConverters.IterableHasAsJava(xs.toList).asJava
         case x          => x
       })
-    } ++ Map("id" -> idFromNodeData(n))
+    }.toMap ++ Map("id" -> idFromNodeData(n))
 
     nodePropertiesToCypherQuery(pMap)
   }
@@ -133,71 +117,15 @@ final class Neo4jDriver(
     (jpMap, pString)
   }
 
-  private def bulkDeleteNode(ops: Seq[Any]): Unit =
-    Using.resource(driver.session()) { session =>
-      Using.resource(session.beginTransaction()) { tx =>
-        ops
-          .collect {
-            case c: Change.RemoveNode        => (c.nodeId, None)
-            case c: BatchedUpdate.RemoveNode => (c.node.id(), Some(c.node.label()))
-          }
-          .map { case (nodeId: Long, maybeLabel: Option[String]) =>
-            val label = maybeLabel match {
-              case Some(value) => s":$value"
-              case None        => ""
-            }
-            (
-              s"""
-                |MATCH (n$label {id:$$nodeId})
-                |DETACH DELETE (n)
-                |""".stripMargin,
-              nodeId
-            )
-          }
-          .foreach { case (query, nodeId) =>
-            Try(
-              tx.run(
-                query,
-                new util.HashMap[String, Object](1) {
-                  put("nodeId", nodeId.asInstanceOf[Object])
-                }
-              )
-            ) match {
-              case Failure(e) =>
-                logger.error(s"Unable to write bulk delete node transaction $query", e)
-              case Success(_) =>
-            }
-          }
-        tx.commit()
-      }
-    }
-
-  private def bulkCreateNode(ops: Seq[Change.CreateNode], dg: AppliedDiffGraph): Unit =
-    Using.resource(driver.session()) { session =>
-      Using.resource(session.beginTransaction()) { tx =>
-        ops
-          .map { case Change.CreateNode(node) =>
-            val (params, pString) = nodePayload(dg.nodeToGraphId(node), node)
-            params -> s"MERGE (n:${node.label} {$pString})"
-          }
-          .foreach { case (params: util.Map[String, Object], query: String) =>
-            Try(tx.run(query, params)) match {
-              case Failure(e) =>
-                logger.error(s"Unable to write bulk create node transaction $query", e)
-              case Success(_) =>
-            }
-          }
-        tx.commit()
-      }
-    }
-
   private def bulkCreateNode(ops: Seq[DetachedNodeData]): Unit =
     Using.resource(driver.session()) { session =>
       Using.resource(session.beginTransaction()) { tx =>
         ops
-          .map { c: DetachedNodeData =>
-            val (params, pString) = nodePayload(c)
-            params -> s"MERGE (n:${c.label} {$pString})"
+          .map { change =>
+            val nodeId = change.pID
+            change.setRefOrId(nodeId)
+            val (params, pString) = nodePayload(change)
+            params -> s"MERGE (n:${change.label} {$pString})"
           }
           .foreach { case (params: util.Map[String, Object], query: String) =>
             Try(tx.run(query, params)) match {
@@ -210,15 +138,12 @@ final class Neo4jDriver(
       }
     }
 
-  private def bulkNodeSetProperty(ops: Seq[Any]): Unit =
+  private def bulkNodeSetProperty(ops: Seq[BatchedUpdate.SetNodeProperty]): Unit =
     Using.resource(driver.session()) { session =>
       Using.resource(session.beginTransaction()) { tx =>
         ops
-          .collect {
-            case c: BatchedUpdate.SetNodeProperty =>
-              (c.label, c.value, c.node)
-            case c: Change.SetNodeProperty =>
-              (c.key, c.value, c.node)
+          .collect { case c: BatchedUpdate.SetNodeProperty =>
+            (c.label, c.value, c.node)
           }
           .map { case (key: String, value: Any, node: StoredNode) =>
             val newV = value match {
@@ -251,70 +176,13 @@ final class Neo4jDriver(
       }
     }
 
-  private def bulkRemoveEdge(ops: Seq[Change.RemoveEdge]): Unit =
-    Using.resource(driver.session()) { session =>
-      Using.resource(session.beginTransaction()) { tx =>
-        ops
-          .map { case Change.RemoveEdge(edge) =>
-            val srcLabel = edge.outNode().label()
-            val dstLabel = edge.inNode().label()
-            (
-              new util.HashMap[String, Object](2) {
-                put("srcId", edge.outNode().id().asInstanceOf[Object])
-                put("dstId", edge.inNode().id().asInstanceOf[Object])
-              },
-              s"""
-                 |MATCH (n:$srcLabel {id: $$srcId})-[r:${edge.label()}]->(m:$dstLabel {id: $$dstId})
-                 |DELETE r
-                 |""".stripMargin
-            )
-          }
-          .foreach { case (params: util.Map[String, Object], query: String) =>
-            Try(tx.run(query, params)) match {
-              case Failure(e) =>
-                logger.error(s"Unable to write bulk remove edge property transaction $query", e)
-              case Success(_) =>
-            }
-          }
-        tx.commit()
-      }
-    }
-
-  /** This does not add edge properties as they are often not used in the CPG.
-    */
-  private def bulkCreateEdge(ops: Seq[Change.CreateEdge], dg: AppliedDiffGraph): Unit =
-    Using.resource(driver.session()) { session =>
-      Using.resource(session.beginTransaction()) { tx =>
-        ops.foreach { case Change.CreateEdge(src, dst, label, _) =>
-          val query = s"""
-                         |MATCH (src:${src.label} {id: $$srcId}), (dst:${dst.label} {id: $$dstId})
-                         |CREATE (src)-[:$label]->(dst)
-                         |""".stripMargin
-          Try(
-            tx.run(
-              query,
-              new util.HashMap[String, Object](2) {
-                put("srcId", id(src, dg).asInstanceOf[Object])
-                put("dstId", id(dst, dg).asInstanceOf[Object])
-              }
-            )
-          ) match {
-            case Failure(e) =>
-              logger.error(s"Unable to write bulk create edge transaction $query", e)
-            case Success(_) =>
-          }
-        }
-        tx.commit()
-      }
-    }
-
   private def bulkCreateEdge(ops: Seq[BatchedUpdate.CreateEdge]): Unit =
     Using.resource(driver.session()) { session =>
       Using.resource(session.beginTransaction()) { tx =>
-        ops.foreach { c: BatchedUpdate.CreateEdge =>
+        ops.foreach { c =>
           val srcLabel = labelFromNodeData(c.src)
           val dstLabel = labelFromNodeData(c.dst)
-          val query    = s"""
+          val query = s"""
                          |MATCH (src:$srcLabel {id: $$srcId}), (dst:$dstLabel {id: $$dstId})
                          |CREATE (src)-[:${c.label}]->(dst)
                          |""".stripMargin
@@ -336,48 +204,23 @@ final class Neo4jDriver(
       }
     }
 
-  override def bulkTx(dg: AppliedDiffGraph): Unit = {
+  override def bulkTx(dg: DiffOrBuilder): Int = {
     // Node operations
-    dg.diffGraph.iterator
-      .collect { case x: Change.RemoveNode => x }
-      .grouped(txMax)
-      .foreach(bulkDeleteNode)
-    dg.diffGraph.iterator
-      .collect { case x: Change.CreateNode => x }
-      .grouped(txMax)
-      .foreach(bulkCreateNode(_, dg))
-    dg.diffGraph.iterator
-      .collect { case x: Change.SetNodeProperty => x }
-      .grouped(txMax)
-      .foreach(bulkNodeSetProperty)
-    // Edge operations
-    dg.diffGraph.iterator
-      .collect { case x: Change.RemoveEdge => x }
-      .grouped(txMax)
-      .foreach(bulkRemoveEdge)
-    dg.diffGraph.iterator
-      .collect { case x: Change.CreateEdge => x }
-      .grouped(txMax)
-      .foreach(bulkCreateEdge(_, dg))
-  }
-
-  override def bulkTx(dg: AppliedDiff): Unit = {
-    dg.diffGraph.iterator.asScala
+    dg.iterator.asScala
       .collect { case x: DetachedNodeData => x }
       .grouped(txMax)
       .foreach(bulkCreateNode)
-    dg.diffGraph.iterator.asScala
+    dg.iterator.asScala
       .collect { case x: BatchedUpdate.SetNodeProperty => x }
       .grouped(txMax)
       .foreach(bulkNodeSetProperty)
-    dg.diffGraph.iterator.asScala
-      .collect { case x: BatchedUpdate.RemoveNode => x }
-      .grouped(txMax)
-      .foreach(bulkDeleteNode)
-    dg.diffGraph.iterator.asScala
+    // Edge operations
+    dg.iterator.asScala
       .collect { case x: BatchedUpdate.CreateEdge => x }
       .grouped(txMax)
       .foreach(bulkCreateEdge)
+
+    dg.size()
   }
 
   /** Removes the namespace block with all of its AST children specified by the given FILENAME property.
@@ -421,9 +264,9 @@ final class Neo4jDriver(
   }
 
   private def runPayload(
-      tx: Transaction,
-      filePayload: String,
-      params: util.HashMap[String, Object] = new util.HashMap[String, Object](0)
+    tx: Transaction,
+    filePayload: String,
+    params: util.HashMap[String, Object] = new util.HashMap[String, Object](0)
   ) = {
     try {
       tx.run(filePayload, params)
@@ -443,7 +286,7 @@ final class Neo4jDriver(
           .list()
           .asScala
           .map(record =>
-            (keys :+ "id").flatMap { k: String =>
+            (keys :+ "id").flatMap { k =>
               val v = record.get(k)
               if (v.hasType(typeSystem.NULL())) {
                 Some(k -> IDriver.getPropertyDefault(k))
@@ -465,100 +308,6 @@ final class Neo4jDriver(
           .toList
       }
     }
-
-  override def idInterval(lower: Long, upper: Long): Set[Long] = Using.resource(driver.session()) {
-    session =>
-      session.readTransaction { tx =>
-        tx
-          .run(
-            s"""
-                |MATCH (n)
-                |WHERE n.id >= $$lower AND n.id <= $$upper
-                |RETURN n.id as id
-                |""".stripMargin,
-            new util.HashMap[String, Object](2) {
-              put("lower", lower.asInstanceOf[Object])
-              put("upper", upper.asInstanceOf[Object])
-            }
-          )
-          .list()
-          .asScala
-          .map(record => record.get("id").asLong())
-          .toSet
-      }
-  }
-  override def linkAstNodes(
-      srcLabels: List[String],
-      edgeType: String,
-      dstNodeMap: mutable.Map[String, Any],
-      dstFullNameKey: String,
-      dstNodeType: String
-  ): Unit = {
-    Using.resource(driver.session()) { session =>
-      session.writeTransaction { tx =>
-        val payload = s"""
-                           |MATCH (n:${srcLabels.mkString(":")})
-                           |WHERE EXISTS(n.$dstFullNameKey)
-                           | AND n.$dstFullNameKey <> "<empty>"
-                           | AND n.$dstFullNameKey <> -1
-                           |RETURN n.id AS id, n.$dstFullNameKey as $dstFullNameKey
-                           |""".stripMargin
-        try {
-          tx.run(payload)
-            .list()
-            .asScala
-            .flatMap { record =>
-              (record.get(dstFullNameKey) match {
-                case x: Value if x.`type`() == typeSystem.LIST() =>
-                  x.asList().asScala.collect { case y: String => y }.toSeq
-                case x: Value => Seq(x.asString())
-              }).map { fullName =>
-                record.get("id").asLong() -> dstNodeMap.get(fullName)
-              }
-            }
-            .foreach { case (srcId: Long, maybeDst: Option[Any]) =>
-              maybeDst match {
-                case Some(dstId) =>
-                  val astLinkPayload = s"""
-                                          | MATCH (n {id: $$srcId}), (m {id: $$dstId})
-                                          | WHERE NOT EXISTS((n)-[:$edgeType]->(m))
-                                          | CREATE (n)-[r:$edgeType]->(m)
-                                          |""".stripMargin
-                  runPayload(
-                    tx,
-                    astLinkPayload,
-                    new util.HashMap[String, Object](2) {
-                      put("srcId", srcId.asInstanceOf[Object])
-                      put("dstId", dstId.asInstanceOf[Object])
-                    }
-                  )
-                case None =>
-              }
-            }
-        } catch {
-          case e: Exception =>
-            logger.error(s"Unable to obtain AST nodes to link: $payload", e)
-        }
-      }
-    }
-  }
-
-  override def staticCallLinker(): Unit = {
-    Using.resource(driver.session()) { session =>
-      session.writeTransaction { tx =>
-        val payload =
-          s"""
-             |MATCH (call:${NodeTypes.CALL})
-             |MATCH (method:${NodeTypes.METHOD} {${PropertyNames.FULL_NAME}: call.${PropertyNames.METHOD_FULL_NAME}})
-             |WHERE NOT EXISTS((call)-[:${EdgeTypes.CALL}]->(method))
-             |CREATE (call)-[r:${EdgeTypes.CALL}]->(method)
-             |""".stripMargin
-        runPayload(tx, payload)
-      }
-    }
-  }
-
-  override def dynamicCallLinker(): Unit = {}
 
   override def buildSchema(): Unit = {
     Using.resource(driver.session()) { session =>

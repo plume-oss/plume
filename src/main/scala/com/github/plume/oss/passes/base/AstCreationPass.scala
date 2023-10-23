@@ -1,19 +1,16 @@
 package com.github.plume.oss.passes.base
 
-import com.github.plume.oss.Jimple2Cpg
-import com.github.plume.oss.passes.{IncrementalKeyPool, PlumeConcurrentCpgPass}
+import com.github.plume.oss.JimpleAst2Database
+import com.github.plume.oss.drivers.IDriver
+import com.github.plume.oss.passes.PlumeConcurrentWriterPass
 import io.joern.x2cpg.datastructures.Global
-import io.shiftleft.codepropertygraph.Cpg
 import org.slf4j.LoggerFactory
+import overflowdb.BatchedUpdate.DiffGraphBuilder
 import soot.Scene
 
 /** Creates the AST layer from the given class file and stores all types in the given global parameter.
   */
-class AstCreationPass(
-    filenames: List[String],
-    cpg: Cpg,
-    keyPool: IncrementalKeyPool
-) extends PlumeConcurrentCpgPass[String](cpg, keyPool = Some(keyPool)) {
+class AstCreationPass(filenames: List[String], driver: IDriver) extends PlumeConcurrentWriterPass[String](driver) {
 
   val global: Global = new Global()
   private val logger = LoggerFactory.getLogger(classOf[AstCreationPass])
@@ -21,7 +18,7 @@ class AstCreationPass(
   override def generateParts(): Array[_ <: AnyRef] = filenames.toArray
 
   override def runOnPart(builder: DiffGraphBuilder, part: String): Unit = {
-    val qualifiedClassName = Jimple2Cpg.getQualifiedClassPath(part)
+    val qualifiedClassName = JimpleAst2Database.getQualifiedClassPath(part)
     try {
       val cNameNoSuff = qualifiedClassName.stripSuffix(".class").stripSuffix(".java")
       val sootClass =

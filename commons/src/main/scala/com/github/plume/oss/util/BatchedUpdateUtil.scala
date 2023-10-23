@@ -17,8 +17,10 @@ object BatchedUpdateUtil {
   }
 
   /** By determines what kind of node object is given, will extract its label.
-    * @param data either detached node data or node object.
-    * @return the node ID.
+    * @param data
+    *   either detached node data or node object.
+    * @return
+    *   the node ID.
     */
   def labelFromNodeData(data: Any): String =
     data match {
@@ -28,8 +30,10 @@ object BatchedUpdateUtil {
     }
 
   /** By determines what kind of node object is given, will extract its ID.
-    * @param data either detached node data or node object.
-    * @return the node ID.
+    * @param data
+    *   either detached node data or node object.
+    * @return
+    *   the node ID.
     */
   def idFromNodeData(data: Any): Long =
     data match {
@@ -39,31 +43,35 @@ object BatchedUpdateUtil {
     }
 
   /** Extracts properties from detached node data.
-    * @param data node data from which to determine properties from.
-    * @return a map of key-value pairs.
+    * @param data
+    *   node data from which to determine properties from.
+    * @return
+    *   a map of key-value pairs.
     */
-  def propertiesFromNodeData(data: DetachedNodeData): Map[String, Any] = {
+  def propertiesFromNodeData(data: DetachedNodeData): Seq[(String, AnyRef)] = {
     data match {
       case generic: DetachedNodeGeneric => propertiesFromObjectArray(generic.keyvalues)
-      case node: NewNode                => node.properties
-      case _                            => Map.empty[String, Any]
+      case node: NewNode                => node.properties.collect { case (k: String, v: AnyRef) => k -> v }.toSeq
+      case _                            => Seq.empty[(String, AnyRef)]
     }
   }
 
   /** Extracts a property key-value pairs as a map from an object array.
-    * @param arr the object array where key-values are stored as pairs.
-    * @return a map of key-value pairs.
+    * @param arr
+    *   the object array where key-values are stored as pairs.
+    * @return
+    *   a map of key-value pairs.
     */
-  def propertiesFromObjectArray(arr: Array[Object]): Map[String, Any] = {
-    val props = mutable.HashMap.empty[String, Object]
+  def propertiesFromObjectArray(arr: Array[Object]): Seq[(String, AnyRef)] = {
+    val props = mutable.ListBuffer.empty[(String, AnyRef)]
     for {
       i <- arr.indices by 2
     } {
       val key   = arr(i).asInstanceOf[String]
       val value = arr(i + 1)
-      props.put(key, value)
+      props.addOne(key -> value)
     }
-    props.toMap
+    props.toSeq
   }
 
 }

@@ -37,12 +37,9 @@ class OverflowDbTests extends PlumeDriverFixture(new OverflowDbDriver()) {
   }
 
   private def createSimpleGraph(driver: IDriver): Unit = {
-    val cpg       = Cpg.empty
-    val keyPool   = new IntervalKeyPool(1, 1000)
     val diffGraph = new BatchedUpdate.DiffGraphBuilder()
     diffGraph.addNode(m1).addNode(b1).addEdge(m1, b1, EdgeTypes.AST)
-    val adg = BatchedUpdate.applyDiff(cpg.graph, diffGraph, keyPool, null)
-    driver.bulkTx(adg)
+    driver.bulkTx(diffGraph)
   }
 
 }

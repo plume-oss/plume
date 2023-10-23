@@ -1,7 +1,6 @@
 package com.github.plume.oss.drivers
 
 import com.github.plume.oss.PlumeStatistics
-import com.github.plume.oss.domain._
 import com.github.plume.oss.drivers.NeptuneDriver.DEFAULT_PORT
 import io.circe.Decoder
 import io.circe.generic.semiauto.deriveDecoder
@@ -11,20 +10,18 @@ import org.apache.tinkerpop.gremlin.driver.ser.Serializers
 import org.apache.tinkerpop.gremlin.process.traversal.AnonymousTraversalSource
 import org.apache.tinkerpop.gremlin.process.traversal.dsl.graph.GraphTraversalSource
 import org.slf4j.{Logger, LoggerFactory}
-import sttp.client3._
+import sttp.client3.*
 import sttp.client3.circe.asJson
 import sttp.model.Uri
-import sttp.client3.HttpClientSyncBackend
 
 import scala.concurrent.duration.DurationInt
-import scala.jdk.CollectionConverters.CollectionHasAsScala
 import scala.util.{Failure, Success, Try}
 
 final class NeptuneDriver(
-    hostname: String,
-    port: Int = DEFAULT_PORT,
-    keyCertChainFile: String = "src/main/resources/conf/SFSRootCAC2.pem",
-    txMax: Int = 50
+  hostname: String,
+  port: Int = DEFAULT_PORT,
+  keyCertChainFile: String = "src/main/resources/conf/SFSRootCAC2.pem",
+  txMax: Int = 50
 ) extends GremlinDriver(txMax) {
 
   override protected val logger: Logger = LoggerFactory.getLogger(classOf[NeptuneDriver])
@@ -145,19 +142,6 @@ final class NeptuneDriver(
     }
   }
 
-  override def typedNodeId(nodeId: Long): Any =
-    nodeId.toString
-
-  override def idInterval(lower: Long, upper: Long): Set[Long] =
-    g()
-      .V()
-      .id()
-      .toSet
-      .asScala
-      .map(_.toString.toLong)
-      .filter { x => x >= lower - 1 && x <= upper }
-      .toSet
-
   override def close(): Unit = PlumeStatistics.time(
     PlumeStatistics.TIME_CLOSE_DRIVER, {
       try {
@@ -179,3 +163,51 @@ object NeptuneDriver {
     */
   private val DEFAULT_PORT = 8182
 }
+
+/** The response from Neptune after initiating a database reset.
+  * @param status
+  *   the status of the system.
+  * @param payload
+  *   the token used to perform the database reset.
+  */
+final case class InitiateResetResponse(status: String, payload: TokenPayload)
+
+/** The response from Neptune after performing a database reset.
+  * @param status
+  *   the status of the system.
+  */
+final case class PerformResetResponse(status: String)
+
+/** The Neptune token used to correlate database operations.
+  * @param token
+  *   a string token used for database operations.
+  */
+final case class TokenPayload(token: String)
+
+/** The response from Neptune when requesting the system status.
+  * @param status
+  *   the status of the system.
+  * @param startTime
+  *   set to the UTC time at which the current server process started.
+  * @param dbEngineVersion
+  *   set to the Neptune engine version running on your DB cluster.
+  * @param role
+  *   set to "reader" if the instance is a read-replica, or to "writer" if the instance is the primary instance.
+  * @param gremlin
+  *   contains information about the Gremlin query language available on your cluster. Specifically, it contains a
+  *   version field that specifies the current TinkerPop version being used by the engine.
+  */
+final case class InstanceStatusResponse(
+  status: String,
+  startTime: String,
+  dbEngineVersion: String,
+  role: String,
+  gremlin: GremlinVersion
+)
+
+/** Contains information about the Gremlin query language available on your cluster. Specifically, it contains a version
+  * field that specifies the current TinkerPop version being used by the engine.
+  * @param version
+  *   Gremlin version number.
+  */
+final case class GremlinVersion(version: String)
