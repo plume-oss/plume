@@ -28,8 +28,7 @@ class PlumeFrontend(val _driver: Option[OverflowDbDriver]) extends LanguageFront
   }
 }
 
-class Jimple2CpgFixture(_driver: Option[OverflowDbDriver] = None)
-    extends CodeToCpgFixture(new PlumeFrontend(_driver)) {
+class Jimple2CpgFixture(_driver: Option[OverflowDbDriver] = None) extends CodeToCpgFixture(new PlumeFrontend(_driver)) {
 
   val driver: OverflowDbDriver = frontend.asInstanceOf[PlumeFrontend].driver
 

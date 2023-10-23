@@ -27,13 +27,12 @@ class DiffTests extends AnyWordSpec with Matchers with BeforeAndAfterAll {
 
   private def rewriteFileContents(tgt: File, incoming: File): File = {
     if (!tgt.exists()) tgt.createNewFile()
-    Using.resources(new FileOutputStream(tgt, false), new FileInputStream(incoming)) {
-      case (fos, fis) =>
-        val buf = new Array[Byte](4096)
-        Iterator
-          .continually(fis.read(buf))
-          .takeWhile(_ != -1)
-          .foreach(fos.write(buf, 0, _))
+    Using.resources(new FileOutputStream(tgt, false), new FileInputStream(incoming)) { case (fos, fis) =>
+      val buf = new Array[Byte](4096)
+      Iterator
+        .continually(fis.read(buf))
+        .takeWhile(_ != -1)
+        .foreach(fos.write(buf, 0, _))
     }
     new File(tgt.getAbsolutePath)
   }

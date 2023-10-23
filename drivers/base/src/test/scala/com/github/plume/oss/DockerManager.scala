@@ -16,9 +16,7 @@ object DockerManager {
 
   def closeAnyDockerContainers(dbName: String): Unit = {
     logger.info(s"Stopping Docker services for $dbName...")
-    val dockerComposeUp = Process(
-      Seq("docker-compose", "-f", toDockerComposeFile(dbName).getAbsolutePath, "down")
-    )
+    val dockerComposeUp = Process(Seq("docker-compose", "-f", toDockerComposeFile(dbName).getAbsolutePath, "down"))
     dockerComposeUp.run(ProcessLogger(_ => ()))
   }
 
@@ -29,13 +27,7 @@ object DockerManager {
     closeAnyDockerContainers(dbName) // Easiest way to clear the db
     Thread.sleep(3000)
     val dockerComposeUp = Process(
-      Seq(
-        "docker-compose",
-        "-f",
-        toDockerComposeFile(dbName).getAbsolutePath,
-        "up",
-        "--remove-orphans"
-      )
+      Seq("docker-compose", "-f", toDockerComposeFile(dbName).getAbsolutePath, "up", "--remove-orphans")
     )
     logger.info(s"Starting process $dockerComposeUp")
     dockerComposeUp.run(ProcessLogger(_ => ()))
