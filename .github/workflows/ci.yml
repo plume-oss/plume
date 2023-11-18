@@ -22,24 +22,16 @@ jobs:
           java-version: '19'
 
       - name: Run TinkerGraph tests
-        run: sbt coverage "project tinkergraph" test
-      - name: Run unit and inmem database tests
-        run: sbt coverage test
-      - name: Run Neo4j integration tests
-        run: sbt coverage "NeoTest / test"
-      - name: Run TigerGraph integration tests
+        run: sbt "project tinkergraph" test
+      - name: Run OverflowDB tests
+        run: sbt "project overflowdb" test
+      - name: Run Neo4j tests
+        run: sbt "project neo4j" test
+      - name: Run TigerGraph tests
         run: |
           curl https://docs.tigergraph.com/tigergraph-server/3.5/gsql-shell/_attachments/gsql_client_server353.jar --output gsql_client.jar
           export GSQL_HOME=`pwd`/gsql_client.jar
-          sbt coverage "TgTest / test"
-
-      - name: Compile coverage report
-        run: sbt coverageReport
-      - name: Upload coverage to Codecov
-        uses: codecov/codecov-action@v1
-        with:
-          token: ${{ secrets.CODECOV_TOKEN }}
-          directory: ./target/scala-2.13/scoverage-report/
+          sbt "project tigergraph" test
 
   formatting:
     name: Code Formatting Check
