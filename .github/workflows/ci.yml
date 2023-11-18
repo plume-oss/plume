@@ -8,20 +8,21 @@ on:
 
 jobs:
   test:
-    name: Test on JDK 11
-    runs-on: ubuntu-20.04
+    name: Unit Tests
+    runs-on: ubuntu-22.04
 
     steps:
-      - uses: actions/checkout@v2
+      - uses: actions/checkout@v3
         with:
-          lfs: true
           fetch-depth: 1
-
-      - name: Set up JDK 11
-        uses: actions/setup-java@v1
+      - name: Set up JDK
+        uses: actions/setup-java@v3
         with:
-          java-version: 11
+          distribution: 'temurin'
+          java-version: '19'
 
+      - name: Run TinkerGraph tests
+        run: sbt coverage "project tinkergraph" test
       - name: Run unit and inmem database tests
         run: sbt coverage test
       - name: Run Neo4j integration tests
@@ -39,17 +40,19 @@ jobs:
         with:
           token: ${{ secrets.CODECOV_TOKEN }}
           directory: ./target/scala-2.13/scoverage-report/
+
   formatting:
     name: Code Formatting Check
-    runs-on: ubuntu-18.04
+    runs-on: ubuntu-22.04
     steps:
-      - uses: actions/checkout@v2
+      - uses: actions/checkout@v3
         with:
           fetch-depth: 1
-      - name: Set up JDK 1.11
-        uses: actions/setup-java@v1
+      - name: Set up JDK
+        uses: actions/setup-java@v3
         with:
-          java-version: 1.11
+          distribution: 'temurin'
+          java-version: '19'
       - name: Check formatting
         run: sbt scalafmtCheck
       - run: echo "Previous step failed because code is not formatted. Run 'sbt scalafmt'"

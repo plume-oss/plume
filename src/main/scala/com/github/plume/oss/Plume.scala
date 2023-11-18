@@ -95,7 +95,7 @@ object Plume extends App {
         if (importPath.isDefined) d.importGraph(importPath.get)
       case _ =>
     }
-    new JimpleAst2Database(driver).createCpg(config)
+    new JimpleAst2Database(driver).createAst(config)
     driver match {
       case d: TinkerGraphDriver if conf != null =>
         val exportPath = conf.params.get("exportPath")

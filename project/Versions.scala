@@ -1,8 +1,8 @@
 object Versions {
 
   // SAST
-  val codePropertyGraph = "1.4.24"
-  val joern             = "2.0.121"
+  val codePropertyGraph = "1.4.29"
+  val joern             = "2.0.158"
   val overflowDb        = "1.181"
 
   // Drivers

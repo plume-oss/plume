@@ -8,8 +8,7 @@ inThisBuild(
     resolvers ++= Seq(
       Resolver.mavenLocal,
       Resolver.mavenCentral,
-      Resolver.JCenterRepository,
-      "Gradle Tooling" at "https://repo.gradle.org/gradle/libs-releases-local/"
+      Resolver.JCenterRepository
     )
   )
 )
@@ -44,18 +43,11 @@ libraryDependencies ++= Seq(
   "org.scalatest"           %% "scalatest"         % Versions.scalatest % Test
 )
 
-enablePlugins(
-  JavaAppPackaging,
-  GitVersioning,
-  BuildInfoPlugin,
-  GhpagesPlugin,
-  SiteScaladocPlugin
-)
+enablePlugins(JavaAppPackaging)
 
 scmInfo := Some(
   ScmInfo(url("https://github.com/plume-oss/plume"), "git@github.com:plume-oss/plume.git")
 )
-git.remoteRepo := scmInfo.value.get.connection
 
 homepage := Some(url("https://github.com/plume-oss/plume/"))
 licenses := List("Apache-2.0" -> url("https://www.apache.org/licenses/LICENSE-2.0"))

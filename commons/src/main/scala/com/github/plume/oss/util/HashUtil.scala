@@ -1,8 +1,9 @@
 package com.github.plume.oss.util
 
+import better.files.File
 import net.jpountz.xxhash.{StreamingXXHash32, XXHashFactory}
 
-import java.io.{File, FileInputStream, InputStream}
+import java.io.InputStream
 import scala.util.Using
 
 /** Provides methods to calculate the [[https://cyan4973.github.io/xxHash/ xxHash]] from given arguments.
@@ -18,7 +19,7 @@ object HashUtil {
     * @return
     *   The given file's xxHash32 representation
     */
-  def getFileHash(f: File): String = getHashFromInputStream(new FileInputStream(f)).toString
+  def getFileHash(f: File): String = getHashFromInputStream(f.newInputStream).toString
 
   /** Will ingest an input stream and return the xxHash32 representation.
     *

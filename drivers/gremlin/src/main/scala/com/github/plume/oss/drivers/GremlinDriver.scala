@@ -2,9 +2,7 @@ package com.github.plume.oss.drivers
 
 import com.github.plume.oss.PlumeStatistics
 import com.github.plume.oss.util.BatchedUpdateUtil
-import io.shiftleft.codepropertygraph.generated.nodes.NewNode
 import io.shiftleft.codepropertygraph.generated.{EdgeTypes, NodeTypes, PropertyNames}
-import io.shiftleft.proto.cpg.Cpg.DiffGraphOrBuilder
 import org.apache.commons.configuration.BaseConfiguration
 import org.apache.tinkerpop.gremlin.process.traversal.P.within
 import org.apache.tinkerpop.gremlin.process.traversal.dsl.graph.__.{coalesce, constant, values}
@@ -12,8 +10,8 @@ import org.apache.tinkerpop.gremlin.process.traversal.dsl.graph.{GraphTraversal,
 import org.apache.tinkerpop.gremlin.structure.{Edge, Graph, T, Vertex}
 import org.apache.tinkerpop.gremlin.tinkergraph.structure.TinkerGraph
 import org.slf4j.{Logger, LoggerFactory}
-import overflowdb.BatchedUpdate.{Change, DiffGraph, DiffGraphBuilder, DiffOrBuilder}
-import overflowdb.{BatchedUpdate, DetachedNodeData, DetachedNodeGeneric}
+import overflowdb.BatchedUpdate.{Change, DiffOrBuilder}
+import overflowdb.{BatchedUpdate, DetachedNodeData}
 
 import java.util.concurrent.atomic.AtomicBoolean
 import scala.jdk.CollectionConverters.{CollectionHasAsScala, IteratorHasAsScala, MapHasAsScala}
@@ -121,14 +119,12 @@ abstract class GremlinDriver(txMax: Int = 50) extends IDriver {
 
   private def bulkEdgeTx(g: GraphTraversalSource, ops: Seq[BatchedUpdate.CreateEdge]): Unit = {
     var ptr: Option[GraphTraversal[Vertex, Edge]] = None
-    ops.foreach {
-      case e: BatchedUpdate.CreateEdge =>
-        ptr match {
-          case Some(p) => ptr = Some(p.V(typedNodeId(e.src.pID)).addE(e.label).to(__.V(e.dst.pID)))
-          case None    => ptr = Some(g.V(typedNodeId(e.src.pID)).addE(e.label).to(__.V(e.dst.pID)))
-        }
-        unpack(e.propertiesAndKeys).foreach { case (k: String, v: Any) => ptr.get.property(k, v) }
-      case _ => // nothing
+    ops.foreach { e =>
+      ptr match {
+        case Some(p) => ptr = Some(p.V(typedNodeId(e.src.pID)).addE(e.label).to(__.V(e.dst.pID)))
+        case None    => ptr = Some(g.V(typedNodeId(e.src.pID)).addE(e.label).to(__.V(e.dst.pID)))
+      }
+      unpack(e.propertiesAndKeys).foreach { case (k: String, v: Any) => ptr.get.property(k, v) }
     }
     // Commit transaction
     ptr match {

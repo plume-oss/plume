@@ -1,14 +1,18 @@
 package com.github.plume.oss
 
-import com.github.plume.oss.Jimple2Cpg.getQualifiedClassPath
+import better.files.File
 import com.github.plume.oss.drivers.IDriver
 import com.github.plume.oss.passes.base.AstCreationPass
-import com.github.plume.oss.passes.incremental.PlumeDiffPass
-import io.joern.jimple2cpg.Config
-import io.joern.jimple2cpg.Jimple2Cpg.getQualifiedClassPath
+import com.github.plume.oss.passes.incremental.{PlumeDiffPass, PlumeHashPass}
+import io.joern.jimple2cpg.Jimple2Cpg.language
+import io.joern.jimple2cpg.passes.SootAstCreationPass
+import io.joern.jimple2cpg.{Config, Jimple2Cpg}
 import io.joern.jimple2cpg.util.ProgramHandlingUtil
-import io.joern.jimple2cpg.util.ProgramHandlingUtil.extractClassesInPackageLayout
-import io.joern.x2cpg.SourceFiles
+import io.joern.jimple2cpg.util.ProgramHandlingUtil.{ClassFile, extractClassesInPackageLayout}
+import io.joern.x2cpg.{SourceFiles, X2CpgFrontend}
+import io.joern.x2cpg.X2Cpg.withNewEmptyCpg
+import io.joern.x2cpg.datastructures.Global
+import io.joern.x2cpg.passes.frontend.{MetaDataPass, TypeNodePass}
 import io.shiftleft.codepropertygraph.Cpg
 import org.slf4j.LoggerFactory
 import soot.options.Options
@@ -16,110 +20,86 @@ import soot.{G, PhaseOptions, Scene}
 
 import java.io.File as JFile
 import java.nio.file.Paths
+import scala.jdk.CollectionConverters.{EnumerationHasAsScala, SeqHasAsJava}
 import scala.language.postfixOps
 import scala.util.Try
 
 object JimpleAst2Database {
   val language: String = "PLUME"
-
-  /** Formats the file name the way Soot refers to classes within a class path. e.g.
-    * /unrelated/paths/class/path/Foo.class => class.path.Foo
-    *
-    * @param filename
-    *   the file name to transform.
-    * @return
-    *   the correctly formatted class path.
-    */
-  def getQualifiedClassPath(filename: String): String = {
-    val codePath = ProgramHandlingUtil.getUnpackingDir
-    val codeDir: String = if (codePath.toFile.isDirectory) {
-      codePath.toAbsolutePath.normalize.toString
-    } else {
-      Paths.get(codePath.toFile.getParentFile.getAbsolutePath).normalize.toString
-    }
-    filename
-      .replace(codeDir + JFile.separator, "")
-      .replace(JFile.separator, ".")
-  }
 }
 
-class JimpleAst2Database(driver: IDriver, sootOnlyBuild: Boolean = false) extends io.joern.jimple2cpg.Jimple2Cpg {
+class JimpleAst2Database(driver: IDriver, sootOnlyBuild: Boolean = false) {
 
-  private val logger = LoggerFactory.getLogger(getClass)
+  import Jimple2Cpg.*
 
-  def createAst(config: Config): Unit = {
-    val rawSourceCodeFile = new JFile(config.inputPath)
-    val sourceTarget      = rawSourceCodeFile.toPath.toAbsolutePath.normalize.toString
-    val sourceCodeDir = if (rawSourceCodeFile.isDirectory) {
-      sourceTarget
-    } else {
-      Paths
-        .get(new JFile(sourceTarget).getParentFile.getAbsolutePath)
-        .normalize
-        .toString
+  private val logger = LoggerFactory.getLogger(classOf[Jimple2Cpg])
+
+  /** Load all class files from archives or directories recursively
+    * @return
+    *   The list of extracted class files whose package path could be extracted, placed on that package path relative to
+    *   [[tmpDir]]
+    */
+  private def loadClassFiles(src: File, tmpDir: File): List[ClassFile] = {
+    val archiveFileExtensions = Set(".jar", ".war", ".zip")
+    extractClassesInPackageLayout(
+      src,
+      tmpDir,
+      isClass = e => e.extension.contains(".class"),
+      isArchive = e => e.extension.exists(archiveFileExtensions.contains),
+      false
+    )
+  }
+
+  /** Extract all class files found, place them in their package layout and load them into soot.
+    */
+  private def sootLoad(classFiles: List[ClassFile]): List[ClassFile] = {
+    val fullyQualifiedClassNames = classFiles.flatMap(_.fullyQualifiedClassName)
+    logger.info(s"Loading ${classFiles.size} program files")
+    logger.debug(s"Source files are: ${classFiles.map(_.file.canonicalPath)}")
+    fullyQualifiedClassNames.foreach { fqcn =>
+      Scene.v().addBasicClass(fqcn)
+      Scene.v().loadClassAndSupport(fqcn)
     }
+    classFiles
+  }
 
-    configureSoot()
+  /** Apply the soot passes
+    * @param tmpDir
+    *   A temporary directory that will be used as the classpath for extracted class files
+    */
+  private def cpgApplyPasses(config: Config, tmpDir: File): Unit = {
+    val input = File(config.inputPath)
+    configureSoot(config, tmpDir)
 
-    val sourceFileExtensions  = Set(".class", ".jimple")
-    val archiveFileExtensions = Set(".jar", ".war")
-    // Load source files and unpack archives if necessary
-    val sourceFileNames = if (sourceTarget == sourceCodeDir) {
-      // Load all source files in a directory
-      loadSourceFiles(sourceCodeDir, sourceFileExtensions, archiveFileExtensions)
-    } else {
-      // Load single file that was specified
-      loadSourceFiles(sourceTarget, sourceFileExtensions, archiveFileExtensions)
-    }
-
-    logger.info(s"Loading ${sourceFileNames.size} program files")
-    logger.debug(s"Source files are: $sourceFileNames")
+    val sourceFileNames = loadClassFiles(input, tmpDir)
+    logger.info("Loading classes to soot")
 
     // Load classes into Soot
-    val codeToProcess = new PlumeDiffPass(sourceFileNames, driver).createAndApply().toList
-    loadClassesIntoSoot(codeToProcess)
-    if (!sootOnlyBuild) {
-
-      // Project Soot classes
-      val astCreator = new AstCreationPass(sourceFileNames, driver)
-      astCreator.createAndApply()
-    }
-    // Clear classes from Soot
-    G.reset()
-  }
-
-  override private def createCpg(config: Config): Try[Cpg] = super.createCpg(config)
-
-  /** Load all source files from archive and/or source file types.
-    */
-  private def loadSourceFiles(
-    sourceCodePath: String,
-    sourceFileExtensions: Set[String],
-    archiveFileExtensions: Set[String]
-  ): List[String] = {
-    (
-      extractSourceFilesFromArchive(sourceCodePath, archiveFileExtensions) ++
-        moveClassFiles(SourceFiles.determine(Set(sourceCodePath), sourceFileExtensions))
-    ).distinct
-  }
-
-  private def loadClassesIntoSoot(sourceFileNames: List[String]): Unit = {
-    sourceFileNames
-      .map(getQualifiedClassPath)
-      .foreach { cp =>
-        Scene.v().addBasicClass(cp)
-        Scene.v().loadClassAndSupport(cp)
-      }
+    val codeToProcess = new PlumeDiffPass(tmpDir.pathAsString, sourceFileNames, driver).createAndApply().toList
+    sootLoad(codeToProcess)
     Scene.v().loadNecessaryClasses()
+    logger.info(s"Loaded ${Scene.v().getApplicationClasses.size()} classes")
+
+    if (!sootOnlyBuild) {
+      // Project Soot classes
+      val astCreator = new AstCreationPass(codeToProcess.map(_.file.pathAsString), driver, tmpDir)
+      astCreator.createAndApply()
+      new PlumeHashPass(driver).createAndApply()
+    }
   }
 
-  private def configureSoot(): Unit = {
+  def createAst(config: Config): Unit = {
+    try {
+      File.temporaryDirectory("jimple2cpg-").apply(cpgApplyPasses(config, _))
+    } finally {
+      G.reset()
+    }
+  }
+
+  private def configureSoot(config: Config, outDir: File): Unit = {
     // set application mode
     Options.v().set_app(false)
     Options.v().set_whole_program(false)
-    // make sure classpath is configured correctly
-    Options.v().set_soot_classpath(ProgramHandlingUtil.getUnpackingDir.toString)
-    Options.v().set_prepend_classpath(true)
     // keep debugging info
     Options.v().set_keep_line_number(true)
     Options.v().set_keep_offset(true)
@@ -127,13 +107,24 @@ class JimpleAst2Database(driver: IDriver, sootOnlyBuild: Boolean = false) extend
     Options.v().set_no_bodies_for_excluded(true)
     Options.v().set_allow_phantom_refs(true)
     // keep variable names
-    Options.v.setPhaseOption("jb.sils", "enabled:false")
-    PhaseOptions.v().setPhaseOption("jb", "use-original-names:true")
-  }
+    Options.v().setPhaseOption("jb.sils", "enabled:false")
+    Options.v().setPhaseOption("jb", "use-original-names:true")
+    // Keep exceptions
+    Options.v().set_show_exception_dests(true)
+    Options.v().set_omit_excepting_unit_edges(false)
+    // output jimple
+    Options.v().set_output_format(Options.output_format_jimple)
+    Options.v().set_output_dir(outDir.canonicalPath)
 
-  private def clean(): Unit = {
-    G.reset()
-    ProgramHandlingUtil.clean()
-  }
+    Options.v().set_dynamic_dir(config.dynamicDirs.asJava)
+    Options.v().set_dynamic_package(config.dynamicPkgs.asJava)
 
+    Options.v().set_soot_classpath(outDir.canonicalPath)
+    Options.v().set_prepend_classpath(true)
+
+    if (config.fullResolver) {
+      // full transitive resolution of all references
+      Options.v().set_full_resolver(true)
+    }
+  }
 }
