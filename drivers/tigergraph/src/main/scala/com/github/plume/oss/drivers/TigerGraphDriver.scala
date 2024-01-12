@@ -382,7 +382,7 @@ final class TigerGraphDriver(
     val status = Process(command) !< processLogger
 
     if (status != 0) {
-      System.err.println(s"Exception encountered, logs: $allLogs")
+      logger.error(s"Exception encountered, logs: $allLogs")
       throw new RuntimeException(s"Failure in posting GSQL payload. Error code $status. See logs for more details.")
     } else {
       logger.info("Successfully posted GSQL request")
