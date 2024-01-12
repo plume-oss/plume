@@ -46,7 +46,8 @@ class JimpleAst2Database(driver: IDriver, sootOnlyBuild: Boolean = false) {
       tmpDir,
       isClass = e => e.extension.contains(".class"),
       isArchive = e => e.extension.exists(archiveFileExtensions.contains),
-      false
+      false,
+      0
     )
   }
 
