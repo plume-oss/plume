@@ -1,0 +1,11 @@
+cff-version: 1.2.0
+message: "If you use this software, please cite it as below."
+authors:
+- family-names: "Baker Effendi"
+  given-names: "Sedick David"
+  orcid: "https://orcid.org/0000-0002-4942-626X"
+- family-names: "Yamaguchi"
+  given-names: "Fabian"
+title: "Plume"
+version: 1.2.7
+url: "https://plume-oss.github.io/plume-docs/"
