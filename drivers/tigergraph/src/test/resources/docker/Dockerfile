@@ -1,3 +1,3 @@
-FROM docker.tigergraph.com/tigergraph:3.9.3
+FROM tigergraph/tigergraph:3.9.3
 ENTRYPOINT /usr/sbin/sshd && \
     su - tigergraph bash -c "/home/tigergraph/tigergraph/app/cmd/gadmin start all && tail -f /dev/null"
