@@ -27,11 +27,12 @@ jobs:
         run: sbt "project overflowdb" test
       - name: Run Neo4j tests
         run: sbt "project neo4j" test
-#      - name: Run TigerGraph tests
-#        run: |
-#          curl https://docs.tigergraph.com/tigergraph-server/3.5/gsql-shell/_attachments/gsql_client_server353.jar --output gsql_client.jar
-#          export GSQL_HOME=`pwd`/gsql_client.jar
-#          sbt "project tigergraph" test
+      - name: Run TigerGraph tests
+        run: |
+          curl https://dl.tigergraph.com/enterprise-edition/gsql_client/tigergraph-3.9.3-1-gsql_client.jar \
+            --output gsql_client.jar && 
+          export GSQL_HOME=`pwd`/gsql_client.jar
+          sbt "project tigergraph" test
 
   formatting:
     name: Code Formatting Check
