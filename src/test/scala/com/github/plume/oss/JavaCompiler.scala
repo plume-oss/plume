@@ -21,19 +21,12 @@ object JavaCompiler {
         null,
         CollectionConverters.SeqHasAsJava(Seq("-g", "-d") :+ sourceCodeFiles.head.getParent).asJava,
         null,
-        fileManager.getJavaFileObjectsFromFiles(
-          CollectionConverters.SeqHasAsJava(sourceCodeFiles.toList).asJava
-        )
+        fileManager.getJavaFileObjectsFromFiles(CollectionConverters.SeqHasAsJava(sourceCodeFiles.toList).asJava)
       )
       .call()
 
     fileManager
-      .list(
-        StandardLocation.CLASS_OUTPUT,
-        "",
-        Collections.singleton(JavaFileObject.Kind.CLASS),
-        false
-      )
+      .list(StandardLocation.CLASS_OUTPUT, "", Collections.singleton(JavaFileObject.Kind.CLASS), false)
       .forEach(x => new File(x.toUri).deleteOnExit())
   }
 

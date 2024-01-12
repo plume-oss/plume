@@ -4,7 +4,7 @@
 *.bin
 *.gzip
 graph.xml
-gsql_client.jar
+gsql_client.*
 
 # Ignore Gradle GUI config
 gradle-app.setting
@@ -16,8 +16,8 @@ gradle-app.setting
 .gradletasknamecache
 
 # IDE
-/plume.iml
-/.idea/
+**.iml
+**/.idea/
 .project
 .settings
 .classpath
@@ -29,6 +29,6 @@ gradle-app.setting
 /sootOutput/
 /plume/sootOutput/
 /testing/build/
-/.bsp/
+**/.bsp/
 target
 /project/target/

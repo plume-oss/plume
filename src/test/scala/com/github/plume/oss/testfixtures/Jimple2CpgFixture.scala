@@ -3,7 +3,6 @@ package com.github.plume.oss.testfixtures
 import com.github.plume.oss.{Jimple2Cpg, PlumeStatistics}
 import com.github.plume.oss.drivers.OverflowDbDriver
 import com.github.plume.oss.JavaCompiler.compileJava
-import com.github.plume.oss.util.DataFlowCacheConfig
 import io.joern.x2cpg.testfixtures.{CodeToCpgFixture, LanguageFrontend}
 import io.shiftleft.codepropertygraph.Cpg
 import org.slf4j.LoggerFactory
@@ -17,7 +16,7 @@ class PlumeFrontend(val _driver: Option[OverflowDbDriver]) extends LanguageFront
   private val logger = LoggerFactory.getLogger(classOf[PlumeFrontend])
   val driver: OverflowDbDriver = _driver match {
     case Some(d) => d
-    case None    => new OverflowDbDriver(cacheConfig = DataFlowCacheConfig(dataFlowCacheFile = None))
+    case None    => new OverflowDbDriver()
   }
   override val fileSuffix: String = ".java"
 
@@ -29,8 +28,7 @@ class PlumeFrontend(val _driver: Option[OverflowDbDriver]) extends LanguageFront
   }
 }
 
-class Jimple2CpgFixture(_driver: Option[OverflowDbDriver] = None)
-    extends CodeToCpgFixture(new PlumeFrontend(_driver)) {
+class Jimple2CpgFixture(_driver: Option[OverflowDbDriver] = None) extends CodeToCpgFixture(new PlumeFrontend(_driver)) {
 
   val driver: OverflowDbDriver = frontend.asInstanceOf[PlumeFrontend].driver
 

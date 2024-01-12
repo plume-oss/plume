@@ -1,0 +1,24 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<Configuration status="WARN">
+    <Properties>
+        <Property name="pattern">%d{HH:mm:ss} [%level{WARN=*, DEBUG=#, ERROR=!, TRACE=%, INFO=+}] %msg%n</Property>
+    </Properties>
+    <Appenders>
+        <Console name="stdout" target="SYSTEM_OUT"> <!-- 1 -->
+            <PatternLayout pattern="${pattern}"/>
+            <ThresholdFilter level="ERROR" onMatch="DENY" onMismatch="ACCEPT"/> <!-- 3 -->
+        </Console>
+        <Console name="stderr" target="SYSTEM_ERR"> <!-- 2 -->
+            <PatternLayout pattern="${pattern}"/>
+            <ThresholdFilter level="ERROR" onMatch="ACCEPT" onMismatch="DENY"/> <!-- 3 -->
+        </Console>
+    </Appenders>
+    <Loggers>
+        <Logger name="io.shiftleft.overflowdb" level="warn" />
+        <Logger name="com.github.plume" level="info" />
+        <Root level="ERROR">
+            <AppenderRef ref="stdout" />
+            <AppenderRef ref="stderr" />
+        </Root>
+    </Loggers>
+</Configuration>

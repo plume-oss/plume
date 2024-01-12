@@ -27,13 +27,12 @@ class DiffTests extends AnyWordSpec with Matchers with BeforeAndAfterAll {
 
   private def rewriteFileContents(tgt: File, incoming: File): File = {
     if (!tgt.exists()) tgt.createNewFile()
-    Using.resources(new FileOutputStream(tgt, false), new FileInputStream(incoming)) {
-      case (fos, fis) =>
-        val buf = new Array[Byte](4096)
-        Iterator
-          .continually(fis.read(buf))
-          .takeWhile(_ != -1)
-          .foreach(fos.write(buf, 0, _))
+    Using.resources(new FileOutputStream(tgt, false), new FileInputStream(incoming)) { case (fos, fis) =>
+      val buf = new Array[Byte](4096)
+      Iterator
+        .continually(fis.read(buf))
+        .takeWhile(_ != -1)
+        .foreach(fos.write(buf, 0, _))
     }
     new File(tgt.getAbsolutePath)
   }
@@ -63,10 +62,6 @@ class DiffTests extends AnyWordSpec with Matchers with BeforeAndAfterAll {
     driver.clear()
     driver.close()
     Paths.get(storage.get).toFile.delete()
-    driver.cacheConfig.dataFlowCacheFile match {
-      case Some(jsonFile) => new File(jsonFile.toFile.getAbsolutePath + ".lz4").delete()
-      case None           =>
-    }
   }
 
   "should have all necessary nodes on first pass" in {
@@ -94,44 +89,6 @@ class DiffTests extends AnyWordSpec with Matchers with BeforeAndAfterAll {
       .propertyFromNodes(NodeTypes.METHOD_PARAMETER_IN, PropertyNames.CODE)
       .filter(_(PropertyNames.CODE) == "int a")
     paramA.size shouldBe 1
-  }
-
-  "should have more cache misses than hits on the first data-flow query than the second" in {
-    val sourceNodesId1 = driver.cpg.parameter("a").id.l
-    val sinkNodesId1   = driver.cpg.call(Operators.addition).id.l
-
-    val r1 = driver
-      .flowsBetween(driver.cpg.parameter("a"), driver.cpg.call(Operators.addition))
-      .map(_.path.map(_.node.id()))
-    val cH1       = QueryEngineStatistics.results()(QueryEngineStatistics.PATH_CACHE_HITS)
-    val cM1       = QueryEngineStatistics.results()(QueryEngineStatistics.PATH_CACHE_MISSES)
-    val hitRatio1 = cH1.toDouble / (cH1 + cM1) * 100
-    logger.info(s"Cache hit ratio $hitRatio1% ($cH1 vs $cM1)")
-    cH1 should be <= cM1
-    QueryEngineStatistics.reset()
-
-    logger.info("Closing driver")
-    driver.close()
-    driver = new OverflowDbDriver(storage)
-
-    val sourceNodesId2 = driver.cpg.parameter("a").id.l
-    val sinkNodesId2   = driver.cpg.call(Operators.addition).id.l
-
-    val r2 = driver
-      .flowsBetween(driver.cpg.parameter("a"), driver.cpg.call(Operators.addition))
-      .map(_.path.map(_.node.id()))
-    val cH2 = QueryEngineStatistics.results()(QueryEngineStatistics.PATH_CACHE_HITS)
-    val cM2 = QueryEngineStatistics.results()(QueryEngineStatistics.PATH_CACHE_MISSES)
-
-    // Assert ODB deserialized the graph correctly
-    sourceNodesId1 shouldBe sourceNodesId2
-    sinkNodesId1 shouldBe sinkNodesId2
-    // The same path should be picked up
-    r1 shouldBe r2
-    // The cache should have a higher number of hits now from re-using the first query
-    val hitRatio2 = cH2.toDouble / (cH2 + cM2) * 100
-    logger.info(s"Cache hit ratio $hitRatio2% ($cH2 vs $cM2)")
-    hitRatio2 should be >= hitRatio1
   }
 
   "should update Foo on file changes" in {
