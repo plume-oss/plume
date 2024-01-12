@@ -5,9 +5,8 @@
 </div>
 
 Plume is a language front-end to construct
-an [intermediate representation](https://en.wikipedia.org/wiki/Intermediate_representation) called
-a [code-property graphs](https://github.com/ShiftLeftSecurity/codepropertygraph) from JVM bytecode. Plume is graph
-database agnostic and can store code-property graphs to multiple graph databases.
+ASTs based on the [code-property graphs](https://github.com/ShiftLeftSecurity/codepropertygraph) schema from JVM bytecode. Plume is graph
+database agnostic and can store the graphs to multiple graph databases.
 
 [![License](https://img.shields.io/badge/License-Apache%202.0-blue.svg)](https://opensource.org/licenses/Apache-2.0)
 ![GitHub Actions](https://github.com/plume-oss/plume/workflows/CI/badge.svg)
