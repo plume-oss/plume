@@ -165,12 +165,10 @@ final class TigerGraphDriver(
 
   private def bulkCreateNode(ops: Seq[DetachedNodeData]): Unit = {
     val payload = ops
-      .flatMap {
-        case c: DetachedNodeData =>
-          val nodeId = c.pID
-          c.setRefOrId(nodeId)
-          Some(nodePayload(idFromNodeData(c), c.label(), propertiesFromNodeData(c).toMap))
-        case _ => None
+      .flatMap { c =>
+        val nodeId = c.pID
+        c.setRefOrId(nodeId)
+        Some(nodePayload(idFromNodeData(c), c.label(), propertiesFromNodeData(c).toMap))
       }
       .reduce { (a: JsonObject, b: JsonObject) => a.deepMerge(b) }
     post("graph/cpg", PayloadBody(vertices = payload))
@@ -178,9 +176,7 @@ final class TigerGraphDriver(
 
   private def bulkNodeSetProperty(ops: Seq[BatchedUpdate.SetNodeProperty]): Unit = {
     val payload = ops
-      .map { case c: BatchedUpdate.SetNodeProperty =>
-        (c.label, c.value, c.node)
-      }
+      .map(c => (c.label, c.value, c.node))
       .flatMap {
         case (key, value, n: StoredNode) =>
           jsonValue(value) match {
@@ -199,19 +195,17 @@ final class TigerGraphDriver(
 
   private def bulkCreateEdge(ops: Seq[BatchedUpdate.CreateEdge]): Unit = {
     val payload = ops
-      .flatMap {
-        case c: BatchedUpdate.CreateEdge =>
-          Some(
-            edgePayload(
-              idFromNodeData(c.src),
-              labelFromNodeData(c.src),
-              idFromNodeData(c.dst),
-              labelFromNodeData(c.dst),
-              c.label
-            )
+      .flatMap(c =>
+        Some(
+          edgePayload(
+            idFromNodeData(c.src),
+            labelFromNodeData(c.src),
+            idFromNodeData(c.dst),
+            labelFromNodeData(c.dst),
+            c.label
           )
-        case _ => None
-      }
+        )
+      )
       .reduce { (a: JsonObject, b: JsonObject) => a.deepMerge(b) }
     post("graph/cpg", PayloadBody(edges = payload))
   }
@@ -367,8 +361,13 @@ final class TigerGraphDriver(
 
   private def executeGsqlClient(gsqlPath: String, args: Seq[String]): Unit = {
     import sys.process.*
+
+    val allLogs = new StringBuilder()
     val processLogger =
-      ProcessLogger.apply((s: String) => logger.info(s), (s: String) => logger.error(s))
+      ProcessLogger.apply(
+        (s: String) => { logger.info(s); allLogs.append(s) },
+        (s: String) => { logger.error(s); allLogs.append(s) }
+      )
     Try(sys.env("JAVA_HOME")) match {
       case Failure(_) =>
         throw new RuntimeException("Environment variable 'JAVA_HOME' not found on the OS.")
@@ -383,6 +382,7 @@ final class TigerGraphDriver(
     val status = Process(command) !< processLogger
 
     if (status != 0) {
+      logger.error(s"Exception encountered, logs: $allLogs")
       throw new RuntimeException(s"Failure in posting GSQL payload. Error code $status. See logs for more details.")
     } else {
       logger.info("Successfully posted GSQL request")
