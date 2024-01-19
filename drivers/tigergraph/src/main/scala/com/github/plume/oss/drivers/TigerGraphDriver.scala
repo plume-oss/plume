@@ -345,17 +345,19 @@ final class TigerGraphDriver(
   }
 
   private def postGSQL(payload: String): Unit = {
-    Try(sys.env("GSQL_HOME")) match {
+    Try(sys.env("GSQL_HOME")).map(x => better.files.File(x.trim)) match {
       case Failure(_) =>
         throw new RuntimeException("""
         |Environment variable 'GSQL_HOME' not found on the OS. Please install the gsql_client.jar
         |from https://docs.tigergraph.com/tigergraph-server/current/gsql-shell/using-a-remote-gsql-client and set the
         |path to the JAR file as GSQL_HOME.
         |""".stripMargin)
-      case Success(gsqlPath) =>
+      case Success(gsqlJar) if !gsqlJar.exists =>
+        throw new RuntimeException(s"Path defined by `GSQL_HOME` (${gsqlJar.pathAsString}) does not exist!")
+      case Success(gsqlJar) =>
         val args = Seq("-ip", s"$hostname:$gsqlPort", "-u", username, "-p", password, payload)
         logger.debug(s"Posting payload:\n$payload")
-        executeGsqlClient(gsqlPath, args)
+        executeGsqlClient(gsqlJar.pathAsString, args)
     }
   }
 
