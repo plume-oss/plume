@@ -32,7 +32,7 @@ final class TigerGraphDriver(
   timeout: Int = DEFAULT_TIMEOUT,
   scheme: String = "http",
   txMax: Int = DEFAULT_TX_MAX,
-  tgVersion: String = "3.5.0",
+  tgVersion: String = "3.9.3",
   authKey: String = ""
 ) extends IDriver
     with ISchemaSafeDriver {
@@ -117,7 +117,7 @@ final class TigerGraphDriver(
     val attributes = properties.flatMap { case (k, v) =>
       val vStr = v match {
         case xs: Seq[_]     => xs.mkString(",")
-        case x if x == null => IDriver.getPropertyDefault(k)
+        case x if x == null => SchemaBuilder.getPropertyDefault(k)
         case x              => x
       }
       jsonValue(vStr) match {
@@ -217,7 +217,7 @@ final class TigerGraphDriver(
     keys
       .map { k =>
         val params = Map("node_type" -> s"${nodeType}_", "property" -> s"_$k")
-        IDriver.getPropertyDefault(k) match {
+        SchemaBuilder.getPropertyDefault(k) match {
           case _: Boolean => k -> get("query/cpg/b_property_from_nodes", params)
           case _: Int     => k -> get("query/cpg/i_property_from_nodes", params)
           case _          => k -> get("query/cpg/s_property_from_nodes", params)
@@ -427,90 +427,12 @@ object TigerGraphDriver {
   /** Returns the corresponding TigerGraph type given a Scala type.
     */
   private def odbToTgType(propKey: String): String = {
-    IDriver.getPropertyDefault(propKey) match {
+    SchemaBuilder.getPropertyDefault(propKey) match {
       case _: Long    => "UINT"
       case _: Int     => "INT"
       case _: Boolean => "BOOL"
       case _          => "STRING"
     }
-  }
-
-  /** Edges that should be specified as being between any kind of vertex.
-    */
-  private val WILDCARD_EDGE_LABELS =
-    Set(EdgeTypes.EVAL_TYPE, EdgeTypes.REF, EdgeTypes.INHERITS_FROM, EdgeTypes.ALIAS_OF)
-
-  /** Determines if an edge type between two node types is valid.
-    */
-  def checkEdgeConstraint(from: String, to: String, edge: String): Boolean = {
-    val fromCheck = from match {
-      case MetaData.Label                  => MetaData.Edges.Out.contains(edge)
-      case File.Label                      => File.Edges.Out.contains(edge)
-      case Method.Label                    => Method.Edges.Out.contains(edge)
-      case MethodParameterIn.Label         => MethodParameterIn.Edges.Out.contains(edge)
-      case MethodParameterOut.Label        => MethodParameterOut.Edges.Out.contains(edge)
-      case MethodReturn.Label              => MethodReturn.Edges.Out.contains(edge)
-      case Modifier.Label                  => Modifier.Edges.Out.contains(edge)
-      case Type.Label                      => Type.Edges.Out.contains(edge)
-      case TypeDecl.Label                  => TypeDecl.Edges.Out.contains(edge)
-      case TypeParameter.Label             => TypeParameter.Edges.Out.contains(edge)
-      case TypeArgument.Label              => TypeArgument.Edges.Out.contains(edge)
-      case Member.Label                    => Member.Edges.Out.contains(edge)
-      case Namespace.Label                 => Namespace.Edges.Out.contains(edge)
-      case NamespaceBlock.Label            => NamespaceBlock.Edges.Out.contains(edge)
-      case Literal.Label                   => Literal.Edges.Out.contains(edge)
-      case Call.Label                      => Call.Edges.Out.contains(edge)
-      case Local.Label                     => Local.Edges.Out.contains(edge)
-      case Identifier.Label                => Identifier.Edges.Out.contains(edge)
-      case FieldIdentifier.Label           => FieldIdentifier.Edges.Out.contains(edge)
-      case Return.Label                    => Return.Edges.Out.contains(edge)
-      case Block.Label                     => Block.Edges.Out.contains(edge)
-      case MethodRef.Label                 => MethodRef.Edges.Out.contains(edge)
-      case TypeRef.Label                   => TypeRef.Edges.Out.contains(edge)
-      case JumpTarget.Label                => JumpTarget.Edges.Out.contains(edge)
-      case ControlStructure.Label          => ControlStructure.Edges.Out.contains(edge)
-      case Annotation.Label                => Annotation.Edges.Out.contains(edge)
-      case AnnotationLiteral.Label         => AnnotationLiteral.Edges.Out.contains(edge)
-      case AnnotationParameter.Label       => AnnotationParameter.Edges.Out.contains(edge)
-      case AnnotationParameterAssign.Label => AnnotationParameterAssign.Edges.Out.contains(edge)
-      case Unknown.Label                   => Unknown.Edges.Out.contains(edge)
-      case _                               => false
-    }
-    val toCheck = to match {
-      case MetaData.Label                  => MetaData.Edges.In.contains(edge)
-      case File.Label                      => File.Edges.In.contains(edge)
-      case Method.Label                    => Method.Edges.In.contains(edge)
-      case MethodParameterIn.Label         => MethodParameterIn.Edges.In.contains(edge)
-      case MethodParameterOut.Label        => MethodParameterOut.Edges.In.contains(edge)
-      case MethodReturn.Label              => MethodReturn.Edges.In.contains(edge)
-      case Modifier.Label                  => Modifier.Edges.In.contains(edge)
-      case Type.Label                      => Type.Edges.In.contains(edge)
-      case TypeDecl.Label                  => TypeDecl.Edges.In.contains(edge)
-      case TypeParameter.Label             => TypeParameter.Edges.In.contains(edge)
-      case TypeArgument.Label              => TypeArgument.Edges.In.contains(edge)
-      case Member.Label                    => Member.Edges.In.contains(edge)
-      case Namespace.Label                 => Namespace.Edges.In.contains(edge)
-      case NamespaceBlock.Label            => NamespaceBlock.Edges.In.contains(edge)
-      case Literal.Label                   => Literal.Edges.In.contains(edge)
-      case Call.Label                      => Call.Edges.In.contains(edge)
-      case Local.Label                     => Local.Edges.In.contains(edge)
-      case Identifier.Label                => Identifier.Edges.In.contains(edge)
-      case FieldIdentifier.Label           => FieldIdentifier.Edges.In.contains(edge)
-      case Return.Label                    => Return.Edges.In.contains(edge)
-      case Block.Label                     => Block.Edges.In.contains(edge)
-      case MethodRef.Label                 => MethodRef.Edges.In.contains(edge)
-      case TypeRef.Label                   => TypeRef.Edges.In.contains(edge)
-      case JumpTarget.Label                => JumpTarget.Edges.In.contains(edge)
-      case ControlStructure.Label          => ControlStructure.Edges.In.contains(edge)
-      case Annotation.Label                => Annotation.Edges.In.contains(edge)
-      case AnnotationLiteral.Label         => AnnotationLiteral.Edges.In.contains(edge)
-      case AnnotationParameter.Label       => AnnotationParameter.Edges.In.contains(edge)
-      case AnnotationParameterAssign.Label => AnnotationParameterAssign.Edges.In.contains(edge)
-      case Unknown.Label                   => Unknown.Edges.In.contains(edge)
-      case _                               => false
-    }
-
-    fromCheck && toCheck
   }
 
   /** Edges as a schema string. Each edge is prepended with "_" to escape reserved words.
@@ -520,13 +442,13 @@ object TigerGraphDriver {
       .flatMap { e =>
         NodeTypes.ALL.asScala.flatMap { src =>
           NodeTypes.ALL.asScala.flatMap { dst =>
-            if (checkEdgeConstraint(src, dst, e)) Some((src, dst, e))
+            if (SchemaBuilder.checkEdgeConstraint(src, dst, e)) Some((src, dst, e))
             else None
           }
         }
       }
       .groupBy { case (_, _, e) => e }
-      .filterNot { x => WILDCARD_EDGE_LABELS.contains(x._1) }
+      .filterNot { x => SchemaBuilder.WILDCARD_EDGE_LABELS.contains(x._1) }
       .map { case (label, xs) =>
         val prefix = s"CREATE DIRECTED EDGE _$label("
         val body   = xs.map { case (src, dst, _) => s"FROM ${src}_, TO ${dst}_" }.mkString("|")
@@ -535,21 +457,17 @@ object TigerGraphDriver {
       .mkString("\n")
   }
 
-  /** Creates the schema string of all edges that should be treated as widlcards.
+  /** Creates the schema string of all edges that should be treated as wildcards.
     */
   private def WILDCARD_EDGES: String = {
-    WILDCARD_EDGE_LABELS
-      .map { x =>
-        s"CREATE DIRECTED EDGE _$x(FROM *, TO *)"
-      }
-      .mkString("\n")
+    SchemaBuilder.WILDCARD_EDGE_LABELS.map(x => s"CREATE DIRECTED EDGE _$x(FROM *, TO *)").mkString("\n")
   }
 
   /** Vertices as a schema string. Each vertex and property is appended or prepended with "_" to escape reserved words.
     */
   private def VERTICES: String = {
     def propToTg(x: String) = {
-      val default = IDriver.getPropertyDefault(x) match {
+      val default = SchemaBuilder.getPropertyDefault(x) match {
         case x: String  => "\"" + x + "\""
         case x: Boolean => "\"" + x + "\""
         case _: Seq[_]  => "\"" + "" + "\""
@@ -560,36 +478,7 @@ object TigerGraphDriver {
     def vertexSchema(label: String, props: Set[String]): String =
       s"CREATE VERTEX ${label}_ (PRIMARY_ID id UINT, ${props.map(propToTg).mkString(",")}) WITH primary_id_as_attribute=" + "\"true\""
     s"""
-      |${vertexSchema(MetaData.Label, MetaData.PropertyNames.all)}
-      |${vertexSchema(File.Label, File.PropertyNames.all)}
-      |${vertexSchema(Method.Label, Method.PropertyNames.all)}
-      |${vertexSchema(MethodParameterIn.Label, MethodParameterIn.PropertyNames.all)}
-      |${vertexSchema(MethodParameterOut.Label, MethodParameterOut.PropertyNames.all)}
-      |${vertexSchema(MethodReturn.Label, MethodReturn.PropertyNames.all)}
-      |${vertexSchema(Modifier.Label, Modifier.PropertyNames.all)}
-      |${vertexSchema(Type.Label, Type.PropertyNames.all)}
-      |${vertexSchema(TypeDecl.Label, TypeDecl.PropertyNames.all)}
-      |${vertexSchema(TypeParameter.Label, TypeParameter.PropertyNames.all)}
-      |${vertexSchema(TypeArgument.Label, TypeArgument.PropertyNames.all)}
-      |${vertexSchema(Member.Label, Member.PropertyNames.all)}
-      |${vertexSchema(Namespace.Label, Namespace.PropertyNames.all)}
-      |${vertexSchema(NamespaceBlock.Label, NamespaceBlock.PropertyNames.all)}
-      |${vertexSchema(Literal.Label, Literal.PropertyNames.all)}
-      |${vertexSchema(Call.Label, Call.PropertyNames.all)}
-      |${vertexSchema(Local.Label, Local.PropertyNames.all)}
-      |${vertexSchema(Identifier.Label, Identifier.PropertyNames.all)}
-      |${vertexSchema(FieldIdentifier.Label, FieldIdentifier.PropertyNames.all)}
-      |${vertexSchema(Return.Label, Return.PropertyNames.all)}
-      |${vertexSchema(Block.Label, Block.PropertyNames.all)}
-      |${vertexSchema(MethodRef.Label, MethodRef.PropertyNames.all)}
-      |${vertexSchema(TypeRef.Label, TypeRef.PropertyNames.all)}
-      |${vertexSchema(JumpTarget.Label, JumpTarget.PropertyNames.all)}
-      |${vertexSchema(ControlStructure.Label, ControlStructure.PropertyNames.all)}
-      |${vertexSchema(Annotation.Label, Annotation.PropertyNames.all)}
-      |${vertexSchema(AnnotationLiteral.Label, AnnotationLiteral.PropertyNames.all)}
-      |${vertexSchema(AnnotationParameter.Label, AnnotationParameter.PropertyNames.all)}
-      |${vertexSchema(AnnotationParameterAssign.Label, AnnotationParameterAssign.PropertyNames.all)}
-      |${vertexSchema(Unknown.Label, Unknown.PropertyNames.all)}
+      |${SchemaBuilder.NodeToProperties.map(vertexSchema).mkString("\n")}
       |""".stripMargin
   }
 
