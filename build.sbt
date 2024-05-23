@@ -4,7 +4,7 @@ inThisBuild(
   List(
     organization := "com.github.plume-oss",
     version := "2.0.0",
-    scalaVersion := "3.3.1",
+    scalaVersion := "3.4.1",
     resolvers ++= Seq(
       Resolver.mavenLocal,
       Resolver.mavenCentral,
@@ -36,6 +36,7 @@ libraryDependencies ++= Seq(
   "io.joern"                %% "semanticcpg"       % Versions.joern,
   "io.joern"                %% "x2cpg"             % Versions.joern,
   "io.joern"                %% "jimple2cpg"        % Versions.joern,
+  "io.joern"                %% "jimple2cpg"        % Versions.joern     % Test classifier "tests",
   "io.joern"                %% "x2cpg"             % Versions.joern     % Test classifier "tests",
   "org.slf4j"                % "slf4j-api"         % Versions.slf4j,
   "org.apache.logging.log4j" % "log4j-core"        % Versions.log4j     % Test,

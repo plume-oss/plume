@@ -18,7 +18,7 @@ abstract class PlumeConcurrentWriterPass[T <: AnyRef](driver: IDriver) {
 
   @volatile var nDiffT = -1
 
-  def generateParts(): Array[_ <: AnyRef]
+  def generateParts(): Array[? <: AnyRef]
 
   // main function: add desired changes to builder
   def runOnPart(builder: DiffGraphBuilder, part: T): Unit

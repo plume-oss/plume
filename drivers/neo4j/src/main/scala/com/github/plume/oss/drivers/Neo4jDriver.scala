@@ -148,7 +148,7 @@ final class Neo4jDriver(
           .map { case (key: String, value: Any, node: StoredNode) =>
             val newV = value match {
               case x: String => "\"" + x + "\""
-              case Seq()     => IDriver.STRING_DEFAULT
+              case Seq()     => SchemaBuilder.STRING_DEFAULT
               case xs: Seq[_] =>
                 "[" + xs.map { x => Seq("\"", x, "\"").mkString }.mkString(",") + "]"
               case x: Number => x.toString
@@ -223,46 +223,6 @@ final class Neo4jDriver(
     dg.size()
   }
 
-  /** Removes the namespace block with all of its AST children specified by the given FILENAME property.
-    */
-  private def deleteNamespaceBlockWithAstChildrenByFilename(filename: String): Unit =
-    Using.resource(driver.session()) { session =>
-      session.writeTransaction { tx =>
-        tx
-          .run(
-            s"""
-                |MATCH (a:${NodeTypes.NAMESPACE_BLOCK})-[r:${EdgeTypes.AST}*]->(t)
-                |WHERE a.${PropertyNames.FILENAME} = $$filename
-                |FOREACH (x IN r | DELETE x)
-                |DETACH DELETE a, t
-                |""".stripMargin,
-            new util.HashMap[String, Object](1) { put("filename", filename.asInstanceOf[Object]) }
-          )
-      }
-    }
-
-  override def removeSourceFiles(filenames: String*): Unit = {
-    Using.resource(driver.session()) { session =>
-      val fileSet = CollectionConverters.IterableHasAsJava(filenames.toSeq).asJava
-      session.writeTransaction { tx =>
-        val filePayload = s"""
-             |MATCH (f:${NodeTypes.FILE})
-             |MATCH (f)<-[:${EdgeTypes.SOURCE_FILE}]-(td:${NodeTypes.TYPE_DECL})<-[:${EdgeTypes.REF}]-(t)
-             |WHERE f.NAME IN $$fileSet
-             |DETACH DELETE f, t
-             |""".stripMargin
-        runPayload(
-          tx,
-          filePayload,
-          new util.HashMap[String, Object](1) {
-            put("fileSet", fileSet)
-          }
-        )
-      }
-    }
-    filenames.foreach(deleteNamespaceBlockWithAstChildrenByFilename)
-  }
-
   private def runPayload(
     tx: Transaction,
     filePayload: String,
@@ -289,15 +249,15 @@ final class Neo4jDriver(
             (keys :+ "id").flatMap { k =>
               val v = record.get(k)
               if (v.hasType(typeSystem.NULL())) {
-                Some(k -> IDriver.getPropertyDefault(k))
+                Some(k -> SchemaBuilder.getPropertyDefault(k))
               } else if (k == "id") {
-                Some(k -> v.asLong(IDriver.LONG_DEFAULT))
+                Some(k -> v.asLong(SchemaBuilder.LONG_DEFAULT))
               } else if (v.hasType(typeSystem.INTEGER())) {
-                Some(k -> v.asInt(IDriver.INT_DEFAULT))
+                Some(k -> v.asInt(SchemaBuilder.INT_DEFAULT))
               } else if (v.hasType(typeSystem.BOOLEAN())) {
-                Some(k -> v.asBoolean(IDriver.BOOL_DEFAULT))
+                Some(k -> v.asBoolean(SchemaBuilder.BOOL_DEFAULT))
               } else if (v.hasType(typeSystem.STRING())) {
-                Some(k -> v.asString(IDriver.STRING_DEFAULT))
+                Some(k -> v.asString(SchemaBuilder.STRING_DEFAULT))
               } else if (v.hasType(typeSystem.LIST())) {
                 Some(k -> v.asList())
               } else {

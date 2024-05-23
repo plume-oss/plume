@@ -3,7 +3,6 @@ package com.github.plume.oss
 import better.files.File
 import com.github.plume.oss.drivers.IDriver
 import com.github.plume.oss.passes.base.AstCreationPass
-import com.github.plume.oss.passes.incremental.{PlumeDiffPass, PlumeHashPass}
 import io.joern.jimple2cpg.Jimple2Cpg.language
 import io.joern.jimple2cpg.passes.SootAstCreationPass
 import io.joern.jimple2cpg.{Config, Jimple2Cpg}
@@ -45,7 +44,8 @@ class JimpleAst2Database(driver: IDriver, sootOnlyBuild: Boolean = false) {
       src,
       tmpDir,
       isClass = e => e.extension.contains(".class"),
-      isArchive = e => e.extension.exists(archiveFileExtensions.contains),
+      isArchive = e => e.isZipFile,
+      isConfigFile = e => e.isConfigFile,
       false,
       0
     )
@@ -72,11 +72,10 @@ class JimpleAst2Database(driver: IDriver, sootOnlyBuild: Boolean = false) {
     val input = File(config.inputPath)
     configureSoot(config, tmpDir)
 
-    val sourceFileNames = loadClassFiles(input, tmpDir)
+    val codeToProcess = loadClassFiles(input, tmpDir)
     logger.info("Loading classes to soot")
 
     // Load classes into Soot
-    val codeToProcess = new PlumeDiffPass(tmpDir.pathAsString, sourceFileNames, driver).createAndApply().toList
     sootLoad(codeToProcess)
     Scene.v().loadNecessaryClasses()
     logger.info(s"Loaded ${Scene.v().getApplicationClasses.size()} classes")
@@ -85,7 +84,6 @@ class JimpleAst2Database(driver: IDriver, sootOnlyBuild: Boolean = false) {
       // Project Soot classes
       val astCreator = new AstCreationPass(codeToProcess.map(_.file.pathAsString), driver, tmpDir)
       astCreator.createAndApply()
-      new PlumeHashPass(driver).createAndApply()
     }
   }
 

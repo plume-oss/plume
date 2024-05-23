@@ -6,7 +6,7 @@ import com.github.plume.oss.util.BatchedUpdateUtil
 import com.github.plume.oss.util.BatchedUpdateUtil.*
 import io.shiftleft.codepropertygraph.generated.*
 import io.shiftleft.codepropertygraph.generated.nodes.*
-import org.apache.commons.lang.StringEscapeUtils
+import org.apache.commons.text.StringEscapeUtils
 import org.slf4j.LoggerFactory
 import overflowdb.BatchedUpdate.DiffOrBuilder
 import overflowdb.traversal.jIteratortoTraversal
@@ -93,36 +93,6 @@ final case class OverflowDbDriver(
     dg.size()
   }
 
-  private def accumNodesToDelete(n: Node, visitedNodes: mutable.Set[Node], edgeToFollow: String*): Unit = {
-    if (!visitedNodes.contains(n)) {
-      visitedNodes.add(n)
-      n.out(edgeToFollow: _*)
-        .forEachRemaining(accumNodesToDelete(_, visitedNodes, edgeToFollow: _*))
-    }
-  }
-
-  override def removeSourceFiles(filenames: String*): Unit = {
-    val fs = filenames.toSet
-    cpg.graph
-      .nodes(NodeTypes.FILE)
-      .filter { f =>
-        fs.contains(f.property(PropertyNames.NAME).toString)
-      }
-      .foreach { f =>
-        val fileChildren    = f.in(EdgeTypes.SOURCE_FILE).asScala.toList
-        val typeDecls       = fileChildren.collect { case x: TypeDecl => x }
-        val namespaceBlocks = fileChildren.collect { case x: NamespaceBlock => x }
-        // Remove TYPE nodes
-        typeDecls.flatMap(_.in(EdgeTypes.REF)).foreach(safeRemove)
-        // Remove NAMESPACE_BLOCKs and their AST children (TYPE_DECL, METHOD, etc.)
-        val nodesToDelete = mutable.Set.empty[Node]
-        namespaceBlocks.foreach(accumNodesToDelete(_, nodesToDelete, EdgeTypes.AST, EdgeTypes.CONDITION))
-        nodesToDelete.foreach(safeRemove)
-        // Finally remove FILE node
-        safeRemove(f)
-      }
-  }
-
   private def safeRemove(n: Node): Unit = Try(if (n != null) {
     n.inE().forEachRemaining(_.remove())
     n.outE().forEachRemaining(_.remove())
@@ -191,7 +161,7 @@ final case class OverflowDbDriver(
         osw.write("<node id=\"" + n.id + "\">")
         osw.write("<data key=\"labelV\">" + n.label() + "</data>")
         serializeLists(n.propertiesMap().asScala.toMap).foreach { case (k, v) =>
-          osw.write("<data key=\"" + k + "\">" + StringEscapeUtils.escapeXml(v.toString) + "</data>")
+          osw.write("<data key=\"" + k + "\">" + StringEscapeUtils.escapeXml11(v.toString) + "</data>")
         }
         osw.write("</node>")
       }

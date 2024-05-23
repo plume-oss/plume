@@ -34,7 +34,7 @@ class PlumeDriverFixture(val driver: IDriver)
     val props: Array[Object] = n.properties.flatMap { case (k, v) =>
       Iterable(k.asInstanceOf[Object], v.asInstanceOf[Object])
     }.toArray
-    new DetachedNodeGeneric(n.label(), props: _*)
+    new DetachedNodeGeneric(n.label(), props*)
   }
 
   "overflowdb.BatchedUpdate.DiffGraph based changes" should {
@@ -95,23 +95,6 @@ class PlumeDriverFixture(val driver: IDriver)
         EdgeTypes.AST
       ) shouldBe false
     }
-  }
-
-  "should delete a source file's nodes precisely" in {
-    val diffGraph = new DiffGraphBuilder
-    // Create some basic method
-    createSimpleGraph(diffGraph)
-    driver.bulkTx(diffGraph.build())
-
-    // remove f1 nodes
-    driver.removeSourceFiles(f1.name)
-
-    val List(m: Map[String, Any])  = driver.propertyFromNodes(METHOD, NAME)
-    val List(td: Map[String, Any]) = driver.propertyFromNodes(TYPE_DECL, NAME)
-    val List(n: Map[String, Any])  = driver.propertyFromNodes(NAMESPACE_BLOCK, NAME)
-    m.getOrElse(NAME, -1L).asInstanceOf[String] shouldBe m2.name
-    td.getOrElse(NAME, -1L).asInstanceOf[String] shouldBe td2.name
-    n.getOrElse(NAME, -1L).asInstanceOf[String] shouldBe n2.name
   }
 
   override def afterAll(): Unit = {

@@ -133,50 +133,11 @@ abstract class GremlinDriver(txMax: Int = 50) extends IDriver {
     }
   }
 
-  override def removeSourceFiles(filenames: String*): Unit = {
-    val fs = g()
-      .V()
-      .hasLabel(NodeTypes.FILE)
-      .filter(__.has(PropertyNames.NAME, within[String](filenames: _*)))
-      .id()
-      .toSet
-      .asScala
-      .toSeq
-
-    g()
-      .V(fs: _*)
-      .in(EdgeTypes.SOURCE_FILE)
-      .filter(__.hasLabel(NodeTypes.TYPE_DECL))
-      .in(EdgeTypes.REF)
-      .drop()
-      .iterate()
-
-    g()
-      .V(fs: _*)
-      .in(EdgeTypes.SOURCE_FILE)
-      .hasLabel(NodeTypes.NAMESPACE_BLOCK)
-      .aggregate("x")
-      .repeat(__.out(EdgeTypes.AST, EdgeTypes.CONDITION))
-      .emit()
-      .barrier()
-      .aggregate("x")
-      .select[Vertex]("x")
-      .unfold[Vertex]()
-      .dedup()
-      .drop()
-      .iterate()
-
-    g()
-      .V(fs: _*)
-      .drop()
-      .iterate()
-  }
-
   override def propertyFromNodes(nodeType: String, keys: String*): List[Map[String, Any]] = {
     var ptr = g()
       .V()
       .hasLabel(nodeType)
-      .project[Any](T.id.toString, keys: _*)
+      .project[Any](T.id.toString, keys*)
       .by(T.id)
     keys.foreach(k => ptr = ptr.by(coalesce(values(k), constant("NULL"))))
     ptr.asScala
@@ -184,7 +145,7 @@ abstract class GremlinDriver(txMax: Int = 50) extends IDriver {
         _.asScala
           .map { case (k, v) =>
             if (v == "NULL")
-              k -> IDriver.getPropertyDefault(k)
+              k -> SchemaBuilder.getPropertyDefault(k)
             else if (v == PropertyNames.OVERLAYS || v == PropertyNames.INHERITS_FROM_TYPE_FULL_NAME)
               k -> v.toString.split(",").toSeq
             else

@@ -15,7 +15,6 @@ import scala.collection.mutable.ListBuffer
   */
 trait IDriver extends AutoCloseable {
 
-  private val logger = LoggerFactory.getLogger(IDriver.getClass)
   // ID Tracking
   protected val currId = new AtomicLong(1)
   private val nodeId   = TrieMap.empty[overflowdb.NodeOrDetachedNode, Long]
@@ -40,10 +39,6 @@ trait IDriver extends AutoCloseable {
     * transaction(s).
     */
   def bulkTx(dg: DiffOrBuilder): Int
-
-  /** Given filenames, will remove related TYPE, TYPE_DECL, METHOD (with AST children), and NAMESPACE_BLOCK.
-    */
-  def removeSourceFiles(filenames: String*): Unit
 
   /** Obtains properties from the specified node type and key(s). By default will return the ID property as one of the
     * keys as "id".
@@ -147,39 +142,4 @@ trait ISchemaSafeDriver extends IDriver {
     */
   def buildSchemaPayload(): String
 
-}
-
-object IDriver {
-  val STRING_DEFAULT: String    = "<empty>"
-  val INT_DEFAULT: Int          = -1
-  val LONG_DEFAULT: Long        = -1L
-  val BOOL_DEFAULT: Boolean     = false
-  val LIST_DEFAULT: Seq[String] = Seq.empty[String]
-
-  /** Given a property, returns its known default.
-    */
-  def getPropertyDefault(prop: String): Any = {
-    import PropertyNames.*
-    prop match {
-      case AST_PARENT_TYPE              => STRING_DEFAULT
-      case AST_PARENT_FULL_NAME         => STRING_DEFAULT
-      case NAME                         => STRING_DEFAULT
-      case CODE                         => STRING_DEFAULT
-      case ORDER                        => INT_DEFAULT
-      case SIGNATURE                    => ""
-      case ARGUMENT_INDEX               => INT_DEFAULT
-      case FULL_NAME                    => STRING_DEFAULT
-      case TYPE_FULL_NAME               => STRING_DEFAULT
-      case TYPE_DECL_FULL_NAME          => STRING_DEFAULT
-      case IS_EXTERNAL                  => BOOL_DEFAULT
-      case DISPATCH_TYPE                => STRING_DEFAULT
-      case LINE_NUMBER                  => INT_DEFAULT
-      case COLUMN_NUMBER                => INT_DEFAULT
-      case LINE_NUMBER_END              => INT_DEFAULT
-      case COLUMN_NUMBER_END            => INT_DEFAULT
-      case OVERLAYS                     => LIST_DEFAULT
-      case INHERITS_FROM_TYPE_FULL_NAME => LIST_DEFAULT
-      case _                            => STRING_DEFAULT
-    }
-  }
 }

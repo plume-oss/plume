@@ -29,7 +29,7 @@ jobs:
         run: sbt "project neo4j" test
 #      - name: Run TigerGraph tests
 #        run: |
-#          curl https://dl.tigergraph.com/enterprise-edition/gsql_client/tigergraph-3.9.3-1-gsql_client.jar \
+#          curl https://dl.tigergraph.com/enterprise-edition/gsql_client/tigergraph-3.10.1-gsql_client.jar \
 #            --output gsql_client.jar &&
 #          export GSQL_HOME=`pwd`/gsql_client.jar
 #          sbt "project tigergraph" test
