@@ -3,7 +3,7 @@ package com.github.plume.oss
 import io.circe.Json
 import org.slf4j.LoggerFactory
 
-import java.io.{File => JavaFile}
+import better.files.File
 import scala.collection.mutable.ListBuffer
 import scala.sys.process.{Process, ProcessLogger, stringSeqToProcess}
 
@@ -11,23 +11,25 @@ object DockerManager {
 
   private val logger = LoggerFactory.getLogger(getClass)
 
-  def toDockerComposeFile(dbName: String): JavaFile =
-    new JavaFile(getClass.getResource(s"/docker/$dbName.yml").toURI)
+  def toDockerComposeFile(dbName: String)(implicit classLoader: ClassLoader): File =
+    File(classLoader.getResource(s"docker/$dbName.yml").toURI)
 
-  def closeAnyDockerContainers(dbName: String): Unit = {
+  def closeAnyDockerContainers(dbName: String)(implicit classLoader: ClassLoader): Unit = {
     logger.info(s"Stopping Docker services for $dbName...")
-    val dockerComposeUp = Process(Seq("docker-compose", "-f", toDockerComposeFile(dbName).getAbsolutePath, "down"))
-    dockerComposeUp.run(ProcessLogger(_ => ()))
+    val dockerComposeDown = Process(Seq("docker", "compose", "-f", toDockerComposeFile(dbName).pathAsString, "down"))
+    dockerComposeDown.run(ProcessLogger(_ => ()))
   }
 
-  def startDockerFile(dbName: String, containers: List[String] = List.empty[String]): Unit = {
+  def startDockerFile(dbName: String, containers: List[String] = List.empty[String])(implicit
+    classLoader: ClassLoader
+  ): Unit = {
     val healthChecks = ListBuffer.empty[String]
     if (containers.isEmpty) healthChecks += dbName else healthChecks ++= containers
     logger.info(s"Docker Compose file found for $dbName, starting...")
     closeAnyDockerContainers(dbName) // Easiest way to clear the db
     Thread.sleep(3000)
     val dockerComposeUp = Process(
-      Seq("docker-compose", "-f", toDockerComposeFile(dbName).getAbsolutePath, "up", "--remove-orphans")
+      Seq("docker", "compose", "-f", toDockerComposeFile(dbName).pathAsString, "up", "--remove-orphans")
     )
     logger.info(s"Starting process $dockerComposeUp")
     dockerComposeUp.run(ProcessLogger(_ => ()))

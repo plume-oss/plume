@@ -6,7 +6,7 @@ import com.github.plume.oss.util.BatchedUpdateUtil
 import com.github.plume.oss.util.BatchedUpdateUtil.*
 import io.shiftleft.codepropertygraph.generated.*
 import io.shiftleft.codepropertygraph.generated.nodes.*
-import org.apache.commons.lang3.StringEscapeUtils
+import org.apache.commons.text.StringEscapeUtils
 import org.slf4j.LoggerFactory
 import overflowdb.BatchedUpdate.DiffOrBuilder
 import overflowdb.traversal.jIteratortoTraversal
@@ -161,7 +161,7 @@ final case class OverflowDbDriver(
         osw.write("<node id=\"" + n.id + "\">")
         osw.write("<data key=\"labelV\">" + n.label() + "</data>")
         serializeLists(n.propertiesMap().asScala.toMap).foreach { case (k, v) =>
-          osw.write("<data key=\"" + k + "\">" + StringEscapeUtils.escapeXml(v.toString) + "</data>")
+          osw.write("<data key=\"" + k + "\">" + StringEscapeUtils.escapeXml11(v.toString) + "</data>")
         }
         osw.write("</node>")
       }
