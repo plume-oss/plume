@@ -145,7 +145,7 @@ abstract class GremlinDriver(txMax: Int = 50) extends IDriver {
         _.asScala
           .map { case (k, v) =>
             if (v == "NULL")
-              k -> IDriver.getPropertyDefault(k)
+              k -> SchemaBuilder.getPropertyDefault(k)
             else if (v == PropertyNames.OVERLAYS || v == PropertyNames.INHERITS_FROM_TYPE_FULL_NAME)
               k -> v.toString.split(",").toSeq
             else
