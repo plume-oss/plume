@@ -210,9 +210,6 @@ final class TigerGraphDriver(
     post("graph/cpg", PayloadBody(edges = payload))
   }
 
-  override def removeSourceFiles(filenames: String*): Unit =
-    get("query/cpg/delete_source_file", filenames.map(("filenames", _)))
-
   override def propertyFromNodes(nodeType: String, keys: String*): List[Map[String, Any]] = {
     keys
       .map { k =>
@@ -298,7 +295,7 @@ final class TigerGraphDriver(
   }
 
   private def get(endpoint: String, params: Seq[(String, String)]): Seq[Json] = {
-    val uri = buildUri(endpoint).addParams(params: _*)
+    val uri = buildUri(endpoint).addParams(params*)
     Try(
       request()
         .get(uri)
@@ -643,26 +640,6 @@ object TigerGraphDriver {
         |      WHERE src.id >= lower AND src.id <= upper
         |      ACCUM @@ids += src.id;
         |  PRINT @@ids as ids;
-        |}
-        |""".stripMargin,
-      """
-        |CREATE QUERY delete_source_file(SET<STRING> filenames) FOR GRAPH cpg SYNTAX v2 {
-        |  fs = {FILE_.*};
-        |  fvs = SELECT f
-        |        FROM fs:f
-        |        WHERE f._NAME IN filenames;
-        |  tds = SELECT td
-        |        FROM fvs -(<_SOURCE_FILE)- TYPE_DECL_:td;
-        |  ts = SELECT t
-        |       FROM tds -(<_REF)- TYPE_:t;
-        |  nbs = SELECT n
-        |        FROM fvs - (<_SOURCE_FILE)- NAMESPACE_BLOCK_:n;
-        |
-        |  childVs = SELECT t
-        |            FROM nbs:s -((_AST>|_CONDITION>)*) - :t;
-        |
-        |  nsToDelete = fvs UNION tds UNION ts UNION childVs;
-        |  DELETE v FROM nsToDelete:v;
         |}
         |""".stripMargin,
       """

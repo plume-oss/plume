@@ -223,46 +223,6 @@ final class Neo4jDriver(
     dg.size()
   }
 
-  /** Removes the namespace block with all of its AST children specified by the given FILENAME property.
-    */
-  private def deleteNamespaceBlockWithAstChildrenByFilename(filename: String): Unit =
-    Using.resource(driver.session()) { session =>
-      session.writeTransaction { tx =>
-        tx
-          .run(
-            s"""
-                |MATCH (a:${NodeTypes.NAMESPACE_BLOCK})-[r:${EdgeTypes.AST}*]->(t)
-                |WHERE a.${PropertyNames.FILENAME} = $$filename
-                |FOREACH (x IN r | DELETE x)
-                |DETACH DELETE a, t
-                |""".stripMargin,
-            new util.HashMap[String, Object](1) { put("filename", filename.asInstanceOf[Object]) }
-          )
-      }
-    }
-
-  override def removeSourceFiles(filenames: String*): Unit = {
-    Using.resource(driver.session()) { session =>
-      val fileSet = CollectionConverters.IterableHasAsJava(filenames.toSeq).asJava
-      session.writeTransaction { tx =>
-        val filePayload = s"""
-             |MATCH (f:${NodeTypes.FILE})
-             |MATCH (f)<-[:${EdgeTypes.SOURCE_FILE}]-(td:${NodeTypes.TYPE_DECL})<-[:${EdgeTypes.REF}]-(t)
-             |WHERE f.NAME IN $$fileSet
-             |DETACH DELETE f, t
-             |""".stripMargin
-        runPayload(
-          tx,
-          filePayload,
-          new util.HashMap[String, Object](1) {
-            put("fileSet", fileSet)
-          }
-        )
-      }
-    }
-    filenames.foreach(deleteNamespaceBlockWithAstChildrenByFilename)
-  }
-
   private def runPayload(
     tx: Transaction,
     filePayload: String,

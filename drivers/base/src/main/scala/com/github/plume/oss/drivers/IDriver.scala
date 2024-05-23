@@ -41,10 +41,6 @@ trait IDriver extends AutoCloseable {
     */
   def bulkTx(dg: DiffOrBuilder): Int
 
-  /** Given filenames, will remove related TYPE, TYPE_DECL, METHOD (with AST children), and NAMESPACE_BLOCK.
-    */
-  def removeSourceFiles(filenames: String*): Unit
-
   /** Obtains properties from the specified node type and key(s). By default will return the ID property as one of the
     * keys as "id".
     */
