@@ -1,3 +1,6 @@
+networks:
+  neo4j-network:
+    driver: bridge
 
 services:
   neo4j:
@@ -6,8 +9,9 @@ services:
     environment:
       NEO4J_PASSWORD: "neo4j"
     ports:
-      - "7687:7687"
-      - "7474:7474"
+      - '7474:7474'
+      - '7473:7473'
+      - '7687:7687'
     healthcheck:
       test: perl -MIO::Socket::INET -e 'exit(! defined( IO::Socket::INET->new("localhost:7687")))'
       interval: 5s
