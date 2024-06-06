@@ -286,7 +286,7 @@ final class Neo4jDriver(
   override def buildSchemaPayload(): String = {
     val btreeAndConstraints = NODES_IN_SCHEMA
       .map(l => s"""
-          |CREATE BTREE INDEX ${l.toLowerCase}_id_btree_index IF NOT EXISTS FOR (n:$l) ON (n.id)
+          |CREATE RANGE INDEX ${l.toLowerCase}_id_btree_index IF NOT EXISTS FOR (n:$l) ON (n.id)
           |""".stripMargin.trim)
       .mkString("\n")
     s"""CREATE LOOKUP INDEX node_label_lookup_index IF NOT EXISTS FOR (n) ON EACH labels(n)
