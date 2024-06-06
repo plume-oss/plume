@@ -1,7 +1,7 @@
 
 services:
   neo4j:
-    image: bitnami/neo4j:5.2.0
+    image: bitnami/neo4j:5.20.0
     container_name: plume-neo4j
     environment:
       NEO4J_PASSWORD: "neo4j"
