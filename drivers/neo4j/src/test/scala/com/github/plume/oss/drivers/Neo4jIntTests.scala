@@ -3,7 +3,7 @@ package com.github.plume.oss.drivers
 import com.github.plume.oss.DockerManager
 import com.github.plume.oss.testfixtures.PlumeDriverFixture
 
-class Neo4jIntTests extends PlumeDriverFixture(new Neo4jDriver()) {
+class Neo4jIntTests extends PlumeDriverFixture(new Neo4jDriver(password = "bitnami1")) {
 
   private implicit val loader: ClassLoader = getClass.getClassLoader
 
