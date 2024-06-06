@@ -4,7 +4,7 @@ inThisBuild(
   List(
     organization := "com.github.plume-oss",
     version := "2.0.0",
-    scalaVersion := "3.4.1",
+    scalaVersion := "3.4.2",
     resolvers ++= Seq(
       Resolver.mavenLocal,
       Resolver.mavenCentral,

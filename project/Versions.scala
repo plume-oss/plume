@@ -1,12 +1,12 @@
 object Versions {
 
   // SAST
-  val codePropertyGraph = "1.6.11"
-  val joern = "2.0.379"
+  val codePropertyGraph = "1.6.14"
+  val joern = "2.0.397"
 
   // Drivers
   val tinkerGraph = "3.4.11"
-  val neo4j = "4.4.5"
+  val neo4j = "5.20.0"
   val overflowDb = "1.192"
   val flatGraph = "0.0.59"
 
