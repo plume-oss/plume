@@ -6,6 +6,7 @@ object Projects {
 
   lazy val base       = project.in(driversRoot / "base")
   lazy val neo4j       = project.in(driversRoot / "neo4j")
+  lazy val neo4jEmbed       = project.in(driversRoot / "neo4j-embedded")
   lazy val tigergraph  = project.in(driversRoot / "tigergraph")
   lazy val gremlin     = project.in(driversRoot / "gremlin")
   lazy val neptune     = project.in(driversRoot / "neptune")
