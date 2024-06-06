@@ -46,6 +46,7 @@ final class Neo4jDriver(
           |MATCH (n)
           |DETACH DELETE n
           |""".stripMargin)
+        .consume()
     }
   }
 
