@@ -27,6 +27,8 @@ jobs:
         run: sbt "project overflowdb" test
       - name: Run Neo4j tests
         run: sbt "project neo4j" test
+      - name: Run Neo4j Embedded tests
+        run: sbt "project neo4jEmbed" test
 #      - name: Run TigerGraph tests
 #        run: |
 #          curl https://dl.tigergraph.com/enterprise-edition/gsql_client/tigergraph-3.10.1-gsql_client.jar \
