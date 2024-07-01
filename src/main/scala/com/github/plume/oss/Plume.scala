@@ -11,7 +11,7 @@ import java.io.InputStreamReader
 
 /** Entry point for command line CPG creator
   */
-object Plume extends App {
+object Plume {
 
   private val frontendSpecificOptions = {
     val builder = OParser.builder[Config]
@@ -81,26 +81,28 @@ object Plume extends App {
     }
   }
 
-  private val configOption = X2Cpg.parseCommandLine(args, frontendSpecificOptions, Config())
+  def main(args: Array[String]): Unit = {
+    val configOption = X2Cpg.parseCommandLine(args, frontendSpecificOptions, Config())
 
-  configOption.foreach { config =>
-    val (conf, driver) = parseDriverConfig()
-    if (driver == null) {
-      println("Unable to create driver, bailing out...")
-      System.exit(1)
-    }
-    driver match {
-      case d: TinkerGraphDriver if conf != null =>
-        val importPath = conf.params.get("importPath")
-        if (importPath.isDefined) d.importGraph(importPath.get)
-      case _ =>
-    }
-    new JimpleAst2Database(driver).createAst(config)
-    driver match {
-      case d: TinkerGraphDriver if conf != null =>
-        val exportPath = conf.params.get("exportPath")
-        if (exportPath.isDefined) d.exportGraph(exportPath.get)
-      case _ =>
+    configOption.foreach { config =>
+      val (conf, driver) = parseDriverConfig()
+      if (driver == null) {
+        println("Unable to create driver, bailing out...")
+        System.exit(1)
+      }
+      driver match {
+        case d: TinkerGraphDriver if conf != null =>
+          val importPath = conf.params.get("importPath")
+          if (importPath.isDefined) d.importGraph(importPath.get)
+        case _ =>
+      }
+      new JimpleAst2Database(driver).createAst(config)
+      driver match {
+        case d: TinkerGraphDriver if conf != null =>
+          val exportPath = conf.params.get("exportPath")
+          if (exportPath.isDefined) d.exportGraph(exportPath.get)
+        case _ =>
+      }
     }
   }
 
