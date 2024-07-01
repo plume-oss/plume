@@ -2,9 +2,12 @@
 /build/
 /bin/
 *.bin
+*.cpg
 *.gzip
 graph.xml
 gsql_client.*
+*.txt
+*.csv
 
 # Ignore Gradle GUI config
 gradle-app.setting

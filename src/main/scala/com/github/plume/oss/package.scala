@@ -2,10 +2,18 @@ package com.github.plume
 
 import better.files.File
 import com.github.plume.oss.drivers.*
+import upickle.default.*
 
 package object oss {
 
-  sealed trait DatabaseConfig {
+  case class PlumeBenchmarkConfig(
+    inputDir: String = "",
+    jmhOutputFile: String = File.newTemporaryFile("plume-jmh-output-").pathAsString,
+    jmhResultFile: String = File.newTemporaryFile("plume-jmh-result-").pathAsString,
+    dbConfig: DatabaseConfig = OverflowDbConfig()
+  ) derives ReadWriter
+
+  sealed trait DatabaseConfig derives ReadWriter {
     def toDriver: IDriver
   }
 

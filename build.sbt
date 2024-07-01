@@ -31,15 +31,9 @@ lazy val overflowDb  = Projects.overflowdb
 lazy val astcreator = Projects.astcreator
 
 lazy val root = (project in file("."))
-  .enablePlugins(JmhPlugin)
   .dependsOn(astcreator, commons, base, gremlin, tinkergraph, neptune, neo4j, neo4jEmbed, tigergraph, overflowDb)
   .aggregate(astcreator, commons, base, gremlin, tinkergraph, neptune, neo4j, neo4jEmbed, tigergraph, overflowDb)
-  .settings(
-    Jmh / sourceDirectory := (Test / sourceDirectory).value,
-    Jmh / classDirectory := (Test / classDirectory).value,
-    Jmh / dependencyClasspath := (Test / dependencyClasspath).value,
-    Jmh / run     := (Jmh / run).dependsOn(Jmh / compile).evaluated
-  )
+
 trapExit                 := false
 Test / fork              := true
 Test / parallelExecution := false
@@ -47,13 +41,16 @@ Test / parallelExecution := false
 libraryDependencies ++= Seq(
   "org.openjdk.jmh"          % "jmh-generator-annprocess" % Versions.jmh,
   "org.openjdk.jmh"          % "jmh-core"                 % Versions.jmh,
+  "org.openjdk.jmh"          % "jmh-generator-bytecode"   % Versions.jmh,
+  "org.openjdk.jmh"          % "jmh-generator-reflection" % Versions.jmh,
+  "org.openjdk.jmh"          % "jmh-generator-asm"        % Versions.jmh,
   "org.slf4j"                % "slf4j-api"                % Versions.slf4j,
-  "org.apache.logging.log4j" % "log4j-core"               % Versions.log4j     % Test,
-  "org.apache.logging.log4j" % "log4j-slf4j-impl"         % Versions.log4j     % Test,
+  "org.apache.logging.log4j" % "log4j-core"               % Versions.log4j % Test,
+  "org.apache.logging.log4j" % "log4j-slf4j-impl"         % Versions.log4j % Test,
   "org.scalatest"           %% "scalatest"                % Versions.scalatest % Test
 )
 
-enablePlugins(JavaAppPackaging)
+enablePlugins(JavaAppPackaging, JmhPlugin)
 
 scmInfo := Some(ScmInfo(url("https://github.com/plume-oss/plume"), "git@github.com:plume-oss/plume.git"))
 

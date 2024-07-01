@@ -1,16 +1,15 @@
 package com.github.plume.oss
 
-import better.files.File
-import com.github.plume.oss.Benchmark.BenchmarkType.{READ, WRITE}
-import com.github.plume.oss.Benchmark.PlumeBenchmarkConfig
-import com.github.plume.oss.drivers.{IDriver, Neo4jDriver, OverflowDbDriver, TinkerGraphDriver}
+import com.github.plume.oss.Benchmark.BenchmarkType.WRITE
+import com.github.plume.oss.drivers.IDriver
 import io.joern.jimple2cpg.Config
-import org.openjdk.jmh.annotations.{Benchmark, Mode, Scope, Setup, State}
+import org.cache2k.benchmark.jmh.ForcedGcMemoryProfiler
+import org.openjdk.jmh.annotations.{Benchmark, Level, Mode, Param, Scope, Setup, State, TearDown}
 import org.openjdk.jmh.infra.{BenchmarkParams, Blackhole}
-import org.openjdk.jmh.profile.GCProfiler
 import org.openjdk.jmh.runner.Runner
 import org.openjdk.jmh.runner.options.{ChainedOptionsBuilder, OptionsBuilder, TimeValue}
 import scopt.OptionParser
+import upickle.default.*
 
 import java.util.concurrent.TimeUnit
 import scala.compiletime.uninitialized
@@ -42,7 +41,7 @@ object Benchmark {
     benchmarkType: BenchmarkType
   ): ChainedOptionsBuilder = {
     new OptionsBuilder()
-      .addProfiler(classOf[GCProfiler])
+      .addProfiler(classOf[ForcedGcMemoryProfiler])
       .warmupIterations(1)
       .warmupTime(TimeValue.seconds(1))
       .measurementTime(TimeValue.seconds(2))
@@ -50,8 +49,9 @@ object Benchmark {
       .mode(Mode.AverageTime)
       .timeUnit(TimeUnit.NANOSECONDS)
       .forks(2)
-      .output(s"${config.jmhOutputFile}-$benchmarkType.csv")
+      .output(s"${config.jmhOutputFile}-$benchmarkType.txt")
       .result(s"${config.jmhResultFile}-$benchmarkType.csv")
+      .param("configStr", write(config))
       .detectJvmArgs() // inherit stuff like max heap size
   }
 
@@ -110,28 +110,38 @@ object Benchmark {
 
     }
 
-  case class PlumeBenchmarkConfig(
-    inputDir: String = "",
-    jmhOutputFile: String = File.newTemporaryFile("plume-jmh-output").pathAsString,
-    jmhResultFile: String = File.newTemporaryFile("plume-jmh-result").pathAsString,
-    dbConfig: DatabaseConfig = OverflowDbConfig()
-  )
-
 }
 
-class GraphWriteBenchmark(config: PlumeBenchmarkConfig) {
+@State(Scope.Benchmark)
+class GraphWriteBenchmark {
 
+  @Param(Array(""))
+  var configStr: String = ""
+  var config: PlumeBenchmarkConfig =
+    if (!configStr.isBlank) read[PlumeBenchmarkConfig](configStr) else PlumeBenchmarkConfig()
   var driver: IDriver = uninitialized
 
   @Setup
-  def setupFun(params: BenchmarkParams): Unit = {
+  def setupBenchmark(params: BenchmarkParams): Unit = {
+    config = if (!configStr.isBlank) read[PlumeBenchmarkConfig](configStr) else PlumeBenchmarkConfig()
     driver = config.dbConfig.toDriver
+  }
+
+  @Setup(Level.Iteration)
+  def clearDriver(params: BenchmarkParams): Unit = {
+    driver.clear()
   }
 
   @Benchmark
   def createAst(blackhole: Blackhole): Unit = {
     JimpleAst2Database(driver).createAst(Config().withInputPath(config.inputDir))
     Option(blackhole).foreach(_.consume(driver))
+  }
+
+  @TearDown
+  def cleanupBenchmark(): Unit = {
+    driver.clear()
+    driver.close()
   }
 
 }

@@ -100,6 +100,15 @@ sbt stage
 
 This will build `target/scala-2.13/plume_2.13-X.X.X.jar` which can be imported into your local project.
 
+## Benchmarks
+
+Plume specifies a `benchmark` binary which orchestrates running JMH benchmarks for AST creation with various graph 
+database backends. While the binary explains the available functions, the execution should be run within `sbt`, e.g.
+
+```sbt
+Jmh/runMain com.github.plume.oss.Benchmark overflowdb testprogram -o output -r results --storage-location test.cpg
+```
+
 ## Logging
 
 Plume uses [SLF4J](http://www.slf4j.org/) as the logging fascade.
