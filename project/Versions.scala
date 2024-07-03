@@ -1,8 +1,8 @@
 object Versions {
 
   // SAST
-  val codePropertyGraph = "1.6.14"
-  val joern = "2.0.421"
+  val codePropertyGraph = "1.6.16"
+  val joern = "2.0.433"
 
   // Drivers
   val tinkerGraph = "3.4.11"

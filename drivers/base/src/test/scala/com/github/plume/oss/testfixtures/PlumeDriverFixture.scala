@@ -4,7 +4,7 @@ import com.github.plume.oss.drivers.IDriver
 import io.shiftleft.codepropertygraph.generated.NodeTypes.*
 import io.shiftleft.codepropertygraph.generated.PropertyNames.*
 import io.shiftleft.codepropertygraph.generated.nodes.*
-import io.shiftleft.codepropertygraph.generated.{DispatchTypes, EdgeTypes}
+import io.shiftleft.codepropertygraph.generated.{Cpg, DispatchTypes, EdgeTypes}
 import org.scalatest.matchers.should.Matchers
 import org.scalatest.wordspec.AnyWordSpec
 import org.scalatest.{BeforeAndAfter, BeforeAndAfterAll}
@@ -41,7 +41,7 @@ class PlumeDriverFixture(val driver: IDriver)
   "overflowdb.BatchedUpdate.DiffGraph based changes" should {
 
     "should reflect node additions in bulk transactions" in {
-      val diffGraph = new DiffGraphBuilder
+      val diffGraph = Cpg.newDiffGraphBuilder
       // Create some nodes
       diffGraph.addNode(nodeToNodeCreate(m1)).addNode(nodeToNodeCreate(b1))
       driver.bulkTx(diffGraph.build())
@@ -54,8 +54,8 @@ class PlumeDriverFixture(val driver: IDriver)
     }
 
     "should reflect edge additions in bulk transactions" in {
-      val diffGraph1 = new DiffGraphBuilder
-      val diffGraph2 = new DiffGraphBuilder
+      val diffGraph1 = Cpg.newDiffGraphBuilder
+      val diffGraph2 = Cpg.newDiffGraphBuilder
       // Create some nodes
       diffGraph1.addNode(nodeToNodeCreate(m1)).addNode(b1)
       driver.bulkTx(diffGraph1)

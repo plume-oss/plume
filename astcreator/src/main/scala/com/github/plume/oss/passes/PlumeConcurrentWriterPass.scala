@@ -2,6 +2,7 @@ package com.github.plume.oss.passes
 
 import com.github.plume.oss.drivers.IDriver
 import io.shiftleft.SerializedCpg
+import io.shiftleft.codepropertygraph.generated.Cpg
 import io.shiftleft.utils.ExecutionContextProvider
 import overflowdb.BatchedUpdate.DiffGraphBuilder
 
@@ -38,7 +39,7 @@ abstract class PlumeConcurrentWriterPass[T <: AnyRef](driver: IDriver) {
       if (completionQueue.size < producerQueueCapacity && partIter.hasNext) {
         val next = partIter.next()
         completionQueue.append(Future.apply {
-          val builder = new DiffGraphBuilder
+          val builder = Cpg.newDiffGraphBuilder
           runOnPart(builder, next.asInstanceOf[T])
           val builtGraph = builder.build()
           driver.bulkTx(builtGraph)
