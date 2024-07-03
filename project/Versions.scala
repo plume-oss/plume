@@ -8,7 +8,7 @@ object Versions {
   val tinkerGraph = "3.4.11"
   val neo4j = "5.20.0"
   val overflowDb = "1.192"
-  val flatGraph = "0.0.59"
+  val flatGraph = "0.0.70"
 
   // Utilities
   val apacheCodec = "1.15"

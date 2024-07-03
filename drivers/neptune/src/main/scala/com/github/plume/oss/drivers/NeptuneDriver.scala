@@ -1,6 +1,5 @@
 package com.github.plume.oss.drivers
 
-import com.github.plume.oss.PlumeStatistics
 import com.github.plume.oss.drivers.NeptuneDriver.DEFAULT_PORT
 import io.circe.Decoder
 import io.circe.generic.semiauto.deriveDecoder
@@ -41,20 +40,17 @@ final class NeptuneDriver(
 
   private var cluster = connectToCluster
 
-  private def connectToCluster = PlumeStatistics.time(
-    PlumeStatistics.TIME_OPEN_DRIVER, {
-      Cluster
-        .build()
-        .addContactPoints(hostname)
-        .port(port)
-        .enableSsl(true)
-        .maxInProcessPerConnection(32)
-        .maxSimultaneousUsagePerConnection(32)
-        .serializer(Serializers.GRAPHBINARY_V1D0)
-        .keyCertChainFile(keyCertChainFile)
-        .create()
-    }
-  )
+  private def connectToCluster =
+    Cluster
+      .build()
+      .addContactPoints(hostname)
+      .port(port)
+      .enableSsl(true)
+      .maxInProcessPerConnection(32)
+      .maxSimultaneousUsagePerConnection(32)
+      .serializer(Serializers.GRAPHBINARY_V1D0)
+      .keyCertChainFile(keyCertChainFile)
+      .create()
 
   override def g(): GraphTraversalSource = {
     traversalSource match {
@@ -142,18 +138,14 @@ final class NeptuneDriver(
     }
   }
 
-  override def close(): Unit = PlumeStatistics.time(
-    PlumeStatistics.TIME_CLOSE_DRIVER, {
-      try {
-        cluster.close()
-      } catch {
-        case e: Exception => logger.error("Exception thrown while attempting to close graph.", e)
-      } finally {
-        traversalSource = None
-        backend.close()
-      }
-    }
-  )
+  override def close(): Unit = try {
+    cluster.close()
+  } catch {
+    case e: Exception => logger.error("Exception thrown while attempting to close graph.", e)
+  } finally {
+    traversalSource = None
+    backend.close()
+  }
 
 }
 

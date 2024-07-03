@@ -17,14 +17,17 @@ import scala.compiletime.uninitialized
 object Benchmark {
 
   def main(args: Array[String]): Unit = {
-    optionParser.parse(args, PlumeBenchmarkConfig()).foreach { config =>
-      val writeOptsBenchmark = createOptionsBoilerPlate(config, WRITE)
-        .include(classOf[GraphWriteBenchmark].getSimpleName)
-        .build()
-      new Runner(writeOptsBenchmark).run()
-      println(
-        s"Finished WRITE JMH benchmarks. Results: ${config.jmhResultFile}-WRITE.csv; Output: ${config.jmhOutputFile}-WRITE.csv"
-      )
+    Plume
+      .optionParser("plume-benchmark", "A benchmarking suite for graph databases as static analysis backends.")
+      .parse(args, PlumeConfig())
+      .foreach { config =>
+        val writeOptsBenchmark = createOptionsBoilerPlate(config, WRITE)
+          .include(classOf[GraphWriteBenchmark].getSimpleName)
+          .build()
+        new Runner(writeOptsBenchmark).run()
+        println(
+          s"Finished WRITE JMH benchmarks. Results: ${config.jmhResultFile}-WRITE.csv; Output: ${config.jmhOutputFile}-WRITE.csv"
+        )
 
 //      val readOptsBenchmark = createOptionsBoilerPlate(config, READ)
 //        .include(classOf[OverflowDbBenchmark].getSimpleName)
@@ -33,13 +36,10 @@ object Benchmark {
 //      println(
 //        s"Finished READ JMH benchmarks. Results: ${config.jmhResultFile}-READ.csv; Output: ${config.jmhOutputFile}-READ.csv"
 //      )
-    }
+      }
   }
 
-  private def createOptionsBoilerPlate(
-    config: PlumeBenchmarkConfig,
-    benchmarkType: BenchmarkType
-  ): ChainedOptionsBuilder = {
+  private def createOptionsBoilerPlate(config: PlumeConfig, benchmarkType: BenchmarkType): ChainedOptionsBuilder = {
     new OptionsBuilder()
       .addProfiler(classOf[ForcedGcMemoryProfiler])
       .warmupIterations(1)
@@ -59,57 +59,6 @@ object Benchmark {
     case READ, WRITE
   }
 
-  private val optionParser: OptionParser[PlumeBenchmarkConfig] =
-    new OptionParser[PlumeBenchmarkConfig]("plume-benchmark") {
-
-      head("plume-benchmark")
-
-      note("A benchmarking suite for graph databases as static analysis backends.")
-      help('h', "help")
-
-      arg[String]("input-dir")
-        .text("The target application to parse and evaluate against.")
-        .action((x, c) => c.copy(inputDir = x))
-
-      opt[String]('o', "jmh-output-file")
-        .text(s"The JMH output file path. Exclude file extensions.")
-        .action((x, c) => c.copy(jmhOutputFile = x))
-
-      opt[String]('r', "jmh-result-file")
-        .text(s"The result file path. Exclude file extensions.")
-        .action((x, c) => c.copy(jmhResultFile = x))
-
-      cmd("tinkergraph")
-        .action((_, c) => c.copy(dbConfig = TinkerGraphConfig()))
-
-      cmd("overflowdb")
-        .action((_, c) => c.copy(dbConfig = OverflowDbConfig()))
-        .children(
-          opt[String]("storage-location")
-            .action((x, c) => c.copy(dbConfig = c.dbConfig.asInstanceOf[OverflowDbConfig].copy(storageLocation = x))),
-          opt[Int]("heap-percentage-threshold")
-            .action((x, c) =>
-              c.copy(dbConfig = c.dbConfig.asInstanceOf[OverflowDbConfig].copy(heapPercentageThreshold = x))
-            ),
-          opt[Unit]("enable-serialization-stats")
-            .action((_, c) =>
-              c.copy(dbConfig = c.dbConfig.asInstanceOf[OverflowDbConfig].copy(serializationStatsEnabled = true))
-            )
-        )
-
-      cmd("neo4j-embedded")
-        .action((_, c) => c.copy(dbConfig = Neo4jEmbeddedConfig()))
-        .children(
-          opt[String]("databaseName")
-            .action((x, c) => c.copy(dbConfig = c.dbConfig.asInstanceOf[Neo4jEmbeddedConfig].copy(databaseName = x))),
-          opt[String]("databaseDir")
-            .action((x, c) => c.copy(dbConfig = c.dbConfig.asInstanceOf[Neo4jEmbeddedConfig].copy(databaseDir = x))),
-          opt[Int]("tx-max")
-            .action((x, c) => c.copy(dbConfig = c.dbConfig.asInstanceOf[Neo4jEmbeddedConfig].copy(txMax = x)))
-        )
-
-    }
-
 }
 
 @State(Scope.Benchmark)
@@ -117,13 +66,13 @@ class GraphWriteBenchmark {
 
   @Param(Array(""))
   var configStr: String = ""
-  var config: PlumeBenchmarkConfig =
-    if (!configStr.isBlank) read[PlumeBenchmarkConfig](configStr) else PlumeBenchmarkConfig()
+  var config: PlumeConfig =
+    if (!configStr.isBlank) read[PlumeConfig](configStr) else PlumeConfig()
   var driver: IDriver = uninitialized
 
   @Setup
   def setupBenchmark(params: BenchmarkParams): Unit = {
-    config = if (!configStr.isBlank) read[PlumeBenchmarkConfig](configStr) else PlumeBenchmarkConfig()
+    config = if (!configStr.isBlank) read[PlumeConfig](configStr) else PlumeConfig()
     driver = config.dbConfig.toDriver
   }
 

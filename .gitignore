@@ -35,3 +35,4 @@ gradle-app.setting
 **/.bsp/
 target
 /project/target/
+/neo4j-db

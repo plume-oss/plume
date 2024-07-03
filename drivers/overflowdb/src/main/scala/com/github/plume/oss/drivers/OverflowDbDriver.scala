@@ -1,6 +1,5 @@
 package com.github.plume.oss.drivers
 
-import com.github.plume.oss.PlumeStatistics
 import com.github.plume.oss.drivers.OverflowDbDriver.newOverflowGraph
 import com.github.plume.oss.util.BatchedUpdateUtil
 import com.github.plume.oss.util.BatchedUpdateUtil.*
@@ -26,7 +25,7 @@ import scala.util.*
   * @param serializationStatsEnabled
   *   enables saving of serialization statistics.
   */
-final case class OverflowDbDriver(
+final class OverflowDbDriver(
   storageLocation: Option[String] = Option(JFile.createTempFile("plume-", ".odb").getAbsolutePath),
   heapPercentageThreshold: Int = 80,
   serializationStatsEnabled: Boolean = false
@@ -45,22 +44,17 @@ final case class OverflowDbDriver(
 
   /** A direct pointer to the code property graph object.
     */
-  val cpg: Cpg =
-    PlumeStatistics.time(PlumeStatistics.TIME_OPEN_DRIVER, { newOverflowGraph(odbConfig) })
+  val cpg: Cpg = newOverflowGraph(odbConfig)
 
   CpgLoader.createIndexes(cpg)
 
   override def isConnected: Boolean = !cpg.graph.isClosed
 
-  override def close(): Unit = PlumeStatistics.time(
-    PlumeStatistics.TIME_CLOSE_DRIVER, {
-      Try(cpg.close()) match {
-        case Success(_) =>
-        case Failure(e) =>
-          logger.warn("Exception thrown while attempting to close graph.", e)
-      }
-    }
-  )
+  override def close(): Unit = Try(cpg.close()) match {
+    case Success(_) =>
+    case Failure(e) =>
+      logger.warn("Exception thrown while attempting to close graph.", e)
+  }
 
   override def clear(): Unit = {
     cpg.graph.nodes.asScala.foreach(safeRemove)

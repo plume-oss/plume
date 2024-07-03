@@ -1,9 +1,9 @@
 package com.github.plume.oss.drivers
 
-import com.github.plume.oss.PlumeStatistics
 import com.github.plume.oss.drivers.Neo4jDriver.*
 import com.github.plume.oss.util.BatchedUpdateUtil.*
 import io.shiftleft.codepropertygraph.generated.nodes.StoredNode
+import org.neo4j.driver.types.TypeSystem
 import org.neo4j.driver.{AuthTokens, GraphDatabase, Transaction}
 import org.slf4j.LoggerFactory
 import overflowdb.BatchedUpdate.{CreateEdge, DiffOrBuilder, SetNodeProperty}
@@ -27,14 +27,10 @@ final class Neo4jDriver(
 ) extends IDriver
     with ISchemaSafeDriver {
 
-  private val logger    = LoggerFactory.getLogger(classOf[Neo4jDriver])
-  private val connected = new AtomicBoolean(true)
-  private val driver =
-    PlumeStatistics.time(
-      PlumeStatistics.TIME_OPEN_DRIVER,
-      { GraphDatabase.driver(s"bolt://$hostname:$port", AuthTokens.basic(username, password)) }
-    )
-  private val typeSystem = driver.defaultTypeSystem()
+  private val logger     = LoggerFactory.getLogger(classOf[Neo4jDriver])
+  private val connected  = new AtomicBoolean(true)
+  private val driver     = GraphDatabase.driver(s"bolt://$hostname:$port", AuthTokens.basic(username, password))
+  private val typeSystem = TypeSystem.getDefault
 
   override def isConnected: Boolean = connected.get()
 
@@ -48,14 +44,10 @@ final class Neo4jDriver(
     }
   }
 
-  override def close(): Unit = PlumeStatistics.time(
-    PlumeStatistics.TIME_CLOSE_DRIVER, {
-      Try(driver.close()) match {
-        case Failure(e) => logger.warn("Exception thrown while attempting to close graph.", e)
-        case Success(_) => connected.set(false)
-      }
-    }
-  )
+  override def close(): Unit = Try(driver.close()) match {
+    case Failure(e) => logger.warn("Exception thrown while attempting to close graph.", e)
+    case Success(_) => connected.set(false)
+  }
 
   override def exists(nodeId: Long): Boolean = Using.resource(driver.session()) { session =>
     session.executeRead { tx =>

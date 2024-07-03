@@ -1,7 +1,6 @@
 package com.github.plume.oss.drivers
 
 import better.files.File
-import com.github.plume.oss.PlumeStatistics
 import com.github.plume.oss.drivers.Neo4jEmbeddedDriver.*
 import com.github.plume.oss.util.BatchedUpdateUtil.*
 import io.shiftleft.codepropertygraph.generated.nodes.StoredNode
@@ -32,8 +31,7 @@ final class Neo4jEmbeddedDriver(
   private val connected         = new AtomicBoolean(true)
   private var managementService = new DatabaseManagementServiceBuilder(databaseDir.path).build()
   registerShutdownHook(managementService)
-  private var graphDb =
-    PlumeStatistics.time(PlumeStatistics.TIME_OPEN_DRIVER, { managementService.database(databaseName) })
+  private var graphDb = managementService.database(databaseName)
 
   private def registerShutdownHook(managementService: DatabaseManagementService): Unit = {
     Runtime.getRuntime.addShutdownHook(new Thread() {
@@ -45,7 +43,7 @@ final class Neo4jEmbeddedDriver(
 
   private def connect(): Unit = {
     managementService = new DatabaseManagementServiceBuilder(databaseDir.path).build()
-    graphDb = PlumeStatistics.time(PlumeStatistics.TIME_OPEN_DRIVER, { managementService.database(databaseName) })
+    graphDb = managementService.database(databaseName)
     connected.set(true)
   }
 
@@ -57,14 +55,11 @@ final class Neo4jEmbeddedDriver(
     connect()
   }
 
-  override def close(): Unit = PlumeStatistics.time(
-    PlumeStatistics.TIME_CLOSE_DRIVER, {
-      Try(managementService.shutdown()) match {
-        case Failure(e) => logger.warn("Exception thrown while attempting to close graph.", e)
-        case Success(_) => connected.set(false)
-      }
+  override def close(): Unit =
+    Try(managementService.shutdown()) match {
+      case Failure(e) => logger.warn("Exception thrown while attempting to close graph.", e)
+      case Success(_) => connected.set(false)
     }
-  )
 
   override def exists(nodeId: Long): Boolean =
     Using.resource(graphDb.beginTx) { tx =>

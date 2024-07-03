@@ -6,7 +6,7 @@ import upickle.default.*
 
 package object oss {
 
-  case class PlumeBenchmarkConfig(
+  case class PlumeConfig(
     inputDir: String = "",
     jmhOutputFile: String = File.newTemporaryFile("plume-jmh-output-").pathAsString,
     jmhResultFile: String = File.newTemporaryFile("plume-jmh-result-").pathAsString,
@@ -17,7 +17,8 @@ package object oss {
     def toDriver: IDriver
   }
 
-  case class TinkerGraphConfig() extends DatabaseConfig {
+  case class TinkerGraphConfig(importPath: Option[String] = None, exportPath: Option[String] = None)
+      extends DatabaseConfig {
     override def toDriver: IDriver = new TinkerGraphDriver()
   }
 
@@ -59,7 +60,7 @@ package object oss {
       new TigerGraphDriver(hostname, restPpPort, gsqlPort, username, password, timeout, scheme, txMax)
   }
 
-  case class NeptuneDriverConfig(
+  case class NeptuneConfig(
     hostname: String = "localhost",
     port: Int = 8182,
     keyCertChainFile: String = "src/main/resources/conf/SFSRootCAC2.pem",

@@ -1,13 +1,8 @@
 package com.github.plume.oss
 
-import better.files.File
-import com.github.plume.oss.drivers._
-import io.circe.Json
+import com.github.plume.oss.drivers.*
 import io.joern.jimple2cpg.Config
-import io.joern.x2cpg.X2Cpg
-import scopt.OParser
-
-import java.io.InputStreamReader
+import scopt.{OParser, OptionParser}
 
 /** Entry point for command line CPG creator
   */
@@ -19,92 +14,137 @@ object Plume {
     OParser.sequence(programName("plume"))
   }
 
-  private def parseDriverConfig(): (DriverConfig, IDriver) = {
-    import io.circe.generic.auto._
-    import io.circe.yaml.parser
-    def interpretConfig(rawConf: Json) = {
-      rawConf.as[DriverConfig] match {
-        case Left(_)     => (null, new OverflowDbDriver())
-        case Right(conf) => (conf, createDriver(conf))
-      }
-    }
-    val f = File("driver.yaml")
-    if (!f.exists) {
-      println("No driver.yaml found, defaulting to OverflowDB driver.")
-      return (null, new OverflowDbDriver())
-    }
-    parser.parse(new InputStreamReader(f.newInputStream)) match {
-      case Left(_)        => (null, new OverflowDbDriver())
-      case Right(rawConf) => interpretConfig(rawConf)
-    }
-  }
-
-  private def createDriver(conf: DriverConfig): IDriver = {
-    conf match {
-      case _ if conf.database == "OverflowDB" =>
-        new OverflowDbDriver(
-          storageLocation = Option(conf.params.getOrElse("storageLocation", "cpg.odb")),
-          heapPercentageThreshold = conf.params.getOrElse("heapPercentageThreshold", "80").toInt,
-          serializationStatsEnabled = conf.params.getOrElse("serializationStatsEnabled", "false").toBoolean
-        )
-      case _ if conf.database == "TinkerGraph" => new TinkerGraphDriver()
-      case _ if conf.database == "Neo4j" =>
-        new Neo4jDriver(
-          hostname = conf.params.getOrElse("hostname", "localhost"),
-          port = conf.params.getOrElse("port", "7687").toInt,
-          username = conf.params.getOrElse("username", "neo4j"),
-          password = conf.params.getOrElse("password", "neo4j"),
-          txMax = conf.params.getOrElse("txMax", "25").toInt
-        )
-      case _ if conf.database == "TigerGraph" =>
-        new TigerGraphDriver(
-          hostname = conf.params.getOrElse("hostname", "localhost"),
-          restPpPort = conf.params.getOrElse("restPpPort", "7687").toInt,
-          gsqlPort = conf.params.getOrElse("gsqlPort", "14240").toInt,
-          username = conf.params.getOrElse("username", "tigergraph"),
-          password = conf.params.getOrElse("password", "tigergraph"),
-          timeout = conf.params.getOrElse("timeout", "3000").toInt,
-          txMax = conf.params.getOrElse("txMax", "25").toInt,
-          scheme = conf.params.getOrElse("scheme", "http")
-        )
-      case _ if conf.database == "Neptune" =>
-        new NeptuneDriver(
-          hostname = conf.params.getOrElse("hostname", "localhost"),
-          port = conf.params.getOrElse("port", "8182").toInt,
-          keyCertChainFile = conf.params.getOrElse("keyCertChainFile", "src/main/resources/conf/SFSRootCAC2.pem"),
-          txMax = conf.params.getOrElse("txMax", "50").toInt
-        )
-      case _ =>
-        println(
-          "No supported database specified by driver.yaml. Supported databases are: OverflowDB, TinkerGraph, Neo4j, Neptune, and TigerGraph."
-        ); null
-    }
-  }
-
   def main(args: Array[String]): Unit = {
-    val configOption = X2Cpg.parseCommandLine(args, frontendSpecificOptions, Config())
-
-    configOption.foreach { config =>
-      val (conf, driver) = parseDriverConfig()
-      if (driver == null) {
-        println("Unable to create driver, bailing out...")
-        System.exit(1)
+    Plume
+      .optionParser("plume", "An AST creator for comparing graph databases as static analysis backends.")
+      .parse(args, PlumeConfig())
+      .foreach { config =>
+        val driver = config.dbConfig.toDriver
+        driver match {
+          case d: TinkerGraphDriver =>
+            config.dbConfig.asInstanceOf[TinkerGraphConfig].importPath.foreach(d.importGraph)
+          case _ =>
+        }
+        new JimpleAst2Database(driver).createAst(Config().withInputPath(config.inputDir))
+        driver match {
+          case d: TinkerGraphDriver =>
+            config.dbConfig.asInstanceOf[TinkerGraphConfig].exportPath.foreach(d.exportGraph)
+          case _ =>
+        }
       }
-      driver match {
-        case d: TinkerGraphDriver if conf != null =>
-          val importPath = conf.params.get("importPath")
-          if (importPath.isDefined) d.importGraph(importPath.get)
-        case _ =>
-      }
-      new JimpleAst2Database(driver).createAst(config)
-      driver match {
-        case d: TinkerGraphDriver if conf != null =>
-          val exportPath = conf.params.get("exportPath")
-          if (exportPath.isDefined) d.exportGraph(exportPath.get)
-        case _ =>
-      }
-    }
   }
+
+  def optionParser(name: String, description: String): OptionParser[PlumeConfig] =
+    new OptionParser[PlumeConfig](name) {
+
+      note(description)
+      help('h', "help")
+
+      arg[String]("input-dir")
+        .text("The target application to parse.")
+        .action((x, c) => c.copy(inputDir = x))
+
+      opt[String]('o', "jmh-output-file")
+        .text(s"The JMH output file path. Exclude file extensions.")
+        .hidden()
+        .action((x, c) => c.copy(jmhOutputFile = x))
+
+      opt[String]('r', "jmh-result-file")
+        .text(s"The result file path. Exclude file extensions.")
+        .hidden()
+        .action((x, c) => c.copy(jmhResultFile = x))
+
+      cmd("tinkergraph")
+        .action((_, c) => c.copy(dbConfig = TinkerGraphConfig()))
+        .children(
+          opt[String]("import-path")
+            .text("The TinkerGraph to import.")
+            .action((x, c) =>
+              c.copy(dbConfig = c.dbConfig.asInstanceOf[TinkerGraphConfig].copy(importPath = Option(x)))
+            ),
+          opt[String]("export-path")
+            .text("The TinkerGraph export path to serialize the result to.")
+            .action((x, c) =>
+              c.copy(dbConfig = c.dbConfig.asInstanceOf[TinkerGraphConfig].copy(exportPath = Option(x)))
+            )
+        )
+
+      cmd("overflowdb")
+        .action((_, c) => c.copy(dbConfig = OverflowDbConfig()))
+        .children(
+          opt[String]("storage-location")
+            .action((x, c) => c.copy(dbConfig = c.dbConfig.asInstanceOf[OverflowDbConfig].copy(storageLocation = x))),
+          opt[Int]("heap-percentage-threshold")
+            .action((x, c) =>
+              c.copy(dbConfig = c.dbConfig.asInstanceOf[OverflowDbConfig].copy(heapPercentageThreshold = x))
+            ),
+          opt[Unit]("enable-serialization-stats")
+            .action((_, c) =>
+              c.copy(dbConfig = c.dbConfig.asInstanceOf[OverflowDbConfig].copy(serializationStatsEnabled = true))
+            )
+        )
+
+      cmd("neo4j")
+        .action((_, c) => c.copy(dbConfig = Neo4jConfig()))
+        .children(
+          opt[String]("hostname")
+            .action((x, c) => c.copy(dbConfig = c.dbConfig.asInstanceOf[Neo4jConfig].copy(hostname = x))),
+          opt[Int]("port")
+            .action((x, c) => c.copy(dbConfig = c.dbConfig.asInstanceOf[Neo4jConfig].copy(port = x))),
+          opt[String]("username")
+            .action((x, c) => c.copy(dbConfig = c.dbConfig.asInstanceOf[Neo4jConfig].copy(username = x))),
+          opt[String]("password")
+            .action((x, c) => c.copy(dbConfig = c.dbConfig.asInstanceOf[Neo4jConfig].copy(password = x))),
+          opt[Int]("tx-max")
+            .action((x, c) => c.copy(dbConfig = c.dbConfig.asInstanceOf[Neo4jConfig].copy(txMax = x)))
+        )
+
+      cmd("neo4j-embedded")
+        .action((_, c) => c.copy(dbConfig = Neo4jEmbeddedConfig()))
+        .children(
+          opt[String]("databaseName")
+            .action((x, c) => c.copy(dbConfig = c.dbConfig.asInstanceOf[Neo4jEmbeddedConfig].copy(databaseName = x))),
+          opt[String]("databaseDir")
+            .action((x, c) => c.copy(dbConfig = c.dbConfig.asInstanceOf[Neo4jEmbeddedConfig].copy(databaseDir = x))),
+          opt[Int]("tx-max")
+            .action((x, c) => c.copy(dbConfig = c.dbConfig.asInstanceOf[Neo4jEmbeddedConfig].copy(txMax = x)))
+        )
+
+      cmd("tigergraph")
+        .action((_, c) => c.copy(dbConfig = TigerGraphConfig()))
+        .children(
+          opt[String]("hostname")
+            .action((x, c) => c.copy(dbConfig = c.dbConfig.asInstanceOf[TigerGraphConfig].copy(hostname = x))),
+          opt[Int]("restpp-port")
+            .action((x, c) => c.copy(dbConfig = c.dbConfig.asInstanceOf[TigerGraphConfig].copy(restPpPort = x))),
+          opt[Int]("gsql-port")
+            .action((x, c) => c.copy(dbConfig = c.dbConfig.asInstanceOf[TigerGraphConfig].copy(gsqlPort = x))),
+          opt[String]("username")
+            .action((x, c) => c.copy(dbConfig = c.dbConfig.asInstanceOf[TigerGraphConfig].copy(username = x))),
+          opt[String]("password")
+            .action((x, c) => c.copy(dbConfig = c.dbConfig.asInstanceOf[TigerGraphConfig].copy(password = x))),
+          opt[Int]("timeout")
+            .action((x, c) => c.copy(dbConfig = c.dbConfig.asInstanceOf[TigerGraphConfig].copy(timeout = x))),
+          opt[Int]("tx-max")
+            .action((x, c) => c.copy(dbConfig = c.dbConfig.asInstanceOf[TigerGraphConfig].copy(txMax = x))),
+          opt[String]("scheme")
+            .action((x, c) => c.copy(dbConfig = c.dbConfig.asInstanceOf[TigerGraphConfig].copy(scheme = x)))
+        )
+
+      cmd("neptune")
+        .action((_, c) => c.copy(dbConfig = NeptuneConfig()))
+        .children(
+          opt[String]("hostname")
+            .action((x, c) => c.copy(dbConfig = c.dbConfig.asInstanceOf[NeptuneConfig].copy(hostname = x))),
+          opt[Int]("port")
+            .action((x, c) => c.copy(dbConfig = c.dbConfig.asInstanceOf[NeptuneConfig].copy(port = x))),
+          opt[String]("key-cert-chain-file")
+            .action((x, c) => c.copy(dbConfig = c.dbConfig.asInstanceOf[NeptuneConfig].copy(keyCertChainFile = x))),
+          opt[Int]("tx-max")
+            .action((x, c) => c.copy(dbConfig = c.dbConfig.asInstanceOf[NeptuneConfig].copy(txMax = x)))
+        )
+
+    }
 
 }
 

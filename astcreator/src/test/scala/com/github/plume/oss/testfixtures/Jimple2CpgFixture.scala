@@ -1,6 +1,6 @@
 package com.github.plume.oss.testfixtures
 
-import com.github.plume.oss.{JimpleAst2Database, PlumeStatistics}
+import com.github.plume.oss.JimpleAst2Database
 import com.github.plume.oss.drivers.OverflowDbDriver
 import com.github.plume.oss.JavaCompiler.compileJava
 import io.joern.jimple2cpg.testfixtures.JimpleCodeToCpgFixture
@@ -24,9 +24,7 @@ trait PlumeFrontend(val _driver: Option[OverflowDbDriver]) extends LanguageFront
   }
 
   override def execute(sourceCodeFile: File): Cpg = {
-    PlumeStatistics.reset()
     new JimpleAst2Database(driver).createAst(Config().withInputPath(sourceCodeFile.getAbsolutePath))
-    logger.info(s"Plume statistics from last test: ${PlumeStatistics.results()}")
     Cpg(driver.cpg.graph)
   }
 }

@@ -28,17 +28,51 @@ research to begin on Joern where I also spend time providing help and support.
 ## Quickstart
 
 One can run Plume from the `plume` binary which will use `OverflowDB` as the graph database backend if no config is 
-found. If one would like to configure another backend then the example `driver.yaml` can be adjusted to include the use 
-of another database by uncommenting and editing the respective fields given by the skeleton. E.g. using Neo4j:
+found. If one would like to configure another backend then use the CLI arguments:
 
-```yaml
-database: Neo4j
-params:
-  hostname: localhost
-  port: 7687
-  username: neo4j
-  password: neo4j
-  txMax: 25
+```bash
+Usage: plume [tinkergraph|overflowdb|neo4j|neo4j-embedded|tigergraph|neptune] [options] input-dir
+
+An AST creator for comparing graph databases as static analysis backends.
+  -h, --help
+  input-dir                The target application to parse.
+Command: tinkergraph [options]
+
+  --import-path <value>    The TinkerGraph to import.
+  --export-path <value>    The TinkerGraph export path to serialize the result to.
+Command: overflowdb [options]
+
+  --storage-location <value>
+  --heap-percentage-threshold <value>
+  --enable-serialization-stats
+Command: neo4j [options]
+
+  --hostname <value>
+  --port <value>
+  --username <value>
+  --password <value>
+  --tx-max <value>
+Command: neo4j-embedded [options]
+
+  --databaseName <value>
+  --databaseDir <value>
+  --tx-max <value>
+Command: tigergraph [options]
+
+  --hostname <value>
+  --restpp-port <value>
+  --gsql-port <value>
+  --username <value>
+  --password <value>
+  --timeout <value>
+  --tx-max <value>
+  --scheme <value>
+Command: neptune [options]
+
+  --hostname <value>
+  --port <value>
+  --key-cert-chain-file <value>
+  --tx-max <value>
 ```
 
 For more documentation and basic guides, check out the [project homepage](https://plume-oss.github.io/plume-docs/) or
