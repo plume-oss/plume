@@ -68,7 +68,8 @@ class PlumeDriverFixture(val driver: IDriver)
       val changes = diffGraph1.iterator.asScala.toList
       val srcNode = changes
         .collectFirst {
-          case c: DetachedNodeGeneric if c.getRefOrId == m.getOrElse("id", -1L).toString.toLong =>
+          case c: DetachedNodeGeneric
+              if c.getRefOrId.asInstanceOf[StoredNode].id() == m.getOrElse("id", -1L).toString.toLong =>
             c
         } match {
         case Some(src) => src
@@ -76,7 +77,8 @@ class PlumeDriverFixture(val driver: IDriver)
       }
       val dstNode = changes
         .collectFirst {
-          case c: NewBlock if c.getRefOrId().asInstanceOf[Long] == b.getOrElse("id", -1L).toString.toLong => c
+          case c: NewBlock if c.getRefOrId().asInstanceOf[StoredNode].id() == b.getOrElse("id", -1L).toString.toLong =>
+            c
         } match {
         case Some(dst) => dst
         case None      => fail("Unable to extract block node")
