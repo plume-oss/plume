@@ -8,7 +8,6 @@ import org.openjdk.jmh.annotations.{Benchmark, Level, Mode, Param, Scope, Setup,
 import org.openjdk.jmh.infra.{BenchmarkParams, Blackhole}
 import org.openjdk.jmh.runner.Runner
 import org.openjdk.jmh.runner.options.{ChainedOptionsBuilder, OptionsBuilder, TimeValue}
-import scopt.OptionParser
 import upickle.default.*
 
 import java.util.concurrent.TimeUnit
