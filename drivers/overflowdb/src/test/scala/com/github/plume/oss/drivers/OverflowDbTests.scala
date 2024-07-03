@@ -2,12 +2,11 @@ package com.github.plume.oss.drivers
 
 import com.github.plume.oss.testfixtures.PlumeDriverFixture
 import com.github.plume.oss.testfixtures.PlumeDriverFixture.{b1, m1}
-import io.shiftleft.codepropertygraph.generated.{Cpg, EdgeTypes}
-import io.shiftleft.passes.IntervalKeyPool
+import io.shiftleft.codepropertygraph.generated.EdgeTypes
 import org.apache.tinkerpop.gremlin.tinkergraph.structure.TinkerGraph
 import overflowdb.BatchedUpdate
 
-import java.io.{File => JFile}
+import java.io.File as JFile
 import java.nio.charset.StandardCharsets
 import java.nio.file.{Files, Paths}
 import scala.util.{Failure, Try}
@@ -25,11 +24,11 @@ class OverflowDbTests extends PlumeDriverFixture(new OverflowDbDriver()) {
     val outFile = Paths.get("./odbGraph.xml").toFile
     td.exportAsGraphML(outFile)
     // Should be valid if TinkerGraph can accept it
-    Try({
+    Try {
       val graph = TinkerGraph.open()
       graph.traversal().io[Any](outFile.getAbsolutePath).read().iterate()
       graph.close()
-    }) match {
+    } match {
       case Failure(e) => fail("TinkerGraph could not import ODB generated XML", e)
       case _          =>
     }
@@ -38,7 +37,7 @@ class OverflowDbTests extends PlumeDriverFixture(new OverflowDbDriver()) {
 
   private def createSimpleGraph(driver: IDriver): Unit = {
     val diffGraph = new BatchedUpdate.DiffGraphBuilder()
-    diffGraph.addNode(m1).addNode(b1).addEdge(m1, b1, EdgeTypes.AST)
+    diffGraph.addNode(m1.copy).addNode(b1.copy).addEdge(m1.copy, b1.copy, EdgeTypes.AST)
     driver.bulkTx(diffGraph)
   }
 

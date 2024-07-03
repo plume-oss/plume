@@ -1,9 +1,9 @@
 package com.github.plume.oss.drivers
 
-import com.github.plume.oss.PlumeStatistics
 import com.github.plume.oss.drivers.OverflowDbDriver.newOverflowGraph
 import com.github.plume.oss.util.BatchedUpdateUtil
 import com.github.plume.oss.util.BatchedUpdateUtil.*
+import io.shiftleft.codepropertygraph.cpgloading.CpgLoader
 import io.shiftleft.codepropertygraph.generated.*
 import io.shiftleft.codepropertygraph.generated.nodes.*
 import org.apache.commons.text.StringEscapeUtils
@@ -25,7 +25,7 @@ import scala.util.*
   * @param serializationStatsEnabled
   *   enables saving of serialization statistics.
   */
-final case class OverflowDbDriver(
+final class OverflowDbDriver(
   storageLocation: Option[String] = Option(JFile.createTempFile("plume-", ".odb").getAbsolutePath),
   heapPercentageThreshold: Int = 80,
   serializationStatsEnabled: Boolean = false
@@ -44,20 +44,17 @@ final case class OverflowDbDriver(
 
   /** A direct pointer to the code property graph object.
     */
-  val cpg: Cpg =
-    PlumeStatistics.time(PlumeStatistics.TIME_OPEN_DRIVER, { newOverflowGraph(odbConfig) })
+  val cpg: Cpg = newOverflowGraph(odbConfig)
+
+  CpgLoader.createIndexes(cpg)
 
   override def isConnected: Boolean = !cpg.graph.isClosed
 
-  override def close(): Unit = PlumeStatistics.time(
-    PlumeStatistics.TIME_CLOSE_DRIVER, {
-      Try(cpg.close()) match {
-        case Success(_) =>
-        case Failure(e) =>
-          logger.warn("Exception thrown while attempting to close graph.", e)
-      }
-    }
-  )
+  override def close(): Unit = Try(cpg.close()) match {
+    case Success(_) =>
+    case Failure(e) =>
+      logger.warn("Exception thrown while attempting to close graph.", e)
+  }
 
   override def clear(): Unit = {
     cpg.graph.nodes.asScala.foreach(safeRemove)
@@ -69,27 +66,7 @@ final case class OverflowDbDriver(
     cpg.graph.node(srcId).out(edge).asScala.exists { dst => dst.id() == dstId }
 
   override def bulkTx(dg: DiffOrBuilder): Int = {
-    // Do node operations first
-    dg.iterator.asScala.foreach {
-      case node: DetachedNodeData =>
-        val nodeId = node.pID
-        node.setRefOrId(nodeId)
-        val newNode = cpg.graph.addNode(nodeId, node.label)
-        BatchedUpdateUtil.propertiesFromNodeData(node).foreach { case (k, v) => newNode.setProperty(k, v) }
-      case change: BatchedUpdate.SetNodeProperty =>
-        cpg.graph.node(change.node.id()).setProperty(change.label, change.value)
-      case _ => // do nothing
-    }
-    // Now that all nodes are in, connect edges
-    dg.iterator.asScala.foreach {
-      case change: BatchedUpdate.CreateEdge =>
-        val srcId: Long = change.src.pID
-        val dstId: Long = change.dst.pID
-        val e: overflowdb.Edge =
-          cpg.graph.node(srcId).addEdge(change.label, cpg.graph.node(dstId))
-        unpack(change.propertiesAndKeys).foreach { case (k: String, v: Any) => e.setProperty(k, v) }
-      case _ => // do nothing
-    }
+    BatchedUpdate.applyDiff(cpg.graph, dg)
     dg.size()
   }
 

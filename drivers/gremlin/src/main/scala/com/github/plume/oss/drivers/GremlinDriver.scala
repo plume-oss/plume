@@ -1,10 +1,8 @@
 package com.github.plume.oss.drivers
 
-import com.github.plume.oss.PlumeStatistics
 import com.github.plume.oss.util.BatchedUpdateUtil
-import io.shiftleft.codepropertygraph.generated.{EdgeTypes, NodeTypes, PropertyNames}
+import io.shiftleft.codepropertygraph.generated.PropertyNames
 import org.apache.commons.configuration.BaseConfiguration
-import org.apache.tinkerpop.gremlin.process.traversal.P.within
 import org.apache.tinkerpop.gremlin.process.traversal.dsl.graph.__.{coalesce, constant, values}
 import org.apache.tinkerpop.gremlin.process.traversal.dsl.graph.{GraphTraversal, GraphTraversalSource, __}
 import org.apache.tinkerpop.gremlin.structure.{Edge, Graph, T, Vertex}
@@ -14,7 +12,7 @@ import overflowdb.BatchedUpdate.{Change, DiffOrBuilder}
 import overflowdb.{BatchedUpdate, DetachedNodeData}
 
 import java.util.concurrent.atomic.AtomicBoolean
-import scala.jdk.CollectionConverters.{CollectionHasAsScala, IteratorHasAsScala, MapHasAsScala}
+import scala.jdk.CollectionConverters.{IteratorHasAsScala, MapHasAsScala}
 import scala.util.{Failure, Success, Try}
 
 /** The driver used by databases implementing Gremlin.
@@ -25,15 +23,14 @@ abstract class GremlinDriver(txMax: Int = 50) extends IDriver {
   protected val config: BaseConfiguration = new BaseConfiguration()
   config.setProperty("gremlin.graph", "org.apache.tinkerpop.gremlin.tinkergraph.structure.TinkerGraph")
   config.setProperty("gremlin.tinkergraph.vertexIdManager", "LONG")
-  protected val graph: Graph =
-    PlumeStatistics.time(PlumeStatistics.TIME_OPEN_DRIVER, { TinkerGraph.open(config) })
+  protected val graph: Graph                                  = TinkerGraph.open(config)
   protected var traversalSource: Option[GraphTraversalSource] = None
   private val connected                                       = new AtomicBoolean(true)
 
   override def isConnected: Boolean = connected.get()
 
   override def close(): Unit =
-    Try(PlumeStatistics.time(PlumeStatistics.TIME_CLOSE_DRIVER, { graph.close() })) match {
+    Try(graph.close()) match {
       case Success(_) => connected.set(false)
       case Failure(e) =>
         logger.warn("Exception thrown while attempting to close graph.", e)

@@ -5,7 +5,14 @@ inThisBuild(
     organization := "com.github.plume-oss",
     version      := "2.0.0",
     scalaVersion := "3.4.2",
-    resolvers ++= Seq(Resolver.mavenLocal, Resolver.mavenCentral, Resolver.JCenterRepository)
+    resolvers ++= Seq(
+      Resolver.mavenLocal,
+      Resolver.mavenCentral,
+      Resolver.JCenterRepository,
+      "Sonatype OSS" at "https://oss.sonatype.org/content/repositories/public",
+      "Atlassian" at "https://packages.atlassian.com/mvn/maven-atlassian-external",
+      "Gradle Releases" at "https://repo.gradle.org/gradle/libs-releases/"
+    )
   )
 )
 
@@ -20,28 +27,30 @@ lazy val neo4j       = Projects.neo4j
 lazy val neo4jEmbed  = Projects.neo4jEmbed
 lazy val tigergraph  = Projects.tigergraph
 lazy val overflowDb  = Projects.overflowdb
+// AST creation
+lazy val astcreator = Projects.astcreator
 
 lazy val root = (project in file("."))
-  .dependsOn(commons, base, gremlin, tinkergraph, neptune, neo4j, neo4jEmbed, tigergraph, overflowDb)
-  .aggregate(commons, base, gremlin, tinkergraph, neptune, neo4j, neo4jEmbed, tigergraph, overflowDb)
+  .dependsOn(astcreator, commons, base, gremlin, tinkergraph, neptune, neo4j, neo4jEmbed, tigergraph, overflowDb)
+  .aggregate(astcreator, commons, base, gremlin, tinkergraph, neptune, neo4j, neo4jEmbed, tigergraph, overflowDb)
 
 trapExit                 := false
 Test / fork              := true
 Test / parallelExecution := false
 
 libraryDependencies ++= Seq(
-  "io.joern"                %% "semanticcpg"      % Versions.joern,
-  "io.joern"                %% "x2cpg"            % Versions.joern,
-  "io.joern"                %% "jimple2cpg"       % Versions.joern,
-  "io.joern"                %% "jimple2cpg"       % Versions.joern     % Test classifier "tests",
-  "io.joern"                %% "x2cpg"            % Versions.joern     % Test classifier "tests",
-  "org.slf4j"                % "slf4j-api"        % Versions.slf4j,
-  "org.apache.logging.log4j" % "log4j-core"       % Versions.log4j     % Test,
-  "org.apache.logging.log4j" % "log4j-slf4j-impl" % Versions.log4j     % Test,
-  "org.scalatest"           %% "scalatest"        % Versions.scalatest % Test
+  "org.openjdk.jmh"          % "jmh-generator-annprocess" % Versions.jmh,
+  "org.openjdk.jmh"          % "jmh-core"                 % Versions.jmh,
+  "org.openjdk.jmh"          % "jmh-generator-bytecode"   % Versions.jmh,
+  "org.openjdk.jmh"          % "jmh-generator-reflection" % Versions.jmh,
+  "org.openjdk.jmh"          % "jmh-generator-asm"        % Versions.jmh,
+  "org.slf4j"                % "slf4j-api"                % Versions.slf4j,
+  "org.apache.logging.log4j" % "log4j-core"               % Versions.log4j % Test,
+  "org.apache.logging.log4j" % "log4j-slf4j-impl"         % Versions.log4j % Test,
+  "org.scalatest"           %% "scalatest"                % Versions.scalatest % Test
 )
 
-enablePlugins(JavaAppPackaging)
+enablePlugins(JavaAppPackaging, JmhPlugin)
 
 scmInfo := Some(ScmInfo(url("https://github.com/plume-oss/plume"), "git@github.com:plume-oss/plume.git"))
 

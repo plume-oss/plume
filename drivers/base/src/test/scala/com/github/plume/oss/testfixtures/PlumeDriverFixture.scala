@@ -13,6 +13,7 @@ import overflowdb.{BatchedUpdate, DetachedNodeGeneric}
 
 import scala.jdk.CollectionConverters.IteratorHasAsScala
 import scala.language.postfixOps
+import scala.util.Try
 
 class PlumeDriverFixture(val driver: IDriver)
     extends AnyWordSpec
@@ -68,7 +69,12 @@ class PlumeDriverFixture(val driver: IDriver)
       val changes = diffGraph1.iterator.asScala.toList
       val srcNode = changes
         .collectFirst {
-          case c: DetachedNodeGeneric if c.getRefOrId == m.getOrElse("id", -1L).toString.toLong =>
+          case c: DetachedNodeGeneric
+              if c.getRefOrId == m.getOrElse("id", -1L).toString.toLong || Try(
+                c.getRefOrId
+                  .asInstanceOf[StoredNode]
+                  .id()
+              ).map(_ == m.getOrElse("id", -1L).toString.toLong).getOrElse(false) =>
             c
         } match {
         case Some(src) => src
@@ -76,7 +82,14 @@ class PlumeDriverFixture(val driver: IDriver)
       }
       val dstNode = changes
         .collectFirst {
-          case c: NewBlock if c.getRefOrId().asInstanceOf[Long] == b.getOrElse("id", -1L).toString.toLong => c
+          case c: NewBlock
+              if Try(c.getRefOrId().asInstanceOf[Long])
+                .map(_ == b.getOrElse("id", -1L).toString.toLong)
+                .getOrElse(false) ||
+                Try(c.getRefOrId().asInstanceOf[StoredNode].id())
+                  .map(_ == b.getOrElse("id", -1L).toString.toLong)
+                  .getOrElse(false) =>
+            c
         } match {
         case Some(dst) => dst
         case None      => fail("Unable to extract block node")
