@@ -1,13 +1,21 @@
 package com.github.plume.oss
 
 import better.files.File
+import io.shiftleft.codepropertygraph.generated.NodeTypes.{CALL, METHOD}
+import io.shiftleft.codepropertygraph.generated.EdgeTypes.{AST}
+import io.shiftleft.codepropertygraph.generated.PropertyNames.{ORDER, FULL_NAME}
 import com.github.plume.oss.Benchmark.BenchmarkType.*
 import com.github.plume.oss.Benchmark.setOps
-import com.github.plume.oss.drivers.{IDriver, OverflowDbDriver}
+import com.github.plume.oss.drivers.{IDriver, OverflowDbDriver, TinkerGraphDriver}
 import io.joern.jimple2cpg.Config
 import io.shiftleft.codepropertygraph.generated.Cpg
 import io.shiftleft.codepropertygraph.generated.nodes.{AstNode, Call, StoredNode}
 import io.shiftleft.semanticcpg.language.*
+import org.apache.tinkerpop.gremlin.process.traversal.P
+import org.apache.tinkerpop.gremlin.process.traversal.dsl.graph.GraphTraversalSource
+import org.apache.tinkerpop.gremlin.process.traversal.dsl.graph.__
+import org.apache.tinkerpop.gremlin.process.traversal.dsl.graph.__.{and, not}
+import org.apache.tinkerpop.gremlin.structure.Vertex
 import org.cache2k.benchmark.jmh.ForcedGcMemoryProfiler
 import org.openjdk.jmh.annotations.{Benchmark, Level, Mode, Param, Scope, Setup, State, TearDown}
 import org.openjdk.jmh.infra.{BenchmarkParams, Blackhole}
@@ -16,10 +24,12 @@ import org.openjdk.jmh.runner.options.{ChainedOptionsBuilder, OptionsBuilder, Ti
 import overflowdb.PropertyKey
 import overflowdb.traversal.{jIteratortoTraversal, toNodeOps}
 import upickle.default.*
+import java.util
 
 import java.util.concurrent.TimeUnit
 import scala.compiletime.uninitialized
 import scala.util.Random
+import scala.jdk.CollectionConverters.*
 
 object Benchmark {
 
@@ -40,7 +50,7 @@ object Benchmark {
           case _: TinkerGraphConfig =>
             Option(
               createOptionsBoilerPlate(config, READ)
-                .include(classOf[OverflowDbReadBenchmark].getSimpleName)
+                .include(classOf[TinkerGraphReadBenchmark].getSimpleName)
                 .build()
             )
           case _: OverflowDbConfig =>
@@ -194,10 +204,7 @@ sealed trait GraphReadBenchmark {
   def astUp(blackhole: Blackhole): Int
 
   @Benchmark
-  def orderSumChecked(blackhole: Blackhole): Int
-
-  @Benchmark
-  def orderSumExplicit(blackhole: Blackhole): Int
+  def orderSum(blackhole: Blackhole): Int
 
   @Benchmark
   def callOrderTrav(blackhole: Blackhole): Int
@@ -239,33 +246,21 @@ class OverflowDbReadBenchmark extends GraphReadBenchmark {
   }
 
   override def setupAstDfs(): Array[Long] = {
-    cpg.graph.nodes.iterator.flatMap { nodesOfKind =>
-      nodesOfKind.iterator.collect {
-        case astNode: StoredNode if astNode._astIn.isEmpty && astNode._astOut.nonEmpty => astNode.id()
-      }
+    cpg.graph.nodes.iterator.collect {
+      case node if node.in(AST).isEmpty && node.out(AST).nonEmpty => node.id()
     }.toArray
   }
 
   override def setupAstUp(): Array[Long] = {
-    cpg.graph.nodes.iterator.flatMap {
-      _.iterator.asInstanceOf[Iterator[StoredNode]].map(_.id)
-    }.toArray
+    cpg.graph.nodes.iterator.map(_.id()).toArray
   }
 
   override def setUpOrderSum(): Array[Long] = {
-    cpg.graph.nodes.iterator.flatMap { nodesOfKind =>
-      nodesOfKind.iterator.collect { case astNode: AstNode =>
-        astNode.asInstanceOf[StoredNode].id()
-      }
-    }.toArray
+    cpg.graph.nodes.iterator.filter(n => n.propertiesMap().containsKey(ORDER)).map(_.id()).toArray
   }
 
   override def setUpCallOrder(): Array[Long] = {
-    cpg.graph.nodes.iterator.flatMap { nodesOfKind =>
-      nodesOfKind.iterator.collect { case node: Call =>
-        node.asInstanceOf[StoredNode].id()
-      }
-    }.toArray
+    cpg.graph.nodes.iterator.collect { case node: Call => node.id() }.toArray
   }
 
   override def setUpMethodFullName(): Array[String] = {
@@ -283,7 +278,7 @@ class OverflowDbReadBenchmark extends GraphReadBenchmark {
       stack.appendAll(nx._astOut.map(_.id))
       nnodes += 1
     }
-    if (blackhole != null) blackhole.consume(nnodes)
+    Option(blackhole).foreach(_.consume(nnodes))
     nnodes
   }
 
@@ -297,46 +292,35 @@ class OverflowDbReadBenchmark extends GraphReadBenchmark {
         p = p.asInstanceOf[StoredNode]._astIn.nextOption.orNull
       }
     }
-    if (blackhole != null) blackhole.consume(sumDepth)
+    Option(blackhole).foreach(_.consume(sumDepth))
     sumDepth
   }
 
   @Benchmark
-  override def orderSumChecked(blackhole: Blackhole): Int = {
+  override def orderSum(blackhole: Blackhole): Int = {
     var sumOrder = 0
-    for (node <- nodeStart.iterator.asInstanceOf[Iterator[AstNode]]) {
-      // we use a checked cast to ensure that our node is an AST-node (i.e. implements the AstNode interface)
-      sumOrder += node.order
-    }
-    if (blackhole != null) blackhole.consume(sumOrder)
-    sumOrder
-  }
-
-  @Benchmark
-  override def orderSumExplicit(blackhole: Blackhole): Int = {
-    var sumOrder = 0
-    val propKey  = PropertyKey[Int]("ORDER")
+    val propKey  = PropertyKey[Int](ORDER)
     for (node <- nodeStart.map(cpg.graph.node)) {
       sumOrder += node.asInstanceOf[StoredNode].property(propKey)
     }
-    if (blackhole != null) blackhole.consume(sumOrder)
+    Option(blackhole).foreach(_.consume(sumOrder))
     sumOrder
   }
 
   @Benchmark
   override def callOrderTrav(blackhole: Blackhole): Int = {
-    val res = nodeStart.map(cpg.graph.node).iterator.asInstanceOf[Iterator[Call]].orderGt(2).size
-    if (blackhole != null) blackhole.consume(res)
+    val res = cpg.graph.nodes(nodeStart*).iterator.asInstanceOf[Iterator[Call]].orderGt(2).size
+    Option(blackhole).foreach(_.consume(res))
     res
   }
 
   @Benchmark
   override def callOrderExplicit(blackhole: Blackhole): Int = {
     var res = 0
-    for (node <- nodeStart.map(cpg.graph.node).iterator.asInstanceOf[Iterator[Call]]) {
+    for (node <- cpg.graph.nodes(nodeStart*).iterator.asInstanceOf[Iterator[Call]]) {
       if (node.order > 2) res += 1
     }
-    if (blackhole != null) blackhole.consume(res)
+    Option(blackhole).foreach(_.consume(res))
     res
   }
 
@@ -352,6 +336,116 @@ class OverflowDbReadBenchmark extends GraphReadBenchmark {
     for {
       str   <- fullNames
       found <- cpg.method.filter { _ => true }.fullNameExact(str)
+    } bh.consume(found)
+  }
+}
+
+@State(Scope.Benchmark)
+class TinkerGraphReadBenchmark extends GraphReadBenchmark {
+
+  private var g: () => GraphTraversalSource = uninitialized
+
+  @Setup
+  def setupBenchmark(params: BenchmarkParams): Unit = {
+    val (driver_, inputDir_) = Benchmark.initializeDriverAndInputDir(configStr)
+    driver = driver_
+    inputDir = inputDir_
+    g = () => driver.asInstanceOf[TinkerGraphDriver].g()
+    setupBenchmarkParams(params)
+  }
+
+  override def setupAstDfs(): Array[Long] = {
+    g().V().where(__.and(__.not(__.inE(AST)), __.outE(AST))).id().asScala.map(_.asInstanceOf[Long]).toArray
+  }
+
+  override def setupAstUp(): Array[Long] = {
+    g().V().id().asScala.map(_.asInstanceOf[Long]).toArray
+  }
+
+  override def setUpOrderSum(): Array[Long] = {
+    g().V().has(ORDER).id().asScala.map(_.asInstanceOf[Long]).toArray
+  }
+
+  override def setUpCallOrder(): Array[Long] = {
+    g().V().hasLabel(CALL).id().asScala.map(_.asInstanceOf[Long]).toArray
+  }
+
+  override def setUpMethodFullName(): Array[String] = {
+    fullNames = new Random(1234).shuffle(g().V().hasLabel(METHOD).properties(FULL_NAME).value()).toArray
+    fullNames.slice(0, math.min(1000, fullNames.length))
+  }
+
+  @Benchmark
+  override def astDFS(blackhole: Blackhole): Int = {
+    val stack = scala.collection.mutable.ArrayDeque.empty[Long]
+    stack.addAll(nodeStart)
+    var nnodes = nodeStart.length
+    while (stack.nonEmpty) {
+      val nx = g().V(stack.removeLast())
+      stack.appendAll(nx.out(AST).id().map(_.asInstanceOf[Long]).asScala.toArray)
+      nnodes += 1
+    }
+    Option(blackhole).foreach(_.consume(nnodes))
+    nnodes
+  }
+
+  @Benchmark
+  override def astUp(blackhole: Blackhole): Int = {
+    var sumDepth = 0
+    for (node <- nodeStart) {
+      var p       = g().V(node)
+      var hasNext = false
+      while (!hasNext) {
+        sumDepth += 1
+        hasNext = p.in(AST).hasNext
+        if (hasNext) {
+          p = g().V(p.in(AST).id().asScala.toSeq*)
+        }
+      }
+    }
+    Option(blackhole).foreach(_.consume(sumDepth))
+    sumDepth
+  }
+
+  @Benchmark
+  override def orderSum(blackhole: Blackhole): Int = {
+    var sumOrder = 0
+    for (node <- nodeStart.map(g().V(_))) {
+      sumOrder += node.properties(ORDER).value().next().asInstanceOf[Int]
+    }
+    Option(blackhole).foreach(_.consume(sumOrder))
+    sumOrder
+  }
+
+  @Benchmark
+  override def callOrderTrav(blackhole: Blackhole): Int = {
+    val res = g().V(nodeStart*).hasLabel(CALL).has(ORDER, P.gt(2)).size
+    Option(blackhole).foreach(_.consume(res))
+    res
+  }
+
+  @Benchmark
+  override def callOrderExplicit(blackhole: Blackhole): Int = {
+    var res = 0
+    for (node <- g().V(nodeStart*).hasLabel(CALL)) {
+      if (node.property(ORDER).asInstanceOf[Int] > 2) res += 1
+    }
+    Option(blackhole).foreach(_.consume(res))
+    res
+  }
+
+  @Benchmark
+  override def indexedMethodFullName(bh: Blackhole): Unit = {
+    fullNames.foreach { fullName =>
+      g().V().hasLabel(METHOD).has(FULL_NAME, fullName).foreach(bh.consume)
+    }
+  }
+
+  @Benchmark
+  override def unindexedMethodFullName(bh: Blackhole): Unit = {
+    for {
+      str   <- fullNames
+      found <- g().V().hasLabel(METHOD).where(__.has(FULL_NAME, str))
     } bh.consume(found)
   }
 }
