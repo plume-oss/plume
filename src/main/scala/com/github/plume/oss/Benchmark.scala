@@ -1,19 +1,17 @@
 package com.github.plume.oss
 
 import better.files.File
-import io.shiftleft.codepropertygraph.generated.NodeTypes.{CALL, METHOD}
-import io.shiftleft.codepropertygraph.generated.EdgeTypes.{AST}
-import io.shiftleft.codepropertygraph.generated.PropertyNames.{ORDER, FULL_NAME}
 import com.github.plume.oss.Benchmark.BenchmarkType.*
-import com.github.plume.oss.Benchmark.setOps
 import com.github.plume.oss.drivers.{IDriver, OverflowDbDriver, TinkerGraphDriver}
 import io.joern.jimple2cpg.Config
 import io.shiftleft.codepropertygraph.generated.Cpg
-import io.shiftleft.codepropertygraph.generated.nodes.{AstNode, Call, StoredNode}
+import io.shiftleft.codepropertygraph.generated.EdgeTypes.AST
+import io.shiftleft.codepropertygraph.generated.NodeTypes.{CALL, METHOD}
+import io.shiftleft.codepropertygraph.generated.PropertyNames.{FULL_NAME, ORDER}
+import io.shiftleft.codepropertygraph.generated.nodes.{Call, StoredNode}
 import io.shiftleft.semanticcpg.language.*
 import org.apache.tinkerpop.gremlin.process.traversal.P
-import org.apache.tinkerpop.gremlin.process.traversal.dsl.graph.GraphTraversalSource
-import org.apache.tinkerpop.gremlin.process.traversal.dsl.graph.__
+import org.apache.tinkerpop.gremlin.process.traversal.dsl.graph.{GraphTraversalSource, __}
 import org.apache.tinkerpop.gremlin.process.traversal.dsl.graph.__.{and, not}
 import org.apache.tinkerpop.gremlin.structure.Vertex
 import org.cache2k.benchmark.jmh.ForcedGcMemoryProfiler
@@ -22,14 +20,14 @@ import org.openjdk.jmh.infra.{BenchmarkParams, Blackhole}
 import org.openjdk.jmh.runner.Runner
 import org.openjdk.jmh.runner.options.{ChainedOptionsBuilder, OptionsBuilder, TimeValue}
 import overflowdb.PropertyKey
-import overflowdb.traversal.{jIteratortoTraversal, toNodeOps}
+import overflowdb.traversal.jIteratortoTraversal
 import upickle.default.*
-import java.util
 
+import java.util
 import java.util.concurrent.TimeUnit
 import scala.compiletime.uninitialized
-import scala.util.Random
 import scala.jdk.CollectionConverters.*
+import scala.util.Random
 
 object Benchmark {
 
@@ -110,17 +108,6 @@ object Benchmark {
     config.dbConfig.toDriver -> config.inputDir
   }
 
-  def setOps(params: BenchmarkParams, ops: Int): Unit = {
-    var field: java.lang.reflect.Field = null
-    var clazz: Class[?]                = params.getClass
-    while (field == null) {
-      field = clazz.getDeclaredFields.find(_.getName == "opsPerInvocation").orNull
-      clazz = clazz.getSuperclass
-    }
-    field.setAccessible(true)
-    field.setInt(params, ops)
-  }
-
 }
 
 @State(Scope.Benchmark)
@@ -171,19 +158,14 @@ sealed trait GraphReadBenchmark {
     params.getBenchmark match {
       case name if name.endsWith("astDFS") =>
         nodeStart = setupAstDfs()
-        setOps(params, astDFS(null))
       case name if name.endsWith("astUp") =>
         nodeStart = setupAstUp()
-        setOps(params, astUp(null))
       case name if name.contains("orderSum") =>
         nodeStart = setUpOrderSum()
-        setOps(params, nodeStart.length)
       case name if name.contains("callOrder") =>
         nodeStart = setUpCallOrder()
-        setOps(params, nodeStart.length)
       case name if name.contains("MethodFullName") =>
         fullNames = setUpMethodFullName()
-        setOps(params, fullNames.length)
     }
   }
 
