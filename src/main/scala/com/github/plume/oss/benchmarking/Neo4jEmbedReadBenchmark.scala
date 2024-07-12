@@ -107,8 +107,7 @@ class Neo4jEmbedReadBenchmark extends GraphReadBenchmark {
           .map { result => result.get("m.id").asInstanceOf[Long] }
           .toArray
       }
-      val nx = g().V(stack.removeLast())
-      stack.appendAll(nx.out(AST).id().map(_.asInstanceOf[Long]).asScala.toArray)
+      stack.appendAll(childrenIds)
       nnodes += 1
     }
     Option(blackhole).foreach(_.consume(nnodes))
@@ -144,8 +143,17 @@ class Neo4jEmbedReadBenchmark extends GraphReadBenchmark {
   @Benchmark
   override def orderSum(blackhole: Blackhole): Int = {
     var sumOrder = 0
-    for (node <- nodeStart.map(g().V(_))) {
-      sumOrder += node.properties(ORDER).value().next().asInstanceOf[Int]
+    for (nodeId <- nodeStart) {
+      val orderArr = Using.resource(g.beginTx) { tx =>
+        tx.execute(s"""
+               |MATCH (n)
+               |WHERE n.id = $nodeId
+               |RETURN n.$ORDER
+               |""".stripMargin)
+          .map { result => result.get(s"n.$ORDER").asInstanceOf[Int] }
+          .toArray
+      }
+      sumOrder += orderArr.head
     }
     Option(blackhole).foreach(_.consume(sumOrder))
     sumOrder
@@ -153,7 +161,15 @@ class Neo4jEmbedReadBenchmark extends GraphReadBenchmark {
 
   @Benchmark
   override def callOrderTrav(blackhole: Blackhole): Int = {
-    val res = g().V(nodeStart*).hasLabel(CALL).has(ORDER, P.gt(2)).size
+    val res = Using.resource(g.beginTx) { tx =>
+      tx.execute(s"""
+             |MATCH (n: $CALL)
+             |WHERE n.$ORDER > 2 AND n.id IN [${nodeStart.mkString(",")}]
+             |RETURN COUNT(n)
+             |""".stripMargin)
+        .map(_.get("COUNT(n)").asInstanceOf[Int])
+        .next()
+    }
     Option(blackhole).foreach(_.consume(res))
     res
   }
@@ -161,8 +177,17 @@ class Neo4jEmbedReadBenchmark extends GraphReadBenchmark {
   @Benchmark
   override def callOrderExplicit(blackhole: Blackhole): Int = {
     var res = 0
-    for (node <- g().V(nodeStart*).hasLabel(CALL)) {
-      if (node.property(ORDER).asInstanceOf[Int] > 2) res += 1
+    val nodes = Using.resource(g.beginTx) { tx =>
+      tx.execute(s"""
+             |MATCH (n: $CALL)
+             |WHERE n.id IN [${nodeStart.mkString(",")}]
+             |RETURN n.$ORDER
+             |""".stripMargin)
+        .map(_.get(s"n.$ORDER").asInstanceOf[Int])
+        .toArray
+    }
+    for (order <- nodes) {
+      if (order > 2) res += 1
     }
     Option(blackhole).foreach(_.consume(res))
     res
@@ -171,15 +196,34 @@ class Neo4jEmbedReadBenchmark extends GraphReadBenchmark {
   @Benchmark
   override def indexedMethodFullName(bh: Blackhole): Unit = {
     fullNames.foreach { fullName =>
-      g().V().hasLabel(METHOD).has(FULL_NAME, fullName).foreach(bh.consume)
+      Using
+        .resource(g.beginTx) { tx =>
+          tx.execute(s"""
+               |MATCH (n: $METHOD)
+               |WHERE n.$FULL_NAME = $fullName
+               |RETURN n
+               |""".stripMargin)
+            .map(_.get(s"n"))
+            .toArray
+        }
+        .foreach(bh.consume)
     }
   }
 
   @Benchmark
   override def unindexedMethodFullName(bh: Blackhole): Unit = {
-    for {
-      str   <- fullNames
-      found <- g().V().hasLabel(METHOD).where(__.has(FULL_NAME, str))
-    } bh.consume(found)
+    fullNames.foreach { fullName =>
+      Using
+        .resource(g.beginTx) { tx =>
+          tx.execute(s"""
+               |MATCH (n)
+               |WHERE n.$FULL_NAME = $fullName and $METHOD IN labels(n)
+               |RETURN n
+               |""".stripMargin)
+            .map(_.get(s"n"))
+            .toArray
+        }
+        .foreach(bh.consume)
+    }
   }
 }
