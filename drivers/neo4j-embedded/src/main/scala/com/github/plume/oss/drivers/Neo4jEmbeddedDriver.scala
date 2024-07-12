@@ -6,7 +6,7 @@ import com.github.plume.oss.util.BatchedUpdateUtil.*
 import io.shiftleft.codepropertygraph.generated.nodes.StoredNode
 import org.neo4j.configuration.GraphDatabaseSettings.DEFAULT_DATABASE_NAME
 import org.neo4j.dbms.api.{DatabaseManagementService, DatabaseManagementServiceBuilder}
-import org.neo4j.graphdb.{Label, Transaction}
+import org.neo4j.graphdb.{GraphDatabaseService, Label, Transaction}
 import org.slf4j.LoggerFactory
 import overflowdb.BatchedUpdate.{CreateEdge, DiffOrBuilder, SetNodeProperty}
 import overflowdb.{BatchedUpdate, DetachedNodeData}
@@ -40,6 +40,8 @@ final class Neo4jEmbeddedDriver(
       }
     })
   }
+
+  def graph: GraphDatabaseService = graphDb
 
   private def connect(): Unit = {
     managementService = new DatabaseManagementServiceBuilder(databaseDir.path).build()
