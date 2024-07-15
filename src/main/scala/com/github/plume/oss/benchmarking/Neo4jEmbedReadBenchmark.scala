@@ -1,17 +1,15 @@
 package com.github.plume.oss.benchmarking
 
-import com.github.plume.oss.benchmarking.GraphReadBenchmark
-import com.github.plume.oss.drivers.{Neo4jEmbeddedDriver, TinkerGraphDriver}
+import com.github.plume.oss.drivers.Neo4jEmbeddedDriver
 import io.shiftleft.codepropertygraph.generated.EdgeTypes.AST
 import io.shiftleft.codepropertygraph.generated.NodeTypes.{CALL, METHOD}
 import io.shiftleft.codepropertygraph.generated.PropertyNames.{FULL_NAME, ORDER}
-import org.apache.tinkerpop.gremlin.process.traversal.P
-import org.apache.tinkerpop.gremlin.process.traversal.dsl.graph.{GraphTraversalSource, __}
-import org.neo4j.graphdb.{GraphDatabaseService, Label}
+import org.neo4j.graphdb.GraphDatabaseService
 import org.openjdk.jmh.annotations.{Benchmark, Scope, Setup, State}
 import org.openjdk.jmh.infra.{BenchmarkParams, Blackhole}
 import overflowdb.traversal.*
 
+import java.util
 import scala.compiletime.uninitialized
 import scala.jdk.CollectionConverters.*
 import scala.util.{Random, Using}
@@ -33,9 +31,9 @@ class Neo4jEmbedReadBenchmark extends GraphReadBenchmark {
       tx.execute(s"""
            |MATCH (n)-[$AST]->()
            |WHERE NOT (n)<-[$AST]-()
-           |RETURN n.id
+           |RETURN n.id AS ID
            |""".stripMargin)
-        .map { result => result.get("n.id").asInstanceOf[Long] }
+        .map { result => result.get("ID").asInstanceOf[Long] }
         .toArray
     }
   }
@@ -44,9 +42,9 @@ class Neo4jEmbedReadBenchmark extends GraphReadBenchmark {
     Using.resource(g.beginTx) { tx =>
       tx.execute(s"""
             |MATCH (n)-[$AST]->()
-            |RETURN n.id
+            |RETURN n.id AS ID
             |""".stripMargin)
-        .map { result => result.get("n.id").asInstanceOf[Long] }
+        .map { result => result.get("ID").asInstanceOf[Long] }
         .toArray
     }
   }
@@ -56,9 +54,9 @@ class Neo4jEmbedReadBenchmark extends GraphReadBenchmark {
       tx.execute(s"""
             |MATCH (n)
             |WHERE n.$ORDER IS NOT NULL
-            |RETURN n.id
+            |RETURN n.id AS ID
             |""".stripMargin)
-        .map { result => result.get("n.id").asInstanceOf[Long] }
+        .map { result => result.get("ID").asInstanceOf[Long] }
         .toArray
     }
   }
@@ -69,11 +67,10 @@ class Neo4jEmbedReadBenchmark extends GraphReadBenchmark {
         .execute(s"""
             |MATCH (n: $CALL)
             |WHERE n.$ORDER IS NOT NULL
-            |RETURN n.id
+            |RETURN n.id AS ID
             |""".stripMargin)
-        .map { result => result.get("n.id").asInstanceOf[Long] }
+        .map { result => result.get("ID").asInstanceOf[Long] }
         .toList
-      println(res)
       res.toArray
     }
   }
@@ -83,9 +80,9 @@ class Neo4jEmbedReadBenchmark extends GraphReadBenchmark {
       tx.execute(s"""
             |MATCH (n: $METHOD)
             |WHERE n.$FULL_NAME IS NOT NULL
-            |RETURN n.$FULL_NAME
+            |RETURN n.$FULL_NAME as $FULL_NAME
             |""".stripMargin)
-        .map { result => result.get(s"n.$FULL_NAME").asInstanceOf[String] }
+        .map { result => result.get(FULL_NAME).asInstanceOf[String] }
         .toArray
     }
     fullNames = new Random(1234).shuffle(fullNames_).toArray
@@ -99,12 +96,16 @@ class Neo4jEmbedReadBenchmark extends GraphReadBenchmark {
     var nnodes = nodeStart.length
     while (stack.nonEmpty) {
       val childrenIds = Using.resource(g.beginTx) { tx =>
-        tx.execute(s"""
+        tx.execute(
+          s"""
                |MATCH (n)-[AST]->(m)
-               |WHERE n.id = ${stack.removeLast()}
-               |RETURN m.id
-               |""".stripMargin)
-          .map { result => result.get("m.id").asInstanceOf[Long] }
+               |WHERE n.id = $$nodeId
+               |RETURN m.id AS ID
+               |""".stripMargin,
+          new util.HashMap[String, Object](1) {
+            put("nodeId", stack.removeLast().asInstanceOf[Object])
+          }
+        ).map { result => result.get("ID").asInstanceOf[Long] }
           .toArray
       }
       stack.appendAll(childrenIds)
@@ -120,12 +121,16 @@ class Neo4jEmbedReadBenchmark extends GraphReadBenchmark {
     for (node <- nodeStart) {
       var nodeId = node
       def getResult = Using.resource(g.beginTx) { tx =>
-        tx.execute(s"""
+        tx.execute(
+          s"""
                |MATCH (n)<-[AST]-(m)
-               |WHERE n.id = $nodeId
-               |RETURN m.id
-               |""".stripMargin)
-          .map { result => result.get("m.id").asInstanceOf[Long] }
+               |WHERE n.id = $$nodeId
+               |RETURN m.id AS ID
+               |""".stripMargin,
+          new util.HashMap[String, Object](1) {
+            put("nodeId", nodeId.asInstanceOf[Object])
+          }
+        ).map { result => result.get("ID").asInstanceOf[Long] }
           .toArray
       }
       var result  = getResult
@@ -145,12 +150,16 @@ class Neo4jEmbedReadBenchmark extends GraphReadBenchmark {
     var sumOrder = 0
     for (nodeId <- nodeStart) {
       val orderArr = Using.resource(g.beginTx) { tx =>
-        tx.execute(s"""
+        tx.execute(
+          s"""
                |MATCH (n)
-               |WHERE n.id = $nodeId
-               |RETURN n.$ORDER
-               |""".stripMargin)
-          .map { result => result.get(s"n.$ORDER").asInstanceOf[Int] }
+               |WHERE n.id = $$nodeId
+               |RETURN n.$ORDER AS $ORDER
+               |""".stripMargin,
+          new util.HashMap[String, Object](1) {
+            put("nodeId", nodeId.asInstanceOf[Object])
+          }
+        ).map { result => result.get(ORDER).asInstanceOf[Int] }
           .toArray
       }
       sumOrder += orderArr.head
@@ -162,12 +171,16 @@ class Neo4jEmbedReadBenchmark extends GraphReadBenchmark {
   @Benchmark
   override def callOrderTrav(blackhole: Blackhole): Int = {
     val res = Using.resource(g.beginTx) { tx =>
-      tx.execute(s"""
+      tx.execute(
+        s"""
              |MATCH (n: $CALL)
-             |WHERE n.$ORDER > 2 AND n.id IN [${nodeStart.mkString(",")}]
-             |RETURN COUNT(n)
-             |""".stripMargin)
-        .map(_.get("COUNT(n)").asInstanceOf[Int])
+             |WHERE n.$ORDER > 2 AND n.id IN $$nodeIds
+             |RETURN COUNT(n) AS SIZE
+             |""".stripMargin,
+        new util.HashMap[String, Object](1) {
+          put("nodeIds", nodeStart.toList.asJava.asInstanceOf[Object])
+        }
+      ).map(_.get("SIZE").asInstanceOf[Int])
         .next()
     }
     Option(blackhole).foreach(_.consume(res))
@@ -178,12 +191,16 @@ class Neo4jEmbedReadBenchmark extends GraphReadBenchmark {
   override def callOrderExplicit(blackhole: Blackhole): Int = {
     var res = 0
     val nodes = Using.resource(g.beginTx) { tx =>
-      tx.execute(s"""
+      tx.execute(
+        s"""
              |MATCH (n: $CALL)
-             |WHERE n.id IN [${nodeStart.mkString(",")}]
-             |RETURN n.$ORDER
-             |""".stripMargin)
-        .map(_.get(s"n.$ORDER").asInstanceOf[Int])
+             |WHERE n.id IN $$nodeIds
+             |RETURN n.$ORDER as $ORDER
+             |""".stripMargin,
+        new util.HashMap[String, Object](1) {
+          put("nodeIds", nodeStart.toList.asJava.asInstanceOf[Object])
+        }
+      ).map(_.get(ORDER).asInstanceOf[Int])
         .toArray
     }
     for (order <- nodes) {
@@ -198,12 +215,16 @@ class Neo4jEmbedReadBenchmark extends GraphReadBenchmark {
     fullNames.foreach { fullName =>
       Using
         .resource(g.beginTx) { tx =>
-          tx.execute(s"""
+          tx.execute(
+            s"""
                |MATCH (n: $METHOD)
-               |WHERE n.$FULL_NAME = $fullName
-               |RETURN n
-               |""".stripMargin)
-            .map(_.get(s"n"))
+               |WHERE n.$FULL_NAME = $$fullName
+               |RETURN n AS NODE
+               |""".stripMargin,
+            new util.HashMap[String, Object](1) {
+              put("fullName", fullName.asInstanceOf[Object])
+            }
+          ).map(_.get("NODE"))
             .toArray
         }
         .foreach(bh.consume)
@@ -215,12 +236,16 @@ class Neo4jEmbedReadBenchmark extends GraphReadBenchmark {
     fullNames.foreach { fullName =>
       Using
         .resource(g.beginTx) { tx =>
-          tx.execute(s"""
+          tx.execute(
+            s"""
                |MATCH (n)
-               |WHERE n.$FULL_NAME = $fullName and $METHOD IN labels(n)
-               |RETURN n
-               |""".stripMargin)
-            .map(_.get(s"n"))
+               |WHERE n.$FULL_NAME = $$fullName and $METHOD IN labels(n)
+               |RETURN n AS NODE
+               |""".stripMargin,
+            new util.HashMap[String, Object](1) {
+              put("fullName", fullName.asInstanceOf[Object])
+            }
+          ).map(_.get("NODE"))
             .toArray
         }
         .foreach(bh.consume)

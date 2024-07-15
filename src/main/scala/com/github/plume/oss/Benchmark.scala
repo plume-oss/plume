@@ -2,7 +2,12 @@ package com.github.plume.oss
 
 import better.files.File
 import com.github.plume.oss.Benchmark.BenchmarkType.*
-import com.github.plume.oss.benchmarking.{OverflowDbReadBenchmark, TinkerGraphReadBenchmark}
+import com.github.plume.oss.benchmarking.{
+  GraphWriteBenchmark,
+  Neo4jEmbedReadBenchmark,
+  OverflowDbReadBenchmark,
+  TinkerGraphReadBenchmark
+}
 import com.github.plume.oss.drivers.{IDriver, TinkerGraphDriver}
 import org.cache2k.benchmark.jmh.ForcedGcMemoryProfiler
 import org.openjdk.jmh.annotations.Mode
@@ -44,7 +49,7 @@ object Benchmark {
           case _: Neo4jEmbeddedConfig =>
             Option(
               createOptionsBoilerPlate(config, READ)
-                .include(classOf[OverflowDbReadBenchmark].getSimpleName)
+                .include(classOf[Neo4jEmbedReadBenchmark].getSimpleName)
                 .build()
             )
           case x =>

@@ -45,8 +45,8 @@ libraryDependencies ++= Seq(
   "org.openjdk.jmh"          % "jmh-generator-reflection" % Versions.jmh,
   "org.openjdk.jmh"          % "jmh-generator-asm"        % Versions.jmh,
   "org.slf4j"                % "slf4j-api"                % Versions.slf4j,
-  "org.apache.logging.log4j" % "log4j-core"               % Versions.log4j % Test,
-  "org.apache.logging.log4j" % "log4j-slf4j-impl"         % Versions.log4j % Test,
+  "org.apache.logging.log4j" % "log4j-core"               % Versions.log4j     % Test,
+  "org.apache.logging.log4j" % "log4j-slf4j-impl"         % Versions.log4j     % Test,
   "org.scalatest"           %% "scalatest"                % Versions.scalatest % Test
 )
 
@@ -64,3 +64,40 @@ developers := List(
 Global / onChangedBuildSource := ReloadOnSourceChanges
 
 publishMavenStyle := true
+
+// Benchmark Tasks
+
+lazy val datasetDir = taskKey[File]("Dataset directory")
+datasetDir := baseDirectory.value / "workspace" / "defects4"
+lazy val driversToBenchmark = taskKey[Seq[String]]("Drivers to benchmark")
+driversToBenchmark := Seq("overflowdb")
+
+lazy val defect4jDataset = taskKey[Seq[(String, String)]]("JARs for projects used in `defects4j`")
+defect4jDataset :=
+  Seq("Chart" -> "https://repo1.maven.org/maven2/org/jfree/jfreechart/1.5.5/jfreechart-1.5.5.jar")
+
+lazy val benchmarkDownloadTask = taskKey[Unit](s"Download `defects4j` candidates for benchmarking")
+benchmarkDownloadTask := {
+  defect4jDataset.value.foreach { case (name, url) =>
+    DownloadHelper.ensureIsAvailable(url, datasetDir.value / s"$name.jar")
+  }
+}
+
+lazy val benchmarkTask = taskKey[Unit](s"Run JMH benchmarks against drivers")
+benchmarkTask := {
+
+  def benchmarkArgs(driver: String, project: String): String = {
+    val projectDir  = (datasetDir.value / project).getAbsolutePath
+    val resultsPath = baseDirectory.value / "results" / s"results-$driver-$project"
+    val outputPath  = baseDirectory.value / "results" / s"output-$driver-$project"
+    s"com.github.plume.oss.Benchmark $driver $projectDir -o ${outputPath.getAbsolutePath} -r ${resultsPath.getAbsolutePath}"
+  }
+
+  driversToBenchmark.value.foreach { driver =>
+    defect4jDataset.value.foreach { case (_, project) =>
+      println(s"[INFO] Benchmarking $driver on $project")
+      (Jmh / runMain).toTask(benchmarkArgs(driver, project))
+    }
+  }
+
+}

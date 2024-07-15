@@ -80,14 +80,8 @@ trait GraphReadBenchmark {
   @Benchmark
   def unindexedMethodFullName(bh: Blackhole): Unit
 
-  @Setup(Level.Iteration)
-  def clearDriver(params: BenchmarkParams): Unit = {
-    driver.clear()
-  }
-
   @TearDown
   def cleanupBenchmark(): Unit = {
-    driver.clear()
     driver.close()
   }
 
