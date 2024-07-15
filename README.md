@@ -143,6 +143,12 @@ database backends. While the binary explains the available functions, the execut
 Jmh/runMain com.github.plume.oss.Benchmark overflowdb testprogram -o output -r results --storage-location test.cpg
 ```
 
+An automated script to run the benchmarks versus programs from the `defects4j` dataset is available under 
+`runBenchmarks.sc`, which can be executed with:
+```bash
+scala runBenchmarks.sc
+```
+
 ## Logging
 
 Plume uses [SLF4J](http://www.slf4j.org/) as the logging fascade.

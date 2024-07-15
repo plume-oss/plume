@@ -68,7 +68,7 @@ publishMavenStyle := true
 // Benchmark Tasks
 
 lazy val datasetDir = taskKey[File]("Dataset directory")
-datasetDir := baseDirectory.value / "workspace" / "defects4"
+datasetDir := baseDirectory.value / "workspace" / "defects4j"
 lazy val driversToBenchmark = taskKey[Seq[String]]("Drivers to benchmark")
 driversToBenchmark := Seq("overflowdb")
 
@@ -81,23 +81,4 @@ benchmarkDownloadTask := {
   defect4jDataset.value.foreach { case (name, url) =>
     DownloadHelper.ensureIsAvailable(url, datasetDir.value / s"$name.jar")
   }
-}
-
-lazy val benchmarkTask = taskKey[Unit](s"Run JMH benchmarks against drivers")
-benchmarkTask := {
-
-  def benchmarkArgs(driver: String, project: String): String = {
-    val projectDir  = (datasetDir.value / project).getAbsolutePath
-    val resultsPath = baseDirectory.value / "results" / s"results-$driver-$project"
-    val outputPath  = baseDirectory.value / "results" / s"output-$driver-$project"
-    s"com.github.plume.oss.Benchmark $driver $projectDir -o ${outputPath.getAbsolutePath} -r ${resultsPath.getAbsolutePath}"
-  }
-
-  driversToBenchmark.value.foreach { driver =>
-    defect4jDataset.value.foreach { case (_, project) =>
-      println(s"[INFO] Benchmarking $driver on $project")
-      (Jmh / runMain).toTask(benchmarkArgs(driver, project))
-    }
-  }
-
 }
