@@ -70,7 +70,7 @@ publishMavenStyle := true
 lazy val datasetDir = taskKey[File]("Dataset directory")
 datasetDir := baseDirectory.value / "workspace" / "defects4j"
 lazy val driversToBenchmark = taskKey[Seq[String]]("Drivers to benchmark")
-driversToBenchmark := Seq("overflowdb")
+driversToBenchmark := Seq("overflowdb", "tinkergraph", "neo4j-embedded")
 
 lazy val defect4jDataset = taskKey[Seq[(String, String)]]("JARs for projects used in `defects4j`")
 defect4jDataset :=
