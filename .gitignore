@@ -8,6 +8,8 @@ graph.xml
 gsql_client.*
 *.txt
 *.csv
+/workspace
+/results
 
 # Ignore Gradle GUI config
 gradle-app.setting

@@ -41,7 +41,7 @@ abstract class GremlinDriver(txMax: Int = 50) extends IDriver {
     * @return
     *   a Gremlin graph traversal source.
     */
-  protected def g(): GraphTraversalSource = {
+  def g(): GraphTraversalSource = {
     traversalSource match {
       case Some(conn) => conn
       case None =>
