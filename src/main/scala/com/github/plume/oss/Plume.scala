@@ -44,6 +44,15 @@ object Plume {
         .text("The target application to parse.")
         .action((x, c) => c.copy(inputDir = x))
 
+      opt[Int]('m', "jmh-memory")
+        .text(s"The -Xmx JVM argument in Gb for JMH. Default is 4 (-Xmx4G).")
+        .hidden()
+        .validate {
+          case x if x < 1 => failure("Consider at least 1Gb")
+          case _          => success
+        }
+        .action((x, c) => c.copy(jmhMemoryGb = x))
+
       opt[String]('o', "jmh-output-file")
         .text(s"The JMH output file path. Exclude file extensions.")
         .hidden()

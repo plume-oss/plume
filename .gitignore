@@ -8,6 +8,7 @@ graph.xml
 gsql_client.*
 *.txt
 *.csv
+.local
 /workspace
 /results
 

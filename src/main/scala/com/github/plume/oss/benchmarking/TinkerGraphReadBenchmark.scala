@@ -1,19 +1,18 @@
 package com.github.plume.oss.benchmarking
 
-import com.github.plume.oss.benchmarking.GraphReadBenchmark
 import com.github.plume.oss.drivers.TinkerGraphDriver
 import io.shiftleft.codepropertygraph.generated.EdgeTypes.AST
 import io.shiftleft.codepropertygraph.generated.NodeTypes.{CALL, METHOD}
 import io.shiftleft.codepropertygraph.generated.PropertyNames.{FULL_NAME, ORDER}
 import org.apache.tinkerpop.gremlin.process.traversal.P
 import org.apache.tinkerpop.gremlin.process.traversal.dsl.graph.{GraphTraversalSource, __}
-import org.openjdk.jmh.annotations.{Benchmark, Scope, Setup, State}
+import org.openjdk.jmh.annotations.*
 import org.openjdk.jmh.infra.{BenchmarkParams, Blackhole}
-
-import scala.jdk.CollectionConverters.*
-import scala.compiletime.uninitialized
-import scala.util.Random
 import overflowdb.traversal.*
+
+import scala.compiletime.uninitialized
+import scala.jdk.CollectionConverters.*
+import scala.util.Random
 
 @State(Scope.Benchmark)
 class TinkerGraphReadBenchmark extends GraphReadBenchmark {

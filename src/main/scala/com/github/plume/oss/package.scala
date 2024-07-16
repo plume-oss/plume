@@ -8,6 +8,7 @@ package object oss {
 
   case class PlumeConfig(
     inputDir: String = "",
+    jmhMemoryGb: Int = 4,
     jmhOutputFile: String = File.newTemporaryFile("plume-jmh-output-").pathAsString,
     jmhResultFile: String = File.newTemporaryFile("plume-jmh-result-").pathAsString,
     dbConfig: DatabaseConfig = OverflowDbConfig()

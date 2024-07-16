@@ -72,14 +72,14 @@ object Benchmark {
       .warmupIterations(1)
       .warmupTime(TimeValue.seconds(1))
       .measurementTime(TimeValue.seconds(2))
-      .measurementIterations(3)
+      .measurementIterations(5)
       .mode(Mode.AverageTime)
       .timeUnit(TimeUnit.NANOSECONDS)
       .forks(2)
       .output(s"${config.jmhOutputFile}-$benchmarkType.txt")
       .result(s"${config.jmhResultFile}-$benchmarkType.csv")
       .param("configStr", write(config))
-      .detectJvmArgs() // inherit stuff like max heap size
+      .jvmArgsAppend(s"-Xmx${config.jmhMemoryGb}G", "-XX:+UseZGC")
   }
 
   enum BenchmarkType {
