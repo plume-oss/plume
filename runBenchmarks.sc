@@ -27,7 +27,7 @@ import scala.jdk.CollectionConverters.*
   val drivers = Seq("overflowdb", "tinkergraph", "neo4j-embedded")
   drivers.foreach(d => println(s" - $d"))
 
-  val memoryConfigs = Seq(4, 8, 16)
+  val memoryConfigs = Seq(2, 4, 6, 8)
 
   memoryConfigs.foreach { memConfig =>
     drivers.foreach { driver =>
