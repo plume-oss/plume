@@ -180,7 +180,7 @@ class Neo4jEmbedReadBenchmark extends GraphReadBenchmark {
         new util.HashMap[String, Object](1) {
           put("nodeIds", nodeStart.toList.asJava.asInstanceOf[Object])
         }
-      ).map(_.get("SIZE").asInstanceOf[Int])
+      ).map(_.get("SIZE").asInstanceOf[Long].toInt)
         .next()
     }
     Option(blackhole).foreach(_.consume(res))
@@ -239,7 +239,7 @@ class Neo4jEmbedReadBenchmark extends GraphReadBenchmark {
           tx.execute(
             s"""
                |MATCH (n)
-               |WHERE n.$FULL_NAME = $$fullName and $METHOD IN labels(n)
+               |WHERE n.$FULL_NAME = $$fullName and \"$METHOD\" IN labels(n)
                |RETURN n AS NODE
                |""".stripMargin,
             new util.HashMap[String, Object](1) {

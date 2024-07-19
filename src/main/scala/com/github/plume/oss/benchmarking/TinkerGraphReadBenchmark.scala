@@ -54,7 +54,7 @@ class TinkerGraphReadBenchmark extends GraphReadBenchmark {
     var nnodes = nodeStart.length
     while (stack.nonEmpty) {
       val nx = g().V(stack.removeLast())
-      stack.appendAll(nx.out(AST).id().map(_.asInstanceOf[Long]).asScala.toArray)
+      stack.appendAll(nx.out(AST).id().toList.asScala.map(_.asInstanceOf[Long]).toArray)
       nnodes += 1
     }
     Option(blackhole).foreach(_.consume(nnodes))
@@ -97,7 +97,7 @@ class TinkerGraphReadBenchmark extends GraphReadBenchmark {
   override def callOrderExplicit(blackhole: Blackhole): Int = {
     var res = 0
     for (node <- g().V(nodeStart*).hasLabel(CALL)) {
-      if (node.property(ORDER).asInstanceOf[Int] > 2) res += 1
+      if (node.property(ORDER).value().asInstanceOf[Int] > 2) res += 1
     }
     Option(blackhole).foreach(_.consume(res))
     res

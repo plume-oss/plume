@@ -1,17 +1,18 @@
 package com.github.plume.oss.benchmarking
 
 import com.github.plume.oss
-import com.github.plume.oss.{Benchmark, JimpleAst2Database}
 import com.github.plume.oss.drivers.IDriver
+import com.github.plume.oss.{Benchmark, JimpleAst2Database}
 import io.joern.jimple2cpg.Config
-import org.openjdk.jmh.annotations.{Benchmark, Level, Param, Scope, Setup, State, TearDown, Timeout}
+import org.openjdk.jmh.annotations.*
 import org.openjdk.jmh.infra.{BenchmarkParams, Blackhole}
 
 import java.util.concurrent.TimeUnit
 import scala.compiletime.uninitialized
 
 @State(Scope.Benchmark)
-@Timeout(5, TimeUnit.MINUTES)
+@Timeout(6, TimeUnit.MINUTES)
+@OutputTimeUnit(TimeUnit.SECONDS)
 class GraphWriteBenchmark {
 
   @Param(Array(""))
@@ -32,15 +33,23 @@ class GraphWriteBenchmark {
   }
 
   @Benchmark
-  def createAst(blackhole: Blackhole): Unit = {
+  @Measurement(time = 10, timeUnit = TimeUnit.SECONDS)
+  def createAst(blackhole: Blackhole): Unit = try {
     JimpleAst2Database(driver).createAst(Config().withInputPath(inputDir))
     Option(blackhole).foreach(_.consume(driver))
+  } catch {
+    case e: Throwable => Option(blackhole).foreach(_.consume(e))
   }
 
   @TearDown
   def cleanupBenchmark(): Unit = {
     driver.clear()
     driver.close()
+  }
+
+  @TearDown(Level.Iteration)
+  def teardown(): Unit = {
+    System.gc()
   }
 
 }

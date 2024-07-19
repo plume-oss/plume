@@ -9,14 +9,11 @@ import com.github.plume.oss.benchmarking.{
   TinkerGraphReadBenchmark
 }
 import com.github.plume.oss.drivers.{IDriver, TinkerGraphDriver}
-import org.cache2k.benchmark.jmh.ForcedGcMemoryProfiler
+import org.cache2k.benchmark.jmh.HeapProfiler
 import org.openjdk.jmh.annotations.Mode
 import org.openjdk.jmh.runner.Runner
 import org.openjdk.jmh.runner.options.{ChainedOptionsBuilder, OptionsBuilder, TimeValue}
 import upickle.default.*
-
-import java.util
-import java.util.concurrent.TimeUnit
 
 object Benchmark {
 
@@ -27,6 +24,7 @@ object Benchmark {
       .foreach { config =>
         val writeOptsBenchmark = createOptionsBoilerPlate(config, WRITE)
           .include(classOf[GraphWriteBenchmark].getSimpleName)
+          .warmupIterations(5)
           .build()
         new Runner(writeOptsBenchmark).run()
         println(
@@ -38,18 +36,21 @@ object Benchmark {
             Option(
               createOptionsBoilerPlate(config, READ)
                 .include(classOf[TinkerGraphReadBenchmark].getSimpleName)
+                .warmupIterations(1)
                 .build()
             )
           case _: OverflowDbConfig =>
             Option(
               createOptionsBoilerPlate(config, READ)
                 .include(classOf[OverflowDbReadBenchmark].getSimpleName)
+                .warmupIterations(1)
                 .build()
             )
           case _: Neo4jEmbeddedConfig =>
             Option(
               createOptionsBoilerPlate(config, READ)
                 .include(classOf[Neo4jEmbedReadBenchmark].getSimpleName)
+                .warmupIterations(1)
                 .build()
             )
           case x =>
@@ -68,16 +69,13 @@ object Benchmark {
 
   private def createOptionsBoilerPlate(config: PlumeConfig, benchmarkType: BenchmarkType): ChainedOptionsBuilder = {
     new OptionsBuilder()
-      .addProfiler(classOf[ForcedGcMemoryProfiler])
-      .warmupIterations(1)
-      .warmupTime(TimeValue.seconds(1))
-      .measurementTime(TimeValue.seconds(2))
-      .measurementIterations(5)
+      .addProfiler(classOf[HeapProfiler])
+      .warmupTime(TimeValue.seconds(30))
+      .measurementIterations(3)
       .mode(Mode.AverageTime)
-      .timeUnit(TimeUnit.NANOSECONDS)
-      .forks(2)
-      .output(s"${config.jmhOutputFile}-$benchmarkType.txt")
-      .result(s"${config.jmhResultFile}-$benchmarkType.csv")
+      .forks(1)
+      .output(s"${config.jmhOutputFile}-${benchmarkType.toString.toLowerCase}.txt")
+      .result(s"${config.jmhResultFile}-${benchmarkType.toString.toLowerCase}.csv")
       .param("configStr", write(config))
       .jvmArgsAppend(s"-Xmx${config.jmhMemoryGb}G", "-XX:+UseZGC")
   }

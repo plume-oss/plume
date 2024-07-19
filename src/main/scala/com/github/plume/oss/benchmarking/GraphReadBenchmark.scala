@@ -4,14 +4,27 @@ import com.github.plume.oss
 import com.github.plume.oss.{Benchmark, JimpleAst2Database, PlumeConfig, TinkerGraphConfig}
 import com.github.plume.oss.drivers.{IDriver, TinkerGraphDriver}
 import io.joern.jimple2cpg.Config
-import org.openjdk.jmh.annotations.{Benchmark, Level, Param, Scope, Setup, State, TearDown, Timeout}
+import io.shiftleft.codepropertygraph.generated.{NodeTypes, PropertyNames}
+import org.openjdk.jmh.annotations.{
+  Benchmark,
+  Level,
+  Measurement,
+  OutputTimeUnit,
+  Param,
+  Scope,
+  Setup,
+  State,
+  TearDown,
+  Timeout
+}
 import org.openjdk.jmh.infra.{BenchmarkParams, Blackhole}
 
 import java.util.concurrent.TimeUnit
 import scala.compiletime.uninitialized
 
 @State(Scope.Benchmark)
-@Timeout(2, TimeUnit.MINUTES)
+@Timeout(5, TimeUnit.MINUTES)
+@OutputTimeUnit(TimeUnit.MILLISECONDS)
 trait GraphReadBenchmark {
 
   @Param(Array(""))
@@ -40,7 +53,7 @@ trait GraphReadBenchmark {
     val (driver_, config_) = oss.Benchmark.initializeDriverAndInputDir(configStr, useCachedGraph = true)
     driver = driver_
     config = config_
-    if (!driver.exists(1L)) {
+    if (driver.propertyFromNodes(NodeTypes.FILE, PropertyNames.NAME).isEmpty) {
       JimpleAst2Database(driver).createAst(Config().withInputPath(config_.inputDir))
       config.dbConfig match {
         case TinkerGraphConfig(_, Some(exportPath)) => driver.asInstanceOf[TinkerGraphDriver].exportGraph(exportPath)
@@ -60,29 +73,41 @@ trait GraphReadBenchmark {
   protected def setUpMethodFullName(): Array[String]
 
   @Benchmark
+  @Measurement(time = 5, timeUnit = TimeUnit.SECONDS)
   def astDFS(blackhole: Blackhole): Int
 
   @Benchmark
+  @Measurement(time = 5, timeUnit = TimeUnit.SECONDS)
   def astUp(blackhole: Blackhole): Int
 
   @Benchmark
+  @Measurement(time = 5, timeUnit = TimeUnit.SECONDS)
   def orderSum(blackhole: Blackhole): Int
 
   @Benchmark
+  @Measurement(time = 5, timeUnit = TimeUnit.SECONDS)
   def callOrderTrav(blackhole: Blackhole): Int
 
   @Benchmark
+  @Measurement(time = 5, timeUnit = TimeUnit.SECONDS)
   def callOrderExplicit(blackhole: Blackhole): Int
 
   @Benchmark
+  @Measurement(time = 5, timeUnit = TimeUnit.SECONDS)
   def indexedMethodFullName(bh: Blackhole): Unit
 
   @Benchmark
+  @Measurement(time = 5, timeUnit = TimeUnit.SECONDS)
   def unindexedMethodFullName(bh: Blackhole): Unit
 
   @TearDown
   def cleanupBenchmark(): Unit = {
     driver.close()
+  }
+
+  @TearDown(Level.Iteration)
+  def teardown(): Unit = {
+    System.gc()
   }
 
 }

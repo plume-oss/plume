@@ -16,11 +16,15 @@ package object oss {
 
   sealed trait DatabaseConfig derives ReadWriter {
     def toDriver: IDriver
+
+    def shortName: String
   }
 
   case class TinkerGraphConfig(importPath: Option[String] = None, exportPath: Option[String] = None)
       extends DatabaseConfig {
     override def toDriver: IDriver = new TinkerGraphDriver()
+
+    override def shortName: String = "tinkergraph"
   }
 
   case class OverflowDbConfig(
@@ -30,6 +34,8 @@ package object oss {
   ) extends DatabaseConfig {
     override def toDriver: IDriver =
       new OverflowDbDriver(Option(storageLocation), heapPercentageThreshold, serializationStatsEnabled)
+
+    override def shortName: String = "overflowdb"
   }
 
   case class Neo4jConfig(
@@ -40,11 +46,14 @@ package object oss {
     txMax: Int = 25
   ) extends DatabaseConfig {
     override def toDriver: IDriver = new Neo4jDriver(hostname, port, username, password, txMax)
+    override def shortName: String = "neo4j"
   }
 
   case class Neo4jEmbeddedConfig(databaseName: String = "neo4j", databaseDir: String = "neo4j-db", txMax: Int = 25)
       extends DatabaseConfig {
     override def toDriver: IDriver = new Neo4jEmbeddedDriver(databaseName, File(databaseDir), txMax)
+
+    override def shortName: String = "neo4j-embedded"
   }
 
   case class TigerGraphConfig(
@@ -59,6 +68,7 @@ package object oss {
   ) extends DatabaseConfig {
     override def toDriver: IDriver =
       new TigerGraphDriver(hostname, restPpPort, gsqlPort, username, password, timeout, scheme, txMax)
+    override def shortName: String = "tigergraph"
   }
 
   case class NeptuneConfig(
@@ -68,6 +78,7 @@ package object oss {
     txMax: Int = 50
   ) extends DatabaseConfig {
     override def toDriver: IDriver = new NeptuneDriver(hostname, port, keyCertChainFile, txMax)
+    override def shortName: String = "neptune"
   }
 
 }

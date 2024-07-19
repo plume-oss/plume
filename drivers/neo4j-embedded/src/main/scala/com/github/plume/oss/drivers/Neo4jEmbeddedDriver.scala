@@ -13,6 +13,7 @@ import overflowdb.{BatchedUpdate, DetachedNodeData}
 
 import java.util
 import java.util.concurrent.atomic.AtomicBoolean
+import scala.compiletime.uninitialized
 import scala.jdk.CollectionConverters
 import scala.jdk.CollectionConverters.*
 import scala.util.{Failure, Success, Try, Using}
@@ -27,24 +28,29 @@ final class Neo4jEmbeddedDriver(
 ) extends IDriver
     with ISchemaSafeDriver {
 
-  private val logger            = LoggerFactory.getLogger(getClass)
-  private val connected         = new AtomicBoolean(true)
-  private var managementService = new DatabaseManagementServiceBuilder(databaseDir.path).build()
-  registerShutdownHook(managementService)
-  private var graphDb = managementService.database(databaseName)
+  private val logger                                       = LoggerFactory.getLogger(getClass)
+  private val connected                                    = new AtomicBoolean(false)
+  private var managementService: DatabaseManagementService = uninitialized
+  private var graphDb: GraphDatabaseService                = uninitialized
+  connect()
 
-  private def registerShutdownHook(managementService: DatabaseManagementService): Unit = {
-    Runtime.getRuntime.addShutdownHook(new Thread() {
-      override def run(): Unit = {
-        managementService.shutdown()
-      }
-    })
-  }
-
+  /** @return
+    *   a direct reference to the underlying graph database service.
+    */
   def graph: GraphDatabaseService = graphDb
 
   private def connect(): Unit = {
+
+    def registerShutdownHook(managementService: DatabaseManagementService): Unit = {
+      Runtime.getRuntime.addShutdownHook(new Thread() {
+        override def run(): Unit = {
+          managementService.shutdown()
+        }
+      })
+    }
+
     managementService = new DatabaseManagementServiceBuilder(databaseDir.path).build()
+    registerShutdownHook(managementService)
     graphDb = managementService.database(databaseName)
     connected.set(true)
   }
