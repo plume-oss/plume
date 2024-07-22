@@ -138,7 +138,7 @@ final class Neo4jEmbeddedDriver(
           Try(tx.execute(query, params)) match {
             case Failure(e) =>
               logger.error(s"Unable to write bulk create node transaction $query", e)
-            case Success(_) =>
+            case Success(x) => x.close()
           }
         }
       tx.commit()
@@ -174,7 +174,7 @@ final class Neo4jEmbeddedDriver(
           Try(tx.execute(query, params)) match {
             case Failure(e) =>
               logger.error(s"Unable to write bulk set node property transaction $query", e)
-            case Success(_) =>
+            case Success(x) => x.close()
           }
         }
       tx.commit()
@@ -200,7 +200,7 @@ final class Neo4jEmbeddedDriver(
         ) match {
           case Failure(e) =>
             logger.error(s"Unable to write bulk create edge transaction $query", e)
-          case Success(_) =>
+          case Success(x) => x.close()
         }
       }
       tx.commit()
@@ -253,7 +253,7 @@ final class Neo4jEmbeddedDriver(
     Using.resource(graphDb.beginTx) { tx =>
       val payload = buildSchemaPayload()
       try {
-        payload.lines().forEach(line => tx.execute(line))
+        payload.lines().forEach(line => tx.execute(line).close())
       } catch {
         case e: Exception =>
           logger.error(s"Unable to set schema: $payload", e)

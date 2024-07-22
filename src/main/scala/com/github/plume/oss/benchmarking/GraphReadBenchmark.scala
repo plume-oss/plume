@@ -15,7 +15,8 @@ import org.openjdk.jmh.annotations.{
   Setup,
   State,
   TearDown,
-  Timeout
+  Timeout,
+  Warmup
 }
 import org.openjdk.jmh.infra.{BenchmarkParams, Blackhole}
 
@@ -25,6 +26,8 @@ import scala.compiletime.uninitialized
 @State(Scope.Benchmark)
 @Timeout(5, TimeUnit.MINUTES)
 @OutputTimeUnit(TimeUnit.MILLISECONDS)
+@Measurement(iterations = 3, time = 5, timeUnit = TimeUnit.SECONDS)
+@Warmup(iterations = 1, time = 1, timeUnit = TimeUnit.SECONDS)
 trait GraphReadBenchmark {
 
   @Param(Array(""))

@@ -13,6 +13,8 @@ import scala.compiletime.uninitialized
 @State(Scope.Benchmark)
 @Timeout(6, TimeUnit.MINUTES)
 @OutputTimeUnit(TimeUnit.SECONDS)
+@Measurement(iterations = 10, time = 2, timeUnit = TimeUnit.MINUTES)
+@Warmup(iterations = 1, time = 5, timeUnit = TimeUnit.SECONDS)
 class GraphWriteBenchmark {
 
   @Param(Array(""))

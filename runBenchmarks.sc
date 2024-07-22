@@ -84,8 +84,8 @@ def runAndMonitorBenchmarkProcess(cmd: String, writeOutputFile: File, readOutput
   writeOutputFile.createIfNotExists
   readOutputFile.createIfNotExists
 
-  val processBuilder = new java.lang.ProcessBuilder("sbt", cmd)
-    .redirectOutput(File(writeOutputFile.getAbsolutePath.stripSuffix("write.txt") + "sbt.txt"))
+  val sbtFile = File(writeOutputFile.getAbsolutePath.stripSuffix("write.txt") + "sbt.txt")
+  val processBuilder = new java.lang.ProcessBuilder("sbt", cmd).redirectOutput(sbtFile)
 
   // Ignore locks for aborted JMH processes
   val env = processBuilder.environment
@@ -101,10 +101,11 @@ def runAndMonitorBenchmarkProcess(cmd: String, writeOutputFile: File, readOutput
     try {
       var line: String = null
       while ({ line = reader.readLine(); line != null }) {
-        if (line.contains("benchmark timed out")) {
-          println("Timeout detected. Sending Ctrl+C signal to process...")
-          shouldTerminate = true
-        } else if (line.contains("java.lang.OutOfMemoryError")) {
+//        if (line.contains("benchmark timed out")) {
+//          println("Timeout detected. Sending Ctrl+C signal to process...")
+//          shouldTerminate = true
+//        }
+        if (line.contains("java.lang.OutOfMemoryError")) {
           println("OutOfMemoryError detected. Sending Ctrl+C signal to process...")
           shouldTerminate = true
         }
@@ -123,7 +124,7 @@ def runAndMonitorBenchmarkProcess(cmd: String, writeOutputFile: File, readOutput
   var shouldTerminate = false
   while (!shouldTerminate && process.isAlive) {
     Thread.sleep(5000)
-    shouldTerminate = readLogsForErrors(writeOutputFile) || readLogsForErrors(readOutputFile)
+    shouldTerminate = readLogsForErrors(writeOutputFile) || readLogsForErrors(readOutputFile) || readLogsForErrors(sbtFile)
   }
 }
 

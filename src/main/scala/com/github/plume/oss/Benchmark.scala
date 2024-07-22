@@ -9,7 +9,7 @@ import com.github.plume.oss.benchmarking.{
   TinkerGraphReadBenchmark
 }
 import com.github.plume.oss.drivers.{IDriver, TinkerGraphDriver}
-import org.cache2k.benchmark.jmh.HeapProfiler
+import org.cache2k.benchmark.jmh.{HeapProfiler, LinuxVmProfiler}
 import org.openjdk.jmh.annotations.Mode
 import org.openjdk.jmh.runner.Runner
 import org.openjdk.jmh.runner.options.{ChainedOptionsBuilder, OptionsBuilder, TimeValue}
@@ -24,7 +24,6 @@ object Benchmark {
       .foreach { config =>
         val writeOptsBenchmark = createOptionsBoilerPlate(config, WRITE)
           .include(classOf[GraphWriteBenchmark].getSimpleName)
-          .warmupIterations(5)
           .build()
         new Runner(writeOptsBenchmark).run()
         println(
@@ -36,21 +35,18 @@ object Benchmark {
             Option(
               createOptionsBoilerPlate(config, READ)
                 .include(classOf[TinkerGraphReadBenchmark].getSimpleName)
-                .warmupIterations(1)
                 .build()
             )
           case _: OverflowDbConfig =>
             Option(
               createOptionsBoilerPlate(config, READ)
                 .include(classOf[OverflowDbReadBenchmark].getSimpleName)
-                .warmupIterations(1)
                 .build()
             )
           case _: Neo4jEmbeddedConfig =>
             Option(
               createOptionsBoilerPlate(config, READ)
                 .include(classOf[Neo4jEmbedReadBenchmark].getSimpleName)
-                .warmupIterations(1)
                 .build()
             )
           case x =>
@@ -70,8 +66,8 @@ object Benchmark {
   private def createOptionsBoilerPlate(config: PlumeConfig, benchmarkType: BenchmarkType): ChainedOptionsBuilder = {
     new OptionsBuilder()
       .addProfiler(classOf[HeapProfiler])
+      .addProfiler(classOf[LinuxVmProfiler])
       .warmupTime(TimeValue.seconds(30))
-      .measurementIterations(3)
       .mode(Mode.AverageTime)
       .forks(1)
       .output(s"${config.jmhOutputFile}-${benchmarkType.toString.toLowerCase}.txt")
