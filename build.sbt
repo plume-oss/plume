@@ -20,19 +20,13 @@ lazy val commons = Projects.commons
 // Drivers
 lazy val base = Projects.base
 // Implementation
-lazy val gremlin     = Projects.gremlin
-lazy val tinkergraph = Projects.tinkergraph
-lazy val neptune     = Projects.neptune
-lazy val neo4j       = Projects.neo4j
-lazy val neo4jEmbed  = Projects.neo4jEmbed
-lazy val tigergraph  = Projects.tigergraph
-lazy val overflowDb  = Projects.overflowdb
+lazy val flatgraph  = Projects.flatgraph
 // AST creation
 lazy val astcreator = Projects.astcreator
 
 lazy val root = (project in file("."))
-  .dependsOn(astcreator, commons, base, gremlin, tinkergraph, neptune, neo4j, neo4jEmbed, tigergraph, overflowDb)
-  .aggregate(astcreator, commons, base, gremlin, tinkergraph, neptune, neo4j, neo4jEmbed, tigergraph, overflowDb)
+  .dependsOn(astcreator, commons, base, flatgraph)
+  .aggregate(astcreator, commons, base, flatgraph)
 
 trapExit                 := false
 Test / fork              := true

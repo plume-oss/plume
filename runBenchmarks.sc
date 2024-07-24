@@ -11,7 +11,7 @@ import scala.util.boundary.break
 
 // Combinations of driver, project, Gb mem, known to OOM
 val oomCombinations: Set[(String, String, Int)] = Set(("tinkergraph", "compress", 2))
-val drivers                                     = Seq("overflowdb", "tinkergraph", "neo4j-embedded")
+val drivers                                     = Seq("flatgraph")
 
 @main def main(): Unit = {
   println("[info] Ensuring compilation status and benchmark dataset availability...")

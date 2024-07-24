@@ -3,8 +3,7 @@ package com.github.plume.oss.drivers
 import io.shiftleft.codepropertygraph.generated.PropertyNames
 import io.shiftleft.codepropertygraph.generated.nodes.*
 import org.slf4j.LoggerFactory
-import overflowdb.BatchedUpdate.DiffOrBuilder
-import overflowdb.DetachedNodeGeneric
+import flatgraph.DiffGraphBuilder
 
 import java.util.concurrent.atomic.AtomicLong
 import scala.collection.concurrent.TrieMap
@@ -38,7 +37,7 @@ trait IDriver extends AutoCloseable {
   /** Executes all changes contained within the given overflowdb.BatchedUpdate.AppliedDiff as a (or set of) bulk
     * transaction(s).
     */
-  def bulkTx(dg: DiffOrBuilder): Int
+  def bulkTx(dg: DiffGraphBuilder): Int
 
   /** Obtains properties from the specified node type and key(s). By default will return the ID property as one of the
     * keys as "id".

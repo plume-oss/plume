@@ -20,17 +20,7 @@ object Plume {
       .parse(args, PlumeConfig())
       .foreach { config =>
         val driver = config.dbConfig.toDriver
-        driver match {
-          case d: TinkerGraphDriver =>
-            config.dbConfig.asInstanceOf[TinkerGraphConfig].importPath.foreach(d.importGraph)
-          case _ =>
-        }
         new JimpleAst2Database(driver).createAst(Config().withInputPath(config.inputDir))
-        driver match {
-          case d: TinkerGraphDriver =>
-            config.dbConfig.asInstanceOf[TinkerGraphConfig].exportPath.foreach(d.exportGraph)
-          case _ =>
-        }
       }
   }
 
@@ -63,94 +53,11 @@ object Plume {
         .hidden()
         .action((x, c) => c.copy(jmhResultFile = x))
 
-      cmd("tinkergraph")
-        .action((_, c) => c.copy(dbConfig = TinkerGraphConfig()))
-        .children(
-          opt[String]("import-path")
-            .text("The TinkerGraph to import.")
-            .action((x, c) =>
-              c.copy(dbConfig = c.dbConfig.asInstanceOf[TinkerGraphConfig].copy(importPath = Option(x)))
-            ),
-          opt[String]("export-path")
-            .text("The TinkerGraph export path to serialize the result to.")
-            .action((x, c) =>
-              c.copy(dbConfig = c.dbConfig.asInstanceOf[TinkerGraphConfig].copy(exportPath = Option(x)))
-            )
-        )
-
-      cmd("overflowdb")
-        .action((_, c) => c.copy(dbConfig = OverflowDbConfig()))
+      cmd("flatgraph")
+        .action((_, c) => c.copy(dbConfig = FlatGraphConfig()))
         .children(
           opt[String]("storage-location")
-            .action((x, c) => c.copy(dbConfig = c.dbConfig.asInstanceOf[OverflowDbConfig].copy(storageLocation = x))),
-          opt[Int]("heap-percentage-threshold")
-            .action((x, c) =>
-              c.copy(dbConfig = c.dbConfig.asInstanceOf[OverflowDbConfig].copy(heapPercentageThreshold = x))
-            ),
-          opt[Unit]("enable-serialization-stats")
-            .action((_, c) =>
-              c.copy(dbConfig = c.dbConfig.asInstanceOf[OverflowDbConfig].copy(serializationStatsEnabled = true))
-            )
-        )
-
-      cmd("neo4j")
-        .action((_, c) => c.copy(dbConfig = Neo4jConfig()))
-        .children(
-          opt[String]("hostname")
-            .action((x, c) => c.copy(dbConfig = c.dbConfig.asInstanceOf[Neo4jConfig].copy(hostname = x))),
-          opt[Int]("port")
-            .action((x, c) => c.copy(dbConfig = c.dbConfig.asInstanceOf[Neo4jConfig].copy(port = x))),
-          opt[String]("username")
-            .action((x, c) => c.copy(dbConfig = c.dbConfig.asInstanceOf[Neo4jConfig].copy(username = x))),
-          opt[String]("password")
-            .action((x, c) => c.copy(dbConfig = c.dbConfig.asInstanceOf[Neo4jConfig].copy(password = x))),
-          opt[Int]("tx-max")
-            .action((x, c) => c.copy(dbConfig = c.dbConfig.asInstanceOf[Neo4jConfig].copy(txMax = x)))
-        )
-
-      cmd("neo4j-embedded")
-        .action((_, c) => c.copy(dbConfig = Neo4jEmbeddedConfig()))
-        .children(
-          opt[String]("databaseName")
-            .action((x, c) => c.copy(dbConfig = c.dbConfig.asInstanceOf[Neo4jEmbeddedConfig].copy(databaseName = x))),
-          opt[String]("databaseDir")
-            .action((x, c) => c.copy(dbConfig = c.dbConfig.asInstanceOf[Neo4jEmbeddedConfig].copy(databaseDir = x))),
-          opt[Int]("tx-max")
-            .action((x, c) => c.copy(dbConfig = c.dbConfig.asInstanceOf[Neo4jEmbeddedConfig].copy(txMax = x)))
-        )
-
-      cmd("tigergraph")
-        .action((_, c) => c.copy(dbConfig = TigerGraphConfig()))
-        .children(
-          opt[String]("hostname")
-            .action((x, c) => c.copy(dbConfig = c.dbConfig.asInstanceOf[TigerGraphConfig].copy(hostname = x))),
-          opt[Int]("restpp-port")
-            .action((x, c) => c.copy(dbConfig = c.dbConfig.asInstanceOf[TigerGraphConfig].copy(restPpPort = x))),
-          opt[Int]("gsql-port")
-            .action((x, c) => c.copy(dbConfig = c.dbConfig.asInstanceOf[TigerGraphConfig].copy(gsqlPort = x))),
-          opt[String]("username")
-            .action((x, c) => c.copy(dbConfig = c.dbConfig.asInstanceOf[TigerGraphConfig].copy(username = x))),
-          opt[String]("password")
-            .action((x, c) => c.copy(dbConfig = c.dbConfig.asInstanceOf[TigerGraphConfig].copy(password = x))),
-          opt[Int]("timeout")
-            .action((x, c) => c.copy(dbConfig = c.dbConfig.asInstanceOf[TigerGraphConfig].copy(timeout = x))),
-          opt[Int]("tx-max")
-            .action((x, c) => c.copy(dbConfig = c.dbConfig.asInstanceOf[TigerGraphConfig].copy(txMax = x))),
-          opt[String]("scheme")
-            .action((x, c) => c.copy(dbConfig = c.dbConfig.asInstanceOf[TigerGraphConfig].copy(scheme = x)))
-        )
-
-      cmd("neptune")
-        .action((_, c) => c.copy(dbConfig = NeptuneConfig()))
-        .children(
-          opt[String]("hostname")
-            .action((x, c) => c.copy(dbConfig = c.dbConfig.asInstanceOf[NeptuneConfig].copy(hostname = x))),
-          opt[Int]("port")
-            .action((x, c) => c.copy(dbConfig = c.dbConfig.asInstanceOf[NeptuneConfig].copy(port = x))),
-          opt[String]("key-cert-chain-file")
-            .action((x, c) => c.copy(dbConfig = c.dbConfig.asInstanceOf[NeptuneConfig].copy(keyCertChainFile = x))),
-          opt[Int]("tx-max")
-            .action((x, c) => c.copy(dbConfig = c.dbConfig.asInstanceOf[NeptuneConfig].copy(txMax = x)))
+            .action((x, c) => c.copy(dbConfig = c.dbConfig.asInstanceOf[FlatGraphConfig].copy(storageLocation = x)))
         )
 
     }

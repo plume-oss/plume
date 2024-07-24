@@ -11,7 +11,7 @@ package object oss {
     jmhMemoryGb: Int = 4,
     jmhOutputFile: String = File.newTemporaryFile("plume-jmh-output-").pathAsString,
     jmhResultFile: String = File.newTemporaryFile("plume-jmh-result-").pathAsString,
-    dbConfig: DatabaseConfig = OverflowDbConfig()
+    dbConfig: DatabaseConfig = FlatGraphConfig()
   ) derives ReadWriter
 
   sealed trait DatabaseConfig derives ReadWriter {
@@ -20,65 +20,11 @@ package object oss {
     def shortName: String
   }
 
-  case class TinkerGraphConfig(importPath: Option[String] = None, exportPath: Option[String] = None)
-      extends DatabaseConfig {
-    override def toDriver: IDriver = new TinkerGraphDriver()
-
-    override def shortName: String = "tinkergraph"
-  }
-
-  case class OverflowDbConfig(
-    storageLocation: String = "cpg.bin",
-    heapPercentageThreshold: Int = 80,
-    serializationStatsEnabled: Boolean = false
-  ) extends DatabaseConfig {
+  case class FlatGraphConfig(storageLocation: String = "cpg.bin") extends DatabaseConfig {
     override def toDriver: IDriver =
-      new OverflowDbDriver(Option(storageLocation), heapPercentageThreshold, serializationStatsEnabled)
+      new FlatGraphDriver(Option(storageLocation))
 
-    override def shortName: String = "overflowdb"
-  }
-
-  case class Neo4jConfig(
-    hostname: String = "localhost",
-    port: Int = 7687,
-    username: String = "neo4j",
-    password: String = "neo4j",
-    txMax: Int = 25
-  ) extends DatabaseConfig {
-    override def toDriver: IDriver = new Neo4jDriver(hostname, port, username, password, txMax)
-    override def shortName: String = "neo4j"
-  }
-
-  case class Neo4jEmbeddedConfig(databaseName: String = "neo4j", databaseDir: String = "neo4j-db", txMax: Int = 25)
-      extends DatabaseConfig {
-    override def toDriver: IDriver = new Neo4jEmbeddedDriver(databaseName, File(databaseDir), txMax)
-
-    override def shortName: String = "neo4j-embedded"
-  }
-
-  case class TigerGraphConfig(
-    hostname: String = "localhost",
-    restPpPort: Int = 7687,
-    gsqlPort: Int = 14240,
-    username: String = "tigergraph",
-    password: String = "tigergraph",
-    timeout: Int = 3000,
-    txMax: Int = 25,
-    scheme: String = "http"
-  ) extends DatabaseConfig {
-    override def toDriver: IDriver =
-      new TigerGraphDriver(hostname, restPpPort, gsqlPort, username, password, timeout, scheme, txMax)
-    override def shortName: String = "tigergraph"
-  }
-
-  case class NeptuneConfig(
-    hostname: String = "localhost",
-    port: Int = 8182,
-    keyCertChainFile: String = "src/main/resources/conf/SFSRootCAC2.pem",
-    txMax: Int = 50
-  ) extends DatabaseConfig {
-    override def toDriver: IDriver = new NeptuneDriver(hostname, port, keyCertChainFile, txMax)
-    override def shortName: String = "neptune"
+    override def shortName: String = "flatgraph"
   }
 
 }

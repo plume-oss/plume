@@ -1,8 +1,8 @@
 package com.github.plume.oss.benchmarking
 
 import com.github.plume.oss
-import com.github.plume.oss.{Benchmark, JimpleAst2Database, PlumeConfig, TinkerGraphConfig}
-import com.github.plume.oss.drivers.{IDriver, TinkerGraphDriver}
+import com.github.plume.oss.{Benchmark, JimpleAst2Database, PlumeConfig}
+import com.github.plume.oss.drivers.{IDriver}
 import io.joern.jimple2cpg.Config
 import io.shiftleft.codepropertygraph.generated.{NodeTypes, PropertyNames}
 import org.openjdk.jmh.annotations.{
@@ -58,10 +58,6 @@ trait GraphReadBenchmark {
     config = config_
     if (driver.propertyFromNodes(NodeTypes.FILE, PropertyNames.NAME).isEmpty) {
       JimpleAst2Database(driver).createAst(Config().withInputPath(config_.inputDir))
-      config.dbConfig match {
-        case TinkerGraphConfig(_, Some(exportPath)) => driver.asInstanceOf[TinkerGraphDriver].exportGraph(exportPath)
-        case _                                      =>
-      }
     }
   }
 

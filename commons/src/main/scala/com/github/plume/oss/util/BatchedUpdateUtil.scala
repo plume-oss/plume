@@ -1,7 +1,7 @@
 package com.github.plume.oss.util
 
 import io.shiftleft.codepropertygraph.generated.nodes.NewNode
-import overflowdb.{DetachedNodeData, DetachedNodeGeneric, Node}
+import flatgraph.{DNodeOrNode, GNode, DNode}
 
 import scala.collection.mutable
 
@@ -11,7 +11,7 @@ object BatchedUpdateUtil {
 
   private def idFromRefOrId(refOrId: Object): Long = {
     refOrId match {
-      case n: Node           => n.id()
+      case n: GNode          => n.id()
       case i: java.lang.Long => i.longValue()
     }
   }
@@ -24,9 +24,9 @@ object BatchedUpdateUtil {
     */
   def labelFromNodeData(data: Any): String =
     data match {
-      case generic: DetachedNodeGeneric => generic.label()
-      case node: NewNode                => node.label()
-      case node: Node                   => node.label()
+      case generic: DNode => "<boop>"
+      case node: NewNode  => node.label
+      case node: GNode    => node.label
     }
 
   /** By determines what kind of node object is given, will extract its ID.
@@ -37,9 +37,8 @@ object BatchedUpdateUtil {
     */
   def idFromNodeData(data: Any): Long =
     data match {
-      case generic: DetachedNodeGeneric => idFromRefOrId(generic.getRefOrId)
-      case node: NewNode                => idFromRefOrId(node.getRefOrId)
-      case node: Node                   => node.id()
+      case generic: DNode => generic.storedRef.map(idFromRefOrId).getOrElse(-1L)
+      case node: GNode    => node.id()
     }
 
   /** Extracts properties from detached node data.
@@ -48,11 +47,13 @@ object BatchedUpdateUtil {
     * @return
     *   a map of key-value pairs.
     */
-  def propertiesFromNodeData(data: DetachedNodeData): Seq[(String, AnyRef)] = {
+  def propertiesFromNodeData(data: DNodeOrNode): Seq[(String, AnyRef)] = {
     data match {
-      case generic: DetachedNodeGeneric => propertiesFromObjectArray(generic.keyvalues)
-      case node: NewNode                => node.properties.collect { case (k: String, v: AnyRef) => k -> v }.toSeq
-      case _                            => Seq.empty[(String, AnyRef)]
+//      case generic: DNodeOrNode => propertiesFromObjectArray(generic)
+      case node: NewNode => node.properties.collect { case (k: String, v: AnyRef) => k -> v }.toSeq
+      case _ =>
+        println("ahh")
+        Seq.empty[(String, AnyRef)]
     }
   }
 

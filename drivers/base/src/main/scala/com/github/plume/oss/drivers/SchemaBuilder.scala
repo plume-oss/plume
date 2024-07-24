@@ -52,115 +52,80 @@ object SchemaBuilder {
   /** Determines if an edge type between two node types is valid.
     */
   def checkEdgeConstraint(from: String, to: String, edge: String): Boolean = {
-    val fromCheck = from match {
-      case MetaData.Label                  => MetaData.Edges.Out.contains(edge)
-      case File.Label                      => File.Edges.Out.contains(edge)
-      case Method.Label                    => Method.Edges.Out.contains(edge)
-      case MethodParameterIn.Label         => MethodParameterIn.Edges.Out.contains(edge)
-      case MethodParameterOut.Label        => MethodParameterOut.Edges.Out.contains(edge)
-      case MethodReturn.Label              => MethodReturn.Edges.Out.contains(edge)
-      case Modifier.Label                  => Modifier.Edges.Out.contains(edge)
-      case Type.Label                      => Type.Edges.Out.contains(edge)
-      case TypeDecl.Label                  => TypeDecl.Edges.Out.contains(edge)
-      case TypeParameter.Label             => TypeParameter.Edges.Out.contains(edge)
-      case TypeArgument.Label              => TypeArgument.Edges.Out.contains(edge)
-      case Member.Label                    => Member.Edges.Out.contains(edge)
-      case Namespace.Label                 => Namespace.Edges.Out.contains(edge)
-      case NamespaceBlock.Label            => NamespaceBlock.Edges.Out.contains(edge)
-      case Literal.Label                   => Literal.Edges.Out.contains(edge)
-      case Call.Label                      => Call.Edges.Out.contains(edge)
-      case ClosureBinding.Label            => ClosureBinding.Edges.Out.contains(edge)
-      case Local.Label                     => Local.Edges.Out.contains(edge)
-      case Identifier.Label                => Identifier.Edges.Out.contains(edge)
-      case FieldIdentifier.Label           => FieldIdentifier.Edges.Out.contains(edge)
-      case Return.Label                    => Return.Edges.Out.contains(edge)
-      case Block.Label                     => Block.Edges.Out.contains(edge)
-      case MethodRef.Label                 => MethodRef.Edges.Out.contains(edge)
-      case TypeRef.Label                   => TypeRef.Edges.Out.contains(edge)
-      case JumpTarget.Label                => JumpTarget.Edges.Out.contains(edge)
-      case ControlStructure.Label          => ControlStructure.Edges.Out.contains(edge)
-      case Annotation.Label                => Annotation.Edges.Out.contains(edge)
-      case AnnotationLiteral.Label         => AnnotationLiteral.Edges.Out.contains(edge)
-      case AnnotationParameter.Label       => AnnotationParameter.Edges.Out.contains(edge)
-      case AnnotationParameterAssign.Label => AnnotationParameterAssign.Edges.Out.contains(edge)
-      case Unknown.Label                   => Unknown.Edges.Out.contains(edge)
+    def makeNewNode(label: String): NewNode = label match {
+      case MetaData.Label                  => NewMetaData()
+      case File.Label                      => NewFile()
+      case Method.Label                    => NewMethod()
+      case MethodParameterIn.Label         => NewMethodParameterIn()
+      case MethodParameterOut.Label        => NewMethodParameterOut()
+      case MethodReturn.Label              => NewMethodReturn()
+      case Modifier.Label                  => NewModifier()
+      case Type.Label                      => NewType()
+      case TypeDecl.Label                  => NewTypeDecl()
+      case TypeParameter.Label             => NewTypeParameter()
+      case TypeArgument.Label              => NewTypeArgument()
+      case Member.Label                    => NewMember()
+      case Namespace.Label                 => NewNamespace()
+      case NamespaceBlock.Label            => NewNamespaceBlock()
+      case Literal.Label                   => NewLiteral()
+      case Call.Label                      => NewCall()
+      case ClosureBinding.Label            => NewClosureBinding()
+      case Local.Label                     => NewLocal()
+      case Identifier.Label                => NewIdentifier()
+      case FieldIdentifier.Label           => NewFieldIdentifier()
+      case Return.Label                    => NewReturn()
+      case Block.Label                     => NewBlock()
+      case MethodRef.Label                 => NewMethodRef()
+      case TypeRef.Label                   => NewTypeRef()
+      case JumpTarget.Label                => NewJumpTarget()
+      case ControlStructure.Label          => NewControlStructure()
+      case Annotation.Label                => NewAnnotation()
+      case AnnotationLiteral.Label         => NewAnnotationLiteral()
+      case AnnotationParameter.Label       => NewAnnotationParameter()
+      case AnnotationParameterAssign.Label => NewAnnotationParameterAssign()
+      case Unknown.Label                   => NewUnknown()
       case x =>
         logger.warn(s"Unhandled node type '$x'")
-        false
+        NewUnknown()
     }
-    val toCheck = to match {
-      case MetaData.Label                  => MetaData.Edges.In.contains(edge)
-      case File.Label                      => File.Edges.In.contains(edge)
-      case Method.Label                    => Method.Edges.In.contains(edge)
-      case MethodParameterIn.Label         => MethodParameterIn.Edges.In.contains(edge)
-      case MethodParameterOut.Label        => MethodParameterOut.Edges.In.contains(edge)
-      case MethodReturn.Label              => MethodReturn.Edges.In.contains(edge)
-      case Modifier.Label                  => Modifier.Edges.In.contains(edge)
-      case Type.Label                      => Type.Edges.In.contains(edge)
-      case TypeDecl.Label                  => TypeDecl.Edges.In.contains(edge)
-      case TypeParameter.Label             => TypeParameter.Edges.In.contains(edge)
-      case TypeArgument.Label              => TypeArgument.Edges.In.contains(edge)
-      case Member.Label                    => Member.Edges.In.contains(edge)
-      case Namespace.Label                 => Namespace.Edges.In.contains(edge)
-      case NamespaceBlock.Label            => NamespaceBlock.Edges.In.contains(edge)
-      case Literal.Label                   => Literal.Edges.In.contains(edge)
-      case Call.Label                      => Call.Edges.In.contains(edge)
-      case ClosureBinding.Label            => ClosureBinding.Edges.Out.contains(edge)
-      case Local.Label                     => Local.Edges.In.contains(edge)
-      case Identifier.Label                => Identifier.Edges.In.contains(edge)
-      case FieldIdentifier.Label           => FieldIdentifier.Edges.In.contains(edge)
-      case Return.Label                    => Return.Edges.In.contains(edge)
-      case Block.Label                     => Block.Edges.In.contains(edge)
-      case MethodRef.Label                 => MethodRef.Edges.In.contains(edge)
-      case TypeRef.Label                   => TypeRef.Edges.In.contains(edge)
-      case JumpTarget.Label                => JumpTarget.Edges.In.contains(edge)
-      case ControlStructure.Label          => ControlStructure.Edges.In.contains(edge)
-      case Annotation.Label                => Annotation.Edges.In.contains(edge)
-      case AnnotationLiteral.Label         => AnnotationLiteral.Edges.In.contains(edge)
-      case AnnotationParameter.Label       => AnnotationParameter.Edges.In.contains(edge)
-      case AnnotationParameterAssign.Label => AnnotationParameterAssign.Edges.In.contains(edge)
-      case Unknown.Label                   => Unknown.Edges.In.contains(edge)
-      case x =>
-        logger.warn(s"Unhandled node type '$x'")
-        false
-    }
-
-    fromCheck && toCheck
+    val fromNode = makeNewNode(from)
+    val toNode   = makeNewNode(to)
+    fromNode.isValidOutNeighbor(edge, toNode) && toNode.isValidInNeighbor(edge, fromNode)
   }
 
   def allProperties: Set[String] = NodeToProperties.flatMap(_._2).toSet
 
   val NodeToProperties: Map[String, Set[String]] = Map(
-    MetaData.Label                  -> MetaData.PropertyNames.all,
-    File.Label                      -> File.PropertyNames.all,
-    Method.Label                    -> Method.PropertyNames.all,
-    MethodParameterIn.Label         -> MethodParameterIn.PropertyNames.all,
-    MethodParameterOut.Label        -> MethodParameterOut.PropertyNames.all,
-    MethodReturn.Label              -> MethodReturn.PropertyNames.all,
-    Modifier.Label                  -> Modifier.PropertyNames.all,
-    Type.Label                      -> Type.PropertyNames.all,
-    TypeDecl.Label                  -> TypeDecl.PropertyNames.all,
-    TypeParameter.Label             -> TypeParameter.PropertyNames.all,
-    TypeArgument.Label              -> TypeArgument.PropertyNames.all,
-    Member.Label                    -> Member.PropertyNames.all,
-    Namespace.Label                 -> Namespace.PropertyNames.all,
-    NamespaceBlock.Label            -> NamespaceBlock.PropertyNames.all,
-    Literal.Label                   -> Literal.PropertyNames.all,
-    Call.Label                      -> Call.PropertyNames.all,
-    Local.Label                     -> Local.PropertyNames.all,
-    Identifier.Label                -> Identifier.PropertyNames.all,
-    FieldIdentifier.Label           -> FieldIdentifier.PropertyNames.all,
-    Return.Label                    -> Return.PropertyNames.all,
-    Block.Label                     -> Block.PropertyNames.all,
-    MethodRef.Label                 -> MethodRef.PropertyNames.all,
-    TypeRef.Label                   -> TypeRef.PropertyNames.all,
-    JumpTarget.Label                -> JumpTarget.PropertyNames.all,
-    ControlStructure.Label          -> ControlStructure.PropertyNames.all,
-    Annotation.Label                -> Annotation.PropertyNames.all,
-    AnnotationLiteral.Label         -> AnnotationLiteral.PropertyNames.all,
-    AnnotationParameter.Label       -> AnnotationParameter.PropertyNames.all,
-    AnnotationParameterAssign.Label -> AnnotationParameterAssign.PropertyNames.all,
-    Unknown.Label                   -> Unknown.PropertyNames.all
+    MetaData.Label                  -> NewMetaData().properties.keySet,
+    File.Label                      -> NewFile().properties.keySet,
+    Method.Label                    -> NewMethod().properties.keySet,
+    MethodParameterIn.Label         -> NewMethodParameterIn().properties.keySet,
+    MethodParameterOut.Label        -> NewMethodParameterOut().properties.keySet,
+    MethodReturn.Label              -> NewMethodReturn().properties.keySet,
+    Modifier.Label                  -> NewModifier().properties.keySet,
+    Type.Label                      -> NewType().properties.keySet,
+    TypeDecl.Label                  -> NewTypeDecl().properties.keySet,
+    TypeParameter.Label             -> NewTypeParameter().properties.keySet,
+    TypeArgument.Label              -> NewTypeArgument().properties.keySet,
+    Member.Label                    -> NewMember().properties.keySet,
+    Namespace.Label                 -> NewNamespace().properties.keySet,
+    NamespaceBlock.Label            -> NewNamespaceBlock().properties.keySet,
+    Literal.Label                   -> NewLiteral().properties.keySet,
+    Call.Label                      -> NewCall().properties.keySet,
+    Local.Label                     -> NewLocal().properties.keySet,
+    Identifier.Label                -> NewIdentifier().properties.keySet,
+    FieldIdentifier.Label           -> NewFieldIdentifier().properties.keySet,
+    Return.Label                    -> NewReturn().properties.keySet,
+    Block.Label                     -> NewBlock().properties.keySet,
+    MethodRef.Label                 -> NewMethodRef().properties.keySet,
+    TypeRef.Label                   -> NewTypeRef().properties.keySet,
+    JumpTarget.Label                -> NewJumpTarget().properties.keySet,
+    ControlStructure.Label          -> NewControlStructure().properties.keySet,
+    Annotation.Label                -> NewAnnotation().properties.keySet,
+    AnnotationLiteral.Label         -> NewAnnotationLiteral().properties.keySet,
+    AnnotationParameter.Label       -> NewAnnotationParameter().properties.keySet,
+    AnnotationParameterAssign.Label -> NewAnnotationParameterAssign().properties.keySet,
+    Unknown.Label                   -> NewUnknown().properties.keySet
   )
 
 }

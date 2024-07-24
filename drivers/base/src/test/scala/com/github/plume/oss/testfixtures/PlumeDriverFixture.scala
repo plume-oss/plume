@@ -8,8 +8,7 @@ import io.shiftleft.codepropertygraph.generated.{Cpg, DispatchTypes, EdgeTypes}
 import org.scalatest.matchers.should.Matchers
 import org.scalatest.wordspec.AnyWordSpec
 import org.scalatest.{BeforeAndAfter, BeforeAndAfterAll}
-import overflowdb.BatchedUpdate.DiffGraphBuilder
-import overflowdb.{BatchedUpdate, DetachedNodeGeneric}
+import flatgraph.DiffGraphBuilder
 
 import scala.jdk.CollectionConverters.IteratorHasAsScala
 import scala.language.postfixOps
