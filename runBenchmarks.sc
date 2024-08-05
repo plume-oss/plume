@@ -28,7 +28,7 @@ val drivers                                     = Seq("overflowdb", "tinkergraph
     val outputPath       = Path.of(driverResultsDir.toString, s"output-Xmx${memGb}G")
     val (writeOutputFile, readOutputFile) =
       (Path.of(s"$outputPath-write.txt").toFile, Path.of(s"$outputPath-read.txt").toFile)
-    val existingAttempt = Path.of(s"$resultsPath-sbt.txt").toFile.exists()
+    val existingAttempt = Path.of(s"$outputPath-sbt.txt").toFile.exists()
     val cmd =
       s"Jmh/runMain com.github.plume.oss.Benchmark $driver ${projectDir.toAbsolutePath} -o ${outputPath.toAbsolutePath} -r ${resultsPath.toAbsolutePath} -m $memGb"
     JmhProcessInfo(cmd, existingAttempt, writeOutputFile, readOutputFile)
