@@ -28,11 +28,10 @@ val drivers                                     = Seq("overflowdb", "tinkergraph
     val outputPath       = Path.of(driverResultsDir.toString, s"output-Xmx${memGb}G")
     val (writeOutputFile, readOutputFile) =
       (Path.of(s"$outputPath-write.txt").toFile, Path.of(s"$outputPath-read.txt").toFile)
-    val resultsExist =
-      Path.of(s"$resultsPath-read.csv").toFile.exists() && Path.of(s"$outputPath-read.txt").toFile.exists()
+    val existingAttempt = Path.of(s"$resultsPath-sbt.txt").toFile.exists()
     val cmd =
       s"Jmh/runMain com.github.plume.oss.Benchmark $driver ${projectDir.toAbsolutePath} -o ${outputPath.toAbsolutePath} -r ${resultsPath.toAbsolutePath} -m $memGb"
-    JmhProcessInfo(cmd, resultsExist, writeOutputFile, readOutputFile)
+    JmhProcessInfo(cmd, existingAttempt, writeOutputFile, readOutputFile)
   }
 
   println("[info] Available projects:")
@@ -57,7 +56,7 @@ val drivers                                     = Seq("overflowdb", "tinkergraph
             benchmarkArgs(driver, project.getFileName.toString, memConfig)
           if (resultsExist) {
             println(
-              s"[info] Results for '$driver' on project '$project' with `-Xmx${memConfig}G` already exist. Skipping..."
+              s"[info] An attempt for '$driver' on project '$project' with `-Xmx${memConfig}G` already exist. Skipping..."
             )
           } else {
             println(s"[info] Benchmarking '$driver' on project '$project' with `-Xmx${memConfig}G`")
