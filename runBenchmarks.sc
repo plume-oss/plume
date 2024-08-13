@@ -51,10 +51,10 @@ val drivers = Seq("flatgraph")
           benchmarkArgs(driver, project.getFileName.toString, memConfig)
         if (resultsExist) {
           println(
-            s"[info] Results for '$driver' on project '$project' with `-Xmx${memConfig}G` already exist. Skipping..."
+            s"[info] An attempt for '$driver' on project '$projectName' with `-Xmx${memConfig}G` already exist. Skipping..."
           )
         } else {
-          println(s"[info] Benchmarking '$driver' on project '$project' with `-Xmx${memConfig}G`")
+          println(s"[info] Benchmarking '$driver' on project '$projectName' with `-Xmx${memConfig}G`")
           runAndMonitorBenchmarkProcess(cmd, writeOutputFile, readOutputFile)
         }
       }
