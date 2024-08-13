@@ -9,11 +9,12 @@ import io.shiftleft.codepropertygraph.generated.nodes.AbstractNode
 import org.apache.commons.text.StringEscapeUtils
 import io.shiftleft.codepropertygraph.generated.language.*
 import org.slf4j.LoggerFactory
-import flatgraph.{DiffGraphBuilder, DiffGraphApplier, GNode}
-import java.io.{FileOutputStream, OutputStreamWriter, File as JFile}
+import flatgraph.{DiffGraphApplier, DiffGraphBuilder, GNode}
+
+import java.io.{File, FileOutputStream, JFile, OutputStreamWriter}
 import java.nio.file.Path
 import scala.jdk.CollectionConverters.{IteratorHasAsScala, MapHasAsScala}
-import scala.util.*
+import scala.util.{*, Try}
 
 /** Driver to create an FlatGraph database file.
   * @param storageLocation
@@ -51,7 +52,7 @@ final class FlatGraphDriver(
 
   override def bulkTx(dg: DiffGraphBuilder): Int = {
     DiffGraphApplier.applyDiff(cpg.graph, dg)
-    dg.size
+    Try(dg.size).getOrElse(0)
   }
 
   private def batchedRemoval(ns: Iterable[GNode]): Unit = {
