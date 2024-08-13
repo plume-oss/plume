@@ -10,8 +10,7 @@ import scala.util.boundary
 import scala.util.boundary.break
 
 // Combinations of driver, project, Gb mem, known to OOM
-val oomCombinations: Set[(String, String, Int)] = Set(("tinkergraph", "compress", 2))
-val drivers                                     = Seq("flatgraph")
+val drivers = Seq("flatgraph")
 
 @main def main(): Unit = {
   println("[info] Ensuring compilation status and benchmark dataset availability...")
@@ -28,11 +27,11 @@ val drivers                                     = Seq("flatgraph")
     val outputPath       = Path.of(driverResultsDir.toString, s"output-Xmx${memGb}G")
     val (writeOutputFile, readOutputFile) =
       (Path.of(s"$outputPath-write.txt").toFile, Path.of(s"$outputPath-read.txt").toFile)
-    val resultsExist =
-      Path.of(s"$resultsPath-read.csv").toFile.exists() && Path.of(s"$outputPath-read.txt").toFile.exists()
+    val sbtFile = Path.of(s"$outputPath-sbt.txt").toFile
+    val existingAttempt = sbtFile.exists() && !readLogsForJmhClassLoaderError(sbtFile) // If there is a jmh error we retry
     val cmd =
       s"Jmh/runMain com.github.plume.oss.Benchmark $driver ${projectDir.toAbsolutePath} -o ${outputPath.toAbsolutePath} -r ${resultsPath.toAbsolutePath} -m $memGb"
-    JmhProcessInfo(cmd, resultsExist, writeOutputFile, readOutputFile)
+    JmhProcessInfo(cmd, existingAttempt, writeOutputFile, readOutputFile)
   }
 
   println("[info] Available projects:")
@@ -48,25 +47,37 @@ val drivers                                     = Seq("flatgraph")
     drivers.foreach { driver =>
       projects.foreach { project =>
         val projectName = project.getFileName.toString.toLowerCase.stripSuffix(".jar")
-        if (oomCombinations.contains(driver, projectName, memConfig)) {
+        val JmhProcessInfo(cmd, resultsExist, writeOutputFile, readOutputFile) =
+          benchmarkArgs(driver, project.getFileName.toString, memConfig)
+        if (resultsExist) {
           println(
-            s"[info] '$driver' on project '$project' with `-Xmx${memConfig}G` will cause an OutOfMemoryException. Skipping..."
+            s"[info] Results for '$driver' on project '$project' with `-Xmx${memConfig}G` already exist. Skipping..."
           )
         } else {
-          val JmhProcessInfo(cmd, resultsExist, writeOutputFile, readOutputFile) =
-            benchmarkArgs(driver, project.getFileName.toString, memConfig)
-          if (resultsExist) {
-            println(
-              s"[info] Results for '$driver' on project '$project' with `-Xmx${memConfig}G` already exist. Skipping..."
-            )
-          } else {
-            println(s"[info] Benchmarking '$driver' on project '$project' with `-Xmx${memConfig}G`")
-            runAndMonitorBenchmarkProcess(cmd, writeOutputFile, readOutputFile)
-          }
+          println(s"[info] Benchmarking '$driver' on project '$project' with `-Xmx${memConfig}G`")
+          runAndMonitorBenchmarkProcess(cmd, writeOutputFile, readOutputFile)
         }
       }
     }
   }
+}
+
+def readLogsForJmhClassLoaderError(file: File): Boolean = {
+  val reader = new BufferedReader(new FileReader(file))
+  var hasError = false
+  try {
+    var line: String = null
+    while ( {
+      line = reader.readLine(); line != null
+    }) {
+      if (line.contains("jmhType.class (No such file or directory)")) {
+        hasError = true
+      }
+    }
+  } finally {
+    reader.close()
+  }
+  hasError
 }
 
 def sendCtrlCSignal(processId: Long): Unit = {
@@ -84,7 +95,7 @@ def runAndMonitorBenchmarkProcess(cmd: String, writeOutputFile: File, readOutput
   writeOutputFile.createIfNotExists
   readOutputFile.createIfNotExists
 
-  val sbtFile = File(writeOutputFile.getAbsolutePath.stripSuffix("write.txt") + "sbt.txt")
+  val sbtFile        = File(writeOutputFile.getAbsolutePath.stripSuffix("write.txt") + "sbt.txt")
   val processBuilder = new java.lang.ProcessBuilder("sbt", cmd).redirectOutput(sbtFile)
 
   // Ignore locks for aborted JMH processes
@@ -124,7 +135,8 @@ def runAndMonitorBenchmarkProcess(cmd: String, writeOutputFile: File, readOutput
   var shouldTerminate = false
   while (!shouldTerminate && process.isAlive) {
     Thread.sleep(5000)
-    shouldTerminate = readLogsForErrors(writeOutputFile) || readLogsForErrors(readOutputFile) || readLogsForErrors(sbtFile)
+    shouldTerminate =
+      readLogsForErrors(writeOutputFile) || readLogsForErrors(readOutputFile) || readLogsForErrors(sbtFile)
   }
 }
 

@@ -11,10 +11,10 @@ import io.shiftleft.codepropertygraph.generated.language.*
 import org.slf4j.LoggerFactory
 import flatgraph.{DiffGraphApplier, DiffGraphBuilder, GNode}
 
-import java.io.{File, FileOutputStream, JFile, OutputStreamWriter}
+import java.io.{File as JFile, FileOutputStream, OutputStreamWriter}
 import java.nio.file.Path
 import scala.jdk.CollectionConverters.{IteratorHasAsScala, MapHasAsScala}
-import scala.util.{*, Try}
+import scala.util.*
 
 /** Driver to create an FlatGraph database file.
   * @param storageLocation
