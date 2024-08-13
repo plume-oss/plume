@@ -53,7 +53,7 @@ trait GraphReadBenchmark {
   }
 
   protected def setupBenchmark(params: BenchmarkParams): Unit = {
-    val (driver_, config_) = oss.Benchmark.initializeDriverAndInputDir(configStr, useCachedGraph = true)
+    val (driver_, config_) = oss.Benchmark.initializeDriverAndInputDir(configStr, useCachedGraph = false)
     driver = driver_
     config = config_
     if (driver.propertyFromNodes(NodeTypes.FILE, PropertyNames.NAME).isEmpty) {
