@@ -1,8 +1,8 @@
 package com.github.plume.oss.benchmarking
 
 import com.github.plume.oss
-import com.github.plume.oss.drivers.IDriver
-import com.github.plume.oss.{Benchmark, JimpleAst2Database}
+import com.github.plume.oss.drivers.{IDriver, TinkerGraphDriver}
+import com.github.plume.oss.{Benchmark, JimpleAst2Database, PlumeConfig, TinkerGraphConfig}
 import io.joern.jimple2cpg.Config
 import org.openjdk.jmh.annotations.*
 import org.openjdk.jmh.infra.{BenchmarkParams, Blackhole}
@@ -19,13 +19,15 @@ class GraphWriteBenchmark {
 
   @Param(Array(""))
   var configStr: String        = ""
+  private var config: PlumeConfig = uninitialized
   private var driver: IDriver  = uninitialized
   private var inputDir: String = uninitialized
 
   @Setup
   def setupBenchmark(params: BenchmarkParams): Unit = {
-    val (driver_, config) = oss.Benchmark.initializeDriverAndInputDir(configStr, useCachedGraph = false)
+    val (driver_, config_) = oss.Benchmark.initializeDriverAndInputDir(configStr, useCachedGraph = false)
     driver = driver_
+    config = config_
     inputDir = config.inputDir
   }
 
@@ -45,7 +47,12 @@ class GraphWriteBenchmark {
 
   @TearDown
   def cleanupBenchmark(): Unit = {
-    driver.clear()
+    driver match {
+      case x: TinkerGraphDriver => config.dbConfig.asInstanceOf[TinkerGraphConfig].exportPath.foreach { path =>
+        x.exportGraph(path)
+      }
+      case _ =>
+    }
     driver.close()
   }
 

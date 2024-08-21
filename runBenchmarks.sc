@@ -144,12 +144,19 @@ def runAndMonitorBenchmarkProcess(cmd: String, driver: String, writeOutputFile: 
   }
   // Check file size if termination ended without error
   if (!shouldTerminate) {
+    var retryCount = 0
     val storageLoc = File(databaseToStorageLocation(driver).split(' ').last)
     val outputPath = Path.of(writeOutputFile.getParentFile.getAbsolutePath, "storage_size.txt")
-    if (!outputPath.toFile.exists()) {
+    while (!storageLoc.exists() && retryCount < 3) {
+      println(s"$storageLoc not found, waiting and retrying...")
+      Thread.sleep(2000)
+      retryCount += 1
+    }
+    if (!outputPath.toFile.exists() && storageLoc.exists()) {
       val size = getFileSize(storageLoc)
       outputPath.toFile.createIfNotExists
       Files.writeString(outputPath, size.toString)
+      storageLoc.delete()
     }
   }
 
