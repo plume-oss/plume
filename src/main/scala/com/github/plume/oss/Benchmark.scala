@@ -88,7 +88,7 @@ object Benchmark {
           File(storageLocation).delete(swallowIOExceptions = true)
         case TinkerGraphConfig(Some(importPath), _) if !useCachedGraph =>
           File(importPath).delete(swallowIOExceptions = true)
-        case Neo4jEmbeddedConfig(_, databaseDir, _) if !useCachedGraph =>
+        case Neo4jEmbeddedConfig(_, databaseDir, _) /*if !useCachedGraph */ =>
           File(databaseDir).delete(swallowIOExceptions = true)
         case _ =>
       }
