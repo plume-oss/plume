@@ -5,16 +5,21 @@ import io.shiftleft.codepropertygraph.generated.EdgeTypes.AST
 import io.shiftleft.codepropertygraph.generated.NodeTypes.{CALL, METHOD}
 import io.shiftleft.codepropertygraph.generated.PropertyNames.{FULL_NAME, ORDER}
 import org.neo4j.graphdb.GraphDatabaseService
-import org.openjdk.jmh.annotations.{Benchmark, Scope, Setup, State}
+import org.openjdk.jmh.annotations.{Benchmark, Measurement, OutputTimeUnit, Scope, Setup, State, Timeout, Warmup}
 import org.openjdk.jmh.infra.{BenchmarkParams, Blackhole}
 import overflowdb.traversal.*
 
 import java.util
+import java.util.concurrent.TimeUnit
 import scala.compiletime.uninitialized
 import scala.jdk.CollectionConverters.*
 import scala.util.{Random, Using}
 
 @State(Scope.Benchmark)
+@Timeout(5, TimeUnit.MINUTES)
+@OutputTimeUnit(TimeUnit.MILLISECONDS)
+@Measurement(iterations = 3, time = 5, timeUnit = TimeUnit.SECONDS)
+@Warmup(iterations = 1, time = 1, timeUnit = TimeUnit.SECONDS)
 class Neo4jEmbedReadBenchmark extends GraphReadBenchmark {
 
   private var g: GraphDatabaseService = uninitialized

@@ -10,11 +10,16 @@ import org.openjdk.jmh.annotations.*
 import org.openjdk.jmh.infra.{BenchmarkParams, Blackhole}
 import overflowdb.traversal.*
 
+import java.util.concurrent.TimeUnit
 import scala.compiletime.uninitialized
 import scala.jdk.CollectionConverters.*
 import scala.util.Random
 
 @State(Scope.Benchmark)
+@Timeout(5, TimeUnit.MINUTES)
+@OutputTimeUnit(TimeUnit.MILLISECONDS)
+@Measurement(iterations = 3, time = 5, timeUnit = TimeUnit.SECONDS)
+@Warmup(iterations = 1, time = 1, timeUnit = TimeUnit.SECONDS)
 class TinkerGraphReadBenchmark extends GraphReadBenchmark {
 
   private var g: () => GraphTraversalSource = uninitialized

@@ -1,33 +1,16 @@
 package com.github.plume.oss.benchmarking
 
 import com.github.plume.oss
-import com.github.plume.oss.{Benchmark, JimpleAst2Database, PlumeConfig, TinkerGraphConfig}
 import com.github.plume.oss.drivers.{IDriver, TinkerGraphDriver}
+import com.github.plume.oss.{Benchmark, JimpleAst2Database, PlumeConfig, TinkerGraphConfig}
 import io.joern.jimple2cpg.Config
 import io.shiftleft.codepropertygraph.generated.{NodeTypes, PropertyNames}
-import org.openjdk.jmh.annotations.{
-  Benchmark,
-  Level,
-  Measurement,
-  OutputTimeUnit,
-  Param,
-  Scope,
-  Setup,
-  State,
-  TearDown,
-  Timeout,
-  Warmup
-}
+import org.openjdk.jmh.annotations.*
 import org.openjdk.jmh.infra.{BenchmarkParams, Blackhole}
 
 import java.util.concurrent.TimeUnit
 import scala.compiletime.uninitialized
 
-@State(Scope.Benchmark)
-@Timeout(5, TimeUnit.MINUTES)
-@OutputTimeUnit(TimeUnit.MILLISECONDS)
-@Measurement(iterations = 3, time = 5, timeUnit = TimeUnit.SECONDS)
-@Warmup(iterations = 1, time = 1, timeUnit = TimeUnit.SECONDS)
 trait GraphReadBenchmark {
 
   @Param(Array(""))

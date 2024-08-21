@@ -6,15 +6,22 @@ import io.shiftleft.codepropertygraph.generated.Cpg
 import io.shiftleft.codepropertygraph.generated.EdgeTypes.AST
 import io.shiftleft.codepropertygraph.generated.PropertyNames.ORDER
 import io.shiftleft.codepropertygraph.generated.nodes.{Call, StoredNode}
-import org.openjdk.jmh.annotations.{Benchmark, Scope, Setup, State}
+import org.openjdk.jmh.annotations.{Benchmark, Measurement, OutputTimeUnit, Scope, Setup, State, Timeout, Warmup}
 import org.openjdk.jmh.infra.{BenchmarkParams, Blackhole}
 import overflowdb.PropertyKey
 import overflowdb.traversal.*
+
 import scala.compiletime.uninitialized
 import scala.util.Random
 import io.shiftleft.semanticcpg.language.*
 
+import java.util.concurrent.TimeUnit
+
 @State(Scope.Benchmark)
+@Timeout(5, TimeUnit.MINUTES)
+@OutputTimeUnit(TimeUnit.MILLISECONDS)
+@Measurement(iterations = 3, time = 5, timeUnit = TimeUnit.SECONDS)
+@Warmup(iterations = 1, time = 1, timeUnit = TimeUnit.SECONDS)
 class OverflowDbReadBenchmark extends GraphReadBenchmark {
 
   private var cpg: Cpg = uninitialized
