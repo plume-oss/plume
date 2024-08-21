@@ -18,14 +18,14 @@ import scala.compiletime.uninitialized
 class GraphWriteBenchmark {
 
   @Param(Array(""))
-  var configStr: String        = ""
+  var configStr: String           = ""
   private var config: PlumeConfig = uninitialized
-  private var driver: IDriver  = uninitialized
-  private var inputDir: String = uninitialized
+  private var driver: IDriver     = uninitialized
+  private var inputDir: String    = uninitialized
 
   @Setup
   def setupBenchmark(params: BenchmarkParams): Unit = {
-    val (driver_, config_) = oss.Benchmark.initializeDriverAndInputDir(configStr, useCachedGraph = false)
+    val (driver_, config_) = oss.Benchmark.initializeDriverAndInputDir(configStr)
     driver = driver_
     config = config_
     inputDir = config.inputDir
@@ -48,9 +48,10 @@ class GraphWriteBenchmark {
   @TearDown
   def cleanupBenchmark(): Unit = {
     driver match {
-      case x: TinkerGraphDriver => config.dbConfig.asInstanceOf[TinkerGraphConfig].exportPath.foreach { path =>
-        x.exportGraph(path)
-      }
+      case x: TinkerGraphDriver =>
+        config.dbConfig.asInstanceOf[TinkerGraphConfig].exportPath.foreach { path =>
+          x.exportGraph(path)
+        }
       case _ =>
     }
     driver.close()

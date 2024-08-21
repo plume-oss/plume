@@ -38,7 +38,8 @@ val drivers = Seq("overflowdb", "tinkergraph", "neo4j-embedded")
   }
 
   println("[info] Available projects:")
-  val projects = Files.list(datasetDir).filter(_.toString.endsWith(".jar")).toList.asScala.toList
+  val projects =
+    Files.list(datasetDir).filter(_.toString.endsWith(".jar")).toList.asScala.sortBy(_.toFile.length()).toList
   projects.foreach(p => println(s" - ${p.getFileName.toString}"))
 
   println("[info] Drivers to be benchmarked:")
@@ -154,15 +155,24 @@ def runAndMonitorBenchmarkProcess(cmd: String, driver: String, writeOutputFile: 
     }
     if (!outputPath.toFile.exists() && storageLoc.exists()) {
       val size = getFileSize(storageLoc)
+      println(s"${storageLoc.getAbsolutePath} is $size bytes large")
       outputPath.toFile.createIfNotExists
       Files.writeString(outputPath, size.toString)
-      storageLoc.delete()
+      // clear storage
+      deleteFileOrDir(storageLoc)
     }
   }
 
 }
 
-def getFileSize(f: File): Long = {
+def deleteFileOrDir(file: File): Unit = {
+  Option(file.listFiles).foreach { contents =>
+    contents.filterNot(f => Files.isSymbolicLink(f.toPath)).foreach(deleteFileOrDir)
+  }
+  file.delete
+}
+
+def getFileSize(f: File) = {
   if (f.isFile) {
     f.length()
   } else {

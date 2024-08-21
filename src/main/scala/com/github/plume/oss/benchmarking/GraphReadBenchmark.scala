@@ -53,16 +53,10 @@ trait GraphReadBenchmark {
   }
 
   protected def setupBenchmark(params: BenchmarkParams): Unit = {
-    val (driver_, config_) = oss.Benchmark.initializeDriverAndInputDir(configStr, useCachedGraph = true)
+    val (driver_, config_) = oss.Benchmark.initializeDriverAndInputDir(configStr)
     driver = driver_
     config = config_
-    if (driver.propertyFromNodes(NodeTypes.FILE, PropertyNames.NAME).isEmpty) {
-      JimpleAst2Database(driver).createAst(Config().withInputPath(config_.inputDir))
-      config.dbConfig match {
-        case TinkerGraphConfig(_, Some(exportPath)) => driver.asInstanceOf[TinkerGraphDriver].exportGraph(exportPath)
-        case _                                      =>
-      }
-    }
+    JimpleAst2Database(driver).createAst(Config().withInputPath(config_.inputDir))
   }
 
   protected def setupAstDfs(): Array[Long]

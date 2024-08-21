@@ -8,7 +8,7 @@ import com.github.plume.oss.benchmarking.{
   OverflowDbReadBenchmark,
   TinkerGraphReadBenchmark
 }
-import com.github.plume.oss.drivers.{IDriver, TinkerGraphDriver}
+import com.github.plume.oss.drivers.IDriver
 import org.cache2k.benchmark.jmh.{HeapProfiler, LinuxVmProfiler}
 import org.openjdk.jmh.annotations.Mode
 import org.openjdk.jmh.runner.Runner
@@ -80,31 +80,19 @@ object Benchmark {
     case READ, WRITE
   }
 
-  def initializeDriverAndInputDir(configStr: String, useCachedGraph: Boolean): (IDriver, PlumeConfig) = {
+  def initializeDriverAndInputDir(configStr: String): (IDriver, PlumeConfig) = {
     val config = if (!configStr.isBlank) read[PlumeConfig](configStr) else PlumeConfig()
-    if (!useCachedGraph) {
-      config.dbConfig match {
-        case OverflowDbConfig(storageLocation, _, _) if !useCachedGraph =>
-          File(storageLocation).delete(swallowIOExceptions = true)
-        case TinkerGraphConfig(Some(importPath), _) if !useCachedGraph =>
-          File(importPath).delete(swallowIOExceptions = true)
-        case Neo4jEmbeddedConfig(_, databaseDir, _) /*if !useCachedGraph */ =>
-          File(databaseDir).delete(swallowIOExceptions = true)
-        case _ =>
-      }
+    config.dbConfig match {
+      case OverflowDbConfig(storageLocation, _, _) =>
+        File(storageLocation).delete(swallowIOExceptions = true)
+      case TinkerGraphConfig(Some(importPath), _) =>
+        File(importPath).delete(swallowIOExceptions = true)
+      case Neo4jEmbeddedConfig(_, databaseDir, _) =>
+        File(databaseDir).delete(swallowIOExceptions = true)
+      case _ =>
     }
 
-    val driver = if (useCachedGraph) {
-      config.dbConfig match {
-        case TinkerGraphConfig(Some(importPath), _) if File(importPath).exists =>
-          val driver = config.dbConfig.toDriver.asInstanceOf[TinkerGraphDriver]
-          driver.importGraph(importPath)
-          driver
-        case _ => config.dbConfig.toDriver
-      }
-    } else {
-      config.dbConfig.toDriver
-    }
+    val driver = config.dbConfig.toDriver
 
     driver -> config
   }
