@@ -30,8 +30,10 @@ val drivers = Seq("overflowdb", "tinkergraph", "neo4j-embedded")
     val sbtFile = Path.of(s"$outputPath-sbt.txt").toFile
     val existingAttempt =
       sbtFile.exists() && !readLogsForJmhClassLoaderError(sbtFile) // If there is a jmh error we retry
+
+    val driverArgs = databaseToStorageLocation(driver)
     val cmd =
-      s"Jmh/runMain com.github.plume.oss.Benchmark $driver ${projectDir.toAbsolutePath} -o ${outputPath.toAbsolutePath} -r ${resultsPath.toAbsolutePath} -m $memGb"
+      s"Jmh/runMain com.github.plume.oss.Benchmark $driver ${projectDir.toAbsolutePath} -o ${outputPath.toAbsolutePath} -r ${resultsPath.toAbsolutePath} -m $memGb $driverArgs"
     JmhProcessInfo(cmd, existingAttempt, writeOutputFile, readOutputFile)
   }
 
@@ -56,7 +58,7 @@ val drivers = Seq("overflowdb", "tinkergraph", "neo4j-embedded")
           )
         } else {
           println(s"[info] Benchmarking '$driver' on project '$projectName' with `-Xmx${memConfig}G`")
-          runAndMonitorBenchmarkProcess(cmd, writeOutputFile, readOutputFile)
+          runAndMonitorBenchmarkProcess(cmd, driver, writeOutputFile, readOutputFile)
         }
       }
     }
@@ -93,7 +95,7 @@ def sendCtrlCSignal(processId: Long): Unit = {
   }
 }
 
-def runAndMonitorBenchmarkProcess(cmd: String, writeOutputFile: File, readOutputFile: File): Unit = {
+def runAndMonitorBenchmarkProcess(cmd: String, driver: String, writeOutputFile: File, readOutputFile: File): Unit = {
   writeOutputFile.createIfNotExists
   readOutputFile.createIfNotExists
 
@@ -139,6 +141,35 @@ def runAndMonitorBenchmarkProcess(cmd: String, writeOutputFile: File, readOutput
     Thread.sleep(5000)
     shouldTerminate =
       readLogsForErrors(writeOutputFile) || readLogsForErrors(readOutputFile) || readLogsForErrors(sbtFile)
+  }
+  // Check file size if termination ended without error
+  if (!shouldTerminate) {
+    val storageLoc = File(databaseToStorageLocation(driver).split(' ').last)
+    val outputPath = Path.of(writeOutputFile.getParentFile.getAbsolutePath, "storage_size.txt")
+    if (!outputPath.toFile.exists()) {
+      val size = getFileSize(storageLoc)
+      outputPath.toFile.createIfNotExists
+      Files.writeString(outputPath, size.toString)
+    }
+  }
+
+}
+
+def getFileSize(f: File): Long = {
+  if (f.isFile) {
+    f.length()
+  } else {
+    Files.walk(f.toPath).toList.asScala.map(_.toFile.length()).sum
+  }
+}
+
+def databaseToStorageLocation(d: String): String = {
+  d match {
+    case "overflowdb"     => "--storage-location cpg.odb"
+    case "flatgraph"      => "--storage-location cpg.fg"
+    case "tinkergraph"    => "--export-path cpg.xml"
+    case "neo4j-embedded" => "--databaseDir neo4j-db"
+    case _                => ""
   }
 }
 
