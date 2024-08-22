@@ -1,6 +1,6 @@
 name := "overflowdb"
 
-dependsOn(Projects.base, Projects.base % "compile->compile;test->test", Projects.commons)
+dependsOn(Projects.base, Projects.base % "compile->compile;test->test")
 
 libraryDependencies ++= Seq(
   "io.shiftleft" %% "overflowdb-traversal" % Versions.overflowDb,

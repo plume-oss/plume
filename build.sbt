@@ -16,7 +16,6 @@ inThisBuild(
   )
 )
 
-lazy val commons = Projects.commons
 // Drivers
 lazy val base = Projects.base
 // Implementation
@@ -25,8 +24,8 @@ lazy val flatgraph  = Projects.flatgraph
 lazy val astcreator = Projects.astcreator
 
 lazy val root = (project in file("."))
-  .dependsOn(astcreator, commons, base, flatgraph)
-  .aggregate(astcreator, commons, base, flatgraph)
+  .dependsOn(astcreator, base, flatgraph)
+  .aggregate(astcreator, base, flatgraph)
 
 trapExit                 := false
 Test / fork              := true

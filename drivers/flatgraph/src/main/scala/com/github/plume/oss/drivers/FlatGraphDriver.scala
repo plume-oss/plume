@@ -1,8 +1,6 @@
 package com.github.plume.oss.drivers
 
 import com.github.plume.oss.drivers.FlatGraphDriver.newOverflowGraph
-import com.github.plume.oss.util.BatchedUpdateUtil
-import com.github.plume.oss.util.BatchedUpdateUtil.*
 import io.shiftleft.codepropertygraph.cpgloading.CpgLoader
 import io.shiftleft.codepropertygraph.generated.*
 import io.shiftleft.codepropertygraph.generated.nodes.AbstractNode

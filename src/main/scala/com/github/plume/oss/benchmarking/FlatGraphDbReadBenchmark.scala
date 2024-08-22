@@ -6,14 +6,19 @@ import io.shiftleft.codepropertygraph.generated.EdgeTypes.AST
 import io.shiftleft.codepropertygraph.generated.PropertyNames.ORDER
 import io.shiftleft.codepropertygraph.generated.nodes.{AbstractNode, Call, StoredNode}
 import io.shiftleft.semanticcpg.language.*
-import org.openjdk.jmh.annotations.{Benchmark, Scope, Setup, State}
+import org.openjdk.jmh.annotations.{Benchmark, Measurement, OutputTimeUnit, Scope, Setup, State, Timeout, Warmup}
 import org.openjdk.jmh.infra.{BenchmarkParams, Blackhole}
 import overflowdb.PropertyKey
 
+import java.util.concurrent.TimeUnit
 import scala.compiletime.uninitialized
 import scala.util.Random
 
 @State(Scope.Benchmark)
+@Timeout(5, TimeUnit.MINUTES)
+@OutputTimeUnit(TimeUnit.MILLISECONDS)
+@Measurement(iterations = 3, time = 5, timeUnit = TimeUnit.SECONDS)
+@Warmup(iterations = 1, time = 1, timeUnit = TimeUnit.SECONDS)
 class FlatGraphDbReadBenchmark extends GraphReadBenchmark {
 
   private var cpg: Cpg = uninitialized
@@ -89,14 +94,17 @@ class FlatGraphDbReadBenchmark extends GraphReadBenchmark {
 
   @Benchmark
   override def callOrderTrav(blackhole: Blackhole): Int = {
-    val res = nodeStart.iterator.asInstanceOf[Iterator[Call]].orderGt(2).size
+    val res = nodeStart.iterator.map(cpg.graph.node).asInstanceOf[Iterator[Call]].orderGt(2).size
     res
   }
 
   @Benchmark
   override def callOrderExplicit(blackhole: Blackhole): Int = {
     var res = 0
-    for (node <- nodeStart.iterator.asInstanceOf[Iterator[Call]]) {
+    for {
+      id   <- nodeStart.iterator
+      node <- cpg.graph.node(id).asInstanceOf[Call]
+    } {
       if (node.order > 2) res += 1
     }
     Option(blackhole).foreach(_.consume(res))

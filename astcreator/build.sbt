@@ -1,6 +1,6 @@
 name := "astcreator"
 
-dependsOn(Projects.base, Projects.commons, Projects.flatgraph)
+dependsOn(Projects.base, Projects.flatgraph)
 
 libraryDependencies ++= Seq(
   "io.joern"       %% "semanticcpg"              % Versions.joern,

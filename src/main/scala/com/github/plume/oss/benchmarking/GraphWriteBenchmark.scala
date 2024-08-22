@@ -24,7 +24,7 @@ class GraphWriteBenchmark {
 
   @Setup
   def setupBenchmark(params: BenchmarkParams): Unit = {
-    val (driver_, config) = oss.Benchmark.initializeDriverAndInputDir(configStr, useCachedGraph = false)
+    val (driver_, config) = oss.Benchmark.initializeDriverAndInputDir(configStr)
     driver = driver_
     inputDir = config.inputDir
   }
@@ -45,7 +45,6 @@ class GraphWriteBenchmark {
 
   @TearDown
   def cleanupBenchmark(): Unit = {
-    driver.clear()
     driver.close()
   }
 

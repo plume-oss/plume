@@ -28,14 +28,18 @@ val drivers = Seq("flatgraph")
     val (writeOutputFile, readOutputFile) =
       (Path.of(s"$outputPath-write.txt").toFile, Path.of(s"$outputPath-read.txt").toFile)
     val sbtFile = Path.of(s"$outputPath-sbt.txt").toFile
-    val existingAttempt = sbtFile.exists() && !readLogsForJmhClassLoaderError(sbtFile) // If there is a jmh error we retry
+    val existingAttempt =
+      sbtFile.exists() && !readLogsForJmhClassLoaderError(sbtFile) // If there is a jmh error we retry
+
+    val driverArgs = databaseToStorageLocation(driver)
     val cmd =
-      s"Jmh/runMain com.github.plume.oss.Benchmark $driver ${projectDir.toAbsolutePath} -o ${outputPath.toAbsolutePath} -r ${resultsPath.toAbsolutePath} -m $memGb"
+      s"Jmh/runMain com.github.plume.oss.Benchmark $driver ${projectDir.toAbsolutePath} -o ${outputPath.toAbsolutePath} -r ${resultsPath.toAbsolutePath} -m $memGb $driverArgs"
     JmhProcessInfo(cmd, existingAttempt, writeOutputFile, readOutputFile)
   }
 
   println("[info] Available projects:")
-  val projects = Files.list(datasetDir).filter(_.toString.endsWith(".jar")).toList.asScala.toList
+  val projects =
+    Files.list(datasetDir).filter(_.toString.endsWith(".jar")).toList.asScala.sortBy(_.toFile.length()).toList
   projects.foreach(p => println(s" - ${p.getFileName.toString}"))
 
   println("[info] Drivers to be benchmarked:")
@@ -55,7 +59,7 @@ val drivers = Seq("flatgraph")
           )
         } else {
           println(s"[info] Benchmarking '$driver' on project '$projectName' with `-Xmx${memConfig}G`")
-          runAndMonitorBenchmarkProcess(cmd, writeOutputFile, readOutputFile)
+          runAndMonitorBenchmarkProcess(cmd, driver, writeOutputFile, readOutputFile)
         }
       }
     }
@@ -63,12 +67,13 @@ val drivers = Seq("flatgraph")
 }
 
 def readLogsForJmhClassLoaderError(file: File): Boolean = {
-  val reader = new BufferedReader(new FileReader(file))
+  val reader   = new BufferedReader(new FileReader(file))
   var hasError = false
   try {
     var line: String = null
-    while ( {
-      line = reader.readLine(); line != null
+    while ({
+      line = reader.readLine();
+      line != null
     }) {
       if (line.contains("jmhType.class (No such file or directory)")) {
         hasError = true
@@ -91,7 +96,7 @@ def sendCtrlCSignal(processId: Long): Unit = {
   }
 }
 
-def runAndMonitorBenchmarkProcess(cmd: String, writeOutputFile: File, readOutputFile: File): Unit = {
+def runAndMonitorBenchmarkProcess(cmd: String, driver: String, writeOutputFile: File, readOutputFile: File): Unit = {
   writeOutputFile.createIfNotExists
   readOutputFile.createIfNotExists
 
@@ -112,10 +117,10 @@ def runAndMonitorBenchmarkProcess(cmd: String, writeOutputFile: File, readOutput
     try {
       var line: String = null
       while ({ line = reader.readLine(); line != null }) {
-//        if (line.contains("benchmark timed out")) {
-//          println("Timeout detected. Sending Ctrl+C signal to process...")
-//          shouldTerminate = true
-//        }
+        //        if (line.contains("benchmark timed out")) {
+        //          println("Timeout detected. Sending Ctrl+C signal to process...")
+        //          shouldTerminate = true
+        //        }
         if (line.contains("java.lang.OutOfMemoryError")) {
           println("OutOfMemoryError detected. Sending Ctrl+C signal to process...")
           shouldTerminate = true
@@ -137,6 +142,51 @@ def runAndMonitorBenchmarkProcess(cmd: String, writeOutputFile: File, readOutput
     Thread.sleep(5000)
     shouldTerminate =
       readLogsForErrors(writeOutputFile) || readLogsForErrors(readOutputFile) || readLogsForErrors(sbtFile)
+  }
+  // Check file size if termination ended without error
+  if (!shouldTerminate) {
+    var retryCount = 0
+    val storageLoc = File(databaseToStorageLocation(driver).split(' ').last)
+    val outputPath = Path.of(writeOutputFile.getParentFile.getAbsolutePath, "storage_size.txt")
+    while (!storageLoc.exists() && retryCount < 3) {
+      println(s"$storageLoc not found, waiting and retrying...")
+      Thread.sleep(2000)
+      retryCount += 1
+    }
+    if (!outputPath.toFile.exists() && storageLoc.exists()) {
+      val size = getFileSize(storageLoc)
+      println(s"${storageLoc.getAbsolutePath} is $size bytes large")
+      outputPath.toFile.createIfNotExists
+      Files.writeString(outputPath, size.toString)
+      // clear storage
+      deleteFileOrDir(storageLoc)
+    }
+  }
+
+}
+
+def deleteFileOrDir(file: File): Unit = {
+  Option(file.listFiles).foreach { contents =>
+    contents.filterNot(f => Files.isSymbolicLink(f.toPath)).foreach(deleteFileOrDir)
+  }
+  file.delete
+}
+
+def getFileSize(f: File) = {
+  if (f.isFile) {
+    f.length()
+  } else {
+    Files.walk(f.toPath).toList.asScala.map(_.toFile.length()).sum
+  }
+}
+
+def databaseToStorageLocation(d: String): String = {
+  d match {
+    case "overflowdb"     => "--storage-location cpg.odb"
+    case "flatgraph"      => "--storage-location cpg.fg"
+    case "tinkergraph"    => "--export-path cpg.xml"
+    case "neo4j-embedded" => "--databaseDir neo4j-db"
+    case _                => ""
   }
 }
 

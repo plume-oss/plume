@@ -32,9 +32,6 @@ object Benchmark {
                 .include(classOf[FlatGraphDbReadBenchmark].getSimpleName)
                 .build()
             )
-          case x =>
-            println(s"Read benchmarks are not available for ${x.getClass.getSimpleName}, skipping...")
-            Option.empty
         }
         readOptsBenchmark.foreach { opts =>
           new Runner(opts).run()
@@ -63,14 +60,12 @@ object Benchmark {
     case READ, WRITE
   }
 
-  def initializeDriverAndInputDir(configStr: String, useCachedGraph: Boolean): (IDriver, PlumeConfig) = {
+  def initializeDriverAndInputDir(configStr: String): (IDriver, PlumeConfig) = {
     val config = if (!configStr.isBlank) read[PlumeConfig](configStr) else PlumeConfig()
-    if (!useCachedGraph) {
-      config.dbConfig match {
-        case FlatGraphConfig(storageLocation) if !useCachedGraph =>
-          File(storageLocation).delete(swallowIOExceptions = true)
-        case _ =>
-      }
+    config.dbConfig match {
+      case FlatGraphConfig(storageLocation) =>
+        File(storageLocation).delete(swallowIOExceptions = true)
+      case null =>
     }
 
     val driver = config.dbConfig.toDriver

@@ -1,33 +1,16 @@
 package com.github.plume.oss.benchmarking
 
 import com.github.plume.oss
+import com.github.plume.oss.drivers.IDriver
 import com.github.plume.oss.{Benchmark, JimpleAst2Database, PlumeConfig}
-import com.github.plume.oss.drivers.{IDriver}
 import io.joern.jimple2cpg.Config
 import io.shiftleft.codepropertygraph.generated.{NodeTypes, PropertyNames}
-import org.openjdk.jmh.annotations.{
-  Benchmark,
-  Level,
-  Measurement,
-  OutputTimeUnit,
-  Param,
-  Scope,
-  Setup,
-  State,
-  TearDown,
-  Timeout,
-  Warmup
-}
+import org.openjdk.jmh.annotations.*
 import org.openjdk.jmh.infra.{BenchmarkParams, Blackhole}
 
 import java.util.concurrent.TimeUnit
 import scala.compiletime.uninitialized
 
-@State(Scope.Benchmark)
-@Timeout(5, TimeUnit.MINUTES)
-@OutputTimeUnit(TimeUnit.MILLISECONDS)
-@Measurement(iterations = 3, time = 5, timeUnit = TimeUnit.SECONDS)
-@Warmup(iterations = 1, time = 1, timeUnit = TimeUnit.SECONDS)
 trait GraphReadBenchmark {
 
   @Param(Array(""))
@@ -53,12 +36,10 @@ trait GraphReadBenchmark {
   }
 
   protected def setupBenchmark(params: BenchmarkParams): Unit = {
-    val (driver_, config_) = oss.Benchmark.initializeDriverAndInputDir(configStr, useCachedGraph = false)
+    val (driver_, config_) = oss.Benchmark.initializeDriverAndInputDir(configStr)
     driver = driver_
     config = config_
-    if (driver.propertyFromNodes(NodeTypes.FILE, PropertyNames.NAME).isEmpty) {
-      JimpleAst2Database(driver).createAst(Config().withInputPath(config_.inputDir))
-    }
+    JimpleAst2Database(driver).createAst(Config().withInputPath(config_.inputDir))
   }
 
   protected def setupAstDfs(): Array[Long]
