@@ -225,18 +225,6 @@ final class Neo4jEmbeddedDriver(
     dg.size()
   }
 
-  private def runPayload(
-    tx: Transaction,
-    filePayload: String,
-    params: util.HashMap[String, Object] = new util.HashMap[String, Object](0)
-  ) = {
-    try {
-      tx.execute(filePayload, params)
-    } catch {
-      case e: Exception => logger.error(s"Unable to link AST nodes: $filePayload", e)
-    }
-  }
-
   override def propertyFromNodes(nodeType: String, keys: String*): List[Map[String, Any]] =
     Using.resource(graphDb.beginTx) { tx =>
       tx.findNodes(Label.label(nodeType))

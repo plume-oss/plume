@@ -8,12 +8,14 @@ import com.github.plume.oss.benchmarking.{
   OverflowDbReadBenchmark,
   TinkerGraphReadBenchmark
 }
-import com.github.plume.oss.drivers.IDriver
+import com.github.plume.oss.drivers.{IDriver, TinkerGraphDriver}
 import org.cache2k.benchmark.jmh.{HeapProfiler, LinuxVmProfiler}
 import org.openjdk.jmh.annotations.Mode
 import org.openjdk.jmh.runner.Runner
 import org.openjdk.jmh.runner.options.{ChainedOptionsBuilder, OptionsBuilder, TimeValue}
 import upickle.default.*
+
+import scala.util.{Try, Failure}
 
 object Benchmark {
 
@@ -80,9 +82,8 @@ object Benchmark {
     case READ, WRITE
   }
 
-  def initializeDriverAndInputDir(configStr: String): (IDriver, PlumeConfig) = {
-    val config = if (!configStr.isBlank) read[PlumeConfig](configStr) else PlumeConfig()
-    config.dbConfig match {
+  private def clearExistingStorage(conf: DatabaseConfig): Unit = {
+    conf match {
       case OverflowDbConfig(storageLocation, _, _) =>
         File(storageLocation).delete(swallowIOExceptions = true)
       case TinkerGraphConfig(Some(importPath), _) =>
@@ -91,9 +92,37 @@ object Benchmark {
         File(databaseDir).delete(swallowIOExceptions = true)
       case _ =>
     }
+  }
 
-    val driver = config.dbConfig.toDriver
+  def deserializeConfig(configStr: String): PlumeConfig =
+    if (!configStr.isBlank) read[PlumeConfig](configStr) else PlumeConfig()
 
+  def initializeDriverAndInputDir(configStr: String, deleteExistingStorage: Boolean = true): (IDriver, PlumeConfig) = {
+    val config = deserializeConfig(configStr)
+    if (deleteExistingStorage) {
+      clearExistingStorage(config.dbConfig)
+    }
+
+    val driver = Try(config.dbConfig.toDriver).getOrElse {
+      if (deleteExistingStorage) println("Unable to connect driver to existing storage, clearing...")
+      else println("Unable to start driver clearing potential existing storage...")
+
+      clearExistingStorage(config.dbConfig)
+      config.dbConfig.toDriver
+    }
+    println(s"Initialized driver ${driver.getClass.getSimpleName}")
+    if (!deleteExistingStorage) {
+      driver match {
+        case tinker: TinkerGraphDriver =>
+          Try(config.dbConfig.asInstanceOf[TinkerGraphConfig].exportPath.foreach(tinker.importGraph)) match {
+            case Failure(exception) =>
+              println("Failed to import existing TinkerGraph, recreating...")
+              exception.printStackTrace()
+            case _ =>
+          }
+        case _ =>
+      }
+    }
     driver -> config
   }
 

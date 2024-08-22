@@ -62,9 +62,10 @@ class OverflowDbReadBenchmark extends GraphReadBenchmark {
     stack.addAll(nodeStart)
     var nnodes = nodeStart.length
     while (stack.nonEmpty) {
-      val nx = cpg.graph.node(stack.removeLast()).asInstanceOf[StoredNode]
-      stack.appendAll(nx._astOut.map(_.id))
-      nnodes += 1
+      val nx       = cpg.graph.nodes(stack.removeAll()*).iterator.asInstanceOf[Iterator[StoredNode]]
+      val children = nx._astOut.map(_.id).toArray
+      nnodes += children.length
+      stack.appendAll(children)
     }
     Option(blackhole).foreach(_.consume(nnodes))
     nnodes
@@ -73,12 +74,13 @@ class OverflowDbReadBenchmark extends GraphReadBenchmark {
   @Benchmark
   override def astUp(blackhole: Blackhole): Int = {
     var sumDepth = 0
-    for (node <- nodeStart) {
-      var p = cpg.graph.node(node)
-      while (p != null) {
-        sumDepth += 1
-        p = p.asInstanceOf[StoredNode]._astIn.nextOption.orNull
-      }
+    val stack    = scala.collection.mutable.ArrayDeque.empty[Long]
+    stack.addAll(nodeStart)
+    while (stack.nonEmpty) {
+      val ps      = cpg.graph.nodes(stack.removeAll()*).iterator.asInstanceOf[Iterator[StoredNode]]
+      val parents = ps._astIn.map(_.id).toArray
+      sumDepth += parents.length
+      stack.appendAll(parents)
     }
     Option(blackhole).foreach(_.consume(sumDepth))
     sumDepth
@@ -88,7 +90,7 @@ class OverflowDbReadBenchmark extends GraphReadBenchmark {
   override def orderSum(blackhole: Blackhole): Int = {
     var sumOrder = 0
     val propKey  = PropertyKey[Int](ORDER)
-    for (node <- nodeStart.map(cpg.graph.node)) {
+    for (node <- cpg.graph.nodes(nodeStart*)) {
       sumOrder += node.asInstanceOf[StoredNode].property(propKey)
     }
     Option(blackhole).foreach(_.consume(sumOrder))

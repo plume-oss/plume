@@ -11,6 +11,7 @@ import org.openjdk.jmh.infra.{BenchmarkParams, Blackhole}
 import overflowdb.traversal.*
 
 import java.util.concurrent.TimeUnit
+import scala.collection.mutable
 import scala.compiletime.uninitialized
 import scala.jdk.CollectionConverters.*
 import scala.util.Random
@@ -58,9 +59,10 @@ class TinkerGraphReadBenchmark extends GraphReadBenchmark {
     stack.addAll(nodeStart)
     var nnodes = nodeStart.length
     while (stack.nonEmpty) {
-      val nx = g().V(stack.removeLast())
-      stack.appendAll(nx.out(AST).id().toList.asScala.map(_.asInstanceOf[Long]).toArray)
-      nnodes += 1
+      val nx       = g().V(stack.removeAll()*)
+      val children = nx.out(AST).id().toList.asScala.asInstanceOf[mutable.Buffer[Long]].toArray
+      nnodes += children.length
+      stack.appendAll(children)
     }
     Option(blackhole).foreach(_.consume(nnodes))
     nnodes
@@ -69,13 +71,13 @@ class TinkerGraphReadBenchmark extends GraphReadBenchmark {
   @Benchmark
   override def astUp(blackhole: Blackhole): Int = {
     var sumDepth = 0
-    for (node <- nodeStart) {
-      var nodeId  = node
-      def hasNext = g().V(nodeId).in(AST).hasNext
-      while (hasNext) {
-        sumDepth += 1
-        nodeId = g().V(nodeId).in(AST).id().next().asInstanceOf[Long]
-      }
+    val stack    = scala.collection.mutable.ArrayDeque.empty[Long]
+    stack.addAll(nodeStart)
+    while (stack.nonEmpty) {
+      val ps      = g().V(stack.removeAll()*)
+      val parents = ps.out(AST).id().toList.asScala.asInstanceOf[mutable.Buffer[Long]].toArray
+      sumDepth += parents.size
+      stack.appendAll(parents)
     }
     Option(blackhole).foreach(_.consume(sumDepth))
     sumDepth
@@ -83,10 +85,11 @@ class TinkerGraphReadBenchmark extends GraphReadBenchmark {
 
   @Benchmark
   override def orderSum(blackhole: Blackhole): Int = {
-    var sumOrder = 0
-    for (node <- nodeStart.map(g().V(_))) {
-      sumOrder += node.properties(ORDER).value().next().asInstanceOf[Int]
-    }
+    var sumOrder = g().V(nodeStart*).properties(ORDER).value().asScala.asInstanceOf[Iterator[Int]].sum
+
+//    for (node <- g().V(nodeStart*).properties(ORDER)) {
+//      sumOrder += g().V(node).properties(ORDER).value().next().asInstanceOf[Int]
+//    }
     Option(blackhole).foreach(_.consume(sumOrder))
     sumOrder
   }

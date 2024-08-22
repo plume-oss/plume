@@ -5,7 +5,7 @@ import io.shiftleft.codepropertygraph.generated.EdgeTypes.AST
 import io.shiftleft.codepropertygraph.generated.NodeTypes.{CALL, METHOD}
 import io.shiftleft.codepropertygraph.generated.PropertyNames.{FULL_NAME, ORDER}
 import org.neo4j.graphdb.GraphDatabaseService
-import org.openjdk.jmh.annotations.{Benchmark, Measurement, OutputTimeUnit, Scope, Setup, State, Timeout, Warmup}
+import org.openjdk.jmh.annotations.*
 import org.openjdk.jmh.infra.{BenchmarkParams, Blackhole}
 import overflowdb.traversal.*
 
@@ -96,79 +96,79 @@ class Neo4jEmbedReadBenchmark extends GraphReadBenchmark {
 
   @Benchmark
   override def astDFS(blackhole: Blackhole): Int = {
-    val stack = scala.collection.mutable.ArrayDeque.empty[Long]
-    stack.addAll(nodeStart)
-    var nnodes = nodeStart.length
-    while (stack.nonEmpty) {
-      val childrenIds = Using.resource(g.beginTx) { tx =>
+    val nnodes = Using
+      .resource(g.beginTx) { tx =>
         tx.execute(
           s"""
-               |MATCH (n)-[AST]->(m)
-               |WHERE n.id = $$nodeId
-               |RETURN m.id AS ID
+               |MATCH (n)
+               |WHERE n.id IN $$nodeIds
+               |WITH collect(n) AS startingNodes
+               |CALL {
+               |    WITH startingNodes
+               |    UNWIND startingNodes AS start
+               |    MATCH (start)-[:AST*]->(descendant)
+               |    RETURN descendant
+               |}
+               |WITH startingNodes, collect(descendant) AS descendants
+               |RETURN size(startingNodes) + size(descendants) AS nodeCount
                |""".stripMargin,
           new util.HashMap[String, Object](1) {
-            put("nodeId", stack.removeLast().asInstanceOf[Object])
+            put("nodeIds", nodeStart.toList.asJava)
           }
-        ).map { result => result.get("ID").asInstanceOf[Long] }
-          .toArray
+        ).map(_.get("nodeCount").asInstanceOf[Long])
+          .next()
       }
-      stack.appendAll(childrenIds)
-      nnodes += 1
-    }
+      .toInt
     Option(blackhole).foreach(_.consume(nnodes))
     nnodes
   }
 
   @Benchmark
   override def astUp(blackhole: Blackhole): Int = {
-    var sumDepth = 0
-    for (node <- nodeStart) {
-      var nodeId = node
-      def getResult = Using.resource(g.beginTx) { tx =>
+    val sumDepth = Using
+      .resource(g.beginTx) { tx =>
         tx.execute(
           s"""
-               |MATCH (n)<-[AST]-(m)
-               |WHERE n.id = $$nodeId
-               |RETURN m.id AS ID
-               |""".stripMargin,
+           |MATCH (n)
+           |WHERE n.id IN $$nodeIds
+           |WITH collect(n) AS startingNodes
+           |CALL {
+           |    WITH startingNodes
+           |    UNWIND startingNodes AS start
+           |    MATCH (start)<-[:AST*]-(parent)
+           |    RETURN parent
+           |}
+           |WITH startingNodes, collect(parent) AS parents
+           |RETURN size(startingNodes) + size(parents) AS nodeCount
+           |""".stripMargin,
           new util.HashMap[String, Object](1) {
-            put("nodeId", nodeId.asInstanceOf[Object])
+            put("nodeIds", nodeStart.toList.asJava)
           }
-        ).map { result => result.get("ID").asInstanceOf[Long] }
-          .toArray
+        ).map(_.get("nodeCount").asInstanceOf[Long])
+          .next()
       }
-      var result  = getResult
-      def hasNext = result.nonEmpty
-      while (hasNext) {
-        sumDepth += 1
-        nodeId = result.head
-        result = getResult
-      }
-    }
+      .toInt
     Option(blackhole).foreach(_.consume(sumDepth))
     sumDepth
   }
 
   @Benchmark
   override def orderSum(blackhole: Blackhole): Int = {
-    var sumOrder = 0
-    for (nodeId <- nodeStart) {
-      val orderArr = Using.resource(g.beginTx) { tx =>
+    val sumOrder = Using
+      .resource(g.beginTx) { tx =>
         tx.execute(
           s"""
-               |MATCH (n)
-               |WHERE n.id = $$nodeId
-               |RETURN n.$ORDER AS $ORDER
-               |""".stripMargin,
+             |MATCH (n)
+             |WHERE n.id IN $$nodeIds
+             |RETURN n.$ORDER AS $ORDER
+             |""".stripMargin,
           new util.HashMap[String, Object](1) {
-            put("nodeId", nodeId.asInstanceOf[Object])
+            put("nodeIds", nodeStart.toList.asJava)
           }
         ).map { result => result.get(ORDER).asInstanceOf[Int] }
           .toArray
       }
-      sumOrder += orderArr.head
-    }
+      .sum
     Option(blackhole).foreach(_.consume(sumOrder))
     sumOrder
   }
