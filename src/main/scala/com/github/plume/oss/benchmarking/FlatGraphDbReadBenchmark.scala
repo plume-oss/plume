@@ -89,12 +89,14 @@ class FlatGraphDbReadBenchmark extends GraphReadBenchmark {
       val node = cpg.graph.node(nodeId)
       sumOrder += flatgraph.Accessors.getNodePropertySingle(node.graph, node.nodeKind, prop, node.seq(), -1)
     }
+    Option(blackhole).foreach(_.consume(sumOrder))
     sumOrder
   }
 
   @Benchmark
   override def callOrderTrav(blackhole: Blackhole): Int = {
     val res = nodeStart.iterator.map(cpg.graph.node).asInstanceOf[Iterator[Call]].orderGt(2).size
+    Option(blackhole).foreach(_.consume(res))
     res
   }
 
