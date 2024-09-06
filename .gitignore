@@ -11,6 +11,8 @@ gsql_client.*
 .local
 /workspace
 /results
+*.zip
+.scala-build
 
 # Ignore Gradle GUI config
 gradle-app.setting
