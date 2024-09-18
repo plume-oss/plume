@@ -6,6 +6,7 @@ import com.github.plume.oss.Benchmark.deserializeConfig
 import com.github.plume.oss.drivers.IDriver
 import com.github.plume.oss.{Benchmark, JimpleAst2Database, PlumeConfig, TinkerGraphConfig}
 import io.joern.jimple2cpg.Config
+import io.shiftleft.codepropertygraph.generated.{NodeTypes, PropertyNames}
 import org.openjdk.jmh.annotations.*
 import org.openjdk.jmh.infra.{BenchmarkParams, Blackhole}
 
@@ -41,10 +42,11 @@ trait GraphReadBenchmark {
     val (driver_, _) = oss.Benchmark.initializeDriverAndInputDir(configStr, deleteExistingStorage = false)
     driver = driver_
     val createAst = config.dbConfig match {
-      case TinkerGraphConfig(_, Some(path))    => !File(path).exists()
-      case oss.OverflowDbConfig(path, _, _)    => !File(path).exists()
-      case oss.Neo4jEmbeddedConfig(_, path, _) => !File(path).exists()
-      case _                                   => true
+      case TinkerGraphConfig(_, Some(path)) => !File(path).exists()
+      case oss.OverflowDbConfig(path, _, _) => !File(path).exists()
+      case oss.Neo4jEmbeddedConfig(_, path, _) =>
+        if !File(path).exists() then true else driver.propertyFromNodes(NodeTypes.FILE, PropertyNames.NAME).isEmpty
+      case _ => true
     }
     if (createAst) JimpleAst2Database(driver).createAst(Config().withInputPath(config.inputDir))
   }
