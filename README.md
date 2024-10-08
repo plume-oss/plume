@@ -22,8 +22,12 @@ dataflow analysis and comparing database backend performance.
 Versions < 0.6.3 of Plume were Kotlin based but versions from 1.0.0 onwards have been moved to a Scala implementation
 for better interfacing with the [CPG schema library](https://github.com/ShiftLeftSecurity/codepropertygraph).
 
-If your project depends on Plume I am happy to still provide maintenance and support but I recommend any new 
+If your project depends on Plume I am happy to still provide maintenance and support, but I recommend any new 
 research to begin on Joern where I also spend time providing help and support.
+
+> [!TIP]
+> A `flatgraph`-based fork in on [`dave/flatgraph`](dave/flatgraph). This is not merged into the default branch
+> as the current `flatgraph.DiffGraphBuilder` API is more encapsulated than OverflowDB's.
 
 ## Quickstart
 
@@ -89,50 +93,17 @@ export GSQL_HOME=`pwd`/gsql_client.jar
 
 Remember to set the `tgVersion` correctly in the `TigerGraphDriver`.
 
+> [!WARNING]  
+> At the time of writing, TigerGraph now ships Docker containers with licenses of restricted lifespans, thus killing 
+> access to older versions. Due to this, and some other moves to becoming more proprietary, I have been unable to
+> support newer versions of Tigergraph. 
+
 ## Community
 
-* If you have any questions or want to be involved then check out
-  our [discussions page](https://github.com/plume-oss/plume/discussions).
-* Joern's [Discord](https://discord.gg/28uCANEkK2). Note, this will give you temporary membership
-  to the server. Once joined you can obtain permanent membership by being assigned role if necessary. 
+* Joern's [Discord](https://discord.gg/28uCANEkK2).
 * Plume is primarily maintained by [David Baker Effendi](https://davidbakereffendi.github.io/)
     * DM on [Twitter](https://twitter.com/SDBakerEffendi)
     * Email at dbe@sun.ac.za
-
-## Known Bugs
-
-- Due to module encapsulation in Java 17, Kryo serialization for `TinkerGraphDriver` will not work due to serialization
-  errors.
-
-## Adding Plume as a Dependency
-
-Replace `X.X.X` with the desired version on [JitPack](https://jitpack.io/#plume-oss/plume).
-
-```sbt
-libraryDependencies ++= Seq(
-  com.github.plume-oss %% plume % X.X.X
-)
-```
-
-Don't forget to include the JCenter and JitPack repository in your `build.sbt`.
-
-```sbt
-resolvers += "jitpack" at "https://jitpack.io"
-```
-
-## Building from Source
-
-Plume releases are available on JitPack. If downloading from JitPack is not an option, or you would like to depend on a
-modified version of Plume, you can build Plume locally and use it as an unmanaged dependency. JDK version 11 or higher
-is required.
-
-```shell script
-git clone https://github.com/plume-oss/plume.git
-cd plume
-sbt stage
-```
-
-This will build `target/scala-2.13/plume_2.13-X.X.X.jar` which can be imported into your local project.
 
 ## Benchmarks
 
@@ -148,6 +119,14 @@ An automated script to run the benchmarks versus programs from the `defects4j` d
 ```bash
 scala runBenchmarks.sc
 ```
+
+## Known Bugs
+
+- Due to module encapsulation in Java 17, Kryo serialization for `TinkerGraphDriver` will not work due to serialization
+  errors. There are ways around this with some additional config, however.
+- When running benchmarks, the classpath is sometimes in an abnormal state, and the mutated JMH classes are missing.
+  this usually resolves itself after re-running the process.
+
 
 ## Logging
 
