@@ -75,7 +75,7 @@ object Benchmark {
       .output(s"${config.jmhOutputFile}-${benchmarkType.toString.toLowerCase}.txt")
       .result(s"${config.jmhResultFile}-${benchmarkType.toString.toLowerCase}.csv")
       .param("configStr", write(config))
-      .jvmArgsAppend(s"-Xmx${config.jmhMemoryGb}G", "-XX:+UseZGC", "-XX:+UseStringDeduplication")
+      .jvmArgsAppend(s"-Xmx${config.jmhMemoryGb}G", "-XX:+UseZGC")
   }
 
   enum BenchmarkType {
